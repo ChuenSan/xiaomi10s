@@ -50,8 +50,9 @@ jobs:
 
       - name: Apply thyme patch series
         run: |
-          git -C "$LINUX_DIR" apply --stat patches/linux-6.6/*.patch
-          for p in patches/linux-6.6/*.patch; do
+          PATCH_DIR="$GITHUB_WORKSPACE/patches/linux-6.6"
+          git -C "$LINUX_DIR" apply --stat "$PATCH_DIR"/*.patch
+          for p in "$PATCH_DIR"/*.patch; do
             git -C "$LINUX_DIR" apply --whitespace=nowarn "$p"
           done
           echo "thyme patch series applied"
