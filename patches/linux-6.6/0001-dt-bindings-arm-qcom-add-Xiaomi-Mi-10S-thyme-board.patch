@@ -1,0 +1,28 @@
+From 6550676230dfd8bf0275219e31d8339c81f6ba9f Mon Sep 17 00:00:00 2001
+From: ChuenSan <ChuenSan@users.noreply.github.com>
+Date: Sun, 6 Sep 2026 21:04:13 +0800
+Subject: [PATCH 1/2] dt-bindings: arm: qcom: add Xiaomi Mi 10S (thyme) board
+
+Document the compatible for the Xiaomi Mi 10S (thyme), an SM8250
+smartphone.
+
+Signed-off-by: ChuenSan <ChuenSan@users.noreply.github.com>
+---
+ Documentation/devicetree/bindings/arm/qcom.yaml | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Documentation/devicetree/bindings/arm/qcom.yaml b/Documentation/devicetree/bindings/arm/qcom.yaml
+index 90f31beb8..4ca0bf01f 100644
+--- a/Documentation/devicetree/bindings/arm/qcom.yaml
++++ b/Documentation/devicetree/bindings/arm/qcom.yaml
+@@ -965,6 +965,7 @@ properties:
+               - sony,pdx203-generic
+               - sony,pdx206-generic
+               - xiaomi,elish
++              - xiaomi,thyme
+           - const: qcom,sm8250
+ 
+       - items:
+-- 
+2.39.5 (Apple Git-154)
+

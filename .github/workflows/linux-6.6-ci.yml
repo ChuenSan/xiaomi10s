@@ -48,6 +48,14 @@ jobs:
           git submodule update --init --depth 1 "$LINUX_DIR"
           git -C "$LINUX_DIR" log -1 --format='pinned: %H %s'
 
+      - name: Apply thyme patch series
+        run: |
+          git -C "$LINUX_DIR" apply --stat patches/linux-6.6/*.patch
+          for p in patches/linux-6.6/*.patch; do
+            git -C "$LINUX_DIR" apply --whitespace=nowarn "$p"
+          done
+          echo "thyme patch series applied"
+
       - name: Configure (arm64 defconfig, LLVM)
         working-directory: ${{ env.LINUX_DIR }}
         run: make $MAKEARGS defconfig
@@ -71,7 +79,8 @@ jobs:
             out/arch/arm64/boot/Image \
             out/arch/arm64/boot/dts/qcom/sm8250-mtp.dtb \
             out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-elish-boe.dtb \
-            out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-elish-csot.dtb; do
+            out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-elish-csot.dtb \
+            out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dtb; do
             test -s "$f" || { echo "MISSING: $f"; exit 1; }
             echo "OK: $f"
           done
@@ -93,6 +102,7 @@ jobs:
             linux-6.6/out/arch/arm64/boot/dts/qcom/sm8250-mtp.dtb
             linux-6.6/out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-elish-boe.dtb
             linux-6.6/out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-elish-csot.dtb
+            linux-6.6/out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dtb
 
       - name: Upload logs
         uses: actions/upload-artifact@v4

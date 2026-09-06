@@ -2,7 +2,9 @@
 
 Project: mainline Linux 6.6 bring-up on Xiaomi Mi 10S (`thyme`, Qualcomm SM8250/kona, arm64).
 
-Status markers: `CONFIRMED` (verified from source/device), `INFERRED` (evidence but not proven), `UNKNOWN`.
+Status markers: `CONFIRMED_STOCK` (stock merged DT from ROM), `CONFIRMED_DOWNSTREAM`
+(vendor kernel source), `CONFIRMED_BOTH`, `INFERRED`, `UNKNOWN`.
+Detailed stock-image parsing: `docs/stock-rom-analysis.md`.
 
 ## Device identity
 
@@ -10,74 +12,60 @@ Status markers: `CONFIRMED` (verified from source/device), `INFERRED` (evidence 
 |---|---|---|---|
 | Model | Xiaomi M2102J2SC (Mi 10S) | task brief | CONFIRMED |
 | Codename | thyme | task brief + downstream DTS | CONFIRMED |
-| SoC | Qualcomm SM8250 (kona) | task brief | CONFIRMED |
-| Region variant | GLOBAL, hwlevel MP, hwversion A.9.0 | `ro.boot.hwc/hwlevel/hwversion` | CONFIRMED |
-| Stock ROM on device | V14.0.6.0.TGACNXM (Android 13) | `ro.build.version.incremental` | CONFIRMED |
-| Android kernel on device | 4.19.157-perf-g9d90dd04aa7c | task brief | CONFIRMED |
+| SoC | Qualcomm SM8250 (kona) **v2.1** | stock base DTB `msm-id <0x164 0x20001>` | CONFIRMED_BOTH |
+| Stock ROM | V14.0.6.0.TGACNXM (Android 13, SPL 2023-09) | device + ROM AVB props | CONFIRMED_BOTH |
+| Android kernel | 4.19.157-perf-g9d90dd04aa7c | device | CONFIRMED |
+| Bootloader | **unlocked** (`fastboot getvar unlocked: yes`) | fastboot, 2026-09-06 | CONFIRMED |
 
-## Boot chain / DT layout (downstream)
+## Boot chain / DT layout
 
 | Fact | Value | Source | Status |
 |---|---|---|---|
-| Base DTB | `kona.dtb` (also kona-v2/kona-v2.1 listed in dtbo-base) | `arch/arm64/boot/dts/vendor/qcom/Makefile:29` | CONFIRMED |
-| DTBO | `thyme-sm8250-overlay.dtbo` | same, `Makefile:16` | CONFIRMED |
-| Board ID | `qcom,board-id = <45 0>` | `thyme-sm8250-overlay.dts` | CONFIRMED |
-| Compatible (downstream) | `qcom,kona-mtp`, `qcom,kona`, `qcom,mtp` | `thyme-sm8250-overlay.dts` | CONFIRMED |
-| Active DTB index on device | `ro.boot.dtb_idx = 0` | live device | CONFIRMED |
-| Active DTBO index on device | `ro.boot.dtbo_idx = 21` | live device | CONFIRMED |
-| Boot device | `soc/1d84000.ufshc` (UFS host @ 0x1d84000) | `ro.boot.bootdevice` | CONFIRMED |
-| Boot console | `ttyMSM0` | `ro.boot.console` | CONFIRMED |
-| Serial console path (mainline) | `serial0` alias exists on live DT; mainline = `uart0` on TLMM | live DT aliases | INFERRED |
-
-⚠️ **Lock-state discrepancy**: `ro.boot.flash.locked=1` and `ro.boot.verifiedbootstate=green` both indicate the bootloader currently reports LOCKED, contradicting the "unlocked" note from the task brief. Verify read-only with `fastboot getvar unlocked` before any flashing milestone. No flashing is planned this round.
+| boot.img | header **v3**, kernel 50.2 MB, ramdisk 18.8 MB gzip, no cmdline | parsed | CONFIRMED_STOCK |
+| vendor_boot.img | header **v3**, page 4096, DTB @ 0x1f00000 | parsed | CONFIRMED_STOCK |
+| vendor cmdline | `console=ttyMSM0,115200n8 … androidboot.usbcontroller=a600000.dwc3 …` | vendor_boot | CONFIRMED_STOCK |
+| Base DTBs in vendor_boot | 4 concatenated FDTs: kona v2.1 / v2 / v1 / empty stub | split script | CONFIRMED_STOCK |
+| Selected base DTB | index 0 = kona v2.1 (`dtb_idx=0`) | live device + split | CONFIRMED_BOTH |
+| DTBO | `dtbo.img` 29 entries; **entry 21 = xiaomi thyme, board-id `<45 0>`** | mkdtboimg | CONFIRMED_BOTH |
+| Overlay merge | fdtoverlay(base0 + entry21) succeeds → runtime-equivalent DT | work/stock-rom | CONFIRMED_STOCK |
+| Console UART | stock `serial0` = qup_uart@988000 = mainline **uart2** (geni-debug-uart @ 0x988000) | stock aliases + mainline dtsi | CONFIRMED_BOTH |
+| Bootloader state note | `ro.boot.flash.locked=1`/`verifiedbootstate=green` are AVB presentation props; factory vbmeta already carries Flags 2 (verification disabled) — BL is unlocked per fastboot | fastboot + avbtool | CONFIRMED |
 
 ## Subsystem mapping
 
-| Subsystem | Downstream thyme | Mainline SM8250 support | Reference DTS | Port status |
+| Subsystem | Stock evidence | Downstream | Mainline 6.6 support | Port status |
 |---|---|---|---|---|
-| SoC | kona.dtsi (Qualcomm vendor tree) | `sm8250.dtsi` complete | sm8250-mtp.dts | known |
-| PMIC | pm8150 + pm8150a + pm8150b + pm8009 (`kona-pmic-overlay.dtsi`) | rpmh-regulators for all four | elish-common (`pm8150/pm8150l/pm8009`) | investigate (rail table per panel/pm: `oled_pmic_id=0A`) |
-| UFS | `&ufshc_mem` @1d84000, `qcom,disable-lpm`, hsg4_synclength quirk; vcc=pm8150_l17, vccq=pm8150_l6, vccq2=pm8150_s4 | `ufs_mem_hc` + `ufs_mem_phy` (l17a/l6a/s4a — same rails as elish) | elish-common | investigate (quirk flags differ) |
-| USB | HS-only: `&usb0` dwc3@a600000 + usb2_phy0, `maximum-speed=high-speed`; usb1/qmp/dp PHY disabled | `usb_1` UTMI-as-pipe, HS-only DWC3 — identical approach works | elish-common (USB 2.0 only) | investigate (mode: peripheral vs OTG) |
-| Wi-Fi/BT | `bt_qca6390` (QCA6390 combo): aon=pm8150_s6, dig=pm8009_s2, rfa1=pm8150_s5, rfa2=pm8150a_s8, asd=pm8150_l16; WLAN via cnss + PCIe | ath11k supports QCA6390 via PCIe (pcie0) | elish has no wlan/bt node in-tree | later |
-| Display | sw43404 AMOLED DSC family (Mi 10 series panel lib), reset TLMM75, TE TLMM66, bl via DCS; `oled_panel_id=0B` | `mdss_dsi0` (single DSI on thyme) + panel driver upstream? | elish is dual-DSI Mi Pad (NOT applicable directly) | later |
-| Touch | Goodix GT9889 `goodix@5d` on I2C, reset=TLMM38, irq=TLMM39; 1080×2340; alt driver ST FTS present in config | mainline has goodix-berlin? no in-tree GT9889 driver | elish has no touch node | later |
-| Fingerprint | Goodix FOD (`ro.boot.fpsensor=goodix_fod6`, `TOUCHSCREEN_FOD`) | none | — | later |
-| Haptics | AW8697 (`INPUT_AW8697_HAPTIC`), vdd_boost on pm8150b_gpios 5/12 | none (aw8695/8697 drivers not upstream) | — | later |
-| Audio | WSA max devs 0, MBHC USB-C audio, micbias 2750 mV, MI2S lines 2/1, sbu_uart_en mux | q6asm/lpass available | elish (sound card) | later |
-| Battery/charge | fg-gen4 gauge: alium 3600 mAh / ascent 3450 mAh variants; smb1390 + bq25970 (@I2C qupv3_se15, irq TLMM68) | simple-battery + bq25xxx upstream; smb1390 not upstream | elish uses bq27z561 (different) | later |
-| Remoteproc | pil regions on live DT: adsp/cdsp/slpi/spss/video/wlan_fw/camera/cvp/npu/ipa | adsp/cdsp/slpi/venus/mpss all supported | elish enables adsp/cdsp/slpi/venus with mbn | investigate (firmware sourcing) |
-| Regulators (boot-critical) | UFS: l17/l6/s4; USB PHY: l5 (0.88), l12 (1.8), l2 (3.1) in elish mapping | pm8150 rpmh rails in sm8250.dtsi apps_rsc | elish-common regulator table | investigate |
-| PCIe | 3 domains + mhi-netdev0 alias (modem MHI) | pcie0/1/2 in sm8250.dtsi | elish enables pcie0 (WLAN) | later |
-| Camera | flashes via pm8150l; sensors in `thyme-sm8250-camera-sensor-mtp.dtsi` | camss support partial | — | later |
-| NFC | `nq@64` on qupv3_se15 disabled in thyme dtsi | nq-nci driver exists | — | UNKNOWN (device variant) |
-| Buttons | vol up/down standard kona pon (elish: pm8150_gpios6 vol_up, resin vol_down) | gpio-keys + pon | elish-common | investigate |
+| PMIC | spmi: pm8150(0/1), pm8150b(2/3), pm8150l(4/5), pmxprairie(8/9), pm8009(a/b) | kona-pmic-overlay | pm8150.dtsi (covers PM8150A!), pm8150b/pm8150l/pm8009.dtsi; rpmh regulators per `qcom,pmic-id` a/b/c/d | CONFIRMED — include set settled |
+| UFS | @1d84000 + ICE, 2 lanes, disable-lpm, vcc=pm8150_l17 2.504–2.95 V, vccq=pm8150_l6 (parent pm8150a_s8), vccq2=pm8150_s4 | ufshc_mem quirks | ufs_mem_hc/phy, same rails as elish | CONFIRMED_BOTH → in DTS v1 |
+| USB | usb0 @a600000 HS-only `dr_mode="drd"`; usb1 disabled | usb0 dwc3 HS-only | usb_1 + utmi-as-pipe (elish identical) | CONFIRMED_BOTH → in DTS v1 (dr_mode=peripheral for v1) |
+| Console | ttyMSM0 115200n8 = uart2 @0x988000 | serial0 alias | uart2 geni-debug-uart | CONFIRMED_BOTH → in DTS v1 |
+| Display | panel family **"xiaomi 42 02 0b"** cmd-mode DSC (J2 DDIC, 6 batch variants), 1080×2340 60/90 Hz, 4-lane, TE pin, DSC 8bpc, 71×154 mm; `oled_panel_id=0B`; runtime panel-id match vs `mi,panel-id <0x4A32 0x00420201>`; default-panel=sim placeholder | dsi-panel-j2*-42-02-0b-*.dtsi | no upstream driver for this panel | needs driver work (panel) — sw43404 assumption disproven |
+| Touch | goodix,gt9889 @0x5d on qupv3_se13_i2c (i2c@a94000), reset TLMM38, IRQ TLMM39, fw `goodix_gt9886_fw_J2.bin`, vtouch TLMM69 gpio regulator | thyme-pinctrl | no in-tree GT9889/9886 driver | needs driver work |
+| Fingerprint | goodix,fingerprint, IRQ TLMM23, reset TLMM24 | thyme dtsi | none | later |
+| Haptics | aw8697_haptic@5A (I2C) | thyme dtsi | no upstream aw8697 | later |
+| WLAN | qcom,cnss-qca6390 @b0000000, wlan-en TLMM20, PCIe RC0 | thyme dtsi | ath11k supports QCA6390 | needs DTS later |
+| Bluetooth | qca,qca6390, reset TLMM21, sw-ctrl TLMM124; UART transport | thyme dtsi + hci_qca | hci_qca + serdev | needs DTS later |
+| BT/WLAN rails | aon=s6a, dig=pm8009_s2, rfa1=s5a, rfa2=s8a, asd=l16a, io=s4a | kona-pmic-overlay | rpmh | needs DTS later |
+| Audio | swr0/1/2, bolero macros, wcd938x-class | thyme-audio-overlay | q6/Bolero available | later |
+| Modem | **no modem PIL node / no mpss region in stock DT**; mhi-netdev0 on pcie2 | — | mpss pas available | UNKNOWN boot path |
+| Remoteproc (adsp/cdsp/slpi/venus) | pil regions in reserved-memory; PIL nodes present | thyme dtsi | pas + mbn | deferred (keep disabled v1) |
+| Charging | bq25970-standalone @0x66 se15, IRQ TLMM68; smb1390 | thyme-sm8250.dtsi | bq25970 partial, smb1390 none | later |
+| Battery | fg-gen4: alium 3600 mAh / ascent 3450 mAh profiles | fg-gen4 data | simple-battery possible | later |
+| Buttons | stock: pon resin + vol keys (unverified mapping) | xiaomi-common | gpio-keys/pon | investigate |
+| Camera | sensors in thyme camera dtsi; flashes via pm8150l | camera-sensor dtsi | camss partial | later |
+| NFC | nq@64 se15 disabled in thyme dtsi | thyme dtsi | nq-nci exists | UNKNOWN |
 
 ## Sources
 
-- Downstream DT: `android-kernel-sm8250/arch/arm64/boot/dts/vendor/qcom/` — `thyme-sm8250.dtsi`, `thyme-sm8250-overlay.dts`, `thyme-pinctrl.dtsi`, `thyme-audio-overlay.dtsi`, `thyme-sm8250-camera-sensor-mtp.dtsi`, `xiaomi-sm8250-common.dtsi`, `kona-sde-display.dtsi`, `kona-pmic-overlay.dtsi`
-- Downstream config: `android-kernel-sm8250/arch/arm64/configs/vendor/xiaomi/thyme.config`
-- Live device: `adb shell getprop` (ro.boot.*, ro.build.*), `/sys/firmware/devicetree/base` (node names only; file contents shell-denied)
-- Mainline reference: `linux-6.6/arch/arm64/boot/dts/qcom/sm8250-xiaomi-elish-{common,boe,csot}*`
+- Stock ROM parse: `docs/stock-rom-analysis.md`, `work/stock-rom/thyme-stock-merged.dts`
+- Downstream DT: `android-kernel-sm8250/arch/arm64/boot/dts/vendor/qcom/` (thyme-*, xiaomi-sm8250-common, kona-*, dsi-panel-j2*-42-02-0b-*)
+- Mainline reference: `linux-6.6/arch/arm64/boot/dts/qcom/sm8250-xiaomi-elish-common.dtsi`, `sm8250-mtp.dts`
+- Live device: `ro.boot.*`, fastboot getvar (read-only)
 
-## Open items
+## First-version DTS scope (implemented)
 
-1. Bootloader lock state contradiction (see warning above).
-2. Stock artifacts (boot.img/vendor_boot.img/dtbo.img/vbmeta.img) not present locally; obtain from V14.0.6.0.TGACNXM fastboot ROM, then parse: header version, page size, cmdline, DTBO index 21 content, panel variant.
-3. `/proc/cmdline` unreadable via adb (Permission denied) — recover cmdline from unpacked boot/vendor_boot instead.
-4. Exact thyme panel part number (dtbo_idx 21 content will confirm).
-5. thyme-specific pinctrl/GPIO map not yet fully extracted (thyme-pinctrl.dtsi).
-
-## First-version DTS scope (decision)
-
-Minimal `sm8250-xiaomi-thyme.dts` targets, driven by the CONFIRMED facts above:
-
-- model/compatible: `xiaomi,thyme`, `qcom,sm8250`
-- memory/reserved-memory: start from elish layout, verify against device (9-class pil regions confirmed present)
-- PMIC: pm8150 + pm8150l + pm8009 rpmh regulators (pm8150b only if boot needs it)
-- UFS: l17a/l6a/s4a supplies (matches both downstream thyme and mainline elish)
-- USB: usb_1 HS-only peripheral (matches both downstream and elish)
-- remoteproc: defer firmware, keep nodes disabled first revision
-- chosen/bootargs: console=ttyMSM0 strategy after boot image parsing
-
-Explicitly out of scope for v1: display, touch, camera, audio, modem, WiFi/BT.
+`linux-6.6/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dts`:
+compatible `xiaomi,thyme` + `qcom,sm8250`; includes sm8250 + pm8150 + pm8150l;
+regulators: vph_pwr, s4a/l5a/l6a/l9a/l12a/l17a/l2a (pmic-id a), s5a/s6a (pmic a), s8c/bob (pmic c);
+UFS + UFS PHY with stock-matched rails; USB1 HS-only (peripheral); uart2 console (aliases serial0, stdout-path).
+Deliberately out of scope v1: display, touch, WLAN/BT, audio, camera, modem, remoteproc firmware, buttons, battery/charging.

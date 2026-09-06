@@ -1,0 +1,238 @@
+From 185d1abd370c4d222f903bb2ef159b1820cc1fd5 Mon Sep 17 00:00:00 2001
+From: ChuenSan <ChuenSan@users.noreply.github.com>
+Date: Sun, 6 Sep 2026 21:04:14 +0800
+Subject: [PATCH 2/2] arm64: dts: qcom: add Xiaomi Mi 10S (thyme) initial board
+ device tree
+
+Minimal, fact-based board file for the Xiaomi Mi 10S (thyme), an
+SM8250 smartphone. Facts are taken from the merged stock MIUI 14
+device tree (vendor_boot DTB index 0 + dtbo entry 21, board-id <45 0>):
+
+- console: stock serial0 maps to uart2 (geni-debug-uart @ 0x988000)
+- UFS: ufs_mem_hc/phy with vcc 3p0 (l17a), vccq 1p2 (l6a),
+  vccq2 1p8 (s4a) as in the stock DT
+- USB: usb_1 HS-only (stock usb0 @a600000, no USB3/DP), peripheral mode
+- regulators: rails used by UFS and USB, wired per the PMIC parent
+  chain shared with sm8250-mtp/elish
+
+Display (xiaomi 42 02 0b cmd-mode DSC panel family), touch (Goodix
+GT9889), WLAN/BT (QCA6390) and remoteprocs are intentionally left for
+follow-up work.
+
+Signed-off-by: ChuenSan <ChuenSan@users.noreply.github.com>
+---
+ arch/arm64/boot/dts/qcom/Makefile             |   1 +
+ .../boot/dts/qcom/sm8250-xiaomi-thyme.dts     | 189 ++++++++++++++++++
+ 2 files changed, 190 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dts
+
+diff --git a/arch/arm64/boot/dts/qcom/Makefile b/arch/arm64/boot/dts/qcom/Makefile
+index 0da076db0..57cdaff53 100644
+--- a/arch/arm64/boot/dts/qcom/Makefile
++++ b/arch/arm64/boot/dts/qcom/Makefile
+@@ -211,6 +211,7 @@ dtb-$(CONFIG_ARCH_QCOM)	+= sm8250-sony-xperia-edo-pdx203.dtb
+ dtb-$(CONFIG_ARCH_QCOM)	+= sm8250-sony-xperia-edo-pdx206.dtb
+ dtb-$(CONFIG_ARCH_QCOM)	+= sm8250-xiaomi-elish-boe.dtb
+ dtb-$(CONFIG_ARCH_QCOM)	+= sm8250-xiaomi-elish-csot.dtb
++dtb-$(CONFIG_ARCH_QCOM)	+= sm8250-xiaomi-thyme.dtb
+ dtb-$(CONFIG_ARCH_QCOM)	+= sm8350-hdk.dtb
+ dtb-$(CONFIG_ARCH_QCOM)	+= sm8350-microsoft-surface-duo2.dtb
+ dtb-$(CONFIG_ARCH_QCOM)	+= sm8350-mtp.dtb
+diff --git a/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dts b/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dts
+new file mode 100644
+index 000000000..a98cd1383
+--- /dev/null
++++ b/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dts
+@@ -0,0 +1,189 @@
++// SPDX-License-Identifier: BSD-3-Clause
++/*
++ * Xiaomi Mi 10S (thyme) board device tree, minimal bring-up revision.
++ *
++ * Facts sourced from the stock MIUI 14 (V14.0.6.0.TGACNXM) merged device tree
++ * (vendor_boot DTB index 0 + dtbo entry 21) and downstream kona sources; see
++ * docs/stock-rom-analysis.md and docs/thyme-hardware-map.md.
++ */
++
++/dts-v1/;
++
++#include <dt-bindings/regulator/qcom,rpmh-regulator.h>
++#include "sm8250.dtsi"
++#include "pm8150.dtsi"
++#include "pm8150l.dtsi"
++
++/ {
++	model = "Xiaomi Mi 10S (thyme)";
++	compatible = "xiaomi,thyme", "qcom,sm8250";
++
++	aliases {
++		serial0 = &uart2;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	vph_pwr: vph-pwr-regulator {
++		compatible = "regulator-fixed";
++		regulator-name = "vph_pwr";
++		regulator-min-microvolt = <3700000>;
++		regulator-max-microvolt = <3700000>;
++	};
++
++	/* Stock rails confirmed in the merged stock DT: UFS vcc/l17, vccq/l6,
++	 * vccq2/s4; USB HS PHY l5/l12/l2; UFS PHY vdda-pll/l9. Parent chains
++	 * (s5, s6, s8c, bob) follow the PMIC datasheet wiring as on elish.
++	 */
++};
++
++&apps_rsc {
++	regulators-0 {
++		compatible = "qcom,pm8150-rpmh-regulators";
++		qcom,pmic-id = "a";
++
++		vdd-s4-supply = <&vph_pwr>;
++		vdd-s5-supply = <&vph_pwr>;
++		vdd-s6-supply = <&vph_pwr>;
++		vdd-l2-l10-supply = <&vreg_bob>;
++		vdd-l3-l4-l5-l18-supply = <&vreg_s6a_0p95>;
++		vdd-l6-l9-supply = <&vreg_s8c_1p35>;
++		vdd-l7-l12-l14-l15-supply = <&vreg_s5a_1p9>;
++		vdd-l13-l16-l17-supply = <&vreg_bob>;
++
++		vreg_s4a_1p8: smps4 {
++			regulator-name = "vreg_s4a_1p8";
++			regulator-min-microvolt = <1800000>;
++			regulator-max-microvolt = <1920000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++			regulator-allow-set-load;
++			regulator-allowed-modes = <RPMH_REGULATOR_MODE_LPM
++						   RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_s5a_1p9: smps5 {
++			regulator-name = "vreg_s5a_1p9";
++			regulator-min-microvolt = <1824000>;
++			regulator-max-microvolt = <2040000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_s6a_0p95: smps6 {
++			regulator-name = "vreg_s6a_0p95";
++			regulator-min-microvolt = <600000>;
++			regulator-max-microvolt = <1128000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l2a_3p1: ldo2 {
++			regulator-name = "vreg_l2a_3p1";
++			regulator-min-microvolt = <3072000>;
++			regulator-max-microvolt = <3072000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l5a_0p88: ldo5 {
++			regulator-name = "vreg_l5a_0p88";
++			regulator-min-microvolt = <880000>;
++			regulator-max-microvolt = <880000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l6a_1p2: ldo6 {
++			regulator-name = "vreg_l6a_1p2";
++			regulator-min-microvolt = <1200000>;
++			regulator-max-microvolt = <1200000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++			regulator-allow-set-load;
++			regulator-allowed-modes = <RPMH_REGULATOR_MODE_LPM
++						   RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l9a_1p2: ldo9 {
++			regulator-name = "vreg_l9a_1p2";
++			regulator-min-microvolt = <1200000>;
++			regulator-max-microvolt = <1200000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l12a_1p8: ldo12 {
++			regulator-name = "vreg_l12a_1p8";
++			regulator-min-microvolt = <1800000>;
++			regulator-max-microvolt = <1800000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l17a_3p0: ldo17 {
++			regulator-name = "vreg_l17a_3p0";
++			regulator-min-microvolt = <2496000>;
++			regulator-max-microvolt = <3008000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++	};
++
++	regulators-1 {
++		compatible = "qcom,pm8150l-rpmh-regulators";
++		qcom,pmic-id = "c";
++
++		vdd-s8-supply = <&vph_pwr>;
++		vdd-bob-supply = <&vph_pwr>;
++
++		vreg_s8c_1p35: smps8 {
++			regulator-name = "vreg_s8c_1p35";
++			regulator-min-microvolt = <1350000>;
++			regulator-max-microvolt = <1400000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_bob: bob {
++			regulator-name = "vreg_bob";
++			regulator-min-microvolt = <3350000>;
++			regulator-max-microvolt = <3960000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_AUTO>;
++		};
++	};
++};
++
++/* Stock console: ttyMSM0,115200n8 (serial0 alias in the stock base DTB). */
++&uart2 {
++	status = "okay";
++};
++
++&ufs_mem_hc {
++	status = "okay";
++
++	vcc-supply = <&vreg_l17a_3p0>;
++	vcc-max-microamp = <800000>;
++	vccq-supply = <&vreg_l6a_1p2>;
++	vccq-max-microamp = <800000>;
++	vccq2-supply = <&vreg_s4a_1p8>;
++	vccq2-max-microamp = <750000>;
++};
++
++&ufs_mem_phy {
++	vdda-phy-supply = <&vreg_l5a_0p88>;
++	vdda-pll-supply = <&vreg_l9a_1p2>;
++	status = "okay";
++};
++
++&usb_1 {
++	/* USB 2.0 only on thyme (stock: usb0 @a600000, HS-only). */
++	qcom,select-utmi-as-pipe-clk;
++	status = "okay";
++};
++
++&usb_1_dwc3 {
++	dr_mode = "peripheral";
++	maximum-speed = "high-speed";
++	phys = <&usb_1_hsphy>;
++	phy-names = "usb2-phy";
++};
++
++&usb_1_hsphy {
++	vdda-pll-supply = <&vreg_l5a_0p88>;
++	vdda18-supply = <&vreg_l12a_1p8>;
++	vdda33-supply = <&vreg_l2a_3p1>;
++	status = "okay";
++};
+-- 
+2.39.5 (Apple Git-154)
+
