@@ -1,0 +1,134 @@
+name: linux-6.6-ci
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: linux-6.6-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LINUX_DIR: linux-6.6
+  MAKEARGS: O=out ARCH=arm64 LLVM=1
+
+jobs:
+  kernel-build:
+    name: Image + DTBs (gating)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang llvm lld make gcc bc bison flex libssl-dev libelf-dev \
+            device-tree-compiler python3 python3-pip python3-venv libyaml-dev swig
+          python3 -m venv "$HOME/dtschema-venv"
+          "$HOME/dtschema-venv/bin/pip" install dtschema==2024.4
+          echo "$HOME/dtschema-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Record toolchain versions
+        run: |
+          {
+            clang --version | head -1
+            ld.lld --version
+            make --version | head -1
+            dtc --version
+            "$HOME/dtschema-venv/bin/pip" show dtschema | sed -n 's/^Version: /dtschema /p'
+          } | tee toolchain-versions.log
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          git submodule update --init --depth 1 "$LINUX_DIR"
+          git -C "$LINUX_DIR" log -1 --format='pinned: %H %s'
+
+      - name: Configure (arm64 defconfig, LLVM)
+        working-directory: ${{ env.LINUX_DIR }}
+        run: make $MAKEARGS defconfig
+
+      - name: Build Image
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          set -o pipefail
+          make $MAKEARGS -j"$(nproc)" Image 2>&1 | tee build.log
+
+      - name: Build DTBs
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          set -o pipefail
+          make $MAKEARGS -j"$(nproc)" dtbs 2>&1 | tee -a build.log
+
+      - name: Verify required build products
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          for f in \
+            out/arch/arm64/boot/Image \
+            out/arch/arm64/boot/dts/qcom/sm8250-mtp.dtb \
+            out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-elish-boe.dtb \
+            out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-elish-csot.dtb; do
+            test -s "$f" || { echo "MISSING: $f"; exit 1; }
+            echo "OK: $f"
+          done
+
+      - name: dtbs_check (upstream baseline, non-blocking)
+        continue-on-error: true
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          make $MAKEARGS dtbs_check 2>&1 | tee dtbs_check.log || true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-6.6-build
+          if-no-files-found: error
+          path: |
+            linux-6.6/out/.config
+            linux-6.6/out/arch/arm64/boot/Image
+            linux-6.6/out/arch/arm64/boot/dts/qcom/sm8250-mtp.dtb
+            linux-6.6/out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-elish-boe.dtb
+            linux-6.6/out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-elish-csot.dtb
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-6.6-build-logs
+          path: |
+            toolchain-versions.log
+            linux-6.6/build.log
+            linux-6.6/dtbs_check.log
+
+  w1-baseline:
+    name: W=1 warning baseline (non-blocking, manual)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang llvm lld make gcc bc bison flex libssl-dev libelf-dev \
+            device-tree-compiler python3 python3-pip python3-venv libyaml-dev swig
+
+      - name: Fetch pinned linux-6.6
+        run: git submodule update --init --depth 1 "$LINUX_DIR"
+
+      - name: Build Image with W=1
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          make O=out-w1 ARCH=arm64 LLVM=1 defconfig
+          make O=out-w1 ARCH=arm64 LLVM=1 W=1 -j"$(nproc)" Image 2>&1 | tee w1-build.log || true
+          grep -E 'warning:' w1-build.log | sort | uniq -c | sort -rn > w1-warnings-summary.log || true
+
+      - name: Upload W=1 baseline log
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-6.6-w1-baseline
+          path: |
+            linux-6.6/w1-build.log
+            linux-6.6/w1-warnings-summary.log

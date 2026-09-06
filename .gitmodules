@@ -1,0 +1,16 @@
+[submodule "linux-6.6"]
+	path = linux-6.6
+	url = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
+	branch = linux-6.6.y
+[submodule "android-kernel-sm8250"]
+	path = android-kernel-sm8250
+	url = https://github.com/LineageOS/android_kernel_xiaomi_sm8250.git
+	branch = lineage-23.2
+[submodule "android-device-thyme"]
+	path = android-device-thyme
+	url = https://github.com/LineageOS/android_device_xiaomi_thyme.git
+	branch = lineage-23.2
+[submodule "android-device-sm8250-common"]
+	path = android-device-sm8250-common
+	url = https://github.com/LineageOS/android_device_xiaomi_sm8250-common.git
+	branch = lineage-23.2
