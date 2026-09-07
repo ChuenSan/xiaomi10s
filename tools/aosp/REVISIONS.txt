@@ -1,0 +1,3 @@
+system/tools/mkbootimg c45163bf1cdb731e3bdd90d69d54c8e92004d673
+external/avb 2e2f2f75063678175bce7566d3ac344c0485343d
+system/libufdt 4f5784f8f46b38bd0e0249c3b1d0ce4b4faf36a8

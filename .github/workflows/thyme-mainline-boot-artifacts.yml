@@ -1,0 +1,261 @@
+name: thyme-mainline-boot-artifacts
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-artifacts-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LINUX_DIR: linux-6.6
+  MAKEARGS: O=out ARCH=arm64 LLVM=1
+  RELEASE_DIR: out-release
+  BUSYBOX_VER: 1.37.0
+  # exact stock vendor_boot board cmdline ( Cox CONFIRMED_STOCK, docs/stock-rom-analysis.md §5*
+  STOCK_CMDLINE: "console=ttyMSM0,115200n8 androidboot.hardware=qcom androidboot.console=ttyMSM0 androidboot.memcg=1 lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 msm_rtb.filter=0x237 service_locator.enable=1 androidboot.usbcontroller=a600000.dwc3 swiotlb=2048 loop.max_part=7 cgroup.memory=nokmem,nosocket reboot=panic_warm buildvariant=user"
+
+jobs:
+  artifacts:
+    name: firstboot artifacts ( gating*
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Vendor AOSP boot tools sanity
+        run: |
+          ls -la tools/aosp/
+          python3 -c "import ast; ast.parse(open('tools/aosp/mkbootimg.py').read()); ast.parse(open('tools/aosp/unpack_bootimg.py').read()); ast.parse(open('tools/aosp/mkdtboimg.py').read()); print('aosp tools parse OK')"
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang llvm lld make gcc bc bison flex libssl-dev libelf-dev \
+            device-tree-compiler python3 python3-pip python3-venv \
+            libyaml-dev swig cpio \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          echo "clang: $(clang --version | head -1)"
+          echo "dtc: $(dtc --version)"
+          echo "aarch64-gcc: $(aarch64-linux-gnu-gcc --version | head -1)"
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          git submodule update --init --depth 1 "$LINUX_DIR"
+          git -C "$LINUX_DIR" log -1 --format='pinned: %H %s'
+
+      - name: Apply thyme patch series
+        run: |
+          PATCH_DIR="$GITHUB_WORKSPACE/patches/linux-6.6"
+          for p in "$PATCH_DIR"/*.patch; do
+            git -C "$LINUX_DIR" apply --whitespace=nowarn "$p"
+          done
+          echo "thyme patch series applied"
+
+      - name: Configure ( defconfig + thyme bring-up fragment*
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          make $MAKEARGS defconfig
+          ./scripts/kconfig/merge_config.sh -m -O out out/.config \
+              "$GITHUB_WORKSPACE/configs/thyme-bringup.config"
+          make $MAKEARGS olddefconfig
+          grep -E "CONFIG_(DEVTMPFS|USB_DWC3|USB_CONFIGFS_ECM|CONFIGFS_FS|USB_GADGET)=y" out/.config
+
+      - name: Build Image
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          set -o pipefail
+          make $MAKEARGS -j"$(nproc)" Image 2>&1 | tee build.log
+
+      - name: Build thyme DTB
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          set -o pipefail
+          make $MAKEARGS -j"$(nproc)" dtbs 2>&1 | tee -a build.log
+
+      - name: Verify kernel products
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          for f in \
+            out/arch/arm64/boot/Image \
+            out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dtb; do
+            test -s "$f" || { echo "MISSING: $f"; exit 1; }
+            echo "OK: $f"
+          done
+          fdtget out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dtb / compatible | tr ' ' '\n' | grep -q qcom,sm8250 || { echo "thyme DTB lacks qcom,sm8250 machine compatible"; exit 1; }
+
+      - name: Cache busybox source
+        uses: actions/cache@v4
+        with:
+          path: .cache/busybox-${BUSYBOX_VER}
+          key: busybox-${{ env.BUSYBOX_VER }}
+
+      - name: Build BusyBox static + initramfs
+        run: |
+          bash initramfs/build-initramfs.sh
+          ls -la out-initramfs/
+
+      - name: Stage release dir
+        run: |
+          mkdir -p "$RELEASE_DIR"
+          cp "$LINUX_DIR"/out/arch/arm64/boot/Image "$RELEASE_DIR/Image"
+          cp "$LINUX_DIR"/out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dtb "$RELEASE_DIR/sm8250-xiaomi-thyme.dtb"
+          cp "$LINUX_DIR"/out/.config "$RELEASE_DIR/final.config"
+          cp out-initramfs/initramfs.cpio.gz "$RELEASE_DIR/initramfs.cpio.gz"
+          cp out-initramfs/root/bin/busybox "$RELEASE_DIR/busybox-aarch64-static"
+          file "$RELEASE_DIR/busybox-aarch64-static"
+
+      - name: Build vendor ramdisk stub
+        run: |
+          mkdir -p /tmp/vr-root
+          ( cd /tmp/vr-root && find . -print0 | cpio -o --format=newc 2>/dev/null | gzip -9 > "$GITHUB_WORKSPACE/$RELEASE_DIR/vendor-ramdisk-stub.cpio.gz" )
+
+      - name: Build experimental-boot-v2.img ( PRIMARY*
+        run: |
+          python3 tools/aosp/mkbootimg.py \
+            --kernel "$RELEASE_DIR/Image" \
+            --ramdisk "$RELEASE_DIR/initramfs.cpio.gz" \
+            --base 0x00000000 --kernel_offset 0x00008000 --ramdisk_offset 0x01000000 \
+            --tags_offset 0x00000100 --second_offset 0x00f00000 --pagesize 4096 \
+            --header_version 2 \
+            --dtb "$RELEASE_DIR/sm8250-xiaomi-thyme.dtb" --dtb_offset 0x01f00000 \
+            --os_version 13.0.0 --os_patch_level 2023-09 --board thyme \
+            --cmdline "$STOCK_CMDLINE" \
+            -o "$RELEASE_DIR/experimental-boot-v2.img"
+
+      - name: Build experimental-boot-v3.img ( FALLBACK*
+        run: |
+          python3 tools/aosp/mkbootimg.py \
+            --kernel "$RELEASE_DIR/Image" \
+            --ramdisk "$RELEASE_DIR/initramfs.cpio.gz" \
+            --header_version 3 \
+            --os_version 13.0.0 --os_patch_level 2023-09 --board thyme \
+            -o "$RELEASE_DIR/experimental-boot-v3.img"
+
+      - name: Build experimental-vendor_boot-v3.img ( FALLBACK*
+        run: |
+          python3 tools/aosp/mkbootimg.py \
+            --header_version 3 --pagesize 4096 \
+            --base 0x00000000 --kernel_offset 0x00008000 --ramdisk_offset 0x01000000 --tags_offset 0x00000100 \
+            --dtb "$RELEASE_DIR/sm8250-xiaomi-thyme.dtb" --dtb_offset 0x01f00000 \
+            --vendor_ramdisk "$RELEASE_DIR/vendor-ramdisk-stub.cpio.gz" \
+            --vendor_cmdline "$STOCK_CMDLINE" \
+            --os_version 13.0.0 --os_patch_level 2023-09 --board thyme \
+            --vendor_boot "$RELEASE_DIR/experimental-vendor_boot-v3.img"
+
+      - name: Build no-op DTBO entry + experimental-dtbo.img
+        run: |
+          cat > "$RELEASE_DIR/noop.dts" <<'EOF'
+          /dts-v1/;
+          /plugin/;
+
+          / {
+          	model = "Xiaomi Mi 10S (thyme)";
+          	compatible = "qcom,kona-mtp", "qcom,kona", "qcom,mtp";
+          	qcom,board-id = <45 0>;
+          	fragment@0 {
+          		target-path = "/";
+          		__overlay__ {
+          			qcom,thyme-mainline-noop;
+          		};
+          	};
+          };
+          EOF
+          dtc -@ -O dtb -o "$RELEASE_DIR/noop.dtbo" "$RELEASE_DIR/noop.dts"
+          python3 tools/aosp/mkdtboimg.py --version 0 --page_size 4096 \
+            -o "$RELEASE_DIR/experimental-dtbo.img" "$RELEASE_DIR/noop.dtbo"
+
+      - name: Unpack + revalidate boot-v2 ( PRIMARY*
+        continue-on-error: false
+        run: |
+          mkdir -p "$RELEASE_DIR/unpack-report/boot-v2"
+          python3 tools/aosp/unpack_bootimg.py --boot_img "$RELEASE_DIR/experimental-boot-v2.img" \
+              --out "$RELEASE_DIR/unpack-report/boot-v2" > "$RELEASE_DIR/unpack-report/boot-v2.txt" 2>&1
+          ls -la "$RELEASE_DIR/unpack-report/boot-v2" | tee -a "$RELEASE_DIR/unpack-report/boot-v2.txt"
+          DTBF=$(find "$RELEASE_DIR/unpack-report/boot-v2" -maxdepth 1 -name "dtb" | head -1)
+          [ -n "$DTBF" ] || { echo "v2 unpack: DTB field not exposed by unpack_bootimg"; exit 1; }
+          fdtget "$DTBF" / compatible | tr ' ' '\n' | grep -q qcom,sm8250 || { echo "v2 unpack dtb: qcom,sm8250 missing"; exit 1; }
+          grep -q "kernel" "$RELEASE_DIR/unpack-report/boot-v2.txt" || true
+          echo "v2 revalidation OK"
+
+      - name: Unpack + revalidate boot-v3 ( FALLBACK*
+        run: |
+          mkdir -p "$RELEASE_DIR/unpack-report/boot-v3"
+          python3 tools/aosp/unpack_bootimg.py --boot_img "$RELEASE_DIR/experimental-boot-v3.img" \
+              --out "$RELEASE_DIR/unpack-report/boot-v3" > "$RELEASE_DIR/unpack-report/boot-v3.txt" 2>&1
+          ls -la "$RELEASE_DIR/unpack-report/boot-v3" | tee -a "$RELEASE_DIR/unpack-report/boot-v3.txt"
+          # v3 boot.img must NOT carry a DTB
+          if find "$RELEASE_DIR/unpack-report/boot-v3" -maxdepth 1 -name "dtb" | grep -q .; then
+            echo "v3 boot unexpectedly contains dtb"; exit 1
+          fi
+          echo "v3 revalidation OK"
+
+      - name: Unpack + revalidate vendor_boot-v3 ( FALLBACK*
+        run: |
+          mkdir -p "$RELEASE_DIR/unpack-report/vendor_boot-v3"
+          python3 tools/aosp/unpack_bootimg.py --boot_img "$RELEASE_DIR/experimental-vendor_boot-v3.img" \
+              --out "$RELEASE_DIR/unpack-report/vendor_boot-v3" > "$RELEASE_DIR/unpack-report/vendor_boot-v3.txt" 2>&1
+          ls -la "$RELEASE_DIR/unpack-report/vendor_boot-v3" | tee -a "$RELEASE_DIR/unpack-report/vendor_boot-v3.txt"
+          DTBF=$(find "$RELEASE_DIR/unpack-report/vendor_boot-v3" -maxdepth 1 \( -name "dtb" -o -name "vendor_dtb" \) | head -1)
+          [ -n "$DTBF" ] || { echo "vendor_boot unpack: DTB not exposed"; cat "$RELEASE_DIR/unpack-report/vendor_boot-v3.txt"; exit 1; }
+          fdtget "$DTBF" / compatible | tr ' ' '\n' | grep -q qcom,sm8250 || { echo "vendor_boot dtb: qcom,sm8250 missing"; exit 1; }
+          echo "vendor_boot revalidation OK"
+
+      - name: Validate dtbo ( no-op equivalence*
+        run: |
+          python3 tools/aosp/mkdtboimg.py dump "$RELEASE_DIR/experimental-dtbo.img" > "$RELEASE_DIR/unpack-report/dtbo.dump.txt" 2>&1
+          cat "$RELEASE_DIR/unpack-report/dtbo.dump.txt"
+          grep -qi "thyme" "$RELEASE_DIR/unpack-report/dtbo.dump.txt" || { echo "dtbo dump lacks thyme entry"; exit 1; }
+          dtc -I dtb -O dts "$RELEASE_DIR/noop.dtbo" > "$RELEASE_DIR/unpack-report/noop.dts.txt" 2>&1
+          grep -q "qcom,thyme-mainline-noop" "$RELEASE_DIR/unpack-report/noop.dts.txt" || { echo "noop overlay marker missing"; exit 1; }
+          dtc -I dtb -O dts "$RELEASE_DIR/sm8250-xiaomi-thyme.dtb" > "$RELEASE_DIR/unpack-report/mainline-dtb.dts.txt"
+          fdtoverlay -i "$RELEASE_DIR/sm8250-xiaomi-thyme.dtb" "$RELEASE_DIR/noop.dtbo" -o "$RELEASE_DIR/unpack-report/merged.dtb"
+          dtc -I dtb -O dts "$RELEASE_DIR/unpack-report/merged.dtb" > "$RELEASE_DIR/unpack-report/merged.dts.txt"
+          fdtget "$RELEASE_DIR/unpack-report/merged.dtb" / qcom,thyme-mainline-noop > /dev/null || { echo "merged lacks noop marker"; exit 1; }
+          # the rest of the tree must be identical to plain mainline ( minus the marker prop*..
+          grep -v "thyme-mainline-noop" "$RELEASE_DIR/unpack-report/merged.dts.txt" > /tmp/merged-clean.dts
+          grep -v "thyme-mainline-noop" "$RELEASE_DIR/unpack-report/mainline-dtb.dts.txt" > /tmp/mainline-clean.dts
+          diff -u /tmp/mainline-clean.dts /tmp/merged-clean.dts > "$RELEASE_DIR/unpack-report/mainline-vs-merged.diff" || { echo "DTB+noop-dtbo != mainline tree"; exit 1; }
+          echo "dtbo no-op equivalence OK"
+
+      - name: Size gates
+        run: |
+          set -e
+          BOOT_CAP=201326592    # VAB boot partition size from LineageOS BoardConfigCommon.mk (stock boot.img is 134217728 B*
+          VENDOR_CAP=100663296
+          DTBO_CAP=33554432
+          for img in experimental-boot-v2.img experimental-boot-v3.img; do
+            s=$(wc -c < "$RELEASE_DIR/$img")
+            echo "$img = $s <= $BOOT_CAP"
+            [ "$s" -le "$BOOT_CAP" ] || { echo "OVERSIZE: $img"; exit 1; }
+          done
+          for pair in "experimental-vendor_boot-v3.img:$VENDOR_CAP" "experimental-dtbo.img:$DTBO_CAP"; do
+            img=${pair%%:*}; cap=${pair##*:}
+            s=$(wc -c < "$RELEASE_DIR/$img")
+            echo "$img = $s <= $cap"
+            [ "$s" -le "$cap" ] || { echo "OVERSIZE: $img"; exit 1; }
+          done
+          echo "size gates OK"
+
+      - name: Generate SHA256SUMS
+        run: |
+          ( cd "$RELEASE_DIR" && sha256sum Image sm8250-xiaomi-thyme.dtb final.config busybox-aarch64-static initramfs.cpio.gz experimental-boot-v2.img experimental-boot-v3.img experimental-vendor_boot-v3.img experimental-dtbo.img > SHA256SUMS )
+          cat "$RELEASE_DIR/SHA256SUMS"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-mainline-firstboot-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            out-release/**
+
+      - name: Upload build logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-mainline-firstboot-logs-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            linux-6.6/build.log
+            out-release/unpack-report/

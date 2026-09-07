@@ -1,0 +1,88 @@
+#!/bin/sh
+# thyme mainline first-boot initramfs /init
+# Minimal static bring-up:  proc/sys/dev ->  configfs USB gadget ->  ECM/NCM
+# usb0 -> static IP ->  HTTP status page + telnetd shell ->  PID 1 idle loop..
+# Stage markers are written to /dev/kmsg (dmesg* AND stage.log/status.txt..
+
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+export HOME=/
+
+STAGE=""
+milestone() {
+	STAGE="$1"
+	echo "$1" > /tmp/current-stage 2>/dev/null
+	echo "$1" >> /tmp/stage.log 2>/dev/null
+	echo "$1" > /dev/kmsg 2>/dev/null
+}
+
+log() { echo "$*" >> /tmp/stage.log 2>/dev/null; }
+
+# -------- filesystems -------------------------------------------------
+mount -t proc  proc    /proc		2>/dev/null
+mount -t sysfs sysfs  /sys			2>/dev/null
+mount -t devtmpfs devtmpfs /dev	2>/dev/null
+mount -t tmpfs  tmpfs  /tmp		2>/dev/null
+mount -t devpts devpts  /dev/pts 	2>/dev/null
+milestone STAGE_2_FILESYSTEMS_MOUNTED
+
+hostname thyme
+
+# -------- USB gadget ( configfs* ----------------------------------
+mount -t configfs configfs /sys/kernel/config		2>/dev/null
+mkdir -p /sys/kernel/config/usb_gadget/g1 2>/dev/null
+cd /sys/kernel/config/usb_gadget/g1 || {
+	log "usb_gadget/g1 missing"; exit 1
+}
+
+# optional runtime switch:  udc=ecm  |  udc=ncm  in kernel cmdline
+USBNET="ecm"
+for x in $(cat /proc/cmdline 2>/dev/null); do
+	case "$x" in
+		udc=ncm*) USBNET="ncm" ;;
+		udc=ecm*) USBNET="ecm" ;;
+	esac
+done
+
+echo 0x1d6b > idVendor
+echo 0x0104 > idProduct
+echo 0x0100 > bcdDevice
+mkdir -p strings/0x409
+echo "Xiaomi Mi 10S (thyme)" > strings/0x409/manufacturer
+echo "thyme-mainline bring-up" > strings/0x409/product
+mkdir -p configs/c.1
+echo 1 > configs/c.1/MaxPower
+mkdir -p functions/${USBNET}.usb0
+ln -sf functions/${USBNET}.usb0 configs/c.1/
+milestone STAGE_3_USB_CONFIGFS_READY
+
+# bind gadget to the DWC3 peripheral controller
+echo a600000.dwc3 > UDC 2>/dev/null
+milestone STAGE_4_USB_GADGET_BOUND
+
+# -------- USB ethernet -------------------------------------------------
+sleep 1
+ifconfig usb0 172.16.42.1 netmask 255.255.255.0 up 2>/dev/null \
+	|| ip addr add 172.16.42.1/24 dev usb0 2>/dev/null && ip link set usb0 up 2>/dev/null
+milestone STAGE_5_NETWORK_READY
+
+# -------- userspace status ( httpd + telnetd -----------------------
+mkdir -p /var/www
+httpd -p 8080 -h /var/www -f 2>/dev/null &
+telnetd -l /bin/sh -p  ​​23 2>/dev/null &
+
+milestone STAGE_6_USERSpace_READY
+
+# -------- PID 1 idle loop ( serve status + dmesg -----------------
+while :; do
+	{
+		echo "boot-state:        $(cat /tmp/current-stage 2>/dev/null)"
+		echo "kernel-release:    $(uname -r)"
+		echo "uptime:            $(cat /proc/uptime 2>/dev/null)"
+		echo "gadget-udc:       $(cat /sys/kernel/config/usb_gadget/g1/UDC 2>/dev/null)"
+		echo "usb0-addrs:        $(ifconfig usb0 2>/dev/null | grep inet)"
+		echo "milestones:        $(tr '\n' ' ' < /tmp/stage.log 2>/dev/null)"
+		echo "usbnet-mode:       $USBNET"
+	} > /var/www/status.txt 2>/dev/null
+	dmesg > /var/www/dmesg.log 2>/dev/null
+	sleep 2
+done

@@ -5,3 +5,6 @@
 MIUI14ROM/
 work/
 artifacts/local/
+.cache/
+out-initramfs/
+out-release/

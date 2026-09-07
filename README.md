@@ -39,4 +39,41 @@ It lives as a commit series on top of the pinned base:
 - Gates: `Image` + `dtbs` build, presence of `sm8250-mtp.dtb`, `sm8250-xiaomi-elish-boe.dtb`,
   `sm8250-xiaomi-elish-csot.dtb`, `sm8250-xiaomi-thyme.dtb`
 - Non-blocking baselines: `dtbs_check` (dtschema 2024.4) log; `W=1` build log on `workflow_dispatch`
-- Artifacts: `.config`, `Image`, the four SM8250 DTBs, build/dtbs_check logs
+- Artifacts: `.config`, `Image`,the four SM8250 DTBs, build/dtbs_check logs
+
+## First-boot artifact pipeline ( Slot B)
+
+`.github/workflows/thyme-mainline-boot-artifacts.yml` runs on `workflow_dispatch` only. It
+builds, validates,and uploads the complete Slot B experiment set:the Linux
+Image + `sm8250-xiaomi-thyme.dtb`,the bring-up kernel config fragment
+`configs/thyme-bringup.config`,the BusyBox 1.37.0 static binary
+`configs/busybox-thyme.config`,the minimal initramfs `initramfs/`,and
+four experimental images:
+
+| artifact | role | boot-chain reference |
+|---|---|---|
+| `experimental-boot-v2.img` | PRIMARY: header v2, DTB field | `docs/mainline-boot-chain.md` C1/C3 |
+| `experimental-boot-v3.img` | FALLBACK: header v3 | C2 |
+| `experimental-vendor_boot-v3.img` | FALLBACK: vendor_boot w/ DTB | C2 |
+| `experimental-dtbo.img` | FALLBACK: single no-op entry, board-id `<45 0>` | C2 |
+
+CI validates DTB delivery via unpack + compatible check,the no-op dtbo
+equivalence via `fdtoverlay`,image sizes against partition caps,and emits
+a SHA256SUMS manifest.Trigger:
+
+```sh
+gh workflow run thyme-mainline-boot-artifacts
+```
+
+Artifacts:`thyme-mainline-firstboot-<sha>`. Flash procedure	is
+documented only in `docs/slot-b-first-boot-runbook.md`;this project performs
+no device writes.
+
+## Docs
+
+- `docs/stock-rom-analysis.md` — stock ROM parse
+- `docs/thyme-hardware-map.md` — hardware mapping
+- `docs/mainline-boot-chain.md` — Q1/Q2/Q3 decision + evidence
+- `docs/no-uart-debugging.md` — USB-first observation design,pstore DEFERRED
+- `docs/slot-b-first-boot-runbook.md` — future flash runbook,B-only
+- `docs/slot-b-rollback.md` — stock B restore plan
