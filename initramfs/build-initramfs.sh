@@ -50,6 +50,10 @@ echo "== busybox: defconfig done =="
 # kernels' scripts/config tool is absent from busybox; cover both forms with sed.*
 sed -i -e 's/^CONFIG_STATIC=n$/CONFIG_STATIC=y/' -e 's/^# CONFIG_STATIC is not set$/CONFIG_STATIC=y/' .config
 grep -q "^CONFIG_STATIC=y$" .config || { echo "CONFIG_STATIC=y not in .config after defconfig+sed"; exit 1; }
+# networking/tc.c needs ancient CBQ uapi constants dropped from modern linux-libc-dev;
+# first-boot bring-up needs no 'tc' applet — flip it off in canonical comment form.*
+sed -i -e 's/^CONFIG_TC=y$/# CONFIG_TC is not set/' .config
+grep -q "^CONFIG_TC=y$" .config && { echo "CONFIG_TC=y still in .config after sed"; exit 1; }
 echo "== busybox: overlay done =="
 make -j"$(nproc)" CROSS_COMPILE="${CROSS_COMPILE}" busybox
 echo "== busybox: build done =="
