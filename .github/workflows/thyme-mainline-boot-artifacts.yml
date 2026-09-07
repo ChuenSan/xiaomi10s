@@ -208,7 +208,7 @@ jobs:
         run: |
           python3 tools/aosp/mkdtboimg.py dump "$RELEASE_DIR/experimental-dtbo.img" --dtb "$RELEASE_DIR/unpack-report/dtbo-frag" > "$RELEASE_DIR/unpack-report/dtbo.dump.txt" 2>&1
           cat "$RELEASE_DIR/unpack-report/dtbo.dump.txt"
-          n=$(ls "$RELEASE_DIR"/unpack-report/dtbo-frag.* 2>/dev/null | wc -l(
+          n=$(ls "$RELEASE_DIR"/unpack-report/dtbo-frag.* 2>/dev/null | wc -l)
           echo "dtbo fragment count: $n"
           [ "$n" -eq 1 ] || { echo "EXPECTED 1 dtbo entry, got $n"; exit 1; }
           dtc -I dtb -O dts "$RELEASE_DIR/unpack-report/dtbo-frag.0" > "$RELEASE_DIR/unpack-report/dtbo-frag.dts.txt" 2>&1
