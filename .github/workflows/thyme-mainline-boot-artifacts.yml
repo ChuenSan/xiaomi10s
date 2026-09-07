@@ -11,7 +11,7 @@ env:
   LINUX_DIR: linux-6.6
   MAKEARGS: O=out ARCH=arm64 LLVM=1
   RELEASE_DIR: out-release
-  BUSYBOX_VER: 1.37.0
+  BUSYBOX_VER: 1.36.1
   # exact stock vendor_boot board cmdline ( Cox CONFIRMED_STOCK, docs/stock-rom-analysis.md §5*
   STOCK_CMDLINE: "console=ttyMSM0,115200n8 androidboot.hardware=qcom androidboot.console=ttyMSM0 androidboot.memcg=1 lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 msm_rtb.filter=0x237 service_locator.enable=1 androidboot.usbcontroller=a600000.dwc3 swiotlb=2048 loop.max_part=7 cgroup.memory=nokmem,nosocket reboot=panic_warm buildvariant=user"
 

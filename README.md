@@ -46,7 +46,7 @@ It lives as a commit series on top of the pinned base:
 `.github/workflows/thyme-mainline-boot-artifacts.yml` runs on `workflow_dispatch` only. It
 builds, validates,and uploads the complete Slot B experiment set:the Linux
 Image + `sm8250-xiaomi-thyme.dtb`,the bring-up kernel config fragment
-`configs/thyme-bringup.config`,the BusyBox 1.37.0 static binary
+`configs/thyme-bringup.config`,the BusyBox 1.36.1 static binary
 `configs/busybox-thyme.config`,the minimal initramfs `initramfs/`,and
 four experimental images:
 

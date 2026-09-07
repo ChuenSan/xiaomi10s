@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# Build the thyme first-boot initramfs:  BusyBox 1.37.0 static aarch64
+# Build the thyme first-boot initramfs:  BusyBox 1.36.1 static aarch64
 # + /init + cpio.gz.  GITHUB ACTIONS ONLY — never run locally..
 #
 # Usage ( CI*:  apt provides gcc-aarch64-linux-gnu;  run from repo root..
 set -euo pipefail
 
-BUSYBOX_VERSION="1.37.0"
+# pinned to the newest tag the GitHub mirror actually publishes (1_36_1*:
+# busybox.net TLS is unreachable from GitHub runners (verified 2026-09*..
+BUSYBOX_VERSION="1.36.1"
 TARBALL="busybox-${BUSYBOX_VERSION}.tar.gz"
-# GitHub mirror busybox.net is flaky from CI; official mirror/busybox tags: 1_37_0
+# GitHub mirror busybox.net is flaky from CI; official mirror/busybox tags: 1_36_1
 URL="https://github.com/mirror/busybox/archive/refs/tags/${BUSYBOX_VERSION//./_}.tar.gz"
 BUSYBOX_SRC="${1:-$PWD/.cache/busybox-${BUSYBOX_VERSION}}"
 CONFIG_SRC="${2:-$PWD/configs/busybox-thyme.config}"
