@@ -6,8 +6,9 @@
 set -euo pipefail
 
 BUSYBOX_VERSION="1.37.0"
-TARBALL="busybox-${BUSYBOX_VERSION}.tar.bz2"
-URL="https://busybox.net/downloads/${TARBALL}"
+TARBALL="busybox-${BUSYBOX_VERSION}.tar.gz"
+# GitHub mirror busybox.net is flaky from CI; official mirror/busybox tags: 1_37_0
+URL="https://github.com/mirror/busybox/archive/refs/tags/${BUSYBOX_VERSION//./_}.tar.gz"
 BUSYBOX_SRC="${1:-$PWD/.cache/busybox-${BUSYBOX_VERSION}}"
 CONFIG_SRC="${2:-$PWD/configs/busybox-thyme.config}"
 OUT_DIR="${3:-$PWD/out-initramfs}"
@@ -19,9 +20,12 @@ echo "== busybox ${BUSYBOX_VERSION} (static aarch64*"
 if [ ! -f "${BUSYBOX_SRC}/.config" ]; then
 	mkdir -p "$(dirname "${BUSYBOX_SRC}")"
 	if [ ! -f "${BUSYBOX_SRC}/Makefile" ]; then
-		curl -fsSL "${URL}" -o "${BUSYBOX_SRC}.tar.bz2"
 		mkdir -p "${BUSYBOX_SRC}"
-		tar -xjf "${BUSYBOX_SRC}.tar.bz2" -C "${BUSYBOX_SRC}" --strip-components 1
+		if ! curl -fsSL "${URL}" -o "${BUSYBOX_SRC}.tar.gz"; then
+			echo "DOWNLOAD FAILED: ${URL}" >&2
+			exit 1
+		fi
+		tar -xzf "${BUSYBOX_SRC}.tar.gz" -C "${BUSYBOX_SRC}" --strip-components 1
 	fi
 fi
 
