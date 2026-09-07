@@ -165,8 +165,8 @@ jobs:
           };
           EOF
           dtc -@ -O dtb -o "$RELEASE_DIR/noop.dtbo" "$RELEASE_DIR/noop.dts"
-          python3 tools/aosp/mkdtboimg.py --version 0 --page_size 4096 \
-            -o "$RELEASE_DIR/experimental-dtbo.img" "$RELEASE_DIR/noop.dtbo"
+          python3 tools/aosp/mkdtboimg.py create "$RELEASE_DIR/experimental-dtbo.img" \
+          --version=0 --page_size=4096 "$RELEASE_DIR/noop.dtbo"
 
       - name: Unpack + revalidate boot-v2 ( PRIMARY*
         continue-on-error: false
