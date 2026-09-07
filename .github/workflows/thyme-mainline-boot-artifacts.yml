@@ -213,7 +213,13 @@ jobs:
           [ "$n" -eq 1 ] || { echo "EXPECTED 1 dtbo entry, got $n"; exit 1; }
           dtc -I dtb -O dts "$RELEASE_DIR/unpack-report/dtbo-frag.0" > "$RELEASE_DIR/unpack-report/dtbo-frag.dts.txt" 2>&1
           grep -q "qcom,thyme-mainline-noop" "$RELEASE_DIR/unpack-report/dtbo-frag.dts.txt" || { echo "dtbo payload lacks noop marker"; exit 1; }
-          grep -q "qcom,board-id = <45 0>" "$RELEASE_DIR/unpack-report/dtbo-frag.dts.txt" || { echo "dtbo payload lacks board-id <45 0>"; exit 1; }
+          python3 - "$RELEASE_DIR/unpack-report/dtbo-frag.dts.txt" <<'EOF'
+          import re, sys
+          m = re.search(r'qcom,board-id\s*=\s*<([^>]*)>\s*;', open(sys.argv[1]).read())
+          assert m, "dtbo payload lacks qcom,board-id"
+          nums = [int(c, 0) for c in m.group(1).split()]
+          assert nums == [45, 0], f"dtbo payload board-id {nums} != [45, 0]"
+          EOF
           dtc -I dtb -O dts "$RELEASE_DIR/noop.dtbo" > "$RELEASE_DIR/unpack-report/noop.dts.txt" 2>&1
           grep -q "qcom,thyme-mainline-noop" "$RELEASE_DIR/unpack-report/noop.dts.txt" || { echo "noop overlay marker missing"; exit 1; }
           dtc -I dtb -O dts "$RELEASE_DIR/sm8250-xiaomi-thyme.dtb" > "$RELEASE_DIR/unpack-report/mainline-dtb.dts.txt"
