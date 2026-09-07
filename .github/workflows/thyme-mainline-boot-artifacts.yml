@@ -88,7 +88,7 @@ jobs:
       - name: Cache busybox source
         uses: actions/cache@v4
         with:
-          path: .cache/busybox-${BUSYBOX_VER}
+          path: .cache/busybox-${{ env.BUSYBOX_VER }}
           key: busybox-${{ env.BUSYBOX_VER }}
 
       - name: Build BusyBox static + initramfs
@@ -129,6 +129,8 @@ jobs:
           python3 tools/aosp/mkbootimg.py \
             --kernel "$RELEASE_DIR/Image" \
             --ramdisk "$RELEASE_DIR/initramfs.cpio.gz" \
+            --base 0x00000000 --kernel_offset 0x00008000 --ramdisk_offset 0x01000000 \
+            --tags_offset 0x00000100 --second_offset 0x00f00000 --pagesize 4096 \
             --header_version 3 \
             --os_version 13.0.0 --os_patch_level 2023-09 --board thyme \
             -o "$RELEASE_DIR/experimental-boot-v3.img"
@@ -204,9 +206,14 @@ jobs:
 
       - name: Validate dtbo ( no-op equivalence*
         run: |
-          python3 tools/aosp/mkdtboimg.py dump "$RELEASE_DIR/experimental-dtbo.img" > "$RELEASE_DIR/unpack-report/dtbo.dump.txt" 2>&1
+          python3 tools/aosp/mkdtboimg.py dump "$RELEASE_DIR/experimental-dtbo.img" --dtb "$RELEASE_DIR/unpack-report/dtbo-frag" > "$RELEASE_DIR/unpack-report/dtbo.dump.txt" 2>&1
           cat "$RELEASE_DIR/unpack-report/dtbo.dump.txt"
-          grep -qi "thyme" "$RELEASE_DIR/unpack-report/dtbo.dump.txt" || { echo "dtbo dump lacks thyme entry"; exit 1; }
+          n=$(ls "$RELEASE_DIR"/unpack-report/dtbo-frag.* 2>/dev/null | wc -l(
+          echo "dtbo fragment count: $n"
+          [ "$n" -eq 1 ] || { echo "EXPECTED 1 dtbo entry, got $n"; exit 1; }
+          dtc -I dtb -O dts "$RELEASE_DIR/unpack-report/dtbo-frag.0" > "$RELEASE_DIR/unpack-report/dtbo-frag.dts.txt" 2>&1
+          grep -q "qcom,thyme-mainline-noop" "$RELEASE_DIR/unpack-report/dtbo-frag.dts.txt" || { echo "dtbo payload lacks noop marker"; exit 1; }
+          grep -q "qcom,board-id = <45 0>" "$RELEASE_DIR/unpack-report/dtbo-frag.dts.txt" || { echo "dtbo payload lacks board-id <45 0>"; exit 1; }
           dtc -I dtb -O dts "$RELEASE_DIR/noop.dtbo" > "$RELEASE_DIR/unpack-report/noop.dts.txt" 2>&1
           grep -q "qcom,thyme-mainline-noop" "$RELEASE_DIR/unpack-report/noop.dts.txt" || { echo "noop overlay marker missing"; exit 1; }
           dtc -I dtb -O dts "$RELEASE_DIR/sm8250-xiaomi-thyme.dtb" > "$RELEASE_DIR/unpack-report/mainline-dtb.dts.txt"
