@@ -36,14 +36,19 @@ fi
 
 cd "${BUSYBOX_SRC}"
 cp "${CONFIG_SRC}" .config
-echo "== busybox: config staged =="
-# busybox kconfig prompts for each NEW symbol ( default shown as Y*; needs a REAL TTY
-# on fd0/fd1. Feed answers THROUGH the pty ( stdin stays pty tty, но data arrives
-# via a file redirect ( NOT an inner pipe — a pipe makes make's stdin non-tty again*.
-command -v script >/dev/null || { echo "script (util-linux) missing — needed as TTY bridge for busybox kconfig"; exit 1; }
-i=0; while [ "$i" -lt 1000 ]; do echo Y; i=$((i+1)); done > /tmp/bb-answers
-script -qefc "make silentoldconfig" /dev/null < /tmp/bb-answers
-echo "== busybox: oldconfig done =="
+echo "== busybox: defconfig =="
+# busybox kconfig prompts for each choice/NEW symbol when .config is a fragment;
+# a FULL defconfig carries every symbol ( hence zero prompts*; wrap in pty anyway for
+# the rare tty check, feeding 200 default answers just in case.
+command -v script >/dev/null || { echo "script (util-linux) missing — needed as TTY bridge for busybox defconfig"; exit 1; }
+i=0; while [ "$i" -lt 200 ]; do echo Y; i=$((i+1)); done > /tmp/bb-answers
+script -qefc "make defconfig" /dev/null < /tmp/bb-answers
+echo "== busybox: defconfig done =="
+# defconfig defaults enable ash/applets/symlinks; static is the sole flip we need.
+# ( kernel-om' kernel' scripts/config tool is absent from busybox; text sed is enough*.
+sed -i 's/^CONFIG_STATIC=n$/CONFIG_STATIC=y/' .config
+grep -q "^CONFIG_STATIC=y$" .config || { echo "CONFIG_STATIC=y not in .config after defconfig+sed"; exit 1; }
+echo "== busybox: overlay done =="
 make -j"$(nproc)" CROSS_COMPILE="${CROSS_COMPILE}" busybox
 echo "== busybox: build done =="
 
