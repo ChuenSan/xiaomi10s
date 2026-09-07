@@ -37,7 +37,8 @@ fi
 cd "${BUSYBOX_SRC}"
 cp "${CONFIG_SRC}" .config
 echo "== busybox: config staged =="
-make oldconfig
+# busybox oldconfig is INTERACTIVE ( conf -o Config.in*; use silentoldconfig ( conf -s* for CI </dev/null
+make silentoldconfig
 echo "== busybox: oldconfig done =="
 make -j"$(nproc)" CROSS_COMPILE="${CROSS_COMPILE}" busybox
 echo "== busybox: build done =="
@@ -61,7 +62,7 @@ test -x "${OUT_DIR}/root/init" || { echo "init not executable"; exit 1; }
 test -x "${OUT_DIR}/root/bin/busybox" || { echo "busybox missing"; exit 1; }
 file "${OUT_DIR}/root/bin/busybox" | grep -q "statically linked" \
 	|| { echo "busybox not static"; exit 1; }
-for a in cat mount ifconfig telnetd httpd dmesg; do
+for a in cat mount ifconfig telnetd httpd dmesg sh; do
 	test -x "${OUT_DIR}/root/bin/${a}" || { echo "applet symlink missing: ${a}"; exit 1; }
 done
 
