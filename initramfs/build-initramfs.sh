@@ -46,7 +46,9 @@ script -qefc "make defconfig" /dev/null < /tmp/bb-answers
 echo "== busybox: defconfig done =="
 # defconfig defaults enable ash/applets/symlinks; static is the sole flip we need.
 # ( kernel-om' kernel' scripts/config tool is absent from busybox; text sed is enough*.
-sed -i 's/^CONFIG_STATIC=n$/CONFIG_STATIC=y/' .config
+# busybox kconfig writes an unset bool as '# CONFIG_STATIC is not set' ( not CONFIG_STATIC=n*;
+# kernels' scripts/config tool is absent from busybox; cover both forms with sed.*
+sed -i -e 's/^CONFIG_STATIC=n$/CONFIG_STATIC=y/' -e 's/^# CONFIG_STATIC is not set$/CONFIG_STATIC=y/' .config
 grep -q "^CONFIG_STATIC=y$" .config || { echo "CONFIG_STATIC=y not in .config after defconfig+sed"; exit 1; }
 echo "== busybox: overlay done =="
 make -j"$(nproc)" CROSS_COMPILE="${CROSS_COMPILE}" busybox
