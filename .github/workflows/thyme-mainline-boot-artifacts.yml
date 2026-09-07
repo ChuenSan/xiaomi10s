@@ -26,7 +26,7 @@ jobs:
       - name: Vendor AOSP boot tools sanity
         run: |
           ls -la tools/aosp/
-          python3 -c "import ast; ast.parse(open('tools/aosp/mkbootimg.py').read()); ast.parse(open('tools/aosp/unpack_bootimg.py').read()); ast.parse(open('tools/aosp/mkdtboimg.py').read()); print('aosp tools parse OK')"
+          python3 -c "import ast; ast.parse(open('tools/aosp/mkbootimg.py').read()); ast.parse(open('tools/aosp/unpack_bootimg.py').read()); ast.parse(open('tools/aosp/mkdtboimg.py').read()); ast.parse(open('tools/aosp/gki/generate_gki_certificate.py').read()); ast.parse(open('tools/aosp/gki/certify_bootimg.py').read()); print('aosp tools parse OK')"
 
       - name: Install toolchain
         run: |
