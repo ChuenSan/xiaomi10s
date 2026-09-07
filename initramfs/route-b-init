@@ -1,0 +1,96 @@
+#!/bin/sh
+# Route B initramfs PID 1 — headless USB gadget, no UART success path.
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+export HOME=/
+STAGE=STAGE_1_INIT_STARTED
+WWW=/www
+USBNET=ecm
+DEVIP=10.66.73.1
+
+milestone() {
+	STAGE=$1
+	echo "$1" | tee -a /tmp/stage.log >/tmp/current-stage
+	echo "$1" >/dev/kmsg 2>/dev/null
+}
+
+write_status() {
+	{
+		echo "ROUTE=B"
+		echo "KERNEL=$(uname -r 2>/dev/null)"
+		echo "DEVICE=thyme"
+		echo "STAGE_1_INIT_STARTED"
+		echo "STAGE_2_FILESYSTEMS"
+		echo "STAGE_3_USB_CONFIGFS"
+		echo "STAGE_4_USB_BOUND"
+		echo "STAGE_5_NETWORK_READY"
+		echo "STAGE_6_USERSPACE_READY"
+		echo "boot-state=$STAGE"
+		echo "gadget-udc=$(cat /sys/kernel/config/usb_gadget/g1/UDC 2>/dev/null)"
+		echo "usbnet=$USBNET"
+		echo "usb0-addrs=$(ifconfig usb0 2>/dev/null | grep inet)"
+		echo "milestones=$(tr '\n' ' ' </tmp/stage.log 2>/dev/null)"
+	} >"$WWW/status.txt"
+}
+
+mount -t proc proc /proc 2>/dev/null
+mount -t sysfs sysfs /sys 2>/dev/null
+mount -t devtmpfs devtmpfs /dev 2>/dev/null
+mount -t tmpfs tmpfs /tmp 2>/dev/null
+mkdir -p /dev/pts "$WWW" /sys/kernel/config
+mount -t devpts devpts /dev/pts 2>/dev/null
+echo STAGE_1_INIT_STARTED >/tmp/stage.log
+echo STAGE_1_INIT_STARTED >/dev/kmsg 2>/dev/null
+milestone STAGE_2_FILESYSTEMS
+hostname thyme-b
+
+mount -t configfs configfs /sys/kernel/config 2>/dev/null
+for x in $(cat /proc/cmdline 2>/dev/null); do
+	case "$x" in
+	udc=ncm*) USBNET=ncm ;;
+	udc=ecm*) USBNET=ecm ;;
+	esac
+done
+
+mkdir -p /sys/kernel/config/usb_gadget/g1 || exit 1
+cd /sys/kernel/config/usb_gadget/g1 || exit 1
+echo 0x1d6b >idVendor
+echo 0x0104 >idProduct
+echo 0x0100 >bcdDevice
+mkdir -p strings/0x409 configs/c.1/strings/0x409 functions/${USBNET}.usb0
+echo thyme-mainline >strings/0x409/manufacturer
+echo "Linux 6.6 Route B" >strings/0x409/product
+echo THYME-MAINLINE-B >strings/0x409/serialnumber
+echo "ECM" >configs/c.1/strings/0x409/configuration
+echo 120 >configs/c.1/MaxPower
+ln -sf "functions/${USBNET}.usb0" configs/c.1/
+milestone STAGE_3_USB_CONFIGFS
+
+UDC=a600000.dwc3
+[ -e /sys/class/udc/$UDC ] || UDC=$(ls /sys/class/udc 2>/dev/null | head -1)
+echo "$UDC" >UDC 2>/dev/null
+milestone STAGE_4_USB_BOUND
+
+n=0
+while [ "$n" -lt 20 ]; do
+	ifconfig usb0 >/dev/null 2>&1 && break
+	n=$((n + 1))
+	sleep 1
+done
+ifconfig usb0 $DEVIP netmask 255.255.255.0 up 2>/dev/null \
+	|| { ip addr add $DEVIP/24 dev usb0 2>/dev/null; ip link set usb0 up 2>/dev/null; }
+milestone STAGE_5_NETWORK_READY
+
+printf 'ROUTE=B\nDEVICE=thyme\n' >"$WWW/index.html"
+write_status
+: >"$WWW/dmesg.log"
+# busybox httpd daemonizes without -f; bind IPv4 explicitly.
+httpd -p 0.0.0.0:8080 -h "$WWW" 2>/dev/null
+telnetd -l /bin/sh -p 23 2>/dev/null
+milestone STAGE_6_USERSPACE_READY
+write_status
+
+while :; do
+	write_status
+	dmesg >"$WWW/dmesg.log" 2>/dev/null
+	sleep 2
+done

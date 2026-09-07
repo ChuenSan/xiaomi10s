@@ -1,0 +1,229 @@
+name: thyme-route-b-v3
+
+on:
+  push:
+    branches: [route-b-v3]
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-route-b-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LINUX_DIR: linux-6.6
+  MAKEARGS: O=out ARCH=arm64 LLVM=1
+  RELEASE_DIR: out-release
+  BUSYBOX_VER: 1.36.1
+  STOCK_CMDLINE: "console=ttyMSM0,115200n8 androidboot.hardware=qcom androidboot.console=ttyMSM0 androidboot.memcg=1 lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 msm_rtb.filter=0x237 service_locator.enable=1 androidboot.usbcontroller=a600000.dwc3 swiotlb=2048 loop.max_part=7 cgroup.memory=nokmem,nosocket reboot=panic_warm buildvariant=user"
+
+jobs:
+  artifacts:
+    name: Route B v3 artifacts (gating)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Vendor AOSP boot tools sanity
+        run: |
+          python3 -c "import ast; ast.parse(open('tools/aosp/mkbootimg.py').read()); ast.parse(open('tools/aosp/unpack_bootimg.py').read()); ast.parse(open('tools/aosp/mkdtboimg.py').read()); ast.parse(open('tools/aosp/gki/generate_gki_certificate.py').read()); print('aosp tools parse OK')"
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang llvm lld make gcc bc bison flex libssl-dev libelf-dev \
+            device-tree-compiler python3 python3-pip python3-venv \
+            libyaml-dev swig cpio gzip \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          python3 -m venv "$HOME/dtschema-venv"
+          "$HOME/dtschema-venv/bin/pip" install dtschema==2024.4
+          echo "$HOME/dtschema-venv/bin" >> "$GITHUB_PATH"
+          echo "clang: $(clang --version | head -1)"
+          echo "dtc: $(dtc --version)"
+          echo "aarch64-gcc: $(aarch64-linux-gnu-gcc --version | head -1)"
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          git submodule update --init --depth 1 "$LINUX_DIR"
+          git -C "$LINUX_DIR" log -1 --format='pinned: %H %s'
+
+      - name: checkpatch (thyme patches, ERROR gates)
+        run: |
+          set -o pipefail
+          "$LINUX_DIR/scripts/checkpatch.pl" --no-tree --ignore FILE_PATH_CHANGES \
+            patches/linux-6.6/*.patch | tee checkpatch.log
+          if grep -E '^ERROR:' checkpatch.log; then
+            echo "checkpatch ERROR"
+            exit 1
+          fi
+
+      - name: Apply thyme patch series
+        run: |
+          for p in patches/linux-6.6/*.patch; do
+            git -C "$LINUX_DIR" apply --whitespace=nowarn "$p"
+          done
+
+      - name: Configure (defconfig + Route B fragment)
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          make $MAKEARGS defconfig
+          ./scripts/kconfig/merge_config.sh -m -O out out/.config \
+              "$GITHUB_WORKSPACE/configs/thyme-route-b.config"
+          make $MAKEARGS olddefconfig
+          for s in BLK_DEV_INITRD DEVTMPFS DEVTMPFS_MOUNT TMPFS PROC_FS SYSFS \
+                   CONFIGFS_FS USB USB_GADGET USB_CONFIGFS USB_DWC3 USB_DWC3_QCOM \
+                   USB_CONFIGFS_ECM NET INET; do
+            grep -E "^CONFIG_${s}=y$" out/.config || { echo "missing CONFIG_${s}=y"; exit 1; }
+          done
+
+      - name: Build Image
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          set -o pipefail
+          make $MAKEARGS -j"$(nproc)" Image 2>&1 | tee build.log
+
+      - name: Build thyme DTB (CHECK_DTBS)
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          set -o pipefail
+          make $MAKEARGS CHECK_DTBS=y -j"$(nproc)" \
+            arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dtb \
+            arch/arm64/boot/dts/qcom/sm8250-xiaomi-elish-boe.dtb \
+            2>&1 | tee -a build.log | tee dtbs_check.thyme.log
+          python3 - <<'PY'
+          import pathlib, re
+          text = pathlib.Path("dtbs_check.thyme.log").read_text(errors="replace")
+          def notes(name):
+              return [ln for ln in text.splitlines() if name in ln and re.search(r"schema|failed|Warning", ln, re.I)]
+          t = notes("sm8250-xiaomi-thyme")
+          e = notes("sm8250-xiaomi-elish")
+          extra = [ln for ln in t if ln not in e]
+          print(f"thyme schema-ish lines: {len(t)}")
+          print(f"elish schema-ish lines: {len(e)}")
+          if extra:
+              print("thyme-only notes:")
+              print("\n".join(extra[:50]))
+              # SoC dtsi notes appear in both; fail only on thyme-only
+              raise SystemExit("thyme-only dtbs_check notes")
+          print("dtbs_check: no thyme-only notes vs elish")
+          PY
+
+      - name: Verify kernel products
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          for f in out/arch/arm64/boot/Image \
+                   out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dtb; do
+            test -s "$f" || { echo "MISSING $f"; exit 1; }
+          done
+          fdtget out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dtb / compatible \
+            | tr ' ' '\n' | grep -qx 'qcom,sm8250'
+
+      - name: Cache busybox source
+        uses: actions/cache@v4
+        with:
+          path: .cache/busybox-${{ env.BUSYBOX_VER }}
+          key: busybox-${{ env.BUSYBOX_VER }}
+
+      - name: Build BusyBox static + Route B initramfs
+        run: |
+          bash initramfs/build-initramfs.sh \
+            "$PWD/.cache/busybox-${BUSYBOX_VER}" \
+            "$PWD/configs/busybox-thyme.config" \
+            "$PWD/out-initramfs" \
+            "$PWD/initramfs/route-b-init"
+          grep -q ROUTE=B out-initramfs/root/init
+          grep -q THYME-MAINLINE-B out-initramfs/root/init
+
+      - name: Stage release dir
+        run: |
+          mkdir -p "$RELEASE_DIR"
+          cp "$LINUX_DIR"/out/arch/arm64/boot/Image "$RELEASE_DIR/Image"
+          cp "$LINUX_DIR"/out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dtb "$RELEASE_DIR/sm8250-xiaomi-thyme.dtb"
+          cp "$LINUX_DIR"/out/.config "$RELEASE_DIR/final.config"
+          cp out-initramfs/initramfs.cpio.gz "$RELEASE_DIR/initramfs.cpio.gz"
+          cp out-initramfs/root/bin/busybox "$RELEASE_DIR/busybox-aarch64-static"
+          file "$RELEASE_DIR/busybox-aarch64-static" | grep -q "statically linked"
+
+      - name: Build vendor ramdisk stub
+        run: |
+          mkdir -p /tmp/vr
+          echo route-b >/tmp/vr/thyme-route-b-vendor-ramdisk
+          ( cd /tmp/vr && find . -print0 | cpio -o --format=newc --null | gzip -9 \
+              > "$GITHUB_WORKSPACE/$RELEASE_DIR/vendor-ramdisk-stub.cpio.gz" )
+          test -s "$RELEASE_DIR/vendor-ramdisk-stub.cpio.gz"
+
+      - name: Build experimental-boot-v3.img
+        run: |
+          python3 tools/aosp/mkbootimg.py \
+            --kernel "$RELEASE_DIR/Image" \
+            --ramdisk "$RELEASE_DIR/initramfs.cpio.gz" \
+            --header_version 3 \
+            --os_version 13.0.0 --os_patch_level 2023-09 \
+            -o "$RELEASE_DIR/experimental-boot-v3.img"
+
+      - name: Build experimental-vendor_boot-v3.img
+        run: |
+          python3 tools/aosp/mkbootimg.py \
+            --header_version 3 --pagesize 4096 \
+            --base 0x00000000 --kernel_offset 0x00008000 \
+            --ramdisk_offset 0x01000000 --tags_offset 0x00000100 \
+            --dtb "$RELEASE_DIR/sm8250-xiaomi-thyme.dtb" --dtb_offset 0x01f00000 \
+            --vendor_ramdisk "$RELEASE_DIR/vendor-ramdisk-stub.cpio.gz" \
+            --vendor_cmdline "$STOCK_CMDLINE" \
+            --board "" \
+            --vendor_boot "$RELEASE_DIR/experimental-vendor_boot-v3.img"
+
+      - name: Build no-op DTBO
+        run: |
+          cat > "$RELEASE_DIR/noop.dts" <<'EOF'
+          /dts-v1/;
+          /plugin/;
+          / {
+          	model = "Xiaomi Mi 10S (thyme) Route B no-op";
+          	compatible = "qcom,kona-mtp", "qcom,kona", "qcom,mtp";
+          	qcom,board-id = <45 0>;
+          	fragment@0 {
+          		target-path = "/";
+          		__overlay__ {
+          			qcom,thyme-route-b-noop;
+          		};
+          	};
+          };
+          EOF
+          dtc -@ -O dtb -o "$RELEASE_DIR/noop.dtbo" "$RELEASE_DIR/noop.dts"
+          python3 tools/aosp/mkdtboimg.py create "$RELEASE_DIR/experimental-dtbo.img" \
+            --version=0 --page_size=4096 "$RELEASE_DIR/noop.dtbo"
+
+      - name: Reverse validation + size gates
+        run: bash scripts/route-b-ci-validate.sh "$RELEASE_DIR"
+
+      - name: Generate SHA256SUMS
+        run: |
+          ( cd "$RELEASE_DIR" && sha256sum \
+              Image sm8250-xiaomi-thyme.dtb final.config busybox-aarch64-static \
+              initramfs.cpio.gz experimental-boot-v3.img \
+              experimental-vendor_boot-v3.img experimental-dtbo.img \
+              vendor-ramdisk-stub.cpio.gz \
+              > SHA256SUMS )
+          cat "$RELEASE_DIR/SHA256SUMS"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-route-b-v3-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            out-release/**
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-route-b-v3-logs-${{ github.sha }}
+          path: |
+            linux-6.6/build.log
+            linux-6.6/dtbs_check.thyme.log
+            checkpatch.log
+            out-release/unpack-report/
+            out-release/route-b-validation-report.txt

@@ -69,11 +69,27 @@ Artifacts:`thyme-mainline-firstboot-<sha>`. Flash procedure	is
 documented only in `docs/slot-b-first-boot-runbook.md`;this project performs
 no device writes.
 
+## Route B (stock-shaped boot v3)
+
+Isolated branch `route-b-v3`, workflow `.github/workflows/thyme-route-b-v3.yml`.
+Does **not** replace the v2 primary path. Builds:
+
+| artifact | role |
+|---|---|
+| `experimental-boot-v3.img` | kernel + Route B initramfs, header v3 |
+| `experimental-vendor_boot-v3.img` | stock-compatible v3 header + mainline DTB |
+| `experimental-dtbo.img` | single no-op overlay, `qcom,board-id = <45 0>` |
+
+Docs: `docs/route-b-v3-boot-chain.md`, `docs/route-b-v3-test-plan.md`.
+No device writes; Slot A protected.
+
 ## Docs
 
 - `docs/stock-rom-analysis.md` — stock ROM parse
 - `docs/thyme-hardware-map.md` — hardware mapping
 - `docs/mainline-boot-chain.md` — Q1/Q2/Q3 decision + evidence
+- `docs/route-b-v3-boot-chain.md` — Route B boot v3 / vendor_boot / DTBO
+- `docs/route-b-v3-test-plan.md` — Route B B0/B1 gates
 - `docs/no-uart-debugging.md` — USB-first observation design,pstore DEFERRED
 - `docs/slot-b-first-boot-runbook.md` — future flash runbook,B-only
 - `docs/slot-b-rollback.md` — stock B restore plan
