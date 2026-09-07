@@ -77,8 +77,11 @@ test -x "${OUT_DIR}/root/init" || { echo "init not executable"; exit 1; }
 test -x "${OUT_DIR}/root/bin/busybox" || { echo "busybox missing"; exit 1; }
 file "${OUT_DIR}/root/bin/busybox" | grep -q "statically linked" \
 	|| { echo "busybox not static"; exit 1; }
+# busybox installs applet symlinks across bin/, sbin/, usr/bin/, usr/sbin/;
+# probe anywhere under root, not a hardcoded /bin path.*
 for a in cat mount ifconfig telnetd httpd dmesg sh; do
-	test -x "${OUT_DIR}/root/bin/${a}" || { echo "applet symlink missing: ${a}"; exit 1; }
+	find "${OUT_DIR}/root" -name "${a}" -print -quit | grep -q . \
+		|| { echo "applet missing: ${a}"; exit 1; }
 done
 
 echo "== initramfs artifacts =="
