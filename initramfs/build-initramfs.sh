@@ -19,6 +19,7 @@ INIT_SRC="${4:-$PWD/initramfs/init}"
 CROSS_COMPILE="${CROSS_COMPILE:-aarch64-linux-gnu-}"
 
 echo "== busybox ${BUSYBOX_VERSION} (static aarch64*"
+command -v "${CROSS_COMPILE}gcc" || { echo "CROSS GCC MISSING: ${CROSS_COMPILE}gcc"; exit 1; }
 if [ ! -f "${BUSYBOX_SRC}/.config" ]; then
 	mkdir -p "$(dirname "${BUSYBOX_SRC}")"
 	if [ ! -f "${BUSYBOX_SRC}/Makefile" ]; then
@@ -27,19 +28,25 @@ if [ ! -f "${BUSYBOX_SRC}/.config" ]; then
 			echo "DOWNLOAD FAILED: ${URL}" >&2
 			exit 1
 		fi
+		echo "== busybox: tarball downloaded =="
 		tar -xzf "${BUSYBOX_SRC}.tar.gz" -C "${BUSYBOX_SRC}" --strip-components 1
+		echo "== busybox: source extracted =="
 	fi
 fi
 
 cd "${BUSYBOX_SRC}"
 cp "${CONFIG_SRC}" .config
-make oldconfig KBUILD_OUTPUT=build >/dev/null 2>&1
-make -j"$(nproc)" KBUILD_OUTPUT=build CROSS_COMPILE="${CROSS_COMPILE}" busybox
+echo "== busybox: config staged =="
+make oldconfig
+echo "== busybox: oldconfig done =="
+make -j"$(nproc)" CROSS_COMPILE="${CROSS_COMPILE}" busybox
+echo "== busybox: build done =="
 
 # ---- assemble initramfs root ----
 rm -rf "${OUT_DIR}/root"
 mkdir -p "${OUT_DIR}/root"
-make KBUILD_OUTPUT=build CROSS_COMPILE="${CROSS_COMPILE}" CONFIG_PREFIX="${OUT_DIR}/root" install
+make CROSS_COMPILE="${CROSS_COMPILE}" CONFIG_PREFIX="${OUT_DIR}/root" install
+echo "== busybox: install done =="
 
 install -Dm755 "${INIT_SRC}" "${OUT_DIR}/root/init"
 #( busybox has already created /bin + applet symlinks in the prefix*.{
