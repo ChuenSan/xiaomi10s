@@ -37,11 +37,12 @@ fi
 cd "${BUSYBOX_SRC}"
 cp "${CONFIG_SRC}" .config
 echo "== busybox: config staged =="
-# busybox kconfig wants a REAL TTY and prompts defaults for each NEW symbol;
-# wrap in util-linux script ( pty* and feed infinite empty answers ( accept default* via 'yes',
-# pipe kept INSIDE script so the outer 'set -o pipefail' never sees yes's SIGPIPE.
+# busybox kconfig prompts for each NEW symbol ( default shown as Y*; needs a REAL TTY
+# on fd0/fd1. Feed answers THROUGH the pty ( stdin stays pty tty, но data arrives
+# via a file redirect ( NOT an inner pipe — a pipe makes make's stdin non-tty again*.
 command -v script >/dev/null || { echo "script (util-linux) missing — needed as TTY bridge for busybox kconfig"; exit 1; }
-script -qefc "yes '' | make silentoldconfig" /dev/null
+i=0; while [ "$i" -lt 1000 ]; do echo Y; i=$((i+1)); done > /tmp/bb-answers
+script -qefc "make silentoldconfig" /dev/null < /tmp/bb-answers
 echo "== busybox: oldconfig done =="
 make -j"$(nproc)" CROSS_COMPILE="${CROSS_COMPILE}" busybox
 echo "== busybox: build done =="
