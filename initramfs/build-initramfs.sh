@@ -37,8 +37,10 @@ fi
 cd "${BUSYBOX_SRC}"
 cp "${CONFIG_SRC}" .config
 echo "== busybox: config staged =="
-# busybox oldconfig is INTERACTIVE ( conf -o Config.in*; use silentoldconfig ( conf -s* for CI </dev/null
-make silentoldconfig
+# busybox kconfig demands a REAL TTY ( "Console input/output is redirected" abort*;
+# wrap conf in a pseudo-tty via util-linux script ( non-interactive -s mode, no prompts*.
+command -v script >/dev/null || { echo "script (util-linux) missing — needed as TTY bridge for busybox kconfig"; exit 1; }
+script -qefc "make silentoldconfig" /dev/null
 echo "== busybox: oldconfig done =="
 make -j"$(nproc)" CROSS_COMPILE="${CROSS_COMPILE}" busybox
 echo "== busybox: build done =="
