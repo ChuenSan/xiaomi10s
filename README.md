@@ -69,11 +69,25 @@ Artifacts:`thyme-mainline-firstboot-<sha>`. Flash procedure	is
 documented only in `docs/slot-b-first-boot-runbook.md`;this project performs
 no device writes.
 
+## Route A (boot v2 RAM-only investigation)
+
+`.github/workflows/route-a-v2-boot-investigation.yml` (`workflow_dispatch`).
+Does not flash. Does not modify Slot A/B. Builds a v2 differential matrix only.
+
+```sh
+gh workflow run route-a-v2-boot-investigation
+```
+
+Docs: `docs/route-a-v2-boot-analysis.md`, `docs/route-a-abl-evidence.md`, `docs/route-a-report.md`.
+
 ## Docs
 
 - `docs/stock-rom-analysis.md` — stock ROM parse
 - `docs/thyme-hardware-map.md` — hardware mapping
 - `docs/mainline-boot-chain.md` — Q1/Q2/Q3 decision + evidence
+- `docs/route-a-v2-boot-analysis.md` — v2 header/layout/DTB match
+- `docs/route-a-abl-evidence.md` — thyme ABL LinuxLoader DTB/x0 path
+- `docs/route-a-report.md` — Route A conclusions
 - `docs/no-uart-debugging.md` — USB-first observation design,pstore DEFERRED
 - `docs/slot-b-first-boot-runbook.md` — future flash runbook,B-only
 - `docs/slot-b-rollback.md` — stock B restore plan

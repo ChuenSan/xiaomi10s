@@ -1,0 +1,200 @@
+name: route-a-v2-boot-investigation
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: route-a-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LINUX_DIR: linux-6.6
+  MAKEARGS: O=out ARCH=arm64 LLVM=1
+  RELEASE_DIR: out-release
+  BUSYBOX_VER: 1.36.1
+  STOCK_CMDLINE: "console=ttyMSM0,115200n8 androidboot.hardware=qcom androidboot.console=ttyMSM0 androidboot.memcg=1 lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 msm_rtb.filter=0x237 service_locator.enable=1 androidboot.usbcontroller=a600000.dwc3 swiotlb=2048 loop.max_part=7 cgroup.memory=nokmem,nosocket reboot=panic_warm buildvariant=user"
+
+jobs:
+  artifacts:
+    name: route-a v2 matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Vendor AOSP boot tools sanity
+        run: |
+          python3 -c "import ast; ast.parse(open('tools/aosp/mkbootimg.py').read()); ast.parse(open('tools/aosp/unpack_bootimg.py').read()); ast.parse(open('scripts/route-a/parse_boot_v2.py').read()); ast.parse(open('scripts/route-a/make_v2_variants.py').read()); print('parse OK')"
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang llvm lld make gcc bc bison flex libssl-dev libelf-dev \
+            device-tree-compiler python3 \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu cpio
+          echo "clang: $(clang --version | head -1)"
+          echo "dtc: $(dtc --version)"
+          command -v fdtput
+          command -v fdtget
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          git submodule update --init --depth 1 "$LINUX_DIR"
+          git -C "$LINUX_DIR" log -1 --format='pinned: %H %s'
+
+      - name: Apply thyme patch series
+        run: |
+          PATCH_DIR="$GITHUB_WORKSPACE/patches/linux-6.6"
+          for p in "$PATCH_DIR"/*.patch; do
+            git -C "$LINUX_DIR" apply --whitespace=nowarn "$p"
+          done
+
+      - name: Configure (defconfig + thyme bring-up fragment)
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          make $MAKEARGS defconfig
+          ./scripts/kconfig/merge_config.sh -m -O out out/.config \
+              "$GITHUB_WORKSPACE/configs/thyme-bringup.config"
+          make $MAKEARGS olddefconfig
+
+      - name: Build Image
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          set -o pipefail
+          make $MAKEARGS -j"$(nproc)" Image 2>&1 | tee build.log
+
+      - name: Build thyme DTB
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          set -o pipefail
+          make $MAKEARGS -j"$(nproc)" dtbs 2>&1 | tee -a build.log
+          test -s out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dtb
+          fdtget out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dtb / compatible | tr ' ' '\n' | grep -q qcom,sm8250
+
+      - name: Cache busybox source
+        uses: actions/cache@v4
+        with:
+          path: .cache/busybox-${{ env.BUSYBOX_VER }}
+          key: busybox-${{ env.BUSYBOX_VER }}
+
+      - name: Build BusyBox static + initramfs
+        run: |
+          bash initramfs/build-initramfs.sh
+          test -s out-initramfs/initramfs.cpio.gz
+
+      - name: Stage products
+        run: |
+          mkdir -p "$RELEASE_DIR/products"
+          cp "$LINUX_DIR"/out/arch/arm64/boot/Image "$RELEASE_DIR/products/Image"
+          cp "$LINUX_DIR"/out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dtb "$RELEASE_DIR/products/sm8250-xiaomi-thyme.dtb"
+          cp "$LINUX_DIR"/out/.config "$RELEASE_DIR/products/final.config"
+          cp out-initramfs/initramfs.cpio.gz "$RELEASE_DIR/products/initramfs.cpio.gz"
+
+      - name: Pack v2 variant matrix
+        run: |
+          python3 scripts/route-a/make_v2_variants.py \
+            --mkbootimg tools/aosp/mkbootimg.py \
+            --kernel "$RELEASE_DIR/products/Image" \
+            --ramdisk "$RELEASE_DIR/products/initramfs.cpio.gz" \
+            --dtb "$RELEASE_DIR/products/sm8250-xiaomi-thyme.dtb" \
+            --out "$RELEASE_DIR/matrix"
+
+      - name: Assert control vs products
+        run: |
+          python3 scripts/route-a/parse_boot_v2.py \
+            "$RELEASE_DIR/matrix/control/experimental-boot-v2.img" \
+            --dtb-ref "$RELEASE_DIR/products/sm8250-xiaomi-thyme.dtb" \
+            --kernel-ref "$RELEASE_DIR/products/Image" \
+            --ramdisk-ref "$RELEASE_DIR/products/initramfs.cpio.gz" \
+            --require-v2 \
+            --json-out "$RELEASE_DIR/matrix/control/assert.json"
+          python3 tools/aosp/unpack_bootimg.py \
+            --boot_img "$RELEASE_DIR/matrix/control/experimental-boot-v2.img" \
+            --out "$RELEASE_DIR/matrix/control/unpack" > "$RELEASE_DIR/matrix/control/unpack.txt"
+          grep -q "boot image header version: 2" "$RELEASE_DIR/matrix/control/unpack.txt"
+          grep -E "dtb size: [1-9]" "$RELEASE_DIR/matrix/control/unpack.txt"
+
+      - name: Assert variant gates
+        run: |
+          set -e
+          python3 - <<'PY'
+          import json, subprocess, sys
+          from pathlib import Path
+          sys.path.insert(0, "scripts/route-a")
+          from parse_boot_v2 import parse_v2, sha256_path
+          root = Path("out-release/matrix")
+          ctrl = parse_v2((root/"control/experimental-boot-v2.img").read_bytes())
+          # no-dtb
+          n = parse_v2((root/"no-dtb/experimental-boot-v2.img").read_bytes())
+          assert n["header"]["header_version"]==2 and n["header"]["dtb_size"]==0, n["header"]
+          assert n["layout"]["computed_offsets_eq_file"]
+          # bad-dtb
+          b = parse_v2((root/"bad-dtb/experimental-boot-v2.img").read_bytes())
+          assert b["header"]["dtb_size"]==ctrl["header"]["dtb_size"]
+          assert b["payloads"]["dtb_magic_hex"] != "d00dfeed"
+          assert b["layout"]["computed_offsets_eq_file"]
+          # marker
+          mdtb = root/"marker.dtb"
+          model = subprocess.check_output(["fdtget", str(mdtb), "/", "model"], text=True)
+          assert "Route-A DTB Probe" in model, model
+          m = parse_v2((root/"marker-dtb/experimental-boot-v2.img").read_bytes())
+          assert m["header"]["dtb_size"]>0 and m["payloads"]["dtb_magic_hex"]=="d00dfeed"
+          # qc-ids
+          qdtb = root/"qc-ids.dtb"
+          msm = subprocess.check_output(["fdtget", "-t", "x", str(qdtb), "/", "qcom,msm-id"], text=True)
+          board = subprocess.check_output(["fdtget", "-t", "x", str(qdtb), "/", "qcom,board-id"], text=True)
+          assert "164" in msm.replace("0x","").lower() or "0x164" in msm.lower(), msm
+          assert "2d" in board.replace("0x","").lower() or "45" in board, board
+          # cmdline
+          c = parse_v2((root/"cmdline-probe/experimental-boot-v2.img").read_bytes())
+          assert "route_a_cmdline_probe=1" in c["header"]["cmdline"]
+          assert c["payloads"]["dtb_sha256"]==ctrl["payloads"]["dtb_sha256"]
+          print("variant gates PASS")
+          PY
+          BOOT_CAP=201326592
+          for v in control no-dtb bad-dtb marker-dtb qc-ids cmdline-probe; do
+            s=$(wc -c < "$RELEASE_DIR/matrix/$v/experimental-boot-v2.img")
+            echo "$v = $s"
+            [ "$s" -le "$BOOT_CAP" ]
+          done
+
+      - name: Memory map note
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          from pathlib import Path
+          sys.path.insert(0, "scripts/route-a")
+          from parse_boot_v2 import parse_v2, memory_map
+          p = parse_v2(Path("out-release/matrix/control/experimental-boot-v2.img").read_bytes())
+          Path("out-release/matrix/memory-map.txt").write_text(
+              json.dumps(memory_map(p["header"]), indent=2) + "\n"
+          )
+          print(open("out-release/matrix/memory-map.txt").read())
+          PY
+
+      - name: SHA256SUMS products + matrix
+        run: |
+          ( cd "$RELEASE_DIR/products" && sha256sum Image sm8250-xiaomi-thyme.dtb initramfs.cpio.gz > ../SHA256SUMS.products )
+          cat "$RELEASE_DIR/matrix/SHA256SUMS"
+          cat "$RELEASE_DIR/matrix/image-diff.txt"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-route-a-v2-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            out-release/products/**
+            out-release/matrix/**
+            out-release/SHA256SUMS.products
+
+      - name: Upload kernel build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-route-a-v2-logs-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            linux-6.6/build.log
+            out-release/matrix/image-diff.txt
+            out-release/matrix/build-metadata.txt
