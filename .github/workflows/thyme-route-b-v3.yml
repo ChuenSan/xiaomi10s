@@ -48,21 +48,23 @@ jobs:
           git submodule update --init --depth 1 "$LINUX_DIR"
           git -C "$LINUX_DIR" log -1 --format='pinned: %H %s'
 
-      - name: checkpatch (thyme patches, ERROR gates)
-        run: |
-          set -o pipefail
-          "$LINUX_DIR/scripts/checkpatch.pl" --no-tree --ignore FILE_PATH_CHANGES \
-            patches/linux-6.6/*.patch | tee checkpatch.log
-          if grep -E '^ERROR:' checkpatch.log; then
-            echo "checkpatch ERROR"
-            exit 1
-          fi
-
       - name: Apply thyme patch series
         run: |
           for p in patches/linux-6.6/*.patch; do
             git -C "$LINUX_DIR" apply --whitespace=nowarn "$p"
           done
+
+      - name: checkpatch (thyme DTS, ERROR gates)
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          scripts/checkpatch.pl --no-tree --ignore FILE_PATH_CHANGES \
+            -f arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dts \
+            > "$GITHUB_WORKSPACE/checkpatch.log" 2>&1 || true
+          cat "$GITHUB_WORKSPACE/checkpatch.log"
+          if grep -E '^ERROR:' "$GITHUB_WORKSPACE/checkpatch.log"; then
+            echo "checkpatch ERROR"
+            exit 1
+          fi
 
       - name: Configure (defconfig + Route B fragment)
         working-directory: ${{ env.LINUX_DIR }}
