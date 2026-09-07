@@ -37,10 +37,11 @@ fi
 cd "${BUSYBOX_SRC}"
 cp "${CONFIG_SRC}" .config
 echo "== busybox: config staged =="
-# busybox kconfig demands a REAL TTY ( "Console input/output is redirected" abort*;
-# wrap conf in a pseudo-tty via util-linux script ( non-interactive -s mode, no prompts*.
+# busybox kconfig wants a REAL TTY and prompts defaults for each NEW symbol;
+# wrap in util-linux script ( pty* and feed infinite empty answers ( accept default* via 'yes',
+# pipe kept INSIDE script so the outer 'set -o pipefail' never sees yes's SIGPIPE.
 command -v script >/dev/null || { echo "script (util-linux) missing — needed as TTY bridge for busybox kconfig"; exit 1; }
-script -qefc "make silentoldconfig" /dev/null
+script -qefc "yes '' | make silentoldconfig" /dev/null
 echo "== busybox: oldconfig done =="
 make -j"$(nproc)" CROSS_COMPILE="${CROSS_COMPILE}" busybox
 echo "== busybox: build done =="
