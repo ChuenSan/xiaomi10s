@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
   actions: write
 
 env:
@@ -72,10 +72,11 @@ jobs:
             echo "source=repo secret"
           else
             echo "source=draft/release $STOCK_BOOT_RELEASE_TAG"
-            if ! gh release download "$STOCK_BOOT_RELEASE_TAG" \
-              --repo "${{ github.repository }}" \
-              --pattern 'boot.img' \
-              --dir "$RELEASE_DIR"; then
+            # gh release download TAG misses drafts; list releases + asset id.
+            asset_id=$(gh api "repos/${{ github.repository }}/releases" \
+              --jq ".[] | select(.tag_name==\"$STOCK_BOOT_RELEASE_TAG\") | .assets[] | select(.name==\"boot.img\") | .id" \
+              | head -n1)
+            if [ -z "$asset_id" ]; then
               echo "FAIL: official V14 boot.img not reachable." >&2
               echo "Provide one of:" >&2
               echo "  workflow_dispatch input stock_boot_url" >&2
@@ -83,9 +84,13 @@ jobs:
               echo "  draft release tag $STOCK_BOOT_RELEASE_TAG with asset boot.img" >&2
               exit 1
             fi
-            if [ -f "$RELEASE_DIR/boot.img" ]; then
-              mv -f "$RELEASE_DIR/boot.img" "$dest"
-            fi
+            echo "asset_id=$asset_id"
+            curl -fL --retry 3 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/octet-stream" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/assets/${asset_id}" \
+              -o "$dest"
           fi
           test -s "$dest"
           echo "stock-boot.img bytes=$(wc -c < "$dest")"
