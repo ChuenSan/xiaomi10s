@@ -136,6 +136,17 @@ USB0 path reused. After `usb0` appears, PID1 does `SIOCGIFFLAGS` then
 gh workflow run thyme-stock-kernel-usb-stage1b-device-up.yml --ref route-b-v3
 ```
 
+## Stock kernel USB Stage2 device static IP (Slot B)
+
+Isolated workflow `.github/workflows/thyme-stock-kernel-usb-stage2-device-ip.yml`.
+USB0/Stage1B path reused. After `IFF_UP`, PID1 sets device `10.66.73.1/24` via
+`SIOCSIFADDR` + `SIOCSIFNETMASK` and verifies with `SIOCGIFADDR` /
+`SIOCGIFNETMASK`. No host IPv4, no ping.
+
+```sh
+gh workflow run thyme-stock-kernel-usb-stage2-device-ip.yml --ref route-b-v3
+```
+
 ## Docs
 
 - `docs/route-b-stock-kernel-initexec-proof.md` — timed `/init` execution proof
