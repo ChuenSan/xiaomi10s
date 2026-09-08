@@ -147,6 +147,17 @@ USB0/Stage1B path reused. After `IFF_UP`, PID1 sets device `10.66.73.1/24` via
 gh workflow run thyme-stock-kernel-usb-stage2-device-ip.yml --ref route-b-v3
 ```
 
+## Stock kernel USB Stage2 device static IP
+
+Isolated workflow `.github/workflows/thyme-stock-kernel-usb-stage2-device-ip.yml`.
+USB0 path reused. After `usb0` appears and `IFF_UP` is set, PID1 does
+`SIOCSIFADDR 10.66.73.1` / `SIOCSIFNETMASK 255.255.255.0` and verifies with
+`SIOCGIFADDR` / `SIOCGIFNETMASK`. No host IP, no ping, no default route.
+
+```sh
+gh workflow run thyme-stock-kernel-usb-stage2-device-ip.yml --ref route-b-v3
+```
+
 ## Docs
 
 - `docs/route-b-stock-kernel-initexec-proof.md` — timed `/init` execution proof
@@ -154,6 +165,7 @@ gh workflow run thyme-stock-kernel-usb-stage2-device-ip.yml --ref route-b-v3
 - `docs/route-b-stock-kernel-usb-stage1.md` — host NCM enX inactive
 - `docs/route-b-stock-kernel-usb-stage1-device-observe.md` — device-side NCM netdev observe
 - `docs/route-b-stock-kernel-usb-stage1b-device-up.md` — device usb0 IFF_UP / host enX active
+- `docs/route-b-stock-kernel-usb-stage2-device-ip.md` — device usb0 10.66.73.1/24
 - `docs/stock-rom-analysis.md` — stock ROM parse
 - `docs/thyme-hardware-map.md` — hardware mapping
 - `docs/mainline-boot-chain.md` — Q1/Q2/Q3 decision + evidence
