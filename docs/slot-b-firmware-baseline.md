@@ -61,7 +61,7 @@ Retry still 6 and `unbootable:b:no` ⇒ this is **not** AOSP retry-exhaust fallb
 
 All boot-critical `_a`/`_b` names exist. Sizes equal GPT except `xbl_config_*`: GPT 524288 (128 × 4096), ABL getvar `0x7F5000` (8343552). Treat GPT as layout; ABL is reporting LUN remainder after `xbl`. Stock `xbl_config.img` is 102400 B, far below both.
 
-Dump partitions live: `oops` 16 MiB, `logdump` 64 MiB, `minidump` 96 MiB, `rawdump` 128 MiB. Not read (fetch unsupported).
+Dump partitions live: `oops` 16 MiB, `logdump` 64 MiB, `minidump` 96 MiB, `rawdump` 128 MiB. Hashed from Android A; see dump section.
 
 ---
 
@@ -71,25 +71,25 @@ Physical `_b` partitions that sit on the Qualcomm boot chain or the official fir
 
 | Partition | LUN | Official flash target | Stock image | Currently on B |
 |---|---|---|---|---|
-| `xbl_b` | 2 | `xbl_ab` | `xbl.img` | UNKNOWN |
-| `xbl_config_b` | 2 | `xbl_config_ab` | `xbl_config.img` | UNKNOWN |
-| `aop_b` | 4 | `aop_ab` | `aop.img` | UNKNOWN |
-| `tz_b` | 4 | `tz_ab` | `tz.img` | UNKNOWN |
-| `hyp_b` | 4 | `hyp_ab` | `hyp.img` | UNKNOWN |
-| `abl_b` | 4 | `abl_ab` | `abl.img` | UNKNOWN |
-| `devcfg_b` | 4 | `devcfg_ab` | `devcfg.img` | UNKNOWN |
-| `qupfw_b` | 4 | `qupfw_ab` | `qupfw.img` | UNKNOWN |
-| `keymaster_b` | 4 | `keymaster_ab` | `keymaster.img` | UNKNOWN |
-| `cmnlib_b` | 4 | `cmnlib_ab` | `cmnlib.img` | UNKNOWN |
-| `cmnlib64_b` | 4 | `cmnlib64_ab` | `cmnlib64.img` | UNKNOWN |
-| `uefisecapp_b` | 4 | `uefisecapp_ab` | `uefisecapp.img` | UNKNOWN |
-| `imagefv_b` | 4 | `imagefv_ab` | `imagefv.img` | UNKNOWN |
-| `featenabler_b` | 4 | `featenabler_ab` | `featenabler.img` | UNKNOWN |
-| `boot_b` | 4 | `boot_ab` | `boot.img` | experimental-boot-v3.img |
-| `vendor_boot_b` | 4 | `vendor_boot_ab` | `vendor_boot.img` | experimental-vendor_boot-v3.img |
-| `dtbo_b` | 4 | `dtbo_ab` | `dtbo.img` | experimental-dtbo.img |
-| `vbmeta_b` | 4 | `vbmeta_ab` | `vbmeta.img` | UNKNOWN (not written this Route B) |
-| `vbmeta_system_b` | 0 | `vbmeta_system_ab` | `vbmeta_system.img` | UNKNOWN |
+| `xbl_b` | 2 | `xbl_ab` | `xbl.img` | MATCH_STOCK |
+| `xbl_config_b` | 2 | `xbl_config_ab` | `xbl_config.img` | MATCH_STOCK |
+| `aop_b` | 4 | `aop_ab` | `aop.img` | MATCH_STOCK |
+| `tz_b` | 4 | `tz_ab` | `tz.img` | MATCH_STOCK |
+| `hyp_b` | 4 | `hyp_ab` | `hyp.img` | MATCH_STOCK |
+| `abl_b` | 4 | `abl_ab` | `abl.img` | MATCH_STOCK |
+| `devcfg_b` | 4 | `devcfg_ab` | `devcfg.img` | MATCH_STOCK |
+| `qupfw_b` | 4 | `qupfw_ab` | `qupfw.img` | MATCH_STOCK |
+| `keymaster_b` | 4 | `keymaster_ab` | `keymaster.img` | MATCH_STOCK |
+| `cmnlib_b` | 4 | `cmnlib_ab` | `cmnlib.img` | MATCH_STOCK |
+| `cmnlib64_b` | 4 | `cmnlib64_ab` | `cmnlib64.img` | MATCH_STOCK |
+| `uefisecapp_b` | 4 | `uefisecapp_ab` | `uefisecapp.img` | MATCH_STOCK |
+| `imagefv_b` | 4 | `imagefv_ab` | `imagefv.img` | MATCH_STOCK |
+| `featenabler_b` | 4 | `featenabler_ab` | `featenabler.img` | MATCH_STOCK |
+| `boot_b` | 4 | `boot_ab` | `boot.img` | experimental-boot-v3 CONFIRMED |
+| `vendor_boot_b` | 4 | `vendor_boot_ab` | `vendor_boot.img` | experimental-vendor_boot-v3 CONFIRMED |
+| `dtbo_b` | 4 | `dtbo_ab` | `dtbo.img` | experimental-dtbo CONFIRMED |
+| `vbmeta_b` | 4 | `vbmeta_ab` | `vbmeta.img` | flags=3, not stock |
+| `vbmeta_system_b` | 0 | `vbmeta_system_ab` | `vbmeta_system.img` | MATCH_STOCK |
 
 ---
 
@@ -105,7 +105,7 @@ Project tree has **no** `flash_all.sh`. Official `crclist.txt` / `sparsecrclist.
 
 Official Fastboot ROM writes **both slots** of every boot-critical firmware image (`*_ab`), plus payload and `super`. LineageOS `fw_update` writes the firmware subset (Tier 0/1/3) the same way.
 
-Implication: a healthy factory/fastboot install has A and B firmware identical. A device that later only OTAs one slot, or that had only `boot_b`/`vendor_boot_b`/`dtbo_b` replaced, can diverge. **Unproven on this unit until hashed.**
+Implication: a healthy factory/fastboot install has A and B firmware identical. **This unit: live Android-A root hashes show Tier 0/1 firmware A == B == V14.0.6.0.TGACNXM stock.** Stale-B-firmware as the Route B pre-kernel cause is **REFUTED**.
 
 ---
 
@@ -113,36 +113,40 @@ Implication: a healthy factory/fastboot install has A and B firmware identical. 
 
 ```text
 FASTBOOT_PARTITION_READBACK = UNSUPPORTED
-Device attached this session: YES (fastboot, current-slot:a)
+ANDROID_A_ROOT_HASH = DONE  (2026-09-08, Magisk 26.4-kitsune, slot_suffix=_a, fingerprint V14.0.6.0.TGACNXM)
 ```
 
-AOSP `fastboot fetch vbmeta_b` / `featenabler_b`: `Unable to get max-fetch-size. Device does not support fetch command.` `getvar max-fetch-size` = Variable Not Found. `fastboot oem help` = `unknown command`. No undocumented oem dump was attempted. Next gate remains Android A + root `sha256sum /dev/block/by-name/*_{a,b}`.
+Method: `sha256sum` of the whole block device (A==B), plus `dd count=1 bs=<stock_image_size> | sha256sum` (vs ROM). Stock images are smaller than GPT except `imagefv` / `vendor_boot` / `dtbo`. Full-partition hash ≠ file hash when padding exists; prefix hash is the ROM comparison.
 
 Status vocabulary: `MATCH_STOCK` `MATCH_A` `STALE_OR_DIFFERENT` `UNREADABLE` `UNKNOWN`.
 
-| Partition | Stock SHA256 | Slot A | Slot B | A==Stock | B==Stock | A==B | Boot-critical | Status |
-|---|---|---|---|---|---|---|---|---|
-| xbl | `8a170d77…e6841a` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| xbl_config | `55d0220e…8fa567` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| aop | `1b160112…d52898` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| tz | `de0adae9…eb437b` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| hyp | `ad836145…5b7e44` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| abl | `1d14cad5…2c5cc2` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| devcfg | `9d2fd053…4a8800` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| qupfw | `a92a8e1d…059c1a` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| keymaster | `56467ce4…02d9b2` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| cmnlib | `fe0cbc87…9d2411` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| cmnlib64 | `377b9450…2c1d83` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| uefisecapp | `7ab0dffb…30d501` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| imagefv | `f4da4349…9ca07d` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| featenabler | `3426036b…edd57b` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| boot | `9d8c12c5…e3e9be` | UNKNOWN | `582f5b0c…576484` (experimental-boot-v3) | UNKNOWN | **no** | UNKNOWN | yes | B = STALE_OR_DIFFERENT vs stock (experiment) |
-| vendor_boot | `aac7e11f…041972` | UNKNOWN | `62497ee8…c4b06d` (experimental-vendor_boot-v3) | UNKNOWN | **no** | UNKNOWN | yes | B = STALE_OR_DIFFERENT vs stock (experiment) |
-| dtbo | `018fa85c…e64634` | UNKNOWN | `316c12d9…15d9c1` (experimental-dtbo) | UNKNOWN | **no** | UNKNOWN | yes | B = STALE_OR_DIFFERENT vs stock (experiment) |
-| vbmeta | `37dfac44…0f9d9c` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
-| vbmeta_system | `32174550…8b8355` | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | yes | UNKNOWN |
+Hashes below are **stock-image-sized prefixes** except where noted. Raw logs: `work/slot-b-baseline/android-a/` (git-ignored).
 
-Different hash is **not** automatically “corrupt”. Experimental payload hashes are expected. Firmware `UNKNOWN` is the hole this audit exists to close.
+| Partition | Stock SHA256 | Slot A prefix | Slot B prefix | A==Stock | B==Stock | A==B (full part.) | Boot-critical | Status |
+|---|---|---|---|---|---|---|---|---|
+| xbl | `8a170d77…e6841a` | `8a170d77…e6841a` | `8a170d77…e6841a` | yes | yes | yes | yes | MATCH_STOCK |
+| xbl_config | `55d0220e…8fa567` | `55d0220e…8fa567` | `55d0220e…8fa567` | yes | yes | yes | yes | MATCH_STOCK |
+| aop | `1b160112…d52898` | `1b160112…d52898` | `1b160112…d52898` | yes | yes | yes | yes | MATCH_STOCK |
+| tz | `de0adae9…eb437b` | `de0adae9…eb437b` | `de0adae9…eb437b` | yes | yes | yes | yes | MATCH_STOCK |
+| hyp | `ad836145…5b7e44` | `ad836145…5b7e44` | `ad836145…5b7e44` | yes | yes | yes | yes | MATCH_STOCK |
+| abl | `1d14cad5…2c5cc2` | `1d14cad5…2c5cc2` | `1d14cad5…2c5cc2` | yes | yes | yes | yes | MATCH_STOCK |
+| devcfg | `9d2fd053…4a8800` | `9d2fd053…4a8800` | `9d2fd053…4a8800` | yes | yes | yes | yes | MATCH_STOCK |
+| qupfw | `a92a8e1d…059c1a` | `a92a8e1d…059c1a` | `a92a8e1d…059c1a` | yes | yes | yes | yes | MATCH_STOCK |
+| keymaster | `56467ce4…02d9b2` | `56467ce4…02d9b2` | `56467ce4…02d9b2` | yes | yes | yes | yes | MATCH_STOCK |
+| cmnlib | `fe0cbc87…9d2411` | `fe0cbc87…9d2411` | `fe0cbc87…9d2411` | yes | yes | yes | yes | MATCH_STOCK |
+| cmnlib64 | `377b9450…2c1d83` | `377b9450…2c1d83` | `377b9450…2c1d83` | yes | yes | yes | yes | MATCH_STOCK |
+| uefisecapp | `7ab0dffb…30d501` | `7ab0dffb…30d501` | `7ab0dffb…30d501` | yes | yes | yes | yes | MATCH_STOCK |
+| imagefv | `f4da4349…9ca07d` | `f4da4349…9ca07d` | `f4da4349…9ca07d` | yes | yes | yes | yes | MATCH_STOCK |
+| featenabler | `3426036b…edd57b` | `3426036b…edd57b` | `3426036b…edd57b` | yes | yes | yes | yes | MATCH_STOCK |
+| boot | `9d8c12c5…e3e9be` | `653cd225…4c7f2e` (Magisk 26.4-kitsune) | exp `582f5b0c…576484` at 36294656 B | no | no | no | yes | A Magisk; B experimental-boot-v3 CONFIRMED |
+| vendor_boot | `aac7e11f…041972` | `aac7e11f…041972` | exp `62497ee8…c4b06d` at 114688 B | yes | no | no | yes | A MATCH_STOCK; B experimental CONFIRMED |
+| dtbo | `018fa85c…e64634` | `018fa85c…e64634` | exp `316c12d9…15d9c1` at 387 B | yes | no | no | yes | A MATCH_STOCK; B experimental CONFIRMED |
+| vbmeta | `37dfac44…0f9d9c` | `37dfac44…0f9d9c` flags=**2** | `9c632a60…b2c5c0` flags=**3** | yes | no | no | yes | A MATCH_STOCK; B STALE_OR_DIFFERENT |
+| vbmeta_system | `32174550…8b8355` | `32174550…8b8355` flags=0 | `32174550…8b8355` flags=0 | yes | yes | yes | yes | MATCH_STOCK |
+
+`xbl_b` lives on `sdc1` (LUN 2), `xbl_a` on `sdb1` (LUN 1). Content still identical.
+
+Different hash is not “corrupt”: Magisk `boot_a` and Route B experimental images are expected. **vbmeta_b flags=3** is `HASHTREE_DISABLED|VERIFICATION_DISABLED` (Magisk/`--disable-verity --disable-verification` style). Stock is flags=2 only. Patching the signed header likely invalidates the RSA signature. AOSP libavb still skips descriptors if bit 1 is set; Xiaomi ABL may still reject a broken signature. Historical stock-core-on-B flashed stock vbmeta (flags=2) and still failed — so flags=3 is a current-B difference, not the explanation of that older control.
 
 ---
 
@@ -160,9 +164,9 @@ Version coupling (CONFIRMED_STOCK strings + Qualcomm chain):
 - TZ and HYP are the same QC train `TZ.XF.5.8-00226`.
 - XBL image also contains `TZ.XF.5.8-00032` — XBL/TZ are coupled; mixing trains is a known Qualcomm/OEM brick class.
 - Xiaomi `flash_all` refuses to flash if device `anti` > ROM `anti_version.txt`. Flashing **older** firmware than the device anti-index is rejected. Flashing **matching** V14.0.6.0 onto B is the intended control, not a downgrade, **if** A already runs that ROM.
-- If B still holds an older XBL than the fused ARB while A has the current train, `set_active b` can fail **before** kernel: PBL rejects `xbl_b` or XBL refuses TZ/ABL. That is compatible with “immediate Fastboot” and with historical stock-payload-on-B failure.
+- If B still holds an older XBL than the fused ARB while A has the current train, `set_active b` can fail **before** kernel. **Live hashes: B XBL/TZ/HYP/ABL == A == this ROM. That hypothesis is REFUTED on this unit.**
 
-Reached ABL fastboot with `current-slot:b` means **some** XBL+ABL executed. Whether that was `xbl_b`/`abl_b` or a fallback to A is UNKNOWN without hashes or bootloader logs.
+Reached ABL fastboot with `current-slot:b` means **some** XBL+ABL executed. Given `xbl_b==xbl_a` and `abl_b==abl_a`, slot-B firmware train is the same as the working Slot A train.
 
 Do not modify anti-rollback fuses.
 
@@ -216,15 +220,24 @@ Distinct getvar concepts:
 | `Verity mode=true` | dm-verity policy presentation; `vbmeta_system` flags=0 still carries hashtrees. Userspace. |
 | vbmeta Flags=2 | libavb: skip descriptor verification |
 
-Stock `vbmeta` **does** contain hash descriptors over `boot` / `dtbo` / `vendor_boot`. Route B experimental images **do not** match those digests. If ABL honors Flags=2, those descriptors are not used → experimental payload is not an AVB pre-kernel reject. If Xiaomi ABL ignores Flags=2, experimental payload **would** be rejected.
+Live on-device (xxd offset 0x78, 2026-09-08):
 
-Historical stock-matching `boot_b`+`vendor_boot_b`+`dtbo_b`+`vbmeta_b` **also** failed. Those images **match** the descriptors. So AVB hash mismatch **cannot** be the explanation of `STOCK_BOOT_CORE_ON_B`.
+```text
+vbmeta_a flags = 2     MATCH stock ROM   signed flags=2
+vbmeta_b flags = 3     NOT stock         HASHTREE_DISABLED|VERIFICATION_DISABLED
+vbmeta_system_a/b flags = 0  MATCH stock
+ro.boot.verifiedbootstate = orange   (unlocked)
+```
+
+Flags=3 still has bit 1, so AOSP libavb still skips descriptors. Changing flags inside a signed header typically **breaks the RSA signature**. Unlocked ABL may still load; Xiaomi ABL may reject the vbmeta image before reading flags. That is a current-B-only difference.
+
+Historical `STOCK_BOOT_CORE_ON_B` claimed stock `vbmeta_b` (flags=2) and still Fastboot. Hash mismatch of experimental payload therefore **cannot** explain that older control. It **can** still matter for the current experimental images sitting next to flags=3 vbmeta_b.
 
 ```text
 AVB_PRE_KERNEL_BLOCKER: POSSIBLE
 ```
 
-POSSIBLE for the current experimental payload if ABL ignores Flags=2. UNLIKELY as the cause of the stock-core-on-B failure. Not CONFIRMED, not REFUTED. This round does not modify vbmeta.
+Firmware-stale is no longer the leading hypothesis. Do not modify vbmeta this round.
 
 ---
 
@@ -244,63 +257,39 @@ dynamic *_b mapper relevance to current pre-kernel failure: NONE
 Evidence that kernel/DTS must change: NO
 ```
 
-This round did not produce a kernel-handoff. Changing Linux will not fix an unverified B firmware baseline. No Route B matrix (Mainline/Stock combinations) until `SLOT_B_FIRMWARE_BASELINE` is hashed.
+This round did not produce a kernel-handoff. Tier 0/1 firmware on B **matches stock**. Changing Linux/DTS still has no evidence. Do not run a Mainline/Stock matrix to paper over ABL/AVB.
 
 ---
 
 ## 11. Recommended B normalization set — DESIGN ONLY, do not flash
 
 ```text
-STOCK_B_NORMALIZATION  is not authorized this round.
-No partition list below is a flash command.
+STOCK_B_FIRMWARE_FLASH_SET = empty
+Do not flash xbl_b/tz_b/hyp_b/abl_b/… — they already MATCH_STOCK.
+Never *_a. Never *_ab.
 ```
 
-**Gate before any write:** Android A, root, read-only SHA256 of every row in §6. Flash **only** rows where B ≠ Stock, and only `*_b`. Never `*_a`. Never `*_ab`.
-
-If hashes later show B firmware already equals this ROM, the set is **empty**. Do not flash “just in case”.
-
-If hashes show B firmware ≠ this ROM, the **minimum same-ROM set** for a kernel-handoff control (not Android desktop) is:
+Optional **payload/AVB control** (not firmware), only if later approved:
 
 | partition_b | image | size | SHA256 | reason | risk |
 |---|---|---:|---|---|---|
-| `xbl_b` | `xbl.img` | 3575808 | `8a170d77…e6841a` | PBL slot-B XBL | **high** — wrong XBL can fail before ABL; A remains rescue only if PBL falls back to LUN1. External rescue ROM required. |
-| `xbl_config_b` | `xbl_config.img` | 102400 | `55d0220e…8fa567` | paired with XBL | high, with xbl_b |
-| `aop_b` | `aop.img` | 204800 | `1b160112…d52898` | AOP same train | medium |
-| `tz_b` | `tz.img` | 3190784 | `de0adae9…eb437b` | TZ/HYP coupling | **high** |
-| `hyp_b` | `hyp.img` | 446464 | `ad836145…5b7e44` | with TZ | **high** |
-| `abl_b` | `abl.img` | 208896 | `1d14cad5…2c5cc2` | ABL is the loader | medium-high |
-| `devcfg_b` | `devcfg.img` | 57344 | `9d2fd053…4a8800` | TZ config | medium |
-| `qupfw_b` | `qupfw.img` | 57344 | `a92a8e1d…059c1a` | official firmware train | low-medium |
-| `keymaster_b` | `keymaster.img` | 282624 | `56467ce4…02d9b2` | official train | medium |
-| `cmnlib_b` | `cmnlib.img` | 397312 | `fe0cbc87…9d2411` | QSEE libs | medium |
-| `cmnlib64_b` | `cmnlib64.img` | 516096 | `377b9450…2c1d83` | QSEE libs | medium |
-| `uefisecapp_b` | `uefisecapp.img` | 126976 | `7ab0dffb…30d501` | UEFI security | medium |
-| `imagefv_b` | `imagefv.img` | 2097152 | `f4da4349…9ca07d` | XBL FV | medium |
-| `featenabler_b` | `featenabler.img` | 90112 | `3426036b…edd57b` | official train | low-medium |
+| `vbmeta_b` | `vbmeta.img` | 8192 | `37dfac44…0f9d9c` | restore flags=2 signed stock; current flags=3 | medium — AVB control, Slot A untouched |
+| `boot_b` | `boot.img` | 134217728 | `9d8c12c5…e3e9be` | stock payload control on proven firmware | low-medium |
+| `vendor_boot_b` | `vendor_boot.img` | 100663296 | `aac7e11f…041972` | with boot_b | low-medium |
+| `dtbo_b` | `dtbo.img` | 33554432 | `018fa85c…e64634` | with boot_b | low-medium |
 
-Do **not** include by default: `modem_b` `bluetooth_b` `dsp_b` `super` `mdtp_*` `vbmeta_*` (vbmeta only if hash says B is not the stock Flags=2 image). Payload restore (`boot_b`/`vendor_boot_b`/`dtbo_b` stock) is a **separate** control after firmware matches, to distinguish PRE_KERNEL_FAILURE from ANDROID_USERSPACE_FAILURE.
-
-Historical stock payload on B already failed. Firmware hash is the missing control. Do not restore stock payload again until firmware hashes exist.
-
-Observation for a future stock-B boot (no UART):
-
-| Signal | PRE_KERNEL | KERNEL_HANDOFF / userspace |
-|---|---|---|
-| retry decrements, immediate Fastboot, no USB change | compatible | — |
-| Android USB / charging UI / boot animation | — | kernel at least started |
-| `minidump`/`rawdump` magic `Raw_Dmp!` after attempt | maybe XBL/HLOS crash dump | kernel/subsystem dump |
-| `logdump`/`oops` non-zero vs previous hash | possible ABL/XBL log | possible kernel oops |
+That is a **stock payload re-control**, not firmware normalization. Historical STOCK_BOOT_CORE_ON_B already failed; it is only worth repeating now that firmware hashes exist. Do not execute this round.
 
 ---
 
 ## 12. Remaining blockers
 
-1. Slot A and Slot B firmware SHA256 still UNKNOWN. Fastboot fetch unsupported.
-2. `KERNEL_HANDOFF` still UNKNOWN.
-3. External full rescue ROM is off-tree. Do not flash XBL/TZ/HYP/ABL until that is confirmed accessible.
-4. Live: `current-slot:a` already; `set_active a` is not required again unless slot changes.
+1. `KERNEL_HANDOFF` still UNKNOWN. No mainline USB, no mainline dump.
+2. `vbmeta_b` is flags=3, not stock flags=2. AVB still POSSIBLE for the current experiment.
+3. Historical stock payload-on-B failure is unexplained by firmware (firmware now proven matching). ABL slot-B policy still open.
+4. `oops`/`minidump` only contain **stock 4.19** kernel on slot `_a`, not mainline.
 
-Not blockers: Virtual A/B mapper; need to change kernel/DTS; need to modify vbmeta this round; UART.
+Not blockers: stale XBL/TZ/HYP/ABL on B (REFUTED); Virtual A/B mapper; kernel/DTS change; UART; flashing firmware “just in case”.
 
 ---
 
@@ -310,32 +299,22 @@ Not blockers: Virtual A/B mapper; need to change kernel/DTS; need to modify vbme
 NOT_READY_FOR_STOCK_B_NORMALIZATION_TEST
 ```
 
-Next gate (needs explicit user approval; still no `*_a` flash). Live `current-slot` is already `a`:
-
-```text
-1. fastboot reboot                 # into Android A — DO NOT run until approved
-2. adb shell su -c 'sha256sum /dev/block/by-name/{xbl,xbl_config,aop,tz,hyp,abl,devcfg,qupfw,keymaster,cmnlib,cmnlib64,uefisecapp,imagefv,featenabler,boot,vendor_boot,dtbo,vbmeta,vbmeta_system}_{a,b}'
-3. optional read-only dump inspect:
-     hexdump -C -n 64 /dev/block/by-name/{oops,logdump,minidump,rawdump}
-     sha256sum those four
-     look for Raw_Dmp!; do not erase/format/dd-to-block
-4. fill §6; only then decide a minimum *_b flash set
-```
+Firmware on B already matches V14.0.6.0.TGACNXM. A firmware-flash “normalization” would be unjustified. Next experiment, if any, is a **payload/vbmeta_b control**, and only after explicit approval.
 
 ---
 
-## Dump partitions — safe read (future)
+## Dump partitions — live read 2026-09-08
 
-| Name | GPT size | How to read | How to interpret |
-|---|---:|---|---|
-| `oops` | 16 MiB | `sha256sum` + first 64 bytes | empty/zero vs ramoops-like text |
-| `logdump` | 64 MiB | same | bootloader/kernel log sink on some OEM builds |
-| `minidump` | 96 MiB | same; parser: Qualcomm minidump / `Raw_Dmp!` | selected RAM regions after crash |
-| `rawdump` | 128 MiB | same | larger ramdump; `persist.vendor.sys.rawdump_copy` only copies, this round must not set it if that writes |
+Read-only. No erase/format/dload enable.
 
-`init.qcom.rc` already `chown`s `by-name/ramdump` and gates `emmc_dload` on `persist.vendor.sys.rawdump_copy`. Reading the block device is enough. Do not enable dload, do not format.
+| Name | Header | Full SHA256 | Interpretation |
+|---|---|---|---|
+| `oops` | stock kmsg, Index 1137, Reason Restart, **2026-09-08 08:37:22**, `slot_suffix=_a`, kernel 4.19.157-perf | `3a45d146…a7b1aa` | Android A reboot after Fastboot, not mainline |
+| `logdump` | first 64 B zero | `3b6a07d0…421351` | not empty overall; no mainline string in header |
+| `minidump` | `cigamgol` / `Raw_Dmp!` | `276099a3…89c778` | Qualcomm minidump of **stock** `Linux version 4.19.157-perf-g9d90dd04aa7c` thyme, not 6.6 |
+| `rawdump` | first 64 B zero | `254bcc3f…453917` | not parsed further |
 
-A pre-kernel ABL reject may write **nothing** here. Still the best no-UART artifact after an attempt.
+`init.qcom.rc` `chown`s `by-name/ramdump`. Reading is enough. Do not set `persist.vendor.sys.rawdump_copy`.
 
 ---
 
@@ -349,5 +328,6 @@ Slot A flash/erase/format: NO
 Slot B write: NO
 vbmeta write: NO
 UART used: NO
-CI added: NO (static analysis only)
+CI added: NO
+Android A root read: YES (sha256sum / xxd / strings only)
 ```
