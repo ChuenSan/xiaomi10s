@@ -22,7 +22,10 @@ elf="$OUT/usb-stage0-init"
 root="$OUT/root"
 cpio="$OUT/initramfs.cpio.gz"
 
-"$CC" -c -o "$OUT/usb-stage0-abi-assert.o" "$ABI"
+"$CC" -ffreestanding -Wall -Werror -dM -E -x c \
+	-include linux/fcntl.h /dev/null \
+	| grep -E 'O_DIRECTORY|O_DIRECT' | tee "$OUT/abi-oflags.txt" || true
+"$CC" -ffreestanding -Wall -Werror -c -o "$OUT/usb-stage0-abi-assert.o" "$ABI"
 echo "ABI_ASSERT PASS O_DIRECTORY=040000 O_DIRECT=0200000 newfstatat=79"
 
 "$CC" -ffreestanding -nostdlib -static -no-pie -fno-pic \
