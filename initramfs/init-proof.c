@@ -86,9 +86,8 @@ static void kmsg_mark(void)
 	sys1(SYS_close, fd);
 }
 
-void _start(void) __attribute__((noreturn));
-
-void _start(void)
+__attribute__((used, noreturn, section(".text")))
+int main(void)
 {
 	kmsg_mark();
 	sleep_sec(DELAY_SECONDS);

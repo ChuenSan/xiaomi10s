@@ -55,7 +55,7 @@ build_one() {
 	"$CC" -ffreestanding -nostdlib -static -no-pie -fno-pic \
 		-fno-stack-protector -fno-asynchronous-unwind-tables -fno-ident \
 		-Os -Wall -Werror \
-		-Wl,-e,_start -Wl,--build-id=none -Wl,-z,noexecstack \
+		-Wl,-e,main -Wl,--build-id=none -Wl,-z,noexecstack \
 		-Wl,-Ttext-segment=0x400000 \
 		-DDELAY_SECONDS="$delay" \
 		-o "$elf" "$SRC"
