@@ -3,6 +3,8 @@ name: thyme-stock-kernel-mininit-control
 # Isolated control: official V14 stock kernel + our mininit ramdisk.
 # Does not build linux-6.6, DTS, vendor_boot, or dtbo.
 on:
+  push:
+    branches: [route-b-v3]
   workflow_dispatch:
     inputs:
       stock_boot_url:
