@@ -52,12 +52,16 @@ build_one() {
 	local root="$OUT/root-${delay}s"
 	local cpio="$OUT/initramfs-${delay}s.cpio.gz"
 
-	"$CC" -ffreestanding -fno-stack-protector -fno-asynchronous-unwind-tables \
-		-fno-ident -fno-pic -Os -Wall -Werror \
+	"$CC" -ffreestanding -nostdlib -static -no-pie -fno-pic \
+		-fno-stack-protector -fno-asynchronous-unwind-tables -fno-ident \
+		-Os -Wall -Werror \
+		-Wl,-e,_start -Wl,--build-id=none -Wl,-z,noexecstack \
+		-Wl,-Ttext-segment=0x400000 \
 		-DDELAY_SECONDS="$delay" \
-		-c "$SRC" -o "$obj"
-	"$LD" -T "$LDS" --build-id=none -o "$elf" "$obj"
+		-o "$elf" "$SRC"
 	"$STRIP" -s "$elf"
+	"$READELF" -h "$elf" | grep -E 'Entry point|Type:|Machine:' || true
+	"$READELF" -l "$elf" || true
 	verify_elf "$elf" "$delay"
 
 	mkdir -p "$root"
