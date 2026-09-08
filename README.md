@@ -126,6 +126,16 @@ gh workflow run thyme-stock-kernel-usb-stage1-device-observe.yml --ref route-b-v
 
 Docs: `docs/route-b-stock-kernel-usb-stage1-device-observe.md`.
 
+## Stock kernel USB Stage1B device-netdev IFF_UP (Slot B)
+
+Isolated workflow `.github/workflows/thyme-stock-kernel-usb-stage1b-device-up.yml`.
+USB0 path reused. After `usb0` appears, PID1 does `SIOCGIFFLAGS` then
+`SIOCSIFFLAGS` with `old_flags | IFF_UP`. No IP.
+
+```sh
+gh workflow run thyme-stock-kernel-usb-stage1b-device-up.yml --ref route-b-v3
+```
+
 ## Docs
 
 - `docs/route-b-stock-kernel-initexec-proof.md` — timed `/init` execution proof
