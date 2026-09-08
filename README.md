@@ -142,6 +142,7 @@ gh workflow run thyme-stock-kernel-usb-stage1b-device-up.yml --ref route-b-v3
 - `docs/route-b-stock-kernel-usb-enum-stage0.md` — stock-kernel USB0 NCM enum
 - `docs/route-b-stock-kernel-usb-stage1.md` — host NCM enX inactive
 - `docs/route-b-stock-kernel-usb-stage1-device-observe.md` — device-side NCM netdev observe
+- `docs/route-b-stock-kernel-usb-stage1b-device-up.md` — device usb0 IFF_UP / host enX active
 - `docs/stock-rom-analysis.md` — stock ROM parse
 - `docs/thyme-hardware-map.md` — hardware mapping
 - `docs/mainline-boot-chain.md` — Q1/Q2/Q3 decision + evidence
