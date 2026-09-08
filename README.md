@@ -99,8 +99,24 @@ initramfs/busybox/reports — no vendor_boot/dtbo.
 gh workflow run thyme-stock-kernel-mininit-control.yml --ref route-b-v3
 ```
 
+## Stock kernel init-exec proof (Slot B)
+
+Isolated workflow `.github/workflows/thyme-stock-kernel-initexec-proof.yml`.
+Does **not** build linux-6.6, DTS, vendor_boot, dtbo, or USB gadget.
+Same official V14 kernel, generic ramdisk replaced by a static aarch64
+`/init` that sleeps 15s or 30s then `LINUX_REBOOT_CMD_RESTART2 "bootloader"`.
+
+First device test is P15 only. Artifact has no vendor_boot/dtbo.
+
+```sh
+gh workflow run thyme-stock-kernel-initexec-proof.yml --ref route-b-v3
+```
+
+Docs: `docs/route-b-stock-kernel-initexec-proof.md`.
+
 ## Docs
 
+- `docs/route-b-stock-kernel-initexec-proof.md` — timed `/init` execution proof
 - `docs/stock-rom-analysis.md` — stock ROM parse
 - `docs/thyme-hardware-map.md` — hardware mapping
 - `docs/mainline-boot-chain.md` — Q1/Q2/Q3 decision + evidence
