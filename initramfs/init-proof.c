@@ -100,5 +100,3 @@ int main(void)
 	for (;;)
 		sleep_sec(3600);
 }
-
-asm(".section .note.GNU-stack,\"\",@progbits");
