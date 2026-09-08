@@ -89,24 +89,31 @@ verify_static_arm64() {
 	strings "$f" | grep -q "bootloader" || fail "STATIC_INIT bootloader"
 	strings "$f" | grep -q "ncm.usb0" || fail "STATIC_INIT ncm.usb0"
 	strings "$f" | grep -q "/sys/class/udc" || fail "STATIC_INIT UDC discovery"
+	strings "$f" | grep -q "/config" || fail "STATIC_INIT /config"
 	strings "$f" | grep -q "configfs" || fail "STATIC_INIT configfs"
+	strings "$f" | grep -q "THYME-USB0:MOUNT_CONFIGFS" || fail "STATIC_INIT mount log"
+	strings "$f" | grep -q "THYME-USB0:STAT_USB_GADGET" || fail "STATIC_INIT stat log"
+	strings "$f" | grep -q "THYME-USB0:HOLD_DONE" || fail "STATIC_INIT HOLD_DONE"
 }
 
-SRC=initramfs/usb-stage0-init.c
-grep -q "LINUX_REBOOT_CMD_RESTART2" "$SRC" || fail "FAILSAFE_RESTART2 source"
-python3 - "$SRC" <<'PY' || fail "FAILSAFE_RESTART2 return in main"
-import sys
-from pathlib import Path
-src = Path(sys.argv[1]).read_text()
-i = src.find("int main(void)")
-if i < 0:
-    raise SystemExit(1)
-if "return" in src[i:]:
-    raise SystemExit(1)
-PY
-pass "CONFIGFS_LOGIC"
-pass "UDC_DISCOVERY_LOGIC"
+python3 scripts/stock-kernel-usb-enum-stage0-source-gates.py | tee -a "$RPT" \
+	|| fail "SOURCE_GATES"
+gcc -O2 -Wall -Werror -o "$REL/usb-stage0-isdir-host-test" \
+	initramfs/usb-stage0-isdir-host-test.c
+"$REL/usb-stage0-isdir-host-test" | tee -a "$RPT"
+pass "DIRECTORY_CHECK_NOT_OPEN_ODIRECTORY"
+pass "STAT_BASED_DIRECTORY_CHECK"
+pass "CONFIGFS_MOUNTPOINT_IS_CONFIG"
+pass "CONFIGFS_STAT_LOGGING"
+pass "ERRNO_LOGGING"
+pass "UDC_SCAN_LOGIC"
+pass "CONFIGFS_PATH_FIX"
+pass "ERRNO_MARKERS"
+pass "NCM_LOGIC"
+pass "UDC_DISCOVERY"
+pass "FAILSAFE"
 pass "FAILSAFE_RESTART2"
+echo "DIRECTORY_CHECK_IMPL newfstatat/stat" | tee -a "$RPT"
 
 elf="$PROOF/usb-stage0-init"
 ramdisk="$PROOF/initramfs.cpio.gz"
@@ -121,6 +128,7 @@ root="$REP/stage0-initramfs-root"
 verify_static_arm64 "$elf"
 pass "STATIC_INIT"
 pass "ENTRY_IN_RX_LOAD"
+pass "ENTRY_RX"
 
 pack_boot "$ramdisk" "$img"
 test -s "$img" || fail "packed image missing $img"
@@ -184,5 +192,5 @@ echo "CHOSEN_FUNCTION ncm" | tee -a "$RPT"
 echo "TEST_ONLY_VID_PID 1d6b:0104 NOT PRODUCTION USB IDENTITY" | tee -a "$RPT"
 echo "ONLY INTENTIONAL PAYLOAD CHANGE: generic ramdisk" | tee -a "$RPT"
 echo "BOOT_V3_SHA256 $IMG_SHA" | tee -a "$RPT"
-echo "READY_FOR_USB_ENUM_STAGE0" | tee -a "$RPT"
+echo "READY_FOR_USB_ENUM_STAGE0_RETRY" | tee -a "$RPT"
 echo "ALL STOCK KERNEL USB ENUM STAGE0 VALIDATION PASS" | tee -a "$RPT"

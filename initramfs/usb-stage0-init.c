@@ -1,45 +1,80 @@
 /*
- * PID 1: STOCK_KERNEL_USB_ENUM_STAGE0
- * configfs gadget + UDC bind on stock 4.19. Freestanding aarch64.
+ * PID 1: STOCK_KERNEL_USB_ENUM_STAGE0_RETRY_CONFIGFS_FIX
+ * Directory check is newfstatat + S_ISDIR. Freestanding aarch64.
  *
  * TEST ONLY identity 1d6b:0104 (Linux Foundation gadget).
  * NOT PRODUCTION USB IDENTITY.
  *
- * Chosen function: ncm (live /proc/config.gz: CONFIG_USB_CONFIGFS_NCM=y;
- * CONFIG_USB_CONFIGFS_ACM is not set; CONFIG_USB_CONFIGFS_ECM is not set).
- * No IP, routing, HTTP, telnet.
- *
+ * Function: ncm. No IP, routing, HTTP, telnet.
  * GitHub Actions only.
  */
-#define SYS_mkdirat 34
-#define SYS_symlinkat 36
-#define SYS_mount 40
-#define SYS_openat 56
-#define SYS_close 57
-#define SYS_getdents64 61
-#define SYS_write 64
-#define SYS_sync 81
-#define SYS_nanosleep 101
-#define SYS_reboot 142
-#define SYS_mknodat 33
+#ifndef __aarch64__
+#error "usb-stage0-init is aarch64 only"
+#endif
 
+#include <asm/unistd.h>
+#include <linux/fcntl.h>
+#include <linux/reboot.h>
+
+#define SYS_mkdirat __NR_mkdirat
+#define SYS_mknodat __NR_mknodat
+#define SYS_symlinkat __NR_symlinkat
+#define SYS_mount __NR_mount
+#define SYS_openat __NR_openat
+#define SYS_close __NR_close
+#define SYS_getdents64 __NR_getdents64
+#define SYS_read __NR_read
+#define SYS_write __NR_write
+#define SYS_sync __NR_sync
+#define SYS_nanosleep __NR_nanosleep
+#define SYS_reboot __NR_reboot
+#define SYS_newfstatat __NR_newfstatat
+
+#ifndef AT_FDCWD
 #define AT_FDCWD (-100)
-#define O_RDONLY 0
-#define O_WRONLY 1
-#define O_DIRECTORY 000200000
+#endif
+
 #define EINTR 4
-#define EEXIST 17
 #define ENOENT 2
 #define EBUSY 16
-#define S_IFCHR 0020000
+#define EEXIST 17
 
-#define LINUX_REBOOT_MAGIC1 0xfee1dead
-#define LINUX_REBOOT_MAGIC2 672274793
-#define LINUX_REBOOT_CMD_RESTART2 0xA1B2C3D4
+#define S_IFMT 00170000
+#define S_IFDIR 0040000
+#define S_IFCHR 0020000
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
 
 #define HOLD_SEC 30
 #define FAIL_SEC 5
 #define UDC_TRIES 10
+
+/* aarch64 asm-generic/stat.h (stock 4.19 UAPI). st_mode at offset 16. */
+struct kstat {
+	unsigned long st_dev;
+	unsigned long st_ino;
+	unsigned int st_mode;
+	unsigned int st_nlink;
+	unsigned int st_uid;
+	unsigned int st_gid;
+	unsigned long st_rdev;
+	unsigned long __pad1;
+	long st_size;
+	int st_blksize;
+	int __pad2;
+	long st_blocks;
+	long st_atime;
+	unsigned long st_atime_nsec;
+	long st_mtime;
+	unsigned long st_mtime_nsec;
+	long st_ctime;
+	unsigned long st_ctime_nsec;
+	unsigned int __unused4;
+	unsigned int __unused5;
+};
+
+_Static_assert(sizeof(struct kstat) == 128, "aarch64 struct stat size");
+_Static_assert(__builtin_offsetof(struct kstat, st_mode) == 16,
+	       "aarch64 st_mode offset");
 
 struct timespec {
 	long tv_sec;
@@ -52,28 +87,38 @@ static const char nl[] = "\n";
 
 static const char m_init[] = "THYME-USB0:INIT";
 static const char m_sysfs[] = "THYME-USB0:SYSFS_OK";
+static const char m_udc_class[] = "THYME-USB0:UDC_CLASS_PRESENT";
 static const char m_cfg[] = "THYME-USB0:CONFIGFS_OK";
+static const char m_cfg_mnt_ok[] = "THYME-USB0:CONFIGFS_MOUNT_OK";
 static const char m_udc_pfx[] = "THYME-USB0:UDC=";
+static const char m_gad_dir[] = "THYME-USB0:GADGET_DIR_OK";
+static const char m_strings[] = "THYME-USB0:STRINGS_OK";
+static const char m_cfg_ok[] = "THYME-USB0:CONFIG_OK";
 static const char m_gad[] = "THYME-USB0:GADGET_CREATED";
+static const char m_ncm[] = "THYME-USB0:NCM_OK";
 static const char m_fn[] = "THYME-USB0:FUNCTION=ncm";
+static const char m_link[] = "THYME-USB0:LINK_OK";
 static const char m_lnk[] = "THYME-USB0:FUNCTION_LINKED";
+static const char m_bind_pfx[] = "THYME-USB0:BIND_ATTEMPT:";
 static const char m_bound[] = "THYME-USB0:UDC_BOUND";
 static const char m_hold[] = "THYME-USB0:HOLD";
+static const char m_hold_done[] = "THYME-USB0:HOLD_DONE";
 static const char m_reboot[] = "THYME-USB0:REBOOT_BOOTLOADER";
 static const char m_fail_sysfs[] = "THYME-USB0:FAIL:SYSFS";
+static const char m_fail_udc_class[] = "THYME-USB0:FAIL:UDC_CLASS_MISSING";
 static const char m_fail_cfg[] = "THYME-USB0:FAIL:CONFIGFS";
 static const char m_fail_udc[] = "THYME-USB0:FAIL:NO_UDC";
-static const char m_fail_fn[] = "THYME-USB0:FAIL:FUNCTION";
-static const char m_fail_bind[] = "THYME-USB0:FAIL:BIND";
 
 static const char p_dev[] = "/dev";
 static const char p_sys[] = "/sys";
 static const char p_udc[] = "/sys/class/udc";
+static const char p_cfg[] = "/config";
+static const char p_gadget[] = "/config/usb_gadget";
 static const char p_cfg_std[] = "/sys/kernel/config";
-static const char p_cfg_and[] = "/config";
+static const char p_gadget_std[] = "/sys/kernel/config/usb_gadget";
 static const char pref_udc[] = "a600000.dwc3";
 
-static const char src_devtmpfs[] = "devtmpfs";
+static const char src_none[] = "none";
 static const char src_sysfs[] = "sysfs";
 static const char src_configfs[] = "configfs";
 
@@ -149,6 +194,35 @@ static int pcat(char *dst, unsigned cap, const char *a, const char *b)
 	return 0;
 }
 
+static void cat_str(char *dst, unsigned *i, unsigned cap, const char *s)
+{
+	while (*s && *i + 1 < cap)
+		dst[(*i)++] = *s++;
+	dst[*i] = 0;
+}
+
+static void cat_long(char *dst, unsigned *i, unsigned cap, long v)
+{
+	char tmp[24];
+	unsigned n = 0;
+	unsigned long u;
+
+	if (v < 0) {
+		if (*i + 1 < cap)
+			dst[(*i)++] = '-';
+		u = (unsigned long)(-v);
+	} else {
+		u = (unsigned long)v;
+	}
+	do {
+		tmp[n++] = (char)('0' + (u % 10));
+		u /= 10;
+	} while (u);
+	while (n && *i + 1 < cap)
+		dst[(*i)++] = tmp[--n];
+	dst[*i] = 0;
+}
+
 static void sleep_ts(long sec, long nsec)
 {
 	struct timespec rem;
@@ -212,20 +286,35 @@ __attribute__((noreturn)) static void fail(const char *marker)
 	reboot_bl();
 }
 
-static int mkdir_one(const char *path)
+__attribute__((noreturn)) static void fail_errno(const char *tag, long r)
+{
+	char b[160];
+	unsigned i = 0;
+
+	cat_str(b, &i, sizeof(b), "THYME-USB0:FAIL:");
+	cat_str(b, &i, sizeof(b), tag);
+	cat_str(b, &i, sizeof(b), ":ERRNO=");
+	cat_long(b, &i, sizeof(b), r < 0 ? -r : r);
+	kmsg(b);
+	sleep_ts(FAIL_SEC, 0);
+	reboot_bl();
+}
+
+static long mkdir_one(const char *path)
 {
 	long r;
 
 	r = sys4(SYS_mkdirat, AT_FDCWD, (long)path, 0755, 0);
 	if (r == 0 || r == -EEXIST)
 		return 0;
-	return (int)r;
+	return r;
 }
 
-static int mkdir_p(const char *path)
+static long mkdir_p(const char *path)
 {
 	char buf[160];
 	unsigned i, n;
+	long r;
 
 	n = slen(path);
 	if (n == 0 || n >= sizeof(buf))
@@ -236,49 +325,90 @@ static int mkdir_p(const char *path)
 		if (buf[i] != '/' && buf[i] != 0)
 			continue;
 		buf[i] = 0;
-		if (mkdir_one(buf))
-			return -1;
+		r = mkdir_one(buf);
+		if (r)
+			return r;
 		buf[i] = path[i];
 	}
 	return 0;
 }
 
-static int write_str(const char *path, const char *s)
+static long write_str(const char *path, const char *s)
 {
 	long fd, n, w;
 
 	fd = sys4(SYS_openat, AT_FDCWD, (long)path, O_WRONLY, 0);
 	if (fd < 0)
-		return (int)fd;
+		return fd;
 	n = slen(s);
 	w = sys4(SYS_write, fd, (long)s, n, 0);
 	sys1(SYS_close, fd);
 	if (w < 0)
-		return (int)w;
+		return w;
 	if (w != n)
-		return -1;
+		return -5;
 	return 0;
+}
+
+static long fstatat_path(const char *path, struct kstat *st)
+{
+	return sys4(SYS_newfstatat, AT_FDCWD, (long)path, (long)st, 0);
 }
 
 static int is_dir(const char *path)
 {
-	long fd;
-
-	fd = sys4(SYS_openat, AT_FDCWD, (long)path, O_RDONLY | O_DIRECTORY, 0);
-	if (fd < 0)
-		return 0;
-	sys1(SYS_close, fd);
-	return 1;
-}
-
-static int mount_fs(const char *src, const char *dst, const char *type)
-{
+	struct kstat st;
 	long r;
 
-	r = sys6(SYS_mount, (long)src, (long)dst, (long)type, 0, 0, 0);
-	if (r == 0 || r == -EEXIST || r == -EBUSY)
+	r = fstatat_path(path, &st);
+	if (r < 0)
 		return 0;
-	return (int)r;
+	return S_ISDIR(st.st_mode);
+}
+
+static void kmsg_stat(const char *tag, const char *path, int with_mode)
+{
+	struct kstat st;
+	char b[192];
+	unsigned i = 0;
+	long r;
+
+	r = fstatat_path(path, &st);
+	cat_str(b, &i, sizeof(b), tag);
+	if (r == 0) {
+		cat_str(b, &i, sizeof(b), "0");
+		if (with_mode) {
+			cat_str(b, &i, sizeof(b), ":MODE=");
+			cat_long(b, &i, sizeof(b), (long)st.st_mode);
+		}
+		cat_str(b, &i, sizeof(b), ":ERRNO=0");
+	} else {
+		cat_str(b, &i, sizeof(b), "-1");
+		if (with_mode)
+			cat_str(b, &i, sizeof(b), ":MODE=0");
+		cat_str(b, &i, sizeof(b), ":ERRNO=");
+		cat_long(b, &i, sizeof(b), -r);
+	}
+	kmsg(b);
+}
+
+static long mount_raw(const char *src, const char *dst, const char *type)
+{
+	return sys6(SYS_mount, (long)src, (long)dst, (long)type, 0, 0, 0);
+}
+
+static void kmsg_mount_configfs(long r)
+{
+	char b[160];
+	unsigned i = 0;
+
+	cat_str(b, &i, sizeof(b), "THYME-USB0:MOUNT_CONFIGFS:RET=");
+	cat_long(b, &i, sizeof(b), r);
+	cat_str(b, &i, sizeof(b), ":ERRNO=");
+	cat_long(b, &i, sizeof(b), r < 0 ? -r : 0);
+	kmsg(b);
+	if (r == 0)
+		kmsg(m_cfg_mnt_ok);
 }
 
 static int copy_name(char *dst, unsigned cap, const char *src)
@@ -297,7 +427,7 @@ static int copy_name(char *dst, unsigned cap, const char *src)
 	return 0;
 }
 
-static int scan_udc(char *out, unsigned cap)
+static long scan_udc(char *out, unsigned cap)
 {
 	unsigned char rec[1024];
 	char first[64];
@@ -307,9 +437,9 @@ static int scan_udc(char *out, unsigned cap)
 
 	first[0] = 0;
 	pref[0] = 0;
-	fd = sys4(SYS_openat, AT_FDCWD, (long)p_udc, O_RDONLY | O_DIRECTORY, 0);
+	fd = sys4(SYS_openat, AT_FDCWD, (long)p_udc, O_RDONLY, 0);
 	if (fd < 0)
-		return (int)fd;
+		return fd;
 	for (;;) {
 		nread = sys4(SYS_getdents64, fd, (long)rec, sizeof(rec), 0);
 		if (nread <= 0)
@@ -340,9 +470,10 @@ static int scan_udc(char *out, unsigned cap)
 	return copy_name(out, cap, first);
 }
 
-static int discover_udc(char *out, unsigned cap)
+static long discover_udc(char *out, unsigned cap)
 {
-	int tries, r;
+	int tries;
+	long r = -ENOENT;
 
 	for (tries = 0; tries < UDC_TRIES; tries++) {
 		r = scan_udc(out, cap);
@@ -353,12 +484,49 @@ static int discover_udc(char *out, unsigned cap)
 	return r;
 }
 
+static void log_udc_sysfs(const char *udc, const char *leaf, const char *tag)
+{
+	char a[128], b[160], val[48], line[192];
+	unsigned i = 0;
+	long fd, n;
+
+	if (pcat(a, sizeof(a), p_udc, "/"))
+		return;
+	if (pcat(b, sizeof(b), a, udc))
+		return;
+	if (pcat(a, sizeof(a), b, "/"))
+		return;
+	if (pcat(b, sizeof(b), a, leaf))
+		return;
+	i = 0;
+	cat_str(line, &i, sizeof(line), tag);
+	fd = sys4(SYS_openat, AT_FDCWD, (long)b, O_RDONLY, 0);
+	if (fd < 0) {
+		cat_str(line, &i, sizeof(line), "UNREAD:ERRNO=");
+		cat_long(line, &i, sizeof(line), -fd);
+		kmsg(line);
+		return;
+	}
+	n = sys4(SYS_read, fd, (long)val, sizeof(val) - 1, 0);
+	sys1(SYS_close, fd);
+	if (n < 0) {
+		cat_str(line, &i, sizeof(line), "UNREAD:ERRNO=");
+		cat_long(line, &i, sizeof(line), -n);
+		kmsg(line);
+		return;
+	}
+	val[n] = 0;
+	while (n && (val[n - 1] == '\n' || val[n - 1] == '\r' || val[n - 1] == ' '))
+		val[--n] = 0;
+	cat_str(line, &i, sizeof(line), val);
+	kmsg(line);
+}
+
 static int prep_dev(void)
 {
 	long fd;
 
 	mkdir_one(p_dev);
-	mount_fs(src_devtmpfs, p_dev, src_devtmpfs);
 	fd = sys4(SYS_openat, AT_FDCWD, (long)kmsg_path, O_WRONLY, 0);
 	if (fd >= 0) {
 		sys1(SYS_close, fd);
@@ -371,22 +539,30 @@ static int prep_dev(void)
 
 static int setup_configfs(char *root, unsigned cap)
 {
-	/* Prefer /config: Android A stock mountpoint, and it is on
-	 * initramfs rootfs so mkdir works. /sys/kernel/config is sysfs
-	 * and mkdir there often fails (stock DEVTMPFS is also unset).
-	 */
-	if (mkdir_one(p_cfg_and) == 0 &&
-	    mount_fs(src_configfs, p_cfg_and, src_configfs) == 0 &&
-	    is_dir("/config/usb_gadget"))
-		return pcat(root, cap, p_cfg_and, "");
-	if (mkdir_p(p_cfg_std) == 0 &&
-	    mount_fs(src_configfs, p_cfg_std, src_configfs) == 0 &&
-	    is_dir("/sys/kernel/config/usb_gadget"))
+	long r;
+
+	mkdir_one(p_cfg);
+	r = mount_raw(src_none, p_cfg, src_configfs);
+	kmsg_mount_configfs(r);
+	if (r != 0 && r != -EBUSY) {
+		r = mount_raw(src_configfs, p_cfg, src_configfs);
+		kmsg_mount_configfs(r);
+	}
+	kmsg_stat("THYME-USB0:STAT_CONFIG=", p_cfg, 0);
+	kmsg_stat("THYME-USB0:STAT_USB_GADGET=", p_gadget, 1);
+	if (is_dir(p_gadget))
+		return pcat(root, cap, p_cfg, "");
+
+	mkdir_p(p_cfg_std);
+	r = mount_raw(src_none, p_cfg_std, src_configfs);
+	kmsg_mount_configfs(r);
+	kmsg_stat("THYME-USB0:STAT_USB_GADGET=", p_gadget_std, 1);
+	if (is_dir(p_gadget_std))
 		return pcat(root, cap, p_cfg_std, "");
 	return -1;
 }
 
-static int gwrite(const char *gdir, const char *leaf, const char *val)
+static long gwrite(const char *gdir, const char *leaf, const char *val)
 {
 	char p[192];
 
@@ -395,62 +571,77 @@ static int gwrite(const char *gdir, const char *leaf, const char *val)
 	return write_str(p, val);
 }
 
-static int build_gadget(const char *root)
+static void must_gwrite(const char *gdir, const char *leaf, const char *val,
+			const char *tag)
+{
+	long r;
+
+	r = gwrite(gdir, leaf, val);
+	if (r)
+		fail_errno(tag, r);
+}
+
+static void build_gadget(const char *root)
 {
 	char gdir[128];
 	char p[192];
 	char tgt[192];
 	char lnk[192];
+	long r;
 
 	if (pcat(gdir, sizeof(gdir), root, "/usb_gadget/g1"))
-		return -1;
-	if (mkdir_p(gdir))
-		return -1;
-	if (gwrite(gdir, "/idVendor", s_vid))
-		return -1;
-	if (gwrite(gdir, "/idProduct", s_pid))
-		return -1;
-	if (gwrite(gdir, "/bcdUSB", s_bcdusb))
-		return -1;
-	if (gwrite(gdir, "/bcdDevice", s_bcddev))
-		return -1;
+		fail_errno("GADGET_PATH", -1);
+	r = mkdir_p(gdir);
+	if (r)
+		fail_errno("MKDIR_GADGET", r);
+	kmsg(m_gad_dir);
+
+	must_gwrite(gdir, "/idVendor", s_vid, "WRITE_IDVENDOR");
+	must_gwrite(gdir, "/idProduct", s_pid, "WRITE_IDPRODUCT");
+	must_gwrite(gdir, "/bcdUSB", s_bcdusb, "WRITE_BCDUSB");
+	must_gwrite(gdir, "/bcdDevice", s_bcddev, "WRITE_BCDDEVICE");
+
 	if (pcat(p, sizeof(p), gdir, "/strings/0x409"))
-		return -1;
-	if (mkdir_p(p))
-		return -1;
-	if (gwrite(gdir, "/strings/0x409/manufacturer", s_mfg))
-		return -1;
-	if (gwrite(gdir, "/strings/0x409/product", s_prod))
-		return -1;
-	if (gwrite(gdir, "/strings/0x409/serialnumber", s_ser))
-		return -1;
+		fail_errno("STRINGS_PATH", -1);
+	r = mkdir_p(p);
+	if (r)
+		fail_errno("MKDIR_STRINGS", r);
+	must_gwrite(gdir, "/strings/0x409/manufacturer", s_mfg, "WRITE_MFG");
+	must_gwrite(gdir, "/strings/0x409/product", s_prod, "WRITE_PRODUCT");
+	must_gwrite(gdir, "/strings/0x409/serialnumber", s_ser, "WRITE_SERIAL");
+	kmsg(m_strings);
+
 	if (pcat(p, sizeof(p), gdir, "/configs/c.1/strings/0x409"))
-		return -1;
-	if (mkdir_p(p))
-		return -1;
-	if (gwrite(gdir, "/configs/c.1/strings/0x409/configuration", s_cfg))
-		return -1;
-	if (gwrite(gdir, "/configs/c.1/MaxPower", s_pwr))
-		return -1;
+		fail_errno("CONFIG_PATH", -1);
+	r = mkdir_p(p);
+	if (r)
+		fail_errno("MKDIR_CONFIG", r);
+	must_gwrite(gdir, "/configs/c.1/strings/0x409/configuration", s_cfg,
+		    "WRITE_CFGSTR");
+	must_gwrite(gdir, "/configs/c.1/MaxPower", s_pwr, "WRITE_MAXPOWER");
+	kmsg(m_cfg_ok);
 	kmsg(m_gad);
 
 	if (pcat(p, sizeof(p), gdir, "/functions/ncm.usb0"))
-		return -2;
-	if (mkdir_p(p))
-		return -2;
+		fail_errno("NCM_PATH", -1);
+	r = mkdir_p(p);
+	if (r)
+		fail_errno("NCM_CREATE", r);
+	kmsg(m_ncm);
 	kmsg(m_fn);
 
 	if (pcat(tgt, sizeof(tgt), gdir, "/functions/ncm.usb0"))
-		return -2;
+		fail_errno("SYMLINK_TGT", -1);
 	if (pcat(lnk, sizeof(lnk), gdir, "/configs/c.1/ncm.usb0"))
-		return -2;
-	if (sys4(SYS_symlinkat, (long)tgt, AT_FDCWD, (long)lnk, 0) < 0)
-		return -2;
+		fail_errno("SYMLINK_LNK", -1);
+	r = sys4(SYS_symlinkat, (long)tgt, AT_FDCWD, (long)lnk, 0);
+	if (r < 0)
+		fail_errno("SYMLINK", r);
+	kmsg(m_link);
 	kmsg(m_lnk);
-	return 0;
 }
 
-static int bind_udc(const char *root, const char *udc)
+static long bind_udc(const char *root, const char *udc)
 {
 	char p[192];
 	char body[80];
@@ -467,34 +658,46 @@ int main(void)
 {
 	char cfgroot[64];
 	char udc[64];
-	int r;
+	long r;
 
 	prep_dev();
 	kmsg(m_init);
 
-	if (mkdir_p(p_sys) || mount_fs(src_sysfs, p_sys, src_sysfs))
+	if (mkdir_p(p_sys))
+		fail(m_fail_sysfs);
+	r = mount_raw(src_sysfs, p_sys, src_sysfs);
+	if (r != 0 && r != -EBUSY)
 		fail(m_fail_sysfs);
 	kmsg(m_sysfs);
+	kmsg_stat("THYME-USB0:STAT_UDC_CLASS=", p_udc, 1);
+	if (!is_dir(p_udc))
+		fail(m_fail_udc_class);
+	kmsg(m_udc_class);
 
 	if (setup_configfs(cfgroot, sizeof(cfgroot)))
 		fail(m_fail_cfg);
 	kmsg(m_cfg);
 
-	if (discover_udc(udc, sizeof(udc)))
+	r = discover_udc(udc, sizeof(udc));
+	if (r)
 		fail(m_fail_udc);
 	kmsg2(m_udc_pfx, udc);
 
-	r = build_gadget(cfgroot);
-	if (r == -2)
-		fail(m_fail_fn);
-	if (r)
-		fail(m_fail_cfg);
+	log_udc_sysfs(udc, "state", "THYME-USB0:PREBIND_STATE=");
+	log_udc_sysfs(udc, "maximum_speed", "THYME-USB0:MAX_SPEED=");
+	log_udc_sysfs(udc, "current_speed", "THYME-USB0:CURRENT_SPEED=");
 
-	if (bind_udc(cfgroot, udc))
-		fail(m_fail_bind);
+	build_gadget(cfgroot);
+
+	kmsg2(m_bind_pfx, udc);
+	r = bind_udc(cfgroot, udc);
+	if (r)
+		fail_errno("BIND", r);
 	kmsg(m_bound);
+	log_udc_sysfs(udc, "state", "THYME-USB0:POSTBIND_STATE=");
 	kmsg(m_hold);
 	sleep_ts(HOLD_SEC, 0);
+	kmsg(m_hold_done);
 	kmsg(m_reboot);
 	reboot_bl();
 }

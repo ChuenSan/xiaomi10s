@@ -40,17 +40,28 @@ MANIFEST="$ART_DIR/SHA256SUMS"
 ( cd "$ART_DIR" && sha256sum -c SHA256SUMS )
 
 echo
+echo "USB0 CONFIGFS FIX RETRY"
+echo
 echo "TEST:"
-echo "STOCK_KERNEL_USB_ENUM_STAGE0"
+echo "STOCK_KERNEL_USB_ENUM_STAGE0_RETRY_CONFIGFS_FIX"
 echo
 echo "WRITE:"
 echo "boot_b ONLY"
 echo
+echo "SLOT A:"
+echo "NO WRITE"
+echo
+echo "vendor_boot_b:"
+echo "NO WRITE"
+echo
+echo "dtbo_b:"
+echo "NO WRITE"
+echo
+echo "vbmeta_b:"
+echo "NO WRITE"
+echo
 echo "EXPECTED:"
 echo "custom gadget 1d6b:0104 thyme-mainline / Stock Kernel USB Enum Stage0"
 echo "hold ~30s then automatic Fastboot return"
-echo
-echo "vendor_boot_b / dtbo_b / vbmeta_b / firmware / SLOT A:"
-echo "NO WRITE"
 echo
 echo "Preflight PASSED (no writes performed)."

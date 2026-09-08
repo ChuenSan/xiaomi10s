@@ -7,6 +7,7 @@ if [ -z "${GITHUB_ACTIONS:-}" ]; then
 fi
 
 SRC="${PWD}/initramfs/usb-stage0-init.c"
+ABI="${PWD}/initramfs/usb-stage0-abi-assert.c"
 VERIFY="${PWD}/initramfs/verify-init-proof-elf.py"
 OUT="${1:-$PWD/out-usb-stage0}"
 CC="${CROSS_COMPILE:-aarch64-linux-gnu-}gcc"
@@ -14,12 +15,15 @@ STRIP="${CROSS_COMPILE:-aarch64-linux-gnu-}strip"
 READELF="${CROSS_COMPILE:-aarch64-linux-gnu-}readelf"
 
 command -v "$CC" >/dev/null || { echo "missing $CC" >&2; exit 1; }
-test -f "$SRC" && test -f "$VERIFY" || { echo "missing usb-stage0 sources" >&2; exit 1; }
+test -f "$SRC" && test -f "$VERIFY" && test -f "$ABI" || { echo "missing usb-stage0 sources" >&2; exit 1; }
 
 mkdir -p "$OUT"
 elf="$OUT/usb-stage0-init"
 root="$OUT/root"
 cpio="$OUT/initramfs.cpio.gz"
+
+"$CC" -c -o "$OUT/usb-stage0-abi-assert.o" "$ABI"
+echo "ABI_ASSERT PASS O_DIRECTORY=040000 O_DIRECT=0200000 newfstatat=79"
 
 "$CC" -ffreestanding -nostdlib -static -no-pie -fno-pic \
 	-fno-stack-protector -fno-asynchronous-unwind-tables -fno-ident \
@@ -45,7 +49,19 @@ if "$READELF" -d "$elf" 2>/dev/null | grep -q NEEDED; then
 	echo "dynamic NEEDED" >&2
 	exit 1
 fi
-for s in "THYME-USB0:INIT" "Stock Kernel USB Enum Stage0" "bootloader" "ncm.usb0" "/sys/class/udc" "configfs"; do
+for s in \
+	"THYME-USB0:INIT" \
+	"Stock Kernel USB Enum Stage0" \
+	"bootloader" \
+	"ncm.usb0" \
+	"/sys/class/udc" \
+	"/config" \
+	"configfs" \
+	"THYME-USB0:MOUNT_CONFIGFS" \
+	"THYME-USB0:STAT_USB_GADGET" \
+	"THYME-USB0:BIND_ATTEMPT" \
+	"THYME-USB0:HOLD_DONE"
+do
 	strings "$elf" | grep -q "$s" || { echo "missing string: $s" >&2; exit 1; }
 done
 "$READELF" -h "$elf" | grep -q "Machine:.*AArch64" || { echo "Machine not AArch64" >&2; exit 1; }

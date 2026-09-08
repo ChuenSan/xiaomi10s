@@ -2,6 +2,7 @@ name: thyme-stock-kernel-usb-enum-stage0
 
 # Isolated: official V14 stock kernel + static PID1 that binds
 # configfs NCM gadget to DWC3 UDC, holds 30s, RESTART2 bootloader.
+# Directory check is newfstatat+S_ISDIR (not open/O_DIRECTORY).
 # Does not build linux-6.6, DTS, vendor_boot, dtbo, IP, or HTTP.
 on:
   push:
@@ -95,40 +96,7 @@ jobs:
           echo "stock-boot.img bytes=$(wc -c < "$dest")"
 
       - name: Source logic gates
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          src = Path("initramfs/usb-stage0-init.c").read_text()
-          need = [
-              "THYME-USB0",
-              "Stock Kernel USB Enum Stage0",
-              "LINUX_REBOOT_CMD_RESTART2",
-              "bootloader",
-              "/sys/class/udc",
-              "usb_gadget",
-              "configfs",
-              "ncm.usb0",
-              "THYME-USB0:FAIL:NO_UDC",
-              "THYME-USB0:FAIL:CONFIGFS",
-              "THYME-USB0:FAIL:FUNCTION",
-              "THYME-USB0:FAIL:BIND",
-              "THYME-USB0:UDC_BOUND",
-          ]
-          missing = [s for s in need if s not in src]
-          if missing:
-              raise SystemExit(f"source missing {missing}")
-          i = src.find("int main(void)")
-          if i < 0:
-              raise SystemExit("no main")
-          if "return" in src[i:]:
-              raise SystemExit("return in main")
-          if "__attribute__((used, noreturn, section(\".text\")))" not in src:
-              raise SystemExit("main missing noreturn .text")
-          print("CONFIGFS_LOGIC PASS")
-          print("UDC_DISCOVERY_LOGIC PASS")
-          print("FAILSAFE_RESTART2 PASS")
-          print("source gates PASS")
-          PY
+        run: python3 scripts/stock-kernel-usb-enum-stage0-source-gates.py
 
       - name: Build static usb-stage0-init + ramdisk
         run: |
@@ -142,7 +110,7 @@ jobs:
             "$PWD/$RELEASE_DIR" \
             "$PWD/$RELEASE_DIR/stock-boot.img" \
             "$PWD/out-usb-stage0"
-          grep -q READY_FOR_USB_ENUM_STAGE0 "$RELEASE_DIR/validation-report.txt"
+          grep -q READY_FOR_USB_ENUM_STAGE0_RETRY "$RELEASE_DIR/validation-report.txt"
           test ! -e "$RELEASE_DIR/experimental-vendor_boot-v3.img"
           test ! -e "$RELEASE_DIR/experimental-dtbo.img"
           test ! -e "$RELEASE_DIR/vendor_boot.img"
@@ -162,7 +130,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: thyme-stock-kernel-usb-enum-stage0-${{ github.sha }}
+          name: thyme-stock-kernel-usb-enum-stage0-fix-${{ github.sha }}
           if-no-files-found: error
           path: |
             out-release/stock-kernel-usb-enum-stage0-boot-v3.img
