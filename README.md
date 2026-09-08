@@ -114,9 +114,24 @@ gh workflow run thyme-stock-kernel-initexec-proof.yml --ref route-b-v3
 
 Docs: `docs/route-b-stock-kernel-initexec-proof.md`.
 
+## Stock kernel USB Stage1 device-netdev observe (Slot B)
+
+Isolated workflow `.github/workflows/thyme-stock-kernel-usb-stage1-device-observe.yml`.
+Same official V14 kernel + configfs NCM as USB0. Generic ramdisk PID1 additionally
+scans `/sys/class/net` and `SIOCGIFFLAGS` (read-only). No `SIOCSIFFLAGS`, no IP.
+
+```sh
+gh workflow run thyme-stock-kernel-usb-stage1-device-observe.yml --ref route-b-v3
+```
+
+Docs: `docs/route-b-stock-kernel-usb-stage1-device-observe.md`.
+
 ## Docs
 
 - `docs/route-b-stock-kernel-initexec-proof.md` — timed `/init` execution proof
+- `docs/route-b-stock-kernel-usb-enum-stage0.md` — stock-kernel USB0 NCM enum
+- `docs/route-b-stock-kernel-usb-stage1.md` — host NCM enX inactive
+- `docs/route-b-stock-kernel-usb-stage1-device-observe.md` — device-side NCM netdev observe
 - `docs/stock-rom-analysis.md` — stock ROM parse
 - `docs/thyme-hardware-map.md` — hardware mapping
 - `docs/mainline-boot-chain.md` — Q1/Q2/Q3 decision + evidence
