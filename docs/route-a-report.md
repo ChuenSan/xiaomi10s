@@ -1,8 +1,16 @@
-# Route A report — fastboot boot Android boot image v2
+# Route A final report — fastboot boot Android boot image v2
 
-Date: 2026-09-08. Device: Xiaomi Mi 10S (thyme), SM8250, slot A stable MIUI V14.0.6.0.TGACNXM.
+Date: 2026-09-08. Device: Xiaomi Mi 10S (`thyme`, SM8250), Slot A = MIUI V14.0.6.0.TGACNXM.
 
-This round answers whether ABL takes the v2-image DTB and passes its physical address as `x0`. It is not a “make Linux boot” round.
+```
+ROUTE_A_REFUTED
+```
+
+Route A asked whether this ABL, on `fastboot boot` of a **single** Android boot image v2, takes **that image's** mainline thyme DTB and passes its physical address as Linux `x0`.
+
+It does not do so in any way we can verify. Mutating the v2 DTB field does not change the failure. Do not build more v2 variants. Next architecture is Route B (stock-shaped v3 + vendor_boot + DTBO) on Slot B only.
+
+This round: no flash, no `set_active`, no UART, no local compile.
 
 ## 1. Constraint compliance
 
@@ -14,194 +22,210 @@ This round answers whether ABL takes the v2-image DTB and passes its physical ad
 | Partition writes performed | NO |
 | Slot A modified | NO |
 | Slot B modified | NO |
+| Additional RAM boots this close-out | NO |
 
-Read-only parse of the existing CI artifact and `abl.img` LZMA payload only. Variant images are GHA-only (`route-a-v2-boot-investigation.yml`). No `fastboot boot` this round: matrix artifacts are not built yet.
+Matrix images: GHA run [34142844651](https://github.com/ChuenSan/xiaomi10s/actions/runs/34142844651) (`b588c04`), success.
 
-## 2. Experimental v2 exact header
+## 2. Device matrix (RAM-only `fastboot boot`)
 
-From `29bc752` artifact `experimental-boot-v2.img`
-SHA256 `ae32736c59bd21b02abcf0f1263ace2c5b46569c4a387585dd92d34948f5034b`.
+Host always: Sending OKAY, Booting OKAY, Finished. Fastboot VID/PID `18d1:d00d`, serial `41a5627b`, `unlocked=yes`, `current-slot=a`. No Linux gadget. Screen: Fastboot UI gone, black.
 
-| Field | Value |
+USB samples are 1 Hz. “Offline” is missing `fastboot` rows.
+
+| Variant | Image SHA256 (prefix) | Sending | USB offline | Fastboot returns | Linux gadget | vs CONTROL |
+|---|---|---|---|---|---|---|
+| CONTROL | `a88f97fa…` | 35548 KB OKAY | 08:31:45 fb → 46 missing → 47 fb (~1 s) | YES | NO | baseline |
+| NO-DTB (`dtb_size=0`) | `23d3dcd8…` | 35444 KB OKAY | 08:34:46 fb → 47–48 missing → 49 fb (~2 s) | YES | NO | same class; +1 s sample |
+| BAD-DTB (FDT magic zeroed) | `ca705fd7…` | OKAY | 08:37:55 fb → 56 missing → 57 fb (~1 s) | YES | NO | identical |
+| QC-IDS (`msm-id` `<0x164 0x20001>`, `board-id` `<45 0>`) | `e5459c78…` | OKAY | 08:40:06 fb → 07 missing → 08 fb (~1 s) | YES | NO | identical |
+
+marker-dtb / cmdline-probe **not run**. They only matter if Linux runs far enough to expose `/model` or `/proc/cmdline`. The 1–2 s return gives no such channel.
+
+First 29bc752 CONTROL (`ae32736c…`) was the same class (OKAY, black, Fastboot protocol lives). New CONTROL uses a later Image (`658543c5…`); DTB SHA still `a91a512d…`.
+
+```
+172.16.42.1 previous observation: NOT VALID THYME EVIDENCE
+```
+
+Unplug the phone: ping still 0% loss, :8080/:23 still connect (host VPN/utun). Liveness requires USB identity, then iface, then IP.
+
+## 3. What the four variants mean
+
+### 3.1 NO-DTB — `dtb_size=0` still Booting OKAY
+
+`Booting OKAY` is sent in `CmdBoot` **before** `BootLinux` returns (`docs/route-a-abl-evidence.md` §2). CONFIRMED_SOURCE + CONFIRMED_DEVICE.
+
+So OKAY does **not** mean:
+
+- ABL required a v2 DTB; or
+- ABL used a v2 DTB; or
+- the kernel ran.
+
+`dtb_size=0` is **not** a host-visible reject. ABL still takes the download, says OKAY, drops USB ~2 s, comes back to Fastboot.
+
+Implication for “ABL uses the v2 DTB field”:
+
+- The field is **not a gate on the USB command**.
+- ABL may still *look at* `dtb_size` internally (`DTB Image not present`) and fail the same way CONTROL fails.
+- This variant does **not** prove the v2 payload is the kernel DT.
+
+### 3.2 BAD-DTB — invalid FDT magic ≈ CONTROL
+
+Same size, magic not `d00dfeed`. Same ~1 s path as CONTROL (valid magic).
+
+If ABL were successfully parsing and adopting that payload, CONTROL (walk `compatible` / `msm-id`) and BAD-DTB (`fdt_check_header` fail) would be different code. Both return in one USB sample.
+
+This is **strong evidence that v2 DTB *content* is not what this attempt’s observable outcome depends on**.
+
+It is not, by itself, a proof that ABL never maps the bytes (both errors can finish in <1 s). Together with QC-IDS, it is enough to reject “x0 is this v2 DTB”.
+
+### 3.3 QC-IDS — stock `msm-id` / `board-id`, no change
+
+CI DTB: `qcom,msm-id = <356 131073>` (`0x164` / `0x20001`), `qcom,board-id = <45 0>`. Same 1 s path.
+
+This **refutes** the hypothesis that CONTROL failed **only** because those properties were missing.
+
+Remaining explanations that still fit:
+
+1. This ABL revision does not select DTB from the v2 field on `fastboot boot` (uses slot `vendor_boot_a` / other firmware DT).
+2. Selection uses v2 DTB then still dies on `dtbo_a` overlay / pmic-id / another match bit, with the same 1 s envelope.
+3. Failure is **before** DTB selection (kernel Image/EFI/load window) and is therefore DTB-invariant.
+
+(1) and (2) both mean Route A’s “single image carries the DT” claim is false in practice. Distinguishing them needs neutralizing `dtbo_a` or replacing `vendor_boot` — that is Route B, and it is a Slot B write, not another v2 image.
+
+## 4. Static ABL evidence (unchanged, now constrained by the matrix)
+
+Thyme `abl.img` = QcomModulePkg `LinuxLoader` (LZMA, `product/thyme/.../LinuxLoader.dll`). XBL: `DefaultBDSBootApp = "LinuxLoader"`. CONFIRMED_BINARY.
+
+| Item | Grade |
 |---|---|
-| kernel_size | 35101184 |
-| kernel_addr | `0x8000` |
-| ramdisk_size | 1186235 |
-| ramdisk_addr | `0x1000000` |
-| tags_addr | `0x100` |
-| page_size | 4096 |
-| header_version | 2 |
-| header_size | 1660 |
-| os_version / SPL | 13.0.0 / 2023-09 |
-| name | thyme |
-| cmdline | stock vendor_boot cmdline (see analysis doc) |
-| extra_cmdline | empty |
-| dtb_size | 105960 |
-| dtb_addr | `0x1f00000` |
-| second / recovery_dtbo | 0 |
+| Fastboot Boot path | YES |
+| v2 header parser | YES |
+| `dtb_addr` as copy destination | NO (`UpdateBootParams` UEFI/PCD windows) |
+| AArch64 jump | `kernel(DeviceTreeLoadAddr, 0, 0, 0)` CONFIRMED_SOURCE |
+| `LoadAndValidateDtboImg` in `BootLinux` | always called CONFIRMED_SOURCE |
+| v2 DTB pages as *successful* x0 | **REFUTED by device matrix** |
 
-## 3. Binary layout
+`Booting OKAY` + 1 s USB hole + Fastboot protocol without a redrawn logo matches `CmdBoot`: stop USB, `BootLinux` error, `ResetBootDevImage`, Fastboot stays resident. That is not a kernel USB gadget.
 
-| Region | offset | end |
-|---|---:|---:|
-| header | 0 | 1660 (page 4096) |
-| kernel | 4096 | 35105280 |
-| ramdisk | 35106816 | 36293051 |
-| DTB | 36294656 | 36400616 |
-
-computed_end = file_size = 36401152. PASS.
-
-`DTB payload exact match: YES`
-(`a91a512d4d8699dcae73bff3e0c5a758972e82eaa0b34e87ae1eb1528b9ede40`)
-
-One FDT magic in the whole image, at the v2 DTB field. Kernel has no appended DTB.
-
-## 4. Physical memory layout
-
-Header-claimed ranges overlap (kernel vs ramdisk vs DTB) if treated as destinations. Stock uses the same numbers and boots.
-
-ABL ignores those fields as copy destinations and relocates into UEFI/PCD windows (`docs/route-a-abl-evidence.md`).
+## 5. x0
 
 ```
-collision (header-as-dest): YES (irrelevant)
-DTB_LOAD_ADDRESS_SAFE: YES
+X0_SOURCE = NOT OBSERVED
+            (ABL source would set DeviceTreeLoadAddr after DTB selection;
+             header.dtb_addr is not x0)
+X0_POINTS_TO_V2_DTB = REFUTED
 ```
 
-Do not retune addresses.
+Refuted claim: “this `fastboot boot` v2 path correctly takes the image DTB and passes it as Linux `x0`.”
 
-## 5. ABL investigation
+Reasons:
 
-| Question | Answer |
-|---|---|
-| Fastboot Boot code path identified | YES |
-| boot v2 parser identified | YES |
-| DTB field consumption | YES (`dtb_size` + payload pages) |
-| kernel entry handoff | CONFIRMED in QcomModulePkg / this ABL package; not confirmed on this boot |
+- No kernel liveness (no gadget, 1–2 s back to Fastboot).
+- NO-DTB / BAD-DTB / QC-IDS do not change that path, so the v2 DTB is not the control variable.
+- `x1=x2=x3=0` would hold **if** the jump ran; the jump is not observed.
 
-`abl.img` decompresses to thyme `LinuxLoader` (`product/thyme/.../LinuxLoader.dll`). XBL `DefaultBDSBootApp = "LinuxLoader"`.
-
-## 6. x0 conclusion
+## 6. vendor_boot_a
 
 ```
-X0_SOURCE = DeviceTreeLoadAddr after ABL DTB selection (not header dtb_addr)
-X0_POINTS_TO_V2_DTB = NOT_CONFIRMED
+VENDOR_BOOT_A_USED = UNKNOWN
 ```
 
-Evidence: AArch64 jump is `kernel(dtb,0,0,0)` in this ABL family. Mainline DTB lacks `qcom,msm-id`. Slot A `dtbo_a` is still loaded. Overlay-path `GetSocDtb` then fails with `qcom,msm-id entry not found` / `ERROR: Couldn't find the suitable DTB!`. Jump likely never happens.
+- CAF v2 `CheckImageHeader`: DTB from **boot.img** pages, not vendor_boot. `CmdBoot` registers one RAM `"boot"` image.
+- CAF v3 `fastboot boot`: `LoadImageAndAuth` still loads **slot** `vendor_boot` + `dtbo` (Route B, CONFIRMED_CAF_ABL). Xiaomi ABL is that family.
+- Device: v2 DTB mutations are invisible. Compatible with “v2 DTB ignored, slot vendor_boot DTB used” **or** “v2 DTB used then a later common fail”.
 
-## 7. x1/x2/x3
+Cannot write YES (no log that vendor_boot was read on these v2 boots). Cannot write NO (then the matrix is hard to explain unless every v2 DTB path dies in the same 1 s).
 
-ABL passes zeros. Compliant **if** the jump runs. Not observed on device.
-
-## 8. cmdline conclusion
-
-```
-BOOT_V2_CMDLINE_USED = YES
-VENDOR_BOOT_A_USED = NO
-```
-
-v2 cmdline is the packed stock vendor cmdline. ABL appends `androidboot.serialno/slot_suffix/dtbo_idx/dtb_idx/bootdevice/vbmeta/...`. vendor_boot is not the v2 DTB or cmdline source (`CmdBoot` loads one RAM `boot` image).
-
-## 9. DTBO conclusion
+## 7. dtbo_a
 
 ```
 DTBO_A_USED_DURING_FASTBOOT_BOOT = YES
 DOWNSTREAM_OVERLAY_CONTAMINATION_RISK = YES
 ```
 
-`LoadAndValidateDtboImg` runs inside `BootLinux` even for RAM `fastboot boot`. Stock dtbo entry 21 (`board-id <45 0>`) is present on slot A. Overlay apply needs `__symbols__` which mainline lacks. Route A is **not** a self-contained single image while `dtbo_a` remains in that path. Erase/flash dtbo is forbidden this round.
+`BootLinux` always `LoadAndValidateDtboImg`. Slot A has stock dtbo, entry 21, `board-id <45 0>`. Mainline DTB has no `__symbols__`. Overlay apply cannot be assumed to be a no-op.
 
-## 10. Differential image matrix
+QC-IDS did not produce a longer hang or a gadget, so overlay was not shown to succeed. Route A is **not** a self-contained image while `dtbo_a` stays in this path.
 
-| Variant | Purpose | SHA256 | Fastboot accepts? | Time to return | USB | Observed |
-|---|---|---|---|---|---|---|
-| V2-CONTROL | baseline | (GHA pending) | first boot: YES OKAY | n/a | fastboot 18d1:d00d remained | black screen, no Linux gadget |
-| V2-NO-DTB | dtb_size=0 | pending | not run | | | |
-| V2-BAD-DTB | bad FDT magic | pending | not run | | | |
-| V2-MARKER-DTB | unique `/model` | pending | not run | | | |
-| V2-QC-IDS | msm-id + board-id | pending | not run | | | |
-| V2-CMDLINE-PROBE | `route_a_cmdline_probe=1` | pending | not run | | | |
+Erase/flash dtbo is still forbidden here.
 
-First-boot row is the already-run 29bc752 CONTROL. New matrix must come from the new workflow. RAM-only tests wait for that workflow green.
-
-APPENDED-DTB-to-kernel not selected (v2 already uses the dtb field).
-
-## 11. USB observations
-
-| Item | Value |
-|---|---|
-| Fastboot VID/PID | `18d1:d00d` serial `41a5627b` |
-| Linux USB gadget | not found |
-| Linux USB network | not found |
-
-```
-172.16.42.1 previous observation: NOT VALID THYME EVIDENCE
-```
-
-Host VPN/utun still answers that address after unplug. Liveness requires USB identity + new iface, then IP.
-
-## 12. x0 probe
-
-Not run. `DIRECT_X0_PROBE_DEFERRED`.
-
-Static evidence already says the likely failure is pre-jump DTB match. A PSCI-reset probe cannot distinguish CLASS A. `psci.method = smc` is in `sm8250.dtsi` but unused until a jump is plausible.
-
-## 13. Failure classification
+## 8. Failure classification
 
 ```
 CLASS A: ABL accepts image but never enters kernel.
-Confidence: MEDIUM
+Confidence: HIGH
 ```
 
-Supports: Booting OKAY is issued before `BootLinux` finishes; `BootLinux` errors return to Fastboot with USB restart and no logo redraw; mainline DTB has no `qcom,msm-id`; dtbo_a is in the path.
+| Why CLASS A | Why not D/E | Residual |
+|---|---|---|
+| OKAY is pre-`BootLinux` | no USB gadget | CLASS C (jump + immediate death + watchdog reboot to Fastboot) not **fully** excluded without UART |
+| 1–2 s hole matches USB stop + `BootLinux` return | no initramfs signal | If x0 were stock vendor_boot DT + mainline Image, all four variants would also look identical |
+| DTB variants do not extend the black interval | | That would still be “wrong DT”, not Route A success |
 
-Does not fully exclude a watchdog return from a microseconds-long kernel (CLASS C) because there is no UART. Differential NO-DTB / BAD-DTB / QC-IDS is the next discriminator.
+Not CLASS B as a *verified* jump-with-bad-x0: no evidence of payload entry.
 
-Not CLASS D/E: no USB gadget, no proof of init.
+## 9. Route A final gate
 
-## 14. GitHub Actions
+```
+ROUTE_A_REFUTED
+```
+
+v2 is a header this ABL will **parse** (download + OKAY). It is not a proven, isolatable DTB delivery path on thyme.
+
+- Accepting the image ≠ `x0` = v2 DTB.
+- The DTB we put in the v2 field is not an experimental lever.
+- Remaining forks require replacing **vendor_boot** and/or **dtbo** on a writable slot = Route B.
+
+Do not spend another GHA kernel hour on v2 packing. Do not RAM-boot marker-dtb / cmdline-probe.
+
+## 10. Switch to Route B
+
+Yes.
+
+Route B: stock Android 13 shape.
+
+```
+boot_b          header v3   (Image + initramfs, no DTB field)
+vendor_boot_b   header v3   (mainline sm8250-xiaomi-thyme.dtb + vendor cmdline)
+dtbo_b          one no-op overlay, qcom,board-id = <45 0>
+```
+
+Already designed and GHA-built on `route-b-v3` (`docs/route-b-v3-boot-chain.md`). `fastboot boot` of **v3 boot alone** still pulls `vendor_boot_a` + `dtbo_a` from the **active** slot — it does **not** validate the mainline DTB. The real experiment is **Slot B writes**, never Slot A.
+
+This close-out does **not** flash Route B.
+
+### Unique next milestone
+
+```
+ROUTE_B_SLOT_B_TRIPLE_WRITE
+```
+
+1. Re-verify GHA Route B artifacts (boot-v3 + vendor_boot-v3 + no-op dtbo) SHA256.
+2. Preflight: `product=thyme`, `unlocked=yes`, `current-slot=a`, `slot-count=2`.
+3. Human-gated, Slot B only:
+
+   `fastboot flash boot_b` / `vendor_boot_b` / `dtbo_b`
+
+   No `set_active`. No `*_a`. No vbmeta.
+4. Observe USB identity (not `172.16.42.1`). Rollback = reflash stock `*_b`.
+
+## 11. GitHub Actions / git
 
 | Item | Value |
 |---|---|
-| Existing firstboot | `thyme-mainline-boot-artifacts` run 34116449773, commit 29bc752, success |
-| New workflow | `.github/workflows/route-a-v2-boot-investigation.yml` |
-| New run | not dispatched until this commit is on the remote |
-| Artifacts | `thyme-route-a-v2-<sha>` (control/no-dtb/bad-dtb/marker-dtb/qc-ids/cmdline-probe) |
+| Matrix workflow | `route-a-v2-boot-investigation.yml` |
+| Matrix run | [34142844651](https://github.com/ChuenSan/xiaomi10s/actions/runs/34142844651) success, 19m11s |
+| Artifact | `thyme-route-a-v2-b588c04d4b151374ac05c2c1323bafbee28c3f38` |
+| New GHA this close-out | none (docs only; no new images) |
 
-## 15. Files changed
+## 12. Files
 
-- `docs/route-a-v2-boot-analysis.md`
-- `docs/route-a-abl-evidence.md`
-- `docs/route-a-report.md`
-- `configs/route-a/variants.md`
-- `scripts/route-a/parse_boot_v2.py`
-- `scripts/route-a/make_v2_variants.py`
-- `.github/workflows/route-a-v2-boot-investigation.yml`
-- `README.md`
+- `docs/route-a-report.md` (this file)
+- `docs/route-a-abl-evidence.md` (device matrix vs static)
+- `configs/route-a/variants.md` (stop v2 variants)
+- `README.md` (Route A closed)
 
-No change to `sm8250-xiaomi-thyme.dts` or the long-term patch queue.
+## 13. mem0
 
-## 16. mem0 updates
-
-Long-term facts to store: v2 header/offsets; DTB exact match; ABL is thyme LinuxLoader; header addrs not copy dest; dtbo_a still used on fastboot boot; vendor_boot_a not the v2 DTB source; no msm-id on mainline DTB; 172.16.42.1 is not liveness; CLASS A MEDIUM; x0 NOT_CONFIRMED; Route A not confirmed as self-contained.
-
-## 17. Route A final conclusion
-
-```
-ROUTE_A_BLOCKED_BY_MISSING_EVIDENCE
-```
-
-v2 is a real ABL compatibility header (parser + Booting OKAY). It is not shown that the v2 DTB becomes `x0`. Leading blocker: ABL DTB match (`qcom,msm-id`) plus slot A dtbo overlay path. Until QC-IDS / NO-DTB / BAD-DTB RAM boots exist, do not treat black screen as a mainline DTS bug and do not switch the whole project to Route B solely on this boot.
-
-If QC-IDS still returns immediately to fastboot, overlay-on-dtbo_a is the remaining v2 blocker and Route A as “single-image self-contained” is then refuted without touching dtbo (forbidden here).
-
-## 18. Recommended next action
-
-1. Dispatch `route-a-v2-boot-investigation` and wait for green artifacts.
-2. RAM-only, one variant at a time, `fastboot boot` CONTROL then NO-DTB then BAD-DTB then QC-IDS. Record USB VID/PID/serial/location and whether Fastboot returns without a gadget.
-3. Decision:
-   - NO-DTB/BAD-DTB change time-to-return vs CONTROL → ABL is parsing the v2 DTB field (expected).
-   - QC-IDS uniquely proceeds (USB gadget or much longer hang) → msm-id was the gate; still must reason about dtbo overlay.
-   - All four identical to first boot → still CLASS A, but selection hypothesis weakens.
-4. Do not flash, `set_active`, or erase dtbo.
-5. Do not debug display/USB/initramfs until x0/DTB selection is settled.
+Long-term: `ROUTE_A_REFUTED`; matrix four-way same 1–2 s Fastboot return; `X0_POINTS_TO_V2_DTB=REFUTED`; `DTBO_A_USED=YES`; `VENDOR_BOOT_A_USED=UNKNOWN`; `172.16.42.1` invalid; CLASS A HIGH; next = Route B Slot B triple write.

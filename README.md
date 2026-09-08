@@ -69,16 +69,9 @@ Artifacts:`thyme-mainline-firstboot-<sha>`. Flash procedure	is
 documented only in `docs/slot-b-first-boot-runbook.md`;this project performs
 no device writes.
 
-## Route A (boot v2 RAM-only investigation)
+## Route A (boot v2 RAM-only investigation) — REFUTED
 
-`.github/workflows/route-a-v2-boot-investigation.yml` (`workflow_dispatch`).
-Does not flash. Does not modify Slot A/B. Builds a v2 differential matrix only.
-
-```sh
-gh workflow run route-a-v2-boot-investigation
-```
-
-Docs: `docs/route-a-v2-boot-analysis.md`, `docs/route-a-abl-evidence.md`, `docs/route-a-report.md`.
+`.github/workflows/route-a-v2-boot-investigation.yml`. Device matrix: CONTROL / NO-DTB / BAD-DTB / QC-IDS all `fastboot boot` OKAY then Fastboot USB back in ~1–2 s, no Linux gadget. v2 DTB field is not a verified `x0` source. Do not pack more v2 images. Next: Route B Slot B (`boot_b` + `vendor_boot_b` + `dtbo_b`). Docs: `docs/route-a-report.md`.
 
 ## Docs
 

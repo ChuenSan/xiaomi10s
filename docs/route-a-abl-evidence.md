@@ -69,7 +69,8 @@ v2 DTB **field is consumed as a size + file offset**, not as `dtb_addr` physical
 - DTB = ramdisk − 2MiB − page
 
 ```
-DTB field consumption: YES (v2 dtb_size + payload pages)
+DTB field consumption (parser): YES (v2 dtb_size + payload pages exist in the image)
+DTB field as successful kernel x0: REFUTED (device matrix 2026-09-08)
 dtb_addr as x0: NO
 ```
 
@@ -107,10 +108,10 @@ U-Boot Qualcomm docs independently say `fastboot erase dtbo` when booting a v2 m
 v2 `CheckImageHeader` does not require vendor_boot. ABL still has `Invalid vendor_boot partition. Skipping` and `UpdateBootParamsSizeAndCmdLine: Failed to find vendor_boot image` (v3 cmdline path).
 
 ```
-VENDOR_BOOT_A_USED = NO
+VENDOR_BOOT_A_USED = UNKNOWN
 ```
 
-for DTB and vendor ramdisk on the v2 RAM-boot path. Partition may be probed and skipped. Not used as the DTB source when header_version == 2.
+CAF v2 parser: DTB from boot.img pages (`NumLoadedImages = 1`). CAF v3 `fastboot boot` still loads slot `vendor_boot` + `dtbo`. Device four-way matrix is DTB-invariant, so slot vendor_boot cannot be ruled out as the *actual* DT source on this Xiaomi revision. See `docs/route-a-report.md`.
 
 ## 6. cmdline
 
@@ -134,19 +135,20 @@ After `ShutdownUefiBootServices` + `PreparePlatformHardware`:
 ```
 
 ```
-X0_SOURCE = DeviceTreeLoadAddr (ABL-relocated selected DTB)
-x1=x2=x3 = 0
+X0_SOURCE = NOT OBSERVED
+x1=x2=x3 = 0   (only if the jump ran)
 kernel entry handoff: CONFIRMED_SOURCE for QcomModulePkg;
-                      CONFIRMED_BINARY that this ABL is that package
+                      CONFIRMED_BINARY that this ABL is that package;
+                      NOT observed on thyme fastboot-boot v2
 ```
 
 ```
-X0_POINTS_TO_V2_DTB = NOT_CONFIRMED
+X0_POINTS_TO_V2_DTB = REFUTED
 ```
 
-DTB matching likely fails **before** the jump. If the jump happened, x0 would be the relocated selected blob (possibly overlay-merged), not header `dtb_addr`.
+Device matrix (CONTROL / NO-DTB / BAD-DTB / QC-IDS): all Booting OKAY, Fastboot USB gone ~1–2 s, Fastboot returns, no gadget. The v2 DTB is not a control variable. See `docs/route-a-report.md`.
 
-Direct x0 probe: `DIRECT_X0_PROBE_DEFERRED`. PSCI `method = smc` is in `sm8250.dtsi`, but current failure is probably pre-jump; a payload probe cannot distinguish CLASS A.
+Direct x0 probe remains deferred: a payload cannot distinguish CLASS A when the jump likely never happens.
 
 ## 8. Flow (v2 RAM boot)
 
@@ -156,7 +158,7 @@ fastboot boot experimental-boot-v2.img
   → CmdBoot: image[0]="boot"  (Booting OKAY, USB stop)
   → LoadImageAndAuth (unlocked; vbmeta flags 2)
   → BootLinux
-       CheckImageHeader v2, require dtb_size
+       CheckImageHeader v2 (dtb_size=0 is not a host-visible reject)
        GZip/Image detect (KERNEL64_HDR_MAGIC)
        UpdateBootParams (ignore header addrs as dest)
        copy kernel to KernelLoadAddr
@@ -170,4 +172,15 @@ fastboot boot experimental-boot-v2.img
 
 ## 9. APPENDED-DTB variant
 
-Not in the first matrix. v2 path already uses the **dtb field** as concatenated/single FDT buffer. Kernel-appended DTB is the old Image.gz+dtb style (`DTB offset is incorrect, kernel image does not have appended DTB`). Adding a second delivery style now would confound the msm-id / dtbo fork.
+Not built. After the four-way matrix, another v2 DTB delivery style would not isolate x0. Stop v2 packing; Route B uses vendor_boot DTB.
+
+## 10. Device matrix vs this source map (2026-09-08)
+
+CONFIRMED_DEVICE:
+
+- `Booting OKAY` on CONTROL, NO-DTB (`dtb_size=0`), BAD-DTB (bad magic), QC-IDS (stock msm-id/board-id).
+- USB Fastboot missing 1–2 s, then the same Fastboot protocol. No Linux gadget.
+
+This matches §2 (OKAY before `BootLinux` finishes) and the error-return path in §8. It does **not** match a successful jump with the v2 DTB as `x0`.
+
+QC-IDS not diverging refutes “missing msm-id was the only gate”. Remaining forks need slot `vendor_boot` / `dtbo`, which is Route B.
