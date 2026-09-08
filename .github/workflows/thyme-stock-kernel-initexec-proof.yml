@@ -98,12 +98,10 @@ jobs:
       - name: Build static init-proof + ramdisk
         run: |
           bash initramfs/build-init-proof.sh "$PWD/out-init-proof"
+          python3 initramfs/verify-init-proof-elf.py out-init-proof/init-proof-15s
+          python3 initramfs/verify-init-proof-elf.py out-init-proof/init-proof-30s
           file out-init-proof/init-proof-15s
           file out-init-proof/init-proof-30s
-          file out-init-proof/init-proof-15s | grep -q "ELF 64-bit LSB"
-          file out-init-proof/init-proof-15s | grep -qi aarch64
-          ! readelf -l out-init-proof/init-proof-15s | grep -q INTERP
-          ! readelf -l out-init-proof/init-proof-30s | grep -q INTERP
 
       - name: Pack + reverse-validate proof boot v3
         run: |

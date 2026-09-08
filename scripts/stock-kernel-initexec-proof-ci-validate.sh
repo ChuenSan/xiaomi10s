@@ -77,6 +77,7 @@ verify_static_arm64() {
 	echo "$info" | tee -a "$RPT"
 	echo "$info" | grep -q "ELF 64-bit LSB" || fail "INIT_PROOF_STATIC_ARM64 not ELF 64-bit LSB"
 	echo "$info" | grep -qi aarch64 || fail "INIT_PROOF_STATIC_ARM64 not aarch64"
+	python3 initramfs/verify-init-proof-elf.py "$f" || fail "INIT_PROOF_STATIC_ARM64 RX PT_LOAD $f"
 	readelf -h "$f" | grep -Eq 'Type:[[:space:]]+EXEC' || fail "INIT_PROOF_STATIC_ARM64 type not EXEC"
 	if readelf -l "$f" | grep -q INTERP; then
 		fail "INIT_PROOF_STATIC_ARM64 INTERP $f"

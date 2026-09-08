@@ -7,14 +7,17 @@ if [ -z "${GITHUB_ACTIONS:-}" ]; then
 fi
 
 SRC="${PWD}/initramfs/init-proof.c"
+LDS="${PWD}/initramfs/init-proof.ld"
+VERIFY="${PWD}/initramfs/verify-init-proof-elf.py"
 OUT="${1:-$PWD/out-init-proof}"
 CC="${CROSS_COMPILE:-aarch64-linux-gnu-}gcc"
 LD="${CROSS_COMPILE:-aarch64-linux-gnu-}ld"
 STRIP="${CROSS_COMPILE:-aarch64-linux-gnu-}strip"
+READELF="${CROSS_COMPILE:-aarch64-linux-gnu-}readelf"
 
 command -v "$CC" >/dev/null || { echo "missing $CC" >&2; exit 1; }
 command -v "$LD" >/dev/null || { echo "missing $LD" >&2; exit 1; }
-test -f "$SRC" || { echo "missing $SRC" >&2; exit 1; }
+test -f "$SRC" && test -f "$LDS" && test -f "$VERIFY" || { echo "missing init-proof sources" >&2; exit 1; }
 
 mkdir -p "$OUT"
 
@@ -25,12 +28,13 @@ verify_elf() {
 	echo "file $f: $info"
 	echo "$info" | grep -q "ELF 64-bit LSB" || { echo "not ELF 64-bit LSB: $f" >&2; exit 1; }
 	echo "$info" | grep -qi aarch64 || { echo "not aarch64: $f" >&2; exit 1; }
-	readelf -h "$f" | grep -Eq 'Type:[[:space:]]+EXEC' || { echo "ELF type not EXEC: $f" >&2; exit 1; }
-	if readelf -l "$f" | grep -q INTERP; then
+	python3 "$VERIFY" "$f"
+	"$READELF" -h "$f" | grep -Eq 'Type:[[:space:]]+EXEC' || { echo "ELF type not EXEC: $f" >&2; exit 1; }
+	if "$READELF" -l "$f" | grep -q INTERP; then
 		echo "INTERP present: $f" >&2
 		exit 1
 	fi
-	if readelf -d "$f" 2>/dev/null | grep -q NEEDED; then
+	if "$READELF" -d "$f" 2>/dev/null | grep -q NEEDED; then
 		echo "dynamic NEEDED: $f" >&2
 		exit 1
 	fi
@@ -38,7 +42,7 @@ verify_elf() {
 	strings "$f" | grep -q "THYME-INITEXEC-PROOF" || { echo "ident missing: $f" >&2; exit 1; }
 	strings "$f" | grep -q "DELAY=${delay}" || { echo "DELAY=$delay missing: $f" >&2; exit 1; }
 	strings "$f" | grep -q "bootloader" || { echo "bootloader string missing: $f" >&2; exit 1; }
-	readelf -h "$f" | grep -q "Machine:.*AArch64" || { echo "Machine not AArch64: $f" >&2; exit 1; }
+	"$READELF" -h "$f" | grep -q "Machine:.*AArch64" || { echo "Machine not AArch64: $f" >&2; exit 1; }
 }
 
 build_one() {
@@ -52,7 +56,7 @@ build_one() {
 		-fno-ident -fno-pic -Os -Wall -Werror \
 		-DDELAY_SECONDS="$delay" \
 		-c "$SRC" -o "$obj"
-	"$LD" -static --build-id=none -e _start -o "$elf" "$obj"
+	"$LD" -T "$LDS" --build-id=none -o "$elf" "$obj"
 	"$STRIP" -s "$elf"
 	verify_elf "$elf" "$delay"
 

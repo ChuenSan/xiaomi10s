@@ -7,7 +7,8 @@ TIMEOUT="${TIMEOUT:-180}"
 POLL="${POLL:-0.75}"
 
 now() { python3 -c 'import time; print(f"{time.time():.3f}")'; }
-present() { "$FASTBOOT" devices 2>/dev/null | grep -q $'\tfastboot'; }
+present() { "$FASTBOOT" devices 2>/dev/null | grep -Eq $'\t *fastboot'; }
+adb_present() { adb devices 2>/dev/null | grep -q $'\tdevice$'; }
 
 echo "== stock-kernel init-exec proof host observe =="
 present || { echo "OBSERVE-FAIL: not in Fastboot" >&2; exit 1; }
@@ -19,14 +20,15 @@ T0=$(now)
 "$FASTBOOT" reboot
 T_FINISHED=$(now)
 echo "fastboot_reboot_finished_unix=$T_FINISHED"
-echo "fastboot_reboot_cmd_dt=$(python3 -c "print(f'{$T_FINISHED - $T0:.3f}')")"
+echo "fastboot_reboot_cmd_dt=$(python3 -c "print(f'{float('$T_FINISHED') - float('$T0'):.3f}')")"
 
 T_DISAPPEAR=""
 T_REAPPEAR=""
-DEADLINE=$(python3 -c "print($T_FINISHED + $TIMEOUT)")
+T_ADB=""
+DEADLINE=$(python3 -c "print(float('$T_FINISHED') + $TIMEOUT)")
 STATE=wait_disappear
 
-while python3 -c "import sys; sys.exit(0 if $DEADLINE > __import__('time').time() else 1)"; do
+while python3 -c "import sys,time; sys.exit(0 if $DEADLINE > time.time() else 1)"; do
 	if present; then
 		if [ "$STATE" = wait_reappear ] && [ -z "$T_REAPPEAR" ]; then
 			T_REAPPEAR=$(now)
@@ -40,6 +42,11 @@ while python3 -c "import sys; sys.exit(0 if $DEADLINE > __import__('time').time(
 			echo "fastboot_disappear_unix=$T_DISAPPEAR"
 		fi
 	fi
+	if [ "$STATE" = wait_reappear ] && [ -z "$T_ADB" ] && adb_present; then
+		T_ADB=$(now)
+		echo "adb_device_unix=$T_ADB"
+		break
+	fi
 	sleep "$POLL"
 done
 
@@ -52,6 +59,7 @@ echo "TIMING:"
 echo "fastboot_reboot_finished=$T_FINISHED"
 echo "fastboot_disappear=${T_DISAPPEAR:-NONE}"
 echo "fastboot_reappear=${T_REAPPEAR:-NONE}"
+echo "adb_device=${T_ADB:-NONE}"
 if [ -n "$T_DISAPPEAR" ]; then
 	python3 -c "print(f'disappear_after_s={float(\"$T_DISAPPEAR\") - float(\"$T_FINISHED\"):.3f}')"
 else
@@ -60,6 +68,9 @@ fi
 if [ -n "$T_REAPPEAR" ]; then
 	python3 -c "print(f'reappear_after_s={float(\"$T_REAPPEAR\") - float(\"$T_FINISHED\"):.3f}')"
 	echo "manual_key_required=NO"
+elif [ -n "$T_ADB" ]; then
+	python3 -c "print(f'adb_after_s={float(\"$T_ADB\") - float(\"$T_FINISHED\"):.3f}')"
+	echo "manual_key_required=NO_ADB_FELL_BACK"
 else
 	echo "reappear_after_s=NONE"
 	echo "manual_key_required=YES_OR_STILL_RUNNING"
