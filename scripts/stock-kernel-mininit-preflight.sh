@@ -8,7 +8,7 @@ fail() { echo "PREFLIGHT-FAIL: $*" >&2; exit 1; }
 echo "== thyme stock-kernel mininit preflight (READ-ONLY) =="
 "$FASTBOOT" devices >/dev/null 2>&1 || fail "fastboot device unreachable"
 
-getvar() { "$FASTBOOT" getvar "$1" 2>/dev/null | sed -n "s/^$1: \(.*\)$/\1/p"; }
+getvar() { "$FASTBOOT" getvar "$1" 2>&1 | sed -n "s/^$1: \(.*\)$/\1/p" | head -n1; }
 
 PRODUCT=$(getvar product)
 UNLOCKED=$(getvar unlocked)
