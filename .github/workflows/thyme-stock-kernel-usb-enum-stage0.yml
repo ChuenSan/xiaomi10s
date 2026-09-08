@@ -1,0 +1,173 @@
+name: thyme-stock-kernel-usb-enum-stage0
+
+# Isolated: official V14 stock kernel + static PID1 that binds
+# configfs NCM gadget to DWC3 UDC, holds 30s, RESTART2 bootloader.
+# Does not build linux-6.6, DTS, vendor_boot, dtbo, IP, or HTTP.
+on:
+  push:
+    branches: [route-b-v3]
+  workflow_dispatch:
+    inputs:
+      stock_boot_url:
+        description: Optional HTTPS URL to official V14.0.6.0.TGACNXM boot.img
+        required: false
+        type: string
+
+concurrency:
+  group: thyme-stock-kernel-usb-enum-stage0-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  actions: write
+
+env:
+  RELEASE_DIR: out-release
+  STOCK_BOOT_SHA256: 9d8c12c529b3df74ab8eea68b15e4284a2b1fa0c4d4c5572b986df9d9ce3e9be
+  STOCK_BOOT_RELEASE_TAG: stock-V14.0.6.0.TGACNXM-boot
+  BOOT_CAP: "201326592"
+
+jobs:
+  artifacts:
+    name: stock kernel USB enum stage0 (gating)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Vendor AOSP boot tools sanity
+        run: |
+          python3 -c "import ast; ast.parse(open('tools/aosp/mkbootimg.py').read()); ast.parse(open('tools/aosp/unpack_bootimg.py').read()); print('aosp tools parse OK')"
+
+      - name: Install toolchain (aarch64 gcc only; no kernel, no BusyBox)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc file python3 cpio gzip \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          echo "aarch64-gcc: $(aarch64-linux-gnu-gcc --version | head -1)"
+
+      - name: Fetch official stock boot.img
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_URL: ${{ inputs.stock_boot_url }}
+          VAR_URL: ${{ vars.STOCK_BOOT_IMG_URL }}
+          SECRET_URL: ${{ secrets.STOCK_BOOT_IMG_URL }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RELEASE_DIR"
+          dest="$RELEASE_DIR/stock-boot.img"
+          try_url() {
+            local url="$1"
+            [ -n "$url" ] || return 1
+            echo "fetching $url"
+            curl -fL --retry 3 -o "$dest.partial" "$url" || return 1
+            mv "$dest.partial" "$dest"
+          }
+          if try_url "$INPUT_URL"; then
+            echo "source=workflow_dispatch"
+          elif try_url "$VAR_URL"; then
+            echo "source=repo var"
+          elif try_url "$SECRET_URL"; then
+            echo "source=repo secret"
+          else
+            echo "source=draft/release $STOCK_BOOT_RELEASE_TAG"
+            asset_id=$(gh api "repos/${{ github.repository }}/releases" \
+              --jq ".[] | select(.tag_name==\"$STOCK_BOOT_RELEASE_TAG\") | .assets[] | select(.name==\"boot.img\") | .id" \
+              | head -n1)
+            if [ -z "$asset_id" ]; then
+              echo "FAIL: official V14 boot.img not reachable." >&2
+              echo "Provide one of:" >&2
+              echo "  workflow_dispatch input stock_boot_url" >&2
+              echo "  repo variable/secret STOCK_BOOT_IMG_URL" >&2
+              echo "  draft release tag $STOCK_BOOT_RELEASE_TAG with asset boot.img" >&2
+              exit 1
+            fi
+            echo "asset_id=$asset_id"
+            curl -fL --retry 3 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/octet-stream" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/assets/${asset_id}" \
+              -o "$dest"
+          fi
+          test -s "$dest"
+          echo "stock-boot.img bytes=$(wc -c < "$dest")"
+
+      - name: Source logic gates
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path("initramfs/usb-stage0-init.c").read_text()
+          need = [
+              "THYME-USB0",
+              "Stock Kernel USB Enum Stage0",
+              "LINUX_REBOOT_CMD_RESTART2",
+              "bootloader",
+              "/sys/class/udc",
+              "usb_gadget",
+              "configfs",
+              "ncm.usb0",
+              "THYME-USB0:FAIL:NO_UDC",
+              "THYME-USB0:FAIL:CONFIGFS",
+              "THYME-USB0:FAIL:FUNCTION",
+              "THYME-USB0:FAIL:BIND",
+              "THYME-USB0:UDC_BOUND",
+          ]
+          missing = [s for s in need if s not in src]
+          if missing:
+              raise SystemExit(f"source missing {missing}")
+          i = src.find("int main(void)")
+          if i < 0:
+              raise SystemExit("no main")
+          if "return" in src[i:]:
+              raise SystemExit("return in main")
+          if "__attribute__((used, noreturn, section(\".text\")))" not in src:
+              raise SystemExit("main missing noreturn .text")
+          print("CONFIGFS_LOGIC PASS")
+          print("UDC_DISCOVERY_LOGIC PASS")
+          print("FAILSAFE_RESTART2 PASS")
+          print("source gates PASS")
+          PY
+
+      - name: Build static usb-stage0-init + ramdisk
+        run: |
+          bash initramfs/build-usb-stage0.sh "$PWD/out-usb-stage0"
+          python3 initramfs/verify-init-proof-elf.py out-usb-stage0/usb-stage0-init
+          file out-usb-stage0/usb-stage0-init
+
+      - name: Pack + reverse-validate boot v3
+        run: |
+          bash scripts/stock-kernel-usb-enum-stage0-ci-validate.sh \
+            "$PWD/$RELEASE_DIR" \
+            "$PWD/$RELEASE_DIR/stock-boot.img" \
+            "$PWD/out-usb-stage0"
+          grep -q READY_FOR_USB_ENUM_STAGE0 "$RELEASE_DIR/validation-report.txt"
+          test ! -e "$RELEASE_DIR/experimental-vendor_boot-v3.img"
+          test ! -e "$RELEASE_DIR/experimental-dtbo.img"
+          test ! -e "$RELEASE_DIR/vendor_boot.img"
+          test ! -e "$RELEASE_DIR/dtbo.img"
+          test ! -e "$RELEASE_DIR/vbmeta.img"
+
+      - name: Generate SHA256SUMS
+        run: |
+          ( cd "$RELEASE_DIR" && sha256sum \
+              stock-kernel-usb-enum-stage0-boot-v3.img \
+              usb-stage0-init \
+              initramfs.cpio.gz \
+              validation-report.txt \
+              > SHA256SUMS )
+          cat "$RELEASE_DIR/SHA256SUMS"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-stock-kernel-usb-enum-stage0-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            out-release/stock-kernel-usb-enum-stage0-boot-v3.img
+            out-release/usb-stage0-init
+            out-release/initramfs.cpio.gz
+            out-release/SHA256SUMS
+            out-release/unpack-report/**
+            out-release/validation-report.txt
