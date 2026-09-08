@@ -81,7 +81,8 @@ Does **not** replace the v2 primary path. Builds:
 | `experimental-dtbo.img` | single no-op overlay, `qcom,board-id = <45 0>` |
 
 Docs: `docs/route-b-v3-boot-chain.md`, `docs/route-b-v3-test-plan.md`,
-`docs/route-b-v3-final-report.md`. No device writes; Slot A protected.
+`docs/route-b-v3-final-report.md`. Slot B firmware baseline is unverified;
+see `docs/slot-b-firmware-baseline.md`. No device writes; Slot A protected.
 
 ## Docs
 
@@ -91,6 +92,8 @@ Docs: `docs/route-b-v3-boot-chain.md`, `docs/route-b-v3-test-plan.md`,
 - `docs/route-b-v3-boot-chain.md` — Route B boot v3 / vendor_boot / DTBO
 - `docs/route-b-v3-test-plan.md` — Route B B0/B1 gates
 - `docs/route-b-v3-final-report.md` — Route B CI gate report
+- `docs/thyme-stock-slot-partition-map.md` — official Fastboot ROM → A/B firmware map
+- `docs/slot-b-firmware-baseline.md` — Slot B boot-chain baseline forensics
 - `docs/no-uart-debugging.md` — USB-first observation design,pstore DEFERRED
 - `docs/slot-b-first-boot-runbook.md` — future flash runbook,B-only
 - `docs/slot-b-rollback.md` — stock B restore plan
