@@ -84,6 +84,21 @@ Docs: `docs/route-b-v3-boot-chain.md`, `docs/route-b-v3-test-plan.md`,
 `docs/route-b-v3-final-report.md`. Slot B firmware baseline is unverified;
 see `docs/slot-b-firmware-baseline.md`. No device writes; Slot A protected.
 
+## Stock kernel + mininit control (Slot B)
+
+Isolated workflow `.github/workflows/thyme-stock-kernel-mininit-control.yml`
+(`workflow_dispatch` only). Does **not** build linux-6.6 or any DTS. Reconstructs
+a boot v3 image from official V14.0.6.0.TGACNXM `boot.img` with the stock
+kernel payload unchanged and the generic ramdisk replaced by BusyBox mininit.
+
+Gadget class is **NCM** (stock `kona-perf` has `CONFIG_USB_CONFIGFS_NCM=y`,
+no ECM). Artifact contains only `stock-kernel-mininit-boot-v3.img` plus
+initramfs/busybox/reports — no vendor_boot/dtbo.
+
+```sh
+gh workflow run thyme-stock-kernel-mininit-control.yml --ref route-b-v3
+```
+
 ## Docs
 
 - `docs/stock-rom-analysis.md` — stock ROM parse

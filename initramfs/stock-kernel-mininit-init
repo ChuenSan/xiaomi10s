@@ -1,0 +1,209 @@
+#!/bin/sh
+# Stock kernel mininit control — PID 1.
+# Known-good V14 4.19.157-perf + our generic ramdisk. Do not become Android init.
+#
+# Gadget is NCM: stock kona-perf has USB_CONFIGFS_NCM=y and no ECM.
+# VID/PID 0x1d6b/0x0104 = Linux Foundation Multifunction Composite Gadget.
+#
+# DO_NOT_MOUNT_METADATA
+# DO_NOT_MOUNT_SYSTEM
+# DO_NOT_MOUNT_VENDOR
+# DO_NOT_MOUNT_PRODUCT
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+export HOME=/
+CONTROL=STOCK_KERNEL_MININIT
+DEVIP=10.66.73.1
+WWW=/www
+STATUS=/control-status
+USBNET=ncm
+STAGE=STAGE_1_INIT_STARTED
+UDC=""
+
+write_control() {
+	{
+		echo "CONTROL=$CONTROL"
+		echo "DEVICE=thyme"
+		echo "KERNEL_EXPECTED=4.19.157-perf"
+		echo "KERNEL_ACTUAL=$(uname -r 2>/dev/null)"
+		echo "STAGE=$STAGE"
+		echo "USBNET=$USBNET"
+		echo "UDC=$UDC"
+		cat /tmp/stage.log 2>/dev/null
+	} >"$STATUS"
+}
+
+milestone() {
+	STAGE=$1
+	echo "$1" >>/tmp/stage.log
+	echo "$1" >/tmp/current-stage
+	echo "thyme-mininit: $1" >/dev/kmsg 2>/dev/null
+	write_control
+}
+
+write_http() {
+	mkdir -p "$WWW"
+	{
+		echo "CONTROL=$CONTROL"
+		echo "DEVICE=thyme"
+		echo "KERNEL_EXPECTED=4.19.157-perf"
+		echo "KERNEL_ACTUAL=$(uname -r 2>/dev/null)"
+		echo "boot-state=$STAGE"
+		echo "usbnet=$USBNET"
+		echo "gadget-udc=$(cat /sys/kernel/config/usb_gadget/g1/UDC 2>/dev/null)"
+		echo "usb0-addrs=$(ifconfig usb0 2>/dev/null | grep inet)"
+		echo "eth0-addrs=$(ifconfig eth0 2>/dev/null | grep inet)"
+		echo "milestones=$(tr '\n' ' ' </tmp/stage.log 2>/dev/null)"
+		cat /tmp/stage.log 2>/dev/null
+	} >"$WWW/status.txt"
+	cp "$WWW/status.txt" "$WWW/index.html" 2>/dev/null
+}
+
+mkdir -p /tmp
+echo STAGE_1_INIT_STARTED >/tmp/stage.log
+echo STAGE_1_INIT_STARTED >/tmp/current-stage
+write_control
+
+mount -t proc proc /proc 2>/dev/null
+mount -t sysfs sysfs /sys 2>/dev/null
+mount -t devtmpfs devtmpfs /dev 2>/dev/null
+mkdir -p /dev
+[ -c /dev/null ] || mknod -m 666 /dev/null c 1 3
+[ -c /dev/zero ] || mknod -m 666 /dev/zero c 1 5
+[ -c /dev/kmsg ] || mknod -m 644 /dev/kmsg c 1 11
+[ -c /dev/console ] || mknod -m 600 /dev/console c 5 1
+mount -t tmpfs tmpfs /tmp 2>/dev/null
+mkdir -p /dev/pts "$WWW" /sys/kernel/config /tmp
+mount -t devpts devpts /dev/pts 2>/dev/null
+echo STAGE_1_INIT_STARTED >/tmp/stage.log
+echo STAGE_1_INIT_STARTED >/tmp/current-stage
+echo "thyme-mininit: STAGE_1_INIT_STARTED" >/dev/kmsg 2>/dev/null
+write_control
+
+mkdir -p /sys/fs/selinux
+mount -t selinuxfs selinuxfs /sys/fs/selinux 2>/dev/null
+if [ -e /sys/fs/selinux/enforce ]; then
+	echo 0 >/sys/fs/selinux/enforce 2>/dev/null
+fi
+
+milestone STAGE_2_FILESYSTEMS_READY
+hostname thyme-mininit
+write_http
+
+mount -t configfs configfs /sys/kernel/config 2>/dev/null
+
+for x in $(cat /proc/cmdline 2>/dev/null); do
+	case "$x" in
+	androidboot.usbcontroller=*) UDC=${x#*=} ;;
+	udc=ncm*) USBNET=ncm ;;
+	udc=ecm*) USBNET=ecm ;;
+	esac
+done
+
+n=0
+while [ "$n" -lt 15 ]; do
+	ls /sys/class/udc 2>/dev/null | grep -q . && break
+	n=$((n + 1))
+	sleep 1
+done
+
+for m in /sys/devices/platform/soc/*.ssusb/mode \
+	/sys/devices/platform/*.ssusb/mode \
+	/sys/class/udc/*/device/mode \
+	/sys/class/usb_role/*/role; do
+	[ -e "$m" ] || continue
+	echo peripheral >"$m" 2>/dev/null
+	echo device >"$m" 2>/dev/null
+done
+
+GADGET=/sys/kernel/config/usb_gadget/g1
+if mkdir -p "$GADGET" 2>/dev/null && cd "$GADGET"; then
+	echo 0x1d6b >idVendor
+	echo 0x0104 >idProduct
+	echo 0x0100 >bcdDevice
+	mkdir -p strings/0x409 configs/c.1/strings/0x409
+	echo thyme-mainline >strings/0x409/manufacturer
+	echo "Stock Kernel MinInit Control" >strings/0x409/product
+	echo THYME-STOCKK-MININIT >strings/0x409/serialnumber
+	echo 120 >configs/c.1/MaxPower
+	FUNC=""
+	for cand in ncm ecm gsi.rndis; do
+		case "$cand" in
+		gsi.rndis) inst=$cand ;;
+		*) inst=${cand}.usb0 ;;
+		esac
+		if mkdir "functions/$inst" 2>/dev/null; then
+			FUNC=$inst
+			USBNET=$cand
+			break
+		fi
+	done
+	if [ -n "$FUNC" ]; then
+		echo "$USBNET" >configs/c.1/strings/0x409/configuration 2>/dev/null
+		ln -sf "functions/$FUNC" configs/c.1/
+		if [ -e "functions/$FUNC/dev_addr" ]; then
+			echo 02:66:73:00:00:01 >"functions/$FUNC/dev_addr" 2>/dev/null
+			echo 02:66:73:00:00:02 >"functions/$FUNC/host_addr" 2>/dev/null
+		fi
+		milestone STAGE_3_USB_CONFIGFS_READY
+		if [ -n "$UDC" ] && [ ! -e "/sys/class/udc/$UDC" ]; then
+			UDC=""
+		fi
+		if [ -z "$UDC" ]; then
+			UDC=$(ls /sys/class/udc 2>/dev/null | head -n 1)
+		fi
+		if [ -n "$UDC" ]; then
+			echo "$UDC" >UDC 2>/dev/null
+			milestone STAGE_4_USB_BOUND
+		else
+			milestone STAGE_4_USB_NO_UDC
+		fi
+	else
+		milestone STAGE_3_USB_FUNCTION_MISSING
+	fi
+	cd /
+else
+	milestone STAGE_3_USB_CONFIGFS_MISSING
+fi
+
+n=0
+IFACE=""
+while [ "$n" -lt 20 ]; do
+	for cand in usb0 eth0 ncm0 rndis0; do
+		if ifconfig "$cand" >/dev/null 2>&1; then
+			IFACE=$cand
+			break
+		fi
+	done
+	[ -n "$IFACE" ] && break
+	n=$((n + 1))
+	sleep 1
+done
+if [ -n "$IFACE" ]; then
+	ifconfig "$IFACE" $DEVIP netmask 255.255.255.0 up 2>/dev/null \
+		|| { ip addr add $DEVIP/24 dev "$IFACE" 2>/dev/null; ip link set "$IFACE" up 2>/dev/null; }
+	milestone STAGE_5_NETWORK_READY
+else
+	milestone STAGE_5_NETWORK_NO_IFACE
+fi
+
+write_http
+httpd -p 0.0.0.0:8080 -h "$WWW" 2>/dev/null
+telnetd -l /bin/sh -p 23 2>/dev/null
+if ! ps 2>/dev/null | grep -q '[h]ttpd'; then
+	while :; do
+		{
+			printf 'HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n'
+			cat "$WWW/status.txt" 2>/dev/null
+		} | nc -l -p 8080
+	done &
+fi
+milestone STAGE_6_USERSPACE_READY
+write_http
+write_control
+
+while :; do
+	write_http
+	write_control
+	dmesg >"$WWW/dmesg.log" 2>/dev/null
+	sleep 2
+done

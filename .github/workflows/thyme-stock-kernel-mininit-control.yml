@@ -1,0 +1,147 @@
+name: thyme-stock-kernel-mininit-control
+
+# Isolated control: official V14 stock kernel + our mininit ramdisk.
+# Does not build linux-6.6, DTS, vendor_boot, or dtbo.
+on:
+  workflow_dispatch:
+    inputs:
+      stock_boot_url:
+        description: Optional HTTPS URL to official V14.0.6.0.TGACNXM boot.img
+        required: false
+        type: string
+
+concurrency:
+  group: thyme-stock-kernel-mininit-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: write
+
+env:
+  BUSYBOX_VER: 1.36.1
+  RELEASE_DIR: out-release
+  STOCK_BOOT_SHA256: 9d8c12c529b3df74ab8eea68b15e4284a2b1fa0c4d4c5572b986df9d9ce3e9be
+  STOCK_BOOT_RELEASE_TAG: stock-V14.0.6.0.TGACNXM-boot
+  BOOT_CAP: "201326592"
+
+jobs:
+  artifacts:
+    name: stock kernel mininit control (gating)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Vendor AOSP boot tools sanity
+        run: |
+          python3 -c "import ast; ast.parse(open('tools/aosp/mkbootimg.py').read()); ast.parse(open('tools/aosp/unpack_bootimg.py').read()); print('aosp tools parse OK')"
+
+      - name: Install toolchain (BusyBox cross only; no kernel)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            make gcc cpio gzip file python3 \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          echo "aarch64-gcc: $(aarch64-linux-gnu-gcc --version | head -1)"
+
+      - name: Fetch official stock boot.img
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_URL: ${{ inputs.stock_boot_url }}
+          VAR_URL: ${{ vars.STOCK_BOOT_IMG_URL }}
+          SECRET_URL: ${{ secrets.STOCK_BOOT_IMG_URL }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RELEASE_DIR"
+          dest="$RELEASE_DIR/stock-boot.img"
+          try_url() {
+            local url="$1"
+            [ -n "$url" ] || return 1
+            echo "fetching $url"
+            curl -fL --retry 3 -o "$dest.partial" "$url" || return 1
+            mv "$dest.partial" "$dest"
+          }
+          if try_url "$INPUT_URL"; then
+            echo "source=workflow_dispatch"
+          elif try_url "$VAR_URL"; then
+            echo "source=repo var"
+          elif try_url "$SECRET_URL"; then
+            echo "source=repo secret"
+          else
+            echo "source=draft/release $STOCK_BOOT_RELEASE_TAG"
+            if ! gh release download "$STOCK_BOOT_RELEASE_TAG" \
+              --repo "${{ github.repository }}" \
+              --pattern 'boot.img' \
+              --dir "$RELEASE_DIR"; then
+              echo "FAIL: official V14 boot.img not reachable." >&2
+              echo "Provide one of:" >&2
+              echo "  workflow_dispatch input stock_boot_url" >&2
+              echo "  repo variable/secret STOCK_BOOT_IMG_URL" >&2
+              echo "  draft release tag $STOCK_BOOT_RELEASE_TAG with asset boot.img" >&2
+              exit 1
+            fi
+            if [ -f "$RELEASE_DIR/boot.img" ]; then
+              mv -f "$RELEASE_DIR/boot.img" "$dest"
+            fi
+          fi
+          test -s "$dest"
+          echo "stock-boot.img bytes=$(wc -c < "$dest")"
+
+      - name: Cache busybox source
+        uses: actions/cache@v4
+        with:
+          path: .cache/busybox-${{ env.BUSYBOX_VER }}
+          key: busybox-${{ env.BUSYBOX_VER }}
+
+      - name: Build BusyBox static + mininit initramfs
+        run: |
+          bash initramfs/build-initramfs.sh \
+            "$PWD/.cache/busybox-${BUSYBOX_VER}" \
+            "$PWD/configs/busybox-thyme.config" \
+            "$PWD/out-initramfs" \
+            "$PWD/initramfs/stock-kernel-mininit-init"
+          grep -q STOCK_KERNEL_MININIT out-initramfs/root/init
+          grep -q THYME-STOCKK-MININIT out-initramfs/root/init
+          grep -q 10.66.73.1 out-initramfs/root/init
+          file out-initramfs/root/bin/busybox | grep -q "statically linked"
+
+      - name: Pack + reverse-validate control boot v3
+        run: |
+          bash scripts/stock-kernel-mininit-ci-validate.sh \
+            "$PWD/$RELEASE_DIR" \
+            "$PWD/$RELEASE_DIR/stock-boot.img" \
+            "$PWD/out-initramfs/initramfs.cpio.gz" \
+            "$PWD/out-initramfs/root/bin/busybox" \
+            "$PWD/initramfs/stock-kernel-mininit-init"
+          # stock-boot.img stays in the runner workspace; it is not in the
+          # upload-artifact path below (avoid shipping the 128 MiB ROM file).
+
+      - name: Generate SHA256SUMS
+        run: |
+          ( cd "$RELEASE_DIR" && sha256sum \
+              stock-kernel-mininit-boot-v3.img \
+              initramfs.cpio.gz \
+              busybox-aarch64-static \
+              stock-kernel-mininit-init \
+              validation-report.txt \
+              stock-kernel-mininit-image-diff.md \
+              > SHA256SUMS )
+          cat "$RELEASE_DIR/SHA256SUMS"
+          test ! -e "$RELEASE_DIR/experimental-vendor_boot-v3.img"
+          test ! -e "$RELEASE_DIR/experimental-dtbo.img"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-stock-kernel-mininit-control-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            out-release/stock-kernel-mininit-boot-v3.img
+            out-release/initramfs.cpio.gz
+            out-release/busybox-aarch64-static
+            out-release/stock-kernel-mininit-init
+            out-release/SHA256SUMS
+            out-release/unpack-report/**
+            out-release/validation-report.txt
+            out-release/stock-kernel-mininit-image-diff.md
