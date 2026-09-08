@@ -29,14 +29,14 @@ Historical control: matching-stock `boot_b` + `vendor_boot_b` + `dtbo_b` + `vbme
 
 ## 2. B slot metadata
 
-Last device snapshot (user session; this session: no adb/fastboot device).
+Live Fastboot snapshot 2026-09-08 (this session, serial `41a5627b`, `is-userspace:no`). No writes. `set_active` not run this session.
 
 | Variable | A | B |
 |---|---|---|
-| current-slot | — | **b** |
+| current-slot | **a** (live) | was **b** after the Route B attempt |
 | slot-successful | yes | no |
 | slot-unbootable | no | no |
-| slot-retry-count | 6 | **6** (was 7) |
+| slot-retry-count | 6 | **6** (was 7 at attempt; still 6) |
 | snapshot-update-status | none | none |
 | is-userspace | no | no |
 | kernel | uefi | uefi |
@@ -45,10 +45,23 @@ Last device snapshot (user session; this session: no adb/fastboot device).
 | anti | 1 | 1 |
 | Device critical unlocked | true | true |
 | Verity mode | true | true |
+| hw-revision | 20001 (kona v2.1) | same |
+| variant | SM8 UFS | same |
+| logical-block-size | 0x1000 | same |
+| get_unlock_ability | 1 | same |
 
-`has-slot:vbmeta` / `has-slot:vendor_boot` / `has-slot:dtbo` returning **Variable Not Found** does **not** mean the partitions are absent. GPT LUN 4 has `vbmeta_a/b`, `vendor_boot_a/b`, `dtbo_a/b`. `getvar all` already listed them. Xiaomi `has-slot:` is incomplete.
+Retry still 6 and `unbootable:b:no` ⇒ this is **not** AOSP retry-exhaust fallback. Returning `current-slot:a` happened by an explicit `set_active a` (user or earlier session), not by burning retries to 0.
+
+`has-slot:boot:yes` `has-slot:modem:yes` `has-slot:system:no`.  
+`has-slot:vbmeta` / `vendor_boot` / `dtbo` / `xbl` / `abl` / `tz` / `hyp` / `aop` = **Variable Not Found**. Those partitions **exist**: live `partition-size:*_{a,b}` matches GPT LUN 1/2/4 (CONFIRMED_LIVE). Xiaomi `has-slot:` is incomplete.
 
 `has-slot:system:no` is Virtual A/B, expected. See §9.
+
+### 2.1 Live partition-size vs GPT
+
+All boot-critical `_a`/`_b` names exist. Sizes equal GPT except `xbl_config_*`: GPT 524288 (128 × 4096), ABL getvar `0x7F5000` (8343552). Treat GPT as layout; ABL is reporting LUN remainder after `xbl`. Stock `xbl_config.img` is 102400 B, far below both.
+
+Dump partitions live: `oops` 16 MiB, `logdump` 64 MiB, `minidump` 96 MiB, `rawdump` 128 MiB. Not read (fetch unsupported).
 
 ---
 
@@ -99,11 +112,11 @@ Implication: a healthy factory/fastboot install has A and B firmware identical. 
 ## 6. A / B / Stock hash status
 
 ```text
-FASTBOOT_PARTITION_READBACK = UNTESTED_THIS_SESSION
-Device attached this session: NO
+FASTBOOT_PARTITION_READBACK = UNSUPPORTED
+Device attached this session: YES (fastboot, current-slot:a)
 ```
 
-No `fastboot fetch` / oem dump attempted (forbidden undocumented readback). Next gate is Android A + root `sha256sum /dev/block/by-name/*_{a,b}`.
+AOSP `fastboot fetch vbmeta_b` / `featenabler_b`: `Unable to get max-fetch-size. Device does not support fetch command.` `getvar max-fetch-size` = Variable Not Found. `fastboot oem help` = `unknown command`. No undocumented oem dump was attempted. Next gate remains Android A + root `sha256sum /dev/block/by-name/*_{a,b}`.
 
 Status vocabulary: `MATCH_STOCK` `MATCH_A` `STALE_OR_DIFFERENT` `UNREADABLE` `UNKNOWN`.
 
@@ -282,10 +295,10 @@ Observation for a future stock-B boot (no UART):
 
 ## 12. Remaining blockers
 
-1. Slot B (and A) firmware SHA256 unknown. Device not attached. `set_active a` not approved this round.
+1. Slot A and Slot B firmware SHA256 still UNKNOWN. Fastboot fetch unsupported.
 2. `KERNEL_HANDOFF` still UNKNOWN.
 3. External full rescue ROM is off-tree. Do not flash XBL/TZ/HYP/ABL until that is confirmed accessible.
-4. `fastboot fetch` untested; do not hunt undocumented readback.
+4. Live: `current-slot:a` already; `set_active a` is not required again unless slot changes.
 
 Not blockers: Virtual A/B mapper; need to change kernel/DTS; need to modify vbmeta this round; UART.
 
@@ -297,17 +310,16 @@ Not blockers: Virtual A/B mapper; need to change kernel/DTS; need to modify vbme
 NOT_READY_FOR_STOCK_B_NORMALIZATION_TEST
 ```
 
-Next gate (needs explicit user approval, still no `*_a` flash):
+Next gate (needs explicit user approval; still no `*_a` flash). Live `current-slot` is already `a`:
 
 ```text
-1. fastboot set_active a          # metadata only; Slot A is the stable slot
-2. reboot into Android A
-3. su -c sha256sum /dev/block/by-name/{xbl,xbl_config,aop,tz,hyp,abl,devcfg,qupfw,keymaster,cmnlib,cmnlib64,uefisecapp,imagefv,featenabler,boot,vendor_boot,dtbo,vbmeta,vbmeta_system}_{a,b}
-4. optional read-only dump inspect:
+1. fastboot reboot                 # into Android A — DO NOT run until approved
+2. adb shell su -c 'sha256sum /dev/block/by-name/{xbl,xbl_config,aop,tz,hyp,abl,devcfg,qupfw,keymaster,cmnlib,cmnlib64,uefisecapp,imagefv,featenabler,boot,vendor_boot,dtbo,vbmeta,vbmeta_system}_{a,b}'
+3. optional read-only dump inspect:
      hexdump -C -n 64 /dev/block/by-name/{oops,logdump,minidump,rawdump}
      sha256sum those four
      look for Raw_Dmp!; do not erase/format/dd-to-block
-5. fill §6; only then decide a minimum *_b flash set
+4. fill §6; only then decide a minimum *_b flash set
 ```
 
 ---
