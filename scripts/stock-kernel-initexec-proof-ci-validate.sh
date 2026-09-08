@@ -88,9 +88,13 @@ verify_static_arm64() {
 	strings "$f" | grep -q "DELAY=${delay}" || fail "INIT_PROOF_STATIC_ARM64 DELAY=$delay"
 	strings "$f" | grep -q "bootloader" || fail "INIT_PROOF_STATIC_ARM64 bootloader"
 	if [ "$delay" = 15 ]; then
-		strings "$f" | grep -q "DELAY=30" && fail "P15 ELF contains DELAY=30"
+		if strings "$f" | grep -q "DELAY=30"; then
+			fail "P15 ELF contains DELAY=30"
+		fi
 	else
-		strings "$f" | grep -q "DELAY=15" && fail "P30 ELF contains DELAY=15"
+		if strings "$f" | grep -q "DELAY=15"; then
+			fail "P30 ELF contains DELAY=15"
+		fi
 	fi
 }
 
