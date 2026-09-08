@@ -1,17 +1,14 @@
-# Route A v2 differential matrix
+# Route A v2 differential matrix — CLOSED
 
 Built only by `.github/workflows/route-a-v2-boot-investigation.yml`.
+Do not retune `kernel_addr` / `ramdisk_addr` / `dtb_addr`.
+Do not add more v2 variants. `ROUTE_A_REFUTED` (`docs/route-a-report.md`).
 
-Do not retune `kernel_addr` / `ramdisk_addr` / `dtb_addr` in these variants.
-
-| Dir | Change | Why |
+| Dir | Change | Device (RAM-only) |
 |---|---|---|
-| control | same recipe as first `experimental-boot-v2.img` | baseline |
-| no-dtb | `dtb_size=0`, DTB pages dropped | ABL `DTB Image not present` vs later fail |
-| bad-dtb | same size, FDT magic zeroed | magic parse vs msm-id |
-| marker-dtb | `/model` unique string only | observe DTB if kernel lives |
-| qc-ids | add `qcom,msm-id <0x164 0x20001>` and `qcom,board-id <45 0>` | ABL GetSocDtb keys; no hardware nodes |
-| cmdline-probe | `route_a_cmdline_probe=1` | v2 cmdline vs ABL-generated |
-
-APPENDED-DTB-to-kernel is not in this matrix (`docs/route-a-abl-evidence.md` §9).
-x0 probe is deferred.
+| control | baseline v2 | OKAY, ~1 s, Fastboot back, no gadget |
+| no-dtb | `dtb_size=0` | OKAY, ~2 s, same class |
+| bad-dtb | FDT magic zeroed | OKAY, ~1 s, same class |
+| qc-ids | `qcom,msm-id <0x164 0x20001>`, `qcom,board-id <45 0>` | OKAY, ~1 s, same class |
+| marker-dtb | unique `/model` | **not run** (needs kernel liveness) |
+| cmdline-probe | `route_a_cmdline_probe=1` | **not run** (needs kernel liveness) |
