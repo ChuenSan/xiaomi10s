@@ -1,0 +1,232 @@
+name: thyme-mainline-v2-m0-stockdt-initexec
+
+# Mainline V2 M0: replace only boot_b's kernel. vendor_boot_b and dtbo_b
+# remain stock on the device and are deliberately not emitted as artifacts.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-mainline-v2-m0-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  LINUX_DIR: linux-6.6
+  MAKEARGS: O=out ARCH=arm64 LLVM=1
+  RELEASE_DIR: out-release
+  BOOT_CAP: "201326592"
+  EXPECTED_LINUX_BASE_COMMIT: 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+jobs:
+  artifacts:
+    name: Mainline V2 M0 stock-DT initexec (gating)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Vendor AOSP boot tools sanity
+        run: |
+          python3 - <<'PY'
+          import ast
+          for name in ("mkbootimg.py", "unpack_bootimg.py"):
+              ast.parse(open(f"tools/aosp/{name}").read())
+          print("aosp tools parse OK")
+          PY
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang llvm lld make gcc bc bison flex libssl-dev libelf-dev \
+            python3 cpio gzip file \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          echo "clang: $(clang --version | head -1)"
+          echo "ld.lld: $(ld.lld --version | head -1)"
+          echo "aarch64-gcc: $(aarch64-linux-gnu-gcc --version | head -1)"
+          echo "aarch64-ld: $(aarch64-linux-gnu-ld --version | head -1)"
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          git submodule update --init --depth 1 "$LINUX_DIR"
+          base=$(git -C "$LINUX_DIR" rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base" | tee linux-baseline.txt
+          test "$base" = "$EXPECTED_LINUX_BASE_COMMIT" || {
+            echo "unexpected linux-6.6 base: $base" >&2
+            exit 1
+          }
+          git -C "$LINUX_DIR" log -1 --format='pinned: %H %s'
+
+      - name: Apply and verify current thyme patch queue
+        run: |
+          set -euo pipefail
+          PATCH_DIR="$GITHUB_WORKSPACE/patches/linux-6.6"
+          mapfile -t PATCHES < <(find "$PATCH_DIR" -maxdepth 1 -type f -name '*.patch' -print | sort)
+          test "${#PATCHES[@]}" -gt 0
+          printf '%s\n' "${PATCHES[@]}" | tee patch-queue.txt
+          for patch in "${PATCHES[@]}"; do
+            git -C "$LINUX_DIR" apply --check --whitespace=nowarn "$patch"
+          done
+          for patch in "${PATCHES[@]}"; do
+            git -C "$LINUX_DIR" apply --whitespace=nowarn "$patch"
+          done
+          git -C "$LINUX_DIR" diff --check
+          test -s "$LINUX_DIR/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dts"
+          patch_sha=$(
+            for patch in "${PATCHES[@]}"; do
+              printf '%s  %s\n' "$(sha256sum "$patch" | awk '{print $1}')" "$(basename "$patch")"
+            done | sha256sum | awk '{print $1}'
+          )
+          echo "PATCH_QUEUE_SHA256=$patch_sha" | tee patch-queue-sha256.txt
+          echo "PATCH_QUEUE_SHA256=$patch_sha" >> "$GITHUB_ENV"
+          git -C "$LINUX_DIR" diff --stat
+
+      - name: Configure arm64 Mainline baseline
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          make $MAKEARGS defconfig
+          ./scripts/kconfig/merge_config.sh -m -O out out/.config \
+            "$GITHUB_WORKSPACE/configs/thyme-route-b.config"
+          make $MAKEARGS olddefconfig
+          for symbol in ARM64 MMU BINFMT_ELF BLK_DEV_INITRD RD_GZIP PRINTK; do
+            grep -Eq "^CONFIG_${symbol}=y$" out/.config || {
+              echo "missing CONFIG_${symbol}=y" >&2
+              exit 1
+            }
+          done
+          echo "M0 USB configuration is not a gate; Route B baseline retained."
+          grep -E '^CONFIG_(USB|USB_DWC3|USB_CONFIGFS|USB_CONFIGFS_NCM)=' out/.config || true
+
+      - name: Build raw Mainline Image
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          set -o pipefail
+          make $MAKEARGS -j"$(nproc)" Image 2>&1 | tee build.log
+
+      - name: Validate Image, kernel version, and config identity
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          IMAGE="out/arch/arm64/boot/Image"
+          test -s "$IMAGE"
+          kernel_version=$(make $MAKEARGS -s kernelversion)
+          case "$kernel_version" in
+            6.6.*) ;;
+            *) echo "unexpected kernel version: $kernel_version" >&2; exit 1 ;;
+          esac
+          python3 - "$IMAGE" <<'PY'
+          from pathlib import Path
+          import sys
+          data = Path(sys.argv[1]).read_bytes()
+          assert data[:2] != b"\x1f\x8b", "Image is compressed"
+          assert data[0x38:0x3c] == b"ARMd", "raw arm64 Image magic missing"
+          PY
+          image_sha=$(sha256sum "$IMAGE" | awk '{print $1}')
+          config_sha=$(sha256sum out/.config | awk '{print $1}')
+          source_sha=$(sha256sum "$GITHUB_WORKSPACE/initramfs/init-proof.c" | awk '{print $1}')
+          echo "MAINLINE_KERNEL_VERSION=$kernel_version" | tee "$GITHUB_WORKSPACE/kernel-version.txt"
+          echo "IMAGE_SHA256=$image_sha" | tee "$GITHUB_WORKSPACE/image-sha256.txt"
+          echo "CONFIG_SHA256=$config_sha" | tee "$GITHUB_WORKSPACE/config-sha256.txt"
+          echo "INIT_SOURCE_SHA256=$source_sha" | tee "$GITHUB_WORKSPACE/init-source-sha256.txt"
+          {
+            echo "KERNEL_VERSION=$kernel_version"
+            echo "CONFIG_SHA256=$config_sha"
+            echo "INIT_SOURCE_SHA256=$source_sha"
+          } >> "$GITHUB_ENV"
+          file "$IMAGE"
+          echo "Image bytes=$(wc -c < "$IMAGE")"
+
+      - name: Build or reuse known-good static init proof
+        run: |
+          # The exact old binary is not available as a reliable checked-in input;
+          # rebuild the identical source and flags used by the known-good P15 gate.
+          bash initramfs/build-init-proof.sh "$PWD/out-init-proof"
+          python3 initramfs/verify-init-proof-elf.py out-init-proof/init-proof-15s
+          cmp out-init-proof/init-proof out-init-proof/init-proof-15s
+          init_sha=$(sha256sum out-init-proof/init-proof-15s | awk '{print $1}')
+          echo "INIT_PROOF_SHA256=$init_sha" | tee init-proof-sha256.txt
+          echo "INIT_PROOF_EXACT_REUSE=NO" | tee init-proof-identity.txt
+          {
+            echo "INIT_PROOF_SHA256=$init_sha"
+            echo "INIT_PROOF_EXACT_REUSE=NO"
+            echo "INIT_PROOF_SOURCE_REBUILD=YES"
+          } >> "$GITHUB_ENV"
+          file out-init-proof/init-proof-15s
+
+      - name: Generate minimal M0 initramfs
+        run: |
+          set -euo pipefail
+          M0_OUT="$PWD/out-m0-initramfs"
+          M0_ROOT="$M0_OUT/root"
+          mkdir -p "$M0_ROOT"
+          install -m 0755 out-init-proof/init-proof-15s "$M0_ROOT/init"
+          ( cd "$M0_ROOT" && find . -print0 | cpio --null -o --format=newc \
+              | gzip -n -9 > "$M0_OUT/initramfs.cpio.gz" )
+          gzip -t "$M0_OUT/initramfs.cpio.gz"
+          gzip -dc out-m0-initramfs/initramfs.cpio.gz | cpio -t
+          echo "INITRAMFS_SHA256=$(sha256sum out-m0-initramfs/initramfs.cpio.gz | awk '{print $1}')" \
+            | tee initramfs-sha256.txt
+
+      - name: Stage M0 release inputs
+        run: |
+          mkdir -p "$RELEASE_DIR"
+          cp "$LINUX_DIR/out/arch/arm64/boot/Image" "$RELEASE_DIR/Image"
+          cp out-init-proof/init-proof-15s "$RELEASE_DIR/init-proof"
+          cp out-m0-initramfs/initramfs.cpio.gz "$RELEASE_DIR/initramfs.cpio.gz"
+          test -s "$RELEASE_DIR/Image"
+          test -s "$RELEASE_DIR/init-proof"
+          test -s "$RELEASE_DIR/initramfs.cpio.gz"
+
+      - name: Build boot v3 and run all M0 reverse gates
+        env:
+          LINUX_BASE_COMMIT: ${{ env.EXPECTED_LINUX_BASE_COMMIT }}
+        run: |
+          bash scripts/mainline-v2-m0-ci-validate.sh \
+            "$RELEASE_DIR" \
+            "$PWD/$RELEASE_DIR/Image" \
+            "$PWD/$RELEASE_DIR/initramfs.cpio.gz" \
+            "$PWD/$RELEASE_DIR/init-proof"
+
+      - name: Generate SHA256SUMS
+        run: |
+          ( cd "$RELEASE_DIR" && sha256sum \
+              mainline-v2-m0-stockdt-initexec-boot-v3.img \
+              Image init-proof initramfs.cpio.gz validation-report.txt \
+              > SHA256SUMS )
+          cat "$RELEASE_DIR/SHA256SUMS"
+
+      - name: Assert artifact scope
+        run: |
+          python3 - "$RELEASE_DIR" <<'PY'
+          from pathlib import Path
+          import sys
+
+          root = Path(sys.argv[1])
+          expected = {
+              "mainline-v2-m0-stockdt-initexec-boot-v3.img",
+              "Image",
+              "init-proof",
+              "initramfs.cpio.gz",
+              "SHA256SUMS",
+              "validation-report.txt",
+              "unpack-report",
+          }
+          actual = {path.name for path in root.iterdir()}
+          if actual != expected:
+              raise SystemExit(f"artifact scope mismatch: actual={sorted(actual)} expected={sorted(expected)}")
+          forbidden = [
+              path for path in root.rglob("*")
+              if any(token in path.name for token in ("vendor_boot", "dtbo", "vbmeta"))
+          ]
+          if forbidden:
+              raise SystemExit(f"forbidden artifact names: {forbidden}")
+          print("artifact scope OK; no vendor_boot/dtbo/vbmeta")
+          PY
+
+      - name: Upload M0 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-mainline-v2-m0-stockdt-initexec-${{ github.sha }}
+          if-no-files-found: error
+          path: out-release/**

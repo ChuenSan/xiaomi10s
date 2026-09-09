@@ -69,6 +69,16 @@ Artifacts:`thyme-mainline-firstboot-<sha>`. Flash procedure	is
 documented only in `docs/slot-b-first-boot-runbook.md`;this project performs
 no device writes.
 
+## Mainline V2 M0 stock-DT initexec (Slot B)
+
+`.github/workflows/thyme-mainline-v2-m0-stockdt-initexec.yml` is the isolated
+kernel-handoff experiment. It builds a raw Linux 6.6 `Image`, reuses the known-good
+static 15-second `/init` proof, and emits only a header-v3 `boot_b` image, its
+kernel/initramfs inputs, and reverse-validation reports. `vendor_boot_b` and
+`dtbo_b` remain stock and are not built or uploaded. Details and the one-shot
+device gate are in
+`docs/route-b-mainline-v2-m0-stockdt-initexec.md`.
+
 ## Route B (stock-shaped boot v3)
 
 Isolated branch `route-b-v3`, workflow `.github/workflows/thyme-route-b-v3.yml`.
