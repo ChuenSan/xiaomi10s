@@ -1,7 +1,8 @@
 # Route B Mainline V2 M2 — early-entry time signature
 
-Status: CI passed; the one-shot device gate is pending. M2 answers only whether
-ABL executed the Mainline ARM64 kernel through one very-early checkpoint.
+Status: complete; final gate `MAINLINE_V2_M2_CHECKPOINT_NOT_REACHED`. M2 answers
+only whether ABL executed the Mainline ARM64 kernel through one very-early
+checkpoint.
 
 ## Frozen experiment
 
@@ -252,12 +253,12 @@ change such as `6–10 s` is `MAINLINE_V2_M2_INCONCLUSIVE`. No pstore marker is
 required for the time-signature pass, but any Mainline pstore evidence is
 recorded as auxiliary evidence after A is restored.
 
-## Result record
+## Device result
 
 ```text
-mem0 read:
+mem0 read: YES
 local build: NO
-GHA only:
+GHA only: YES
 Slot A flashed: NO
 
 M1 elapsed: 4.821s
@@ -271,37 +272,46 @@ checkpoint before: __cpu_setup
 counter: CNTFRQ_EL0+CNTPCT_EL0
 delay: 20
 registers: x0,x1,x2,x3
-boot args preserved:
+boot args preserved: YES
 
-CI commit:
-CI run:
-artifact:
-Image SHA:
-boot SHA:
-patch SHA:
+CI commit: 8958c21645f9e0ebf9f135784b7e785ae49aff77
+CI run: 34360812930
+artifact: thyme-mainline-v2-m2-early-delay-8958c21645f9e0ebf9f135784b7e785ae49aff77
+Image SHA: 4b37a48819730d3fae43f8eeff9d2a6c8fbaa9f28432819d52cce8407f6826b4
+boot SHA: 70adf66a9769d0fc430154a71fc3335e9e4523c7beaa301bb888bc68c4be827f
+patch SHA: 816161bec80d92ac1fb4836d99bb2fafaa23ffa188a5008d3b466ad26306d118
 
-M0/M1 initramfs exact reuse:
-M1 vendor_boot unchanged:
-M1 dtbo unchanged:
+M0/M1 initramfs exact reuse: YES
+M1 vendor_boot unchanged: YES
+M1 dtbo unchanged: YES
+vbmeta_b / vbmeta_system_b unchanged: YES
+Device write: boot_b only
+B boots: 1
 
-FASTBOOT_USB_DISAPPEAR:
-FASTBOOT_USB_REAPPEAR:
-elapsed:
-delta vs M1:
-manual key:
+FASTBOOT_USB_DISAPPEAR: 2026-09-09T14:45:52.769Z
+FASTBOOT_USB_REAPPEAR: 2026-09-09T14:45:57.367Z
+elapsed: 4.598s
+delta vs M1: -0.223s
+manual key: NO
 
-Mainline evidence:
-panic:
-Conclusion:
-EARLY_TIME_SIGNATURE:
-ABL_TO_MAINLINE_EARLY_CODE:
-Final Gate:
+Pstore: EMPTY
+Mainline pstore evidence: NOT_AVAILABLE
+oops 16MiB SHA: 1a1b650483095aad6c649e6ee5027cfef09be1dce6feed8dfb47d77de978257e
+minidump 16MiB SHA: 4f00e3599293cb23b4dc9ed5bd97a7740f2c39dc573f99c411bbde68598fb8ef
+rawdump 16MiB SHA: 080acf35a507ac9849cfcba47dc2ad83e01b75663a516279c8b9d243b719643e
+logdump 16MiB SHA: 080acf35a507ac9849cfcba47dc2ad83e01b75663a516279c8b9d243b719643e
+panic: NOT_OBSERVED
 
-Android A restored: YES/NO
-slot_suffix:
-boot_completed:
+Conclusion: the injected 20-second signature was not observed; this cannot
+distinguish ABL rejection from failure before the checkpoint.
+EARLY_TIME_SIGNATURE: NO
+ABL_TO_MAINLINE_EARLY_CODE: NOT_CONFIRMED
+Final Gate: MAINLINE_V2_M2_CHECKPOINT_NOT_REACHED
+
+Android A restored: YES
+slot_suffix: _a
+boot_completed: 1
 ```
 
-If the signature is confirmed, the next experiment is M3: move one checkpoint
-later toward `start_kernel`, without changing USB, DTS, vendor boot, DTBO, or
-any Slot A partition.
+Because the checkpoint was not reached, the next step is a more entry-adjacent
+checkpoint or ABL image-acceptance isolation—not USB, DTS, or peripheral work.
