@@ -1,0 +1,62 @@
+name: thyme-mainline-v2-m1-public-source-audit
+
+# Public source audit only. OEM-derived M1 build and flashable artifacts live in
+# the private auxiliary CI repository.
+on:
+  push:
+    branches: [route-b-v3]
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m1-mainlinedt-initexec.yml'
+      - 'scripts/mainline-v2-m1-ci-validate.sh'
+      - 'docs/route-b-mainline-v2-m1-mainlinedt-initexec.md'
+      - 'patches/linux-6.6/**'
+      - 'configs/thyme-route-b.config'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-mainline-v2-m1-public-source-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: M1 public source audit (no OEM build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+
+      - name: Lint workflow source
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color
+
+      - name: Assert public repository contains no stock binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e MIUI14ROM/image/vendor_boot.img
+          test ! -e MIUI14ROM/image/dtbo.img
+          if git ls-files | grep -E '(^|/)(vendor_boot|dtbo)\.img$'; then
+            echo 'tracked stock binary found' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_STOCK_BINARY_TRACKING=PASS'
+
+      - name: Assert M1 source gates and fixed references
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972' \
+            scripts/mainline-v2-m1-ci-validate.sh
+          grep -Fq '018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634' \
+            scripts/mainline-v2-m1-ci-validate.sh
+          grep -Fq '378190377e8e2dcf43287d548cccfd5796ecc9cbb31b37ffd8446e181c7826bb' \
+            scripts/mainline-v2-m1-ci-validate.sh
+          grep -Fq 'GITHUB_ACTIONS' scripts/mainline-v2-m1-ci-validate.sh
+          grep -Fq 'NO_NEW_BOOT_IMAGE' scripts/mainline-v2-m1-ci-validate.sh
+          grep -Fq 'PRIVATE' docs/route-b-mainline-v2-m1-mainlinedt-initexec.md
+          echo 'PUBLIC_M1_SOURCE_GATES=PASS'
