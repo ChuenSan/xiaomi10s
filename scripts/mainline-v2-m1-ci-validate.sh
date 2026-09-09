@@ -109,8 +109,11 @@ dtc -I dtb -O dts -o "$WORK/mainline-thyme-abl.dts" "$ABL_DTB" 2>"$WORK/mainline
 fdtget "$ABL_DTB" / compatible | tr ' ' '\n' | grep -qx 'qcom,sm8250' || \
 	fail "ABL_DTB_METADATA_VALID compatible"
 pass "MAINLINE_DTB_BUILD size=$(wc -c <"$RAW_DTB" | tr -d ' ') sha256=$(sha "$RAW_DTB")"
+pass "MAINLINE_DTB_BUILD=PASS"
 pass "MAINLINE_DTB_VALID"
+pass "MAINLINE_DTB_VALID=PASS"
 pass "ABL_DTB_METADATA_VALID msm-id=356,131073 board-id=45,0"
+pass "ABL_DTB_METADATA_VALID=PASS"
 printf 'UPSTREAM_DTS_MODIFIED=NO\nABL_PACKAGING_METADATA_ADDED=%s\n' \
 	"$ABL_PACKAGING_METADATA_ADDED" | tee -a "$RPT"
 
@@ -239,8 +242,11 @@ report.write_text("\n".join([
     ""]), encoding="utf-8")
 PY
 pass "VENDOR_RAMDISK_EXACT_STOCK"
+pass "VENDOR_RAMDISK_EXACT_STOCK=PASS"
 pass "VENDOR_BOOT_HEADER_STOCK_COMPAT"
+pass "VENDOR_BOOT_HEADER_STOCK_COMPAT=PASS"
 pass "VENDOR_BOOT_ONLY_DTB_CHANGED"
+pass "VENDOR_BOOT_ONLY_DTB_CHANGED=PASS"
 
 STOCK_DUMP_PREFIX="$WORK/stock-dtbo-entry"
 python3 tools/aosp/mkdtboimg.py dump "$STOCK_DTBO" --dtb "$STOCK_DUMP_PREFIX" \
@@ -328,15 +334,18 @@ fi
 echo "FDToVERLAY_NOOP_EQUIVALENCE=PASS"
 } | tee "$DTBO_RPT"
 pass "NOOP_DTBO_VALID"
+pass "NOOP_DTBO_VALID=PASS"
 pass "NOOP_DTBO_THYME_BOARD_ID=45,0"
+pass "NOOP_DTBO_THYME_BOARD_ID=PASS"
 
 for forbidden in boot.img mainline-v2-m1-boot.img Image; do
 	[ ! -e "$REL/$forbidden" ] || fail "FORBIDDEN_MAINLINE_BOOT_ARTIFACT=$forbidden"
 done
 pass "NO_MAINLINE_BOOT_IMAGE_GENERATED"
-pass "NO_NEW_BOOT_IMAGE"
+pass "NO_NEW_BOOT_IMAGE=PASS"
 pass "M0_BOOT_SHA_REFERENCE=PASS"
 printf 'M0_BOOT_REFERENCE_SHA256=%s\nM1_BOOT_B_ACTION=EXACT_M0_REUSE_REQUIRED_NO_CI_BOOT_OUTPUT\n' \
 	"$M0_BOOT_SHA256" | tee -a "$RPT"
 pass "$M1_FINAL_GATE"
+printf '%s\n' "$M1_FINAL_GATE" | tee -a "$RPT"
 echo "ALL MAINLINE V2 M1 MAINLINE-DT CONTEXT VALIDATION PASS" | tee -a "$RPT"
