@@ -49,9 +49,12 @@ BASE="$(git -C "$LINUX_DIR" rev-parse HEAD)"
 pass "MAINLINE_VERSION_PINNED=$BASE"
 
 CHANGED="$(git -C "$LINUX_DIR" diff --name-only)"
-python3 - "$CHANGED" <<'PY' || exit 1
+UNTRACKED="$(git -C "$LINUX_DIR" ls-files --others --exclude-standard)"
+python3 - "$CHANGED" "$UNTRACKED" <<'PY' || exit 1
 import sys
-actual = set(sys.argv[1].splitlines()) if sys.argv[1] else set()
+actual = set()
+for value in sys.argv[1:]:
+    actual.update(value.splitlines())
 expected = {
     "Documentation/devicetree/bindings/arm/qcom.yaml",
     "arch/arm64/boot/dts/qcom/Makefile",
