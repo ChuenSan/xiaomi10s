@@ -53,6 +53,7 @@ python3 - "$CHANGED" <<'PY' || exit 1
 import sys
 actual = set(sys.argv[1].splitlines()) if sys.argv[1] else set()
 expected = {
+    "Documentation/devicetree/bindings/arm/qcom.yaml",
     "arch/arm64/boot/dts/qcom/Makefile",
     "arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dts",
 }
