@@ -18,8 +18,8 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
-  actions: read
+  contents: write
+  actions: write
 
 env:
   RELEASE_DIR: out-release
