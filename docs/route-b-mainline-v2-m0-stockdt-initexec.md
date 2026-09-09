@@ -140,6 +140,21 @@ vbmeta_system_b = 3217455014b5bb0cc05b638489589738863aeb6cc6b9423d56989b21fa8b83
 
 ## Device gate — not yet run
 
+Read-only Android A baseline captured before any M0 write:
+
+```text
+adb device=present
+ro.boot.slot_suffix=_a
+sys.boot_completed=1
+root=uid=0
+boot_b Stage4 reference=6b5689c99f56f42757e97c65ddd093f289c124f70f856261934c502501d0570a
+vendor_boot_b stock=YES
+dtbo_b stock=YES
+vbmeta_b stock flags=2
+vbmeta_system_b stock=YES
+```
+
+The Fastboot preflight was not entered, so no reboot or slot metadata mutation was performed.
 Before any write, return to Android A and independently verify:
 
 ```text
