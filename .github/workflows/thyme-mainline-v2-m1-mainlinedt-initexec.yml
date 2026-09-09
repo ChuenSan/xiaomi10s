@@ -32,7 +32,7 @@ jobs:
       - name: Lint workflow source
         uses: docker://rhysd/actionlint:latest
         with:
-          args: -color
+          args: -color .github/workflows/thyme-mainline-v2-m1-mainlinedt-initexec.yml
 
       - name: Assert public repository contains no stock binaries
         shell: bash
