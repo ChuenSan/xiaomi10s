@@ -1,0 +1,37 @@
+diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
+--- a/arch/arm64/kernel/head.S
++++ b/arch/arm64/kernel/head.S
+@@ -102,10 +102,32 @@
+ 	adr_l	x2, dcache_clean_poc
+ 	blr	x2
+ 0:	mov	x0, x19
+ 	bl	init_kernel_el			// w0=cpu_boot_mode
+ 	mov	x20, x0
++
++.Lthyme_m2_early_delay_start:
++	/*
++	 * THYME_M2_EARLY_DELAY: init_kernel_el has returned at EL1. The
++	 * architectural counter is usable here; __cpu_setup follows below.
++	 * x0-x3 are the only scratch registers used by this instrumentation.
++	 */
++	isb
++	mrs	x0, cntfrq_el0
++	isb
++	mrs	x1, cntpct_el0
++	mov	x3, #20
++	madd	x2, x0, x3, x1
++.Lthyme_m2_early_delay_loop:
++	isb
++	mrs	x0, cntpct_el0
++	cmp	x0, x2
++	b.hs	.Lthyme_m2_early_delay_end
++	yield
++	b	.Lthyme_m2_early_delay_loop
++.Lthyme_m2_early_delay_end:
++
+ 
+ 	/*
+ 	 * The following calls CPU setup code, see arch/arm64/mm/proc.S for
+ 	 * details.
+ 	 * On return, the CPU will be ready for the MMU to be turned on and
+ 	 * the TCR will have been set.

@@ -79,6 +79,16 @@ kernel/initramfs inputs, and reverse-validation reports. `vendor_boot_b` and
 device gate are in
 `docs/route-b-mainline-v2-m0-stockdt-initexec.md`.
 
+## Mainline V2 M2 early-entry time signature (Slot B)
+
+`.github/workflows/thyme-mainline-v2-m2-early-entry-delay.yml` applies the
+experimental `patches/experiments/mainline-v2-m2-early-delay.patch`, injects a
+20-second architected-counter delay between `init_kernel_el` and `__cpu_setup`,
+and emits only the audited `boot_b` v3 image plus reports. It reuses the exact
+M0 P15 initramfs from the pinned M0 Actions run. No local build, USB gadget
+probe, OEM artifact, or Slot A write is part of this phase. See
+`docs/route-b-mainline-v2-m2-early-entry-time-signature.md`.
+
 ## Route B (stock-shaped boot v3)
 
 Isolated branch `route-b-v3`, workflow `.github/workflows/thyme-route-b-v3.yml`.

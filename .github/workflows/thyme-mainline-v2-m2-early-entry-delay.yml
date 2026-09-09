@@ -1,0 +1,247 @@
+name: thyme-mainline-v2-m2-early-entry-delay
+
+# Mainline V2 M2: one experimental Image-only change. The exact M0 P15
+# initramfs is downloaded from the immutable M0 Actions run; no OEM artifact is
+# produced or consumed.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-mainline-v2-m2-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  LINUX_DIR: linux-6.6
+  MAKEARGS: O=out ARCH=arm64 LLVM=1
+  RELEASE_DIR: out-release
+  BOOT_CAP: "201326592"
+  EXPECTED_LINUX_BASE_COMMIT: 8b73de7da85fde281a385e0b26eda9bffd3ca477
+  M2_DELAY_SECONDS: "20"
+  M0_RUN_ID: "34322563307"
+  M0_ARTIFACT_NAME: thyme-mainline-v2-m0-stockdt-initexec-23a2d6c53dbfb7ed2db7e9fd1aa79d3ae6d3bd01
+  EXPECTED_M0_IMAGE_SHA256: 22d0ee238bb727bca29f9abb241786c94d333928001de5f051aa017da77ba2b6
+  EXPECTED_M0_INIT_SHA256: aab8211a07d26f7a05937618d851891fe0eb1398c6567560927cdd67a5ae02e8
+  EXPECTED_M0_RAMDISK_SHA256: b7d3949461a57b985585c0fe31ef423ce34216aa9ae164600ffbeed97d5a47de
+
+jobs:
+  artifacts:
+    name: Mainline V2 M2 early-entry delay (gating)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Download exact M0 P15 inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.M0_ARTIFACT_NAME }}
+          path: m0-artifact
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.M0_RUN_ID }}
+
+      - name: Verify exact M0 inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s m0-artifact/Image
+          test -s m0-artifact/init-proof
+          test -s m0-artifact/initramfs.cpio.gz
+          test -s m0-artifact/SHA256SUMS
+          ( cd m0-artifact && sha256sum -c SHA256SUMS )
+          test "$(sha256sum m0-artifact/Image | awk '{print $1}')" = "$EXPECTED_M0_IMAGE_SHA256"
+          test "$(sha256sum m0-artifact/init-proof | awk '{print $1}')" = "$EXPECTED_M0_INIT_SHA256"
+          test "$(sha256sum m0-artifact/initramfs.cpio.gz | awk '{print $1}')" = "$EXPECTED_M0_RAMDISK_SHA256"
+          echo "M0_ARTIFACT_RUN=$M0_RUN_ID"
+          echo "M0_IMAGE_SHA256=$EXPECTED_M0_IMAGE_SHA256"
+          echo "M0_INIT_SHA256=$EXPECTED_M0_INIT_SHA256"
+          echo "M0_RAMDISK_SHA256=$EXPECTED_M0_RAMDISK_SHA256"
+          echo "M0_EXACT_INPUTS=PASS"
+
+      - name: Vendor AOSP boot tools sanity
+        run: |
+          python3 - <<'PY'
+          import ast
+          for name in ("mkbootimg.py", "unpack_bootimg.py"):
+              ast.parse(open(f"tools/aosp/{name}").read())
+          print("aosp tools parse OK")
+          PY
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang llvm lld make gcc bc bison flex libssl-dev libelf-dev \
+            python3 cpio gzip file \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          echo "clang: $(clang --version | head -1)"
+          echo "ld.lld: $(ld.lld --version | head -1)"
+          echo "aarch64-gcc: $(aarch64-linux-gnu-gcc --version | head -1)"
+          echo "aarch64-objdump: $(aarch64-linux-gnu-objdump --version | head -1)"
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 "$LINUX_DIR"
+          base=$(git -C "$LINUX_DIR" rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base" | tee linux-baseline.txt
+          test "$base" = "$EXPECTED_LINUX_BASE_COMMIT" || {
+            echo "unexpected linux-6.6 base: $base" >&2
+            exit 1
+          }
+          git -C "$LINUX_DIR" log -1 --format='pinned: %H %s'
+
+      - name: Apply and verify current thyme patch queue
+        shell: bash
+        run: |
+          set -euo pipefail
+          PATCH_DIR="$GITHUB_WORKSPACE/patches/linux-6.6"
+          mapfile -t PATCHES < <(find "$PATCH_DIR" -maxdepth 1 -type f -name '*.patch' -print | sort)
+          test "${#PATCHES[@]}" -gt 0
+          printf '%s\n' "${PATCHES[@]}" | tee patch-queue.txt
+          for patch in "${PATCHES[@]}"; do
+            git -C "$LINUX_DIR" apply --check --whitespace=nowarn "$patch"
+          done
+          for patch in "${PATCHES[@]}"; do
+            git -C "$LINUX_DIR" apply --whitespace=nowarn "$patch"
+          done
+          git -C "$LINUX_DIR" diff --check
+          test -s "$LINUX_DIR/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dts"
+          patch_sha=$(
+            for patch in "${PATCHES[@]}"; do
+              printf '%s  %s\n' "$(sha256sum "$patch" | awk '{print $1}')" "$(basename "$patch")"
+            done | sha256sum | awk '{print $1}'
+          )
+          echo "PATCH_QUEUE_SHA256=$patch_sha" | tee patch-queue-sha256.txt
+          echo "PATCH_QUEUE_SHA256=$patch_sha" >> "$GITHUB_ENV"
+
+      - name: Apply M2 experimental instrumentation patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          M2_PATCH="$GITHUB_WORKSPACE/patches/experiments/mainline-v2-m2-early-delay.patch"
+          test -s "$M2_PATCH"
+          git -C "$LINUX_DIR" apply --check --whitespace=nowarn "$M2_PATCH"
+          git -C "$LINUX_DIR" apply --whitespace=nowarn "$M2_PATCH"
+          git -C "$LINUX_DIR" diff --check
+          echo "EXPERIMENTAL_INSTRUMENTATION=YES"
+          echo "UPSTREAM_FEATURE_CHANGE=NO"
+          echo "M2_PATCH_APPLIED=PASS"
+
+      - name: Configure arm64 Mainline baseline
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          set -euo pipefail
+          make $MAKEARGS defconfig
+          ./scripts/kconfig/merge_config.sh -m -O out out/.config \
+            "$GITHUB_WORKSPACE/configs/thyme-route-b.config"
+          make $MAKEARGS olddefconfig
+          for symbol in ARM64 MMU BINFMT_ELF BLK_DEV_INITRD RD_GZIP PRINTK; do
+            grep -Eq "^CONFIG_${symbol}=y$" out/.config || {
+              echo "missing CONFIG_${symbol}=y" >&2
+              exit 1
+            }
+          done
+          echo "M2 USB configuration is not a gate; Route B baseline retained."
+
+      - name: Build instrumented Mainline Image
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          set -o pipefail
+          make $MAKEARGS -j"$(nproc)" Image 2>&1 | tee build.log
+
+      - name: Record built kernel identity
+        working-directory: ${{ env.LINUX_DIR }}
+        run: |
+          set -euo pipefail
+          IMAGE="out/arch/arm64/boot/Image"
+          test -s "$IMAGE"
+          test -s vmlinux
+          kernel_version=$(make $MAKEARGS -s kernelversion)
+          case "$kernel_version" in
+            6.6.*) ;;
+            *) echo "unexpected kernel version: $kernel_version" >&2; exit 1 ;;
+          esac
+          image_sha=$(sha256sum "$IMAGE" | awk '{print $1}')
+          echo "KERNEL_VERSION=$kernel_version" | tee "$GITHUB_WORKSPACE/kernel-version.txt"
+          echo "IMAGE_SHA256=$image_sha" | tee "$GITHUB_WORKSPACE/image-sha256.txt"
+          echo "KERNEL_VERSION=$kernel_version" >> "$GITHUB_ENV"
+          file "$IMAGE"
+          file vmlinux
+          echo "Image bytes=$(wc -c < "$IMAGE")"
+
+      - name: Stage M2 release inputs
+        run: |
+          set -euo pipefail
+          M2_PATCH="$GITHUB_WORKSPACE/patches/experiments/mainline-v2-m2-early-delay.patch"
+          mkdir -p "$RELEASE_DIR"
+          cp "$LINUX_DIR/out/arch/arm64/boot/Image" "$RELEASE_DIR/Image"
+          cp "$M2_PATCH" "$RELEASE_DIR/mainline-v2-m2-early-delay.patch"
+          test -s "$RELEASE_DIR/Image"
+          test -s "$RELEASE_DIR/mainline-v2-m2-early-delay.patch"
+
+      - name: Build boot v3 and run all M2 gates
+        env:
+          M2_PATCH: ${{ github.workspace }}/patches/experiments/mainline-v2-m2-early-delay.patch
+        run: |
+          set -euo pipefail
+          bash scripts/mainline-v2-m2-ci-validate.sh \
+            "$RELEASE_DIR" \
+            "$PWD/$RELEASE_DIR/Image" \
+            "$PWD/m0-artifact/initramfs.cpio.gz" \
+            "$PWD/m0-artifact/init-proof" \
+            "$PWD/$LINUX_DIR/vmlinux" \
+            "$PWD/m0-artifact/Image"
+
+      - name: Generate SHA256SUMS
+        run: |
+          set -euo pipefail
+          ( cd "$RELEASE_DIR" && sha256sum \
+              mainline-v2-m2-early-delay-boot-v3.img \
+              Image \
+              mainline-v2-m2-early-delay.patch \
+              validation-report.txt \
+              > SHA256SUMS )
+          cat "$RELEASE_DIR/SHA256SUMS"
+
+      - name: Assert final artifact scope
+        run: |
+          set -euo pipefail
+          python3 - "$RELEASE_DIR" <<'PY'
+          from pathlib import Path
+          import sys
+
+          root = Path(sys.argv[1])
+          expected = {
+              "mainline-v2-m2-early-delay-boot-v3.img",
+              "Image",
+              "mainline-v2-m2-early-delay.patch",
+              "SHA256SUMS",
+              "validation-report.txt",
+              "reverse-unpack-report",
+          }
+          actual = {path.name for path in root.iterdir()}
+          if actual != expected:
+              raise SystemExit(
+                  f"artifact scope mismatch: actual={sorted(actual)} expected={sorted(expected)}"
+              )
+          forbidden = [
+              path for path in root.rglob("*")
+              if any(token in path.name for token in ("vendor_boot", "dtbo", "vbmeta", "firmware"))
+          ]
+          if forbidden:
+              raise SystemExit(f"forbidden OEM artifacts: {forbidden}")
+          print("M2 artifact scope OK; no vendor_boot/dtbo/vbmeta/firmware")
+          PY
+
+      - name: Upload M2 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-mainline-v2-m2-early-delay-${{ github.sha }}
+          if-no-files-found: error
+          path: out-release/**
