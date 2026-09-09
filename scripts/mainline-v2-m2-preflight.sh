@@ -22,6 +22,8 @@ BATTERY="$(getvar battery-soc-ok)"
 HAS_BOOT="$(getvar has-slot:boot)"
 HAS_VENDOR_BOOT="$(getvar has-slot:vendor_boot)"
 HAS_DTBO="$(getvar has-slot:dtbo)"
+HAS_VENDOR_BOOT="${HAS_VENDOR_BOOT:-UNKNOWN}"
+HAS_DTBO="${HAS_DTBO:-UNKNOWN}"
 UNBOOTABLE_B="$(getvar slot-unbootable:b)"
 RETRY_B="$(getvar slot-retry-count:b)"
 
@@ -45,8 +47,17 @@ EOF
 [ "$SNAPSHOT" = none ] || fail "snapshot-update-status is not none"
 [ "$BATTERY" = yes ] || fail "battery-soc-ok is not yes"
 [ "$HAS_BOOT" = yes ] || fail "has-slot:boot is not yes"
-[ "$HAS_VENDOR_BOOT" = yes ] || fail "has-slot:vendor_boot is not yes"
-[ "$HAS_DTBO" = yes ] || fail "has-slot:dtbo is not yes"
+# This ABL exposes the vendor_boot/dtbo partitions but does not implement
+# has-slot queries for them; Android-A path/hash checks are the authoritative
+# context gate for those partitions.
+case "$HAS_VENDOR_BOOT" in
+	yes|UNKNOWN) ;;
+	*) fail "unexpected has-slot:vendor_boot=$HAS_VENDOR_BOOT" ;;
+esac
+case "$HAS_DTBO" in
+	yes|UNKNOWN) ;;
+	*) fail "unexpected has-slot:dtbo=$HAS_DTBO" ;;
+esac
 
 IMAGE="$ART_DIR/$IMAGE_NAME"
 MANIFEST="$ART_DIR/SHA256SUMS"
