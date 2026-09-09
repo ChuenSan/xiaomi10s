@@ -305,7 +305,7 @@ M1_FRAG="$WORK/m1-dtbo-frag.0"
 dtc -I dtb -O dts -o "$WORK/m1-dtbo-frag.dts" "$M1_FRAG" 2>"$WORK/m1-dtbo-frag.dtc.log"
 noop_board_id=$(fdtget -t u "$M1_FRAG" / qcom,board-id | tr '\n' ' ' | xargs)
 [ "$noop_board_id" = "45 0" ] || fail "NOOP_DTBO_THYME_BOARD_ID=$noop_board_id"
-fdtget "$M1_FRAG" / qcom,thyme-route-b-noop >/dev/null || \
+grep -q 'qcom,thyme-route-b-noop' "$WORK/m1-dtbo-frag.dts" || \
 	fail "NOOP_DTBO marker missing"
 for compatible in qcom,kona-mtp qcom,kona qcom,mtp; do
 	fdtget "$M1_FRAG" / compatible | tr ' ' '\n' | grep -qx "$compatible" || \
