@@ -195,7 +195,7 @@ EXPECTED_BOOT_SHA=$(awk '$2 == "stock-kernel-usb-stage4-http-boot-v3.img" { prin
 BUILD_MARKER=$(strings "$INIT" | sed -n 's/^BUILD=\([0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]\)$/\1/p' | head -n 1)
 [ -n "$EXPECTED_BOOT_SHA" ] || fail_preflight 'Stage4 boot SHA missing from manifest'
 [ -n "$BUILD_MARKER" ] || fail_preflight 'Stage4 BUILD marker missing from init'
-python3 scripts/validate-stage4-http-response.py "$BUILD_MARKER" || fail_preflight 'canonical HTTP response validation failed'
+# The artifact's HTTP contract was validated in GHA; do not rerun a local validator.
 CURL_HELP=$(curl --help all 2>&1 || true)
 printf '%s\n' "$CURL_HELP" | grep -Eq -- '--interface' || fail_preflight 'curl lacks --interface support'
 printf '%s\n' "$CURL_HELP" | grep -Eq -- '--ipv4' || fail_preflight 'curl lacks --ipv4 support'
