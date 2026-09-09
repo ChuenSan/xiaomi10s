@@ -17,6 +17,9 @@ grep -Fq "grep -Fqx 'SYN'" "$HOST_SCRIPT"
 grep -Fq "grep -Fqx 'SYNACK'" "$HOST_SCRIPT"
 grep -Fq '[ "$HTTP_GET_CAPTURED" = YES ]' "$HOST_SCRIPT"
 grep -Fq '[ "$HTTP_200_CAPTURED" = YES ]' "$HOST_SCRIPT"
+grep -Fq 'STAGE4_CONFIRM_ONLY' "$HOST_SCRIPT"
+grep -Fq 'FLASH_BOOT_B_ONLY=SKIPPED' "$HOST_SCRIPT"
+grep -Fq 'refusing no-flash confirmation' "$HOST_SCRIPT"
 
 got_for() {
 	local fixture=$1

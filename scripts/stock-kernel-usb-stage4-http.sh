@@ -10,6 +10,7 @@ HOST_IP="10.66.73.2"
 NETMASK="255.255.255.0"
 HTTP_PORT=8080
 FASTBOOT_TIMEOUT=120
+CONFIRM_ONLY="${STAGE4_CONFIRM_ONLY:-NO}"
 POLL=0.5
 PING_COUNT=1
 EXPECTED_VENDOR_BOOT_SHA="aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972"
@@ -34,6 +35,7 @@ exec > >(tee "$LOG") 2>&1
 
 FLASHED=NO
 RECOVERED=NO
+RECOVERY_REQUIRED=NO
 TCPDUMP_PID=''
 
 now() { python3 -c 'import time; print(f"{time.time():.3f}")'; }
@@ -176,7 +178,7 @@ recover_android_a() {
 
 on_exit() {
 	stop_tcpdump
-	if [ "$FLASHED" = YES ] && [ "$RECOVERED" != YES ]; then
+	if { [ "$FLASHED" = YES ] || [ "$RECOVERY_REQUIRED" = YES ]; } && [ "$RECOVERED" != YES ]; then
 		echo 'RECOVERY_ATTEMPT=EXIT_GUARD'
 		recover_android_a || true
 	fi
@@ -188,6 +190,8 @@ printf '%s\n' "LOG=$LOG"
 printf '%s\n' "CAPTURE_LOG=$CAPTURE_LOG"
 printf '%s\n' 'Policy: GHA-built artifact only; boot_b write only; slot A protected; no manual route; no persistent host network change.'
 printf '%s\n' 'Test endpoint: 10.66.73.1:8080; host: dynamic THYME enX with 10.66.73.2/24.'
+printf '%s\n' "Mode: $CONFIRM_ONLY (YES=reuse verified boot_b; NO=flash boot_b)"
+case "$CONFIRM_ONLY" in YES|NO) ;; *) fail_preflight "STAGE4_CONFIRM_ONLY=$CONFIRM_ONLY must be YES or NO" ;; esac
 
 IMAGE="$ARTIFACT_DIR/stock-kernel-usb-stage4-http-boot-v3.img"
 INIT="$ARTIFACT_DIR/usb-stage4-http-init"
@@ -241,6 +245,10 @@ printf '%s\n' "$ADB_ID" | grep -Fq 'uid=0' || fail_preflight 'root read-only acc
 
 PRE_BOOT_HASH=$(partition_hash boot_b "$IMAGE_BYTES")
 echo "boot_b_before_flash bytes=$IMAGE_BYTES sha256=${PRE_BOOT_HASH:-UNAVAILABLE}"
+if [ "$CONFIRM_ONLY" = YES ]; then
+	[ "$PRE_BOOT_HASH" = "$EXPECTED_BOOT_SHA" ] || fail_preflight 'boot_b hash mismatch; refusing no-flash confirmation'
+	echo 'REUSE_BOOT_B_HASH_MATCH=YES'
+fi
 verify_partition vendor_boot_b "$EXPECTED_VENDOR_BOOT_BYTES" "$EXPECTED_VENDOR_BOOT_SHA"
 verify_partition dtbo_b "$EXPECTED_DTBO_BYTES" "$EXPECTED_DTBO_SHA"
 verify_partition vbmeta_b "$EXPECTED_VBMETA_BYTES" "$EXPECTED_VBMETA_SHA"
@@ -286,42 +294,49 @@ echo 'DEVICE: 10.66.73.1:8080'
 echo 'SLOT A: PROTECTED'
 echo "BUILD: $BUILD_MARKER"
 
-if ! fastboot flash boot_b "$IMAGE"; then
-	echo 'FLASH_FAILED=YES'
-	exit 1
+if [ "$CONFIRM_ONLY" = YES ]; then
+	echo 'NO_DEVICE_IMAGE_BUILD=YES'
+	echo 'FLASH_BOOT_B_ONLY=SKIPPED'
+	echo 'REUSE_BOOT_B=YES'
+else
+	if ! fastboot flash boot_b "$IMAGE"; then
+		echo 'FLASH_FAILED=YES'
+		exit 1
+	fi
+	FLASHED=YES
+	echo 'FLASH_BOOT_B_ONLY=YES'
+	AFTER_FLASH_CURRENT=$(getvar current-slot)
+	AFTER_FLASH_UNBOOTABLE=$(getvar slot-unbootable:b)
+	echo "AFTER_FLASH_CURRENT_SLOT=$AFTER_FLASH_CURRENT"
+	echo "AFTER_FLASH_SLOT_UNBOOTABLE_B=$AFTER_FLASH_UNBOOTABLE"
+	[ "$AFTER_FLASH_CURRENT" = a ] || exit 1
+	[ "$AFTER_FLASH_UNBOOTABLE" = no ] || exit 1
+
+	# Return to Android A before the single B start, then verify the written prefix.
+	fastboot reboot || exit 1
+	wait_for_android_a || exit 1
+	POST_FLASH_HASH=$(partition_hash boot_b "$IMAGE_BYTES")
+	echo "boot_b_after_flash bytes=$IMAGE_BYTES sha256=${POST_FLASH_HASH:-UNAVAILABLE} expected=$EXPECTED_BOOT_SHA"
+	[ "$POST_FLASH_HASH" = "$EXPECTED_BOOT_SHA" ] || exit 1
+	verify_partition vendor_boot_b "$EXPECTED_VENDOR_BOOT_BYTES" "$EXPECTED_VENDOR_BOOT_SHA"
+	verify_partition dtbo_b "$EXPECTED_DTBO_BYTES" "$EXPECTED_DTBO_SHA"
+	verify_partition vbmeta_b "$EXPECTED_VBMETA_BYTES" "$EXPECTED_VBMETA_SHA"
+	verify_partition vbmeta_system_b "$EXPECTED_VBMETA_SYSTEM_BYTES" "$EXPECTED_VBMETA_SYSTEM_SHA"
+	echo 'POST_FLASH_OTHER_B_PAYLOADS_STOCK=YES'
+
+	adb reboot bootloader || exit 1
+	for i in $(seq 1 120); do
+		fastboot_present && break
+		sleep 0.5
+	done
+	fastboot_present || exit 1
 fi
-FLASHED=YES
-echo 'FLASH_BOOT_B_ONLY=YES'
-AFTER_FLASH_CURRENT=$(getvar current-slot)
-AFTER_FLASH_UNBOOTABLE=$(getvar slot-unbootable:b)
-echo "AFTER_FLASH_CURRENT_SLOT=$AFTER_FLASH_CURRENT"
-echo "AFTER_FLASH_SLOT_UNBOOTABLE_B=$AFTER_FLASH_UNBOOTABLE"
-[ "$AFTER_FLASH_CURRENT" = a ] || exit 1
-[ "$AFTER_FLASH_UNBOOTABLE" = no ] || exit 1
-
-# Return to Android A before the single B start, then verify the written prefix.
-fastboot reboot || exit 1
-wait_for_android_a || exit 1
-POST_FLASH_HASH=$(partition_hash boot_b "$IMAGE_BYTES")
-echo "boot_b_after_flash bytes=$IMAGE_BYTES sha256=${POST_FLASH_HASH:-UNAVAILABLE} expected=$EXPECTED_BOOT_SHA"
-[ "$POST_FLASH_HASH" = "$EXPECTED_BOOT_SHA" ] || exit 1
-verify_partition vendor_boot_b "$EXPECTED_VENDOR_BOOT_BYTES" "$EXPECTED_VENDOR_BOOT_SHA"
-verify_partition dtbo_b "$EXPECTED_DTBO_BYTES" "$EXPECTED_DTBO_SHA"
-verify_partition vbmeta_b "$EXPECTED_VBMETA_BYTES" "$EXPECTED_VBMETA_SHA"
-verify_partition vbmeta_system_b "$EXPECTED_VBMETA_SYSTEM_BYTES" "$EXPECTED_VBMETA_SYSTEM_SHA"
-echo 'POST_FLASH_OTHER_B_PAYLOADS_STOCK=YES'
-
-adb reboot bootloader || exit 1
-for i in $(seq 1 120); do
-	fastboot_present && break
-	sleep 0.5
-done
-fastboot_present || exit 1
 CURRENT=$(getvar current-slot)
 [ "$CURRENT" = a ] || exit 1
 RETRY_BEFORE_START=$(getvar slot-retry-count:b)
 echo "RETRY_BEFORE_START=$RETRY_BEFORE_START"
 fastboot set_active b || exit 1
+RECOVERY_REQUIRED=YES
 AFTER_SET_ACTIVE=$(getvar current-slot)
 RETRY_AFTER_SET_ACTIVE=$(getvar slot-retry-count:b)
 UNBOOTABLE_AFTER_SET_ACTIVE=$(getvar slot-unbootable:b)
