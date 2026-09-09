@@ -144,7 +144,7 @@ python3 tools/aosp/mkbootimg.py \
 	--dtb_offset 0x01f00000 \
 	--vendor_ramdisk "$STOCK_UNPACK/vendor_ramdisk" \
 	--vendor_cmdline "$STOCK_CMDLINE" \
-	--board thyme \
+	--board "" \
 	--vendor_boot "$M1_VENDOR_BOOT"
 test -s "$M1_VENDOR_BOOT" || fail "M1_VENDOR_BOOT_BUILD"
 python3 tools/aosp/unpack_bootimg.py --boot_img "$M1_VENDOR_BOOT" \
