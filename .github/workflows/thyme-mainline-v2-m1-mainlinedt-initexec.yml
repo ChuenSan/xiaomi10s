@@ -55,7 +55,7 @@ jobs:
           grep -Fq '018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634' \
             scripts/mainline-v2-m1-ci-validate.sh
           grep -Fq '378190377e8e2dcf43287d548cccfd5796ecc9cbb31b37ffd8446e181c7826bb' \
-            scripts/mainline-v2-m1-ci-validate.sh
+            docs/route-b-mainline-v2-m1-mainlinedt-initexec.md
           grep -Fq 'GITHUB_ACTIONS' scripts/mainline-v2-m1-ci-validate.sh
           grep -Fq 'NO_NEW_BOOT_IMAGE' scripts/mainline-v2-m1-ci-validate.sh
           grep -Fq 'PRIVATE' docs/route-b-mainline-v2-m1-mainlinedt-initexec.md
