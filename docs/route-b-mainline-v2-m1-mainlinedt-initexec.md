@@ -100,3 +100,25 @@ DTBO equivalence, exact M0 boot reference, and no new boot image.
 This phase performs no `adb`, Fastboot, slot change, partition write, or device
 boot. A passing private CI run only prepares the audited M1 artifacts. M1 true
 device testing remains a separate approval gate.
+
+## Private CI result
+
+```text
+PRIVATE_PROVISIONING_USED=YES
+PRIVATE_STOCK_CONTEXT_PROVISIONED=YES
+PRIVATE_CI_RUN_ID=34338768052
+PRIVATE_CI_RESULT=READY_FOR_MAINLINE_V2_M1_PRIVATE
+PUBLIC_M1_SOURCE_COMMIT=ff70e7dc807399e68fbebcecab9e6eb23c911d65
+```
+
+Outputs:
+
+```text
+mainline-thyme.dtb       a91a512d4d8699dcae73bff3e0c5a758972e82eaa0b34e87ae1eb1528b9ede40
+mainline-thyme-abl.dtb   cefafcca5fa926998cd7b9aa320ce28fc52aad156c942e0adc0d9152f81ae9b0
+vendor_boot              29ba377ecae631273103f944d9833070c25e7c4dd2f0b7fce439cc2c80d9d1e5
+dtbo                     316c12d9bbff26072f0924a9bd4b9d524c0dd2869b73e9743a0fb441af15d9c1
+```
+
+The private artifact was independently downloaded and re-hashed. No flashable
+artifact was uploaded to the public repository.
