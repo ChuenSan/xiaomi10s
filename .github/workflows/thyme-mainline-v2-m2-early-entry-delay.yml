@@ -4,6 +4,15 @@ name: thyme-mainline-v2-m2-early-entry-delay
 # initramfs is downloaded from the immutable M0 Actions run; no OEM artifact is
 # produced or consumed.
 on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m2-early-entry-delay.yml'
+      - 'scripts/mainline-v2-m2-ci-validate.sh'
+      - 'patches/experiments/mainline-v2-m2-early-delay.patch'
+      - 'configs/thyme-route-b.config'
+      - 'tools/aosp/**'
+      - 'initramfs/**'
   workflow_dispatch:
 
 concurrency:
