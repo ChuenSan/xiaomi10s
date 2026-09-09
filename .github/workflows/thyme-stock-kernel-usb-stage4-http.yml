@@ -6,6 +6,12 @@ name: thyme-stock-kernel-usb-stage4-http
 on:
   push:
     branches: [route-b-v3]
+    paths:
+      - initramfs/**
+      - tools/aosp/**
+      - scripts/stock-kernel-usb-stage4-http-ci-validate.sh
+      - scripts/stock-kernel-usb-stage4-http-source-gates.py
+      - scripts/validate-stage4-http-response.py
   workflow_dispatch:
     inputs:
       stock_boot_url:

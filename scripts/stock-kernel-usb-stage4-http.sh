@@ -20,6 +20,7 @@ EXPECTED_VENDOR_BOOT_BYTES=100663296
 EXPECTED_DTBO_BYTES=33554432
 EXPECTED_VBMETA_BYTES=8192
 EXPECTED_VBMETA_SYSTEM_BYTES=4096
+TCP_PARSER="$REPO_DIR/scripts/stock-kernel-usb-stage4-http-tcp-parser.awk"
 
 cd "$REPO_DIR" || exit 1
 mkdir -p work
@@ -76,6 +77,11 @@ route_interface() {
 
 route_field() {
 	awk -F ': *' -v key="$1" '$1 ~ "^[[:space:]]*" key "$" { print $2; exit }'
+}
+
+parse_tcp_capture() {
+	awk -v host="$HOST_IP" -v device="$DEVICE_IP" -v port="$HTTP_PORT" \
+		-f "$TCP_PARSER" "$1"
 }
 
 descriptor_match() {
@@ -189,6 +195,7 @@ MANIFEST="$ARTIFACT_DIR/SHA256SUMS"
 [ -s "$IMAGE" ] || fail_preflight "missing $IMAGE"
 [ -s "$INIT" ] || fail_preflight "missing $INIT"
 [ -s "$MANIFEST" ] || fail_preflight "missing $MANIFEST"
+[ -s "$TCP_PARSER" ] || fail_preflight "missing $TCP_PARSER"
 ( cd "$ARTIFACT_DIR" && sha256sum -c SHA256SUMS ) || fail_preflight 'artifact SHA256SUMS mismatch'
 IMAGE_BYTES=$(wc -c <"$IMAGE" | tr -d ' ')
 EXPECTED_BOOT_SHA=$(awk '$2 == "stock-kernel-usb-stage4-http-boot-v3.img" { print $1; exit }' "$MANIFEST")
@@ -382,6 +389,8 @@ TCP_SYN_CAPTURED=NO
 TCP_SYNACK_CAPTURED=NO
 TCP_ACK_CAPTURED=NO
 TCP_HTTP_DATA_CAPTURED=NO
+HTTP_GET_CAPTURED=NO
+HTTP_200_CAPTURED=NO
 ARP_REQUEST_CAPTURED=NO
 ARP_REPLY_CAPTURED=NO
 ICMP_REQUEST_CAPTURED=NO
@@ -582,10 +591,13 @@ PY
 		if grep -Eq "ARP.*Reply.*$DEVICE_RE" "$CAPTURE_LOG"; then ARP_REPLY_CAPTURED=YES; fi
 		if grep -Eq "$HOST_RE.*ICMP echo request" "$CAPTURE_LOG"; then ICMP_REQUEST_CAPTURED=YES; fi
 		if grep -Eq "$DEVICE_RE.*ICMP echo reply" "$CAPTURE_LOG"; then ICMP_REPLY_CAPTURED=YES; fi
-		if grep -Eq "$HOST_RE\.[0-9]+ > $DEVICE_RE\.8080: Flags \[S\]" "$CAPTURE_LOG"; then TCP_SYN_CAPTURED=YES; fi
-		if grep -Eq "$DEVICE_RE\.8080 > $HOST_RE\.[0-9]+: Flags \[S\.\]" "$CAPTURE_LOG"; then TCP_SYNACK_CAPTURED=YES; fi
+		TCP_PARSE_OUTPUT=$(parse_tcp_capture "$CAPTURE_LOG" 2>/dev/null || true)
+		if printf '%s\n' "$TCP_PARSE_OUTPUT" | grep -Fqx 'SYN'; then TCP_SYN_CAPTURED=YES; fi
+		if printf '%s\n' "$TCP_PARSE_OUTPUT" | grep -Fqx 'SYNACK'; then TCP_SYNACK_CAPTURED=YES; fi
 		if grep -Eq "$HOST_RE\.[0-9]+ > $DEVICE_RE\.8080: Flags \[\.\]" "$CAPTURE_LOG"; then TCP_ACK_CAPTURED=YES; fi
-		if grep -Eq "$HOST_RE\.[0-9]+ > $DEVICE_RE\.8080:.*length [1-9][0-9]*|$DEVICE_RE\.8080 > $HOST_RE\.[0-9]+:.*length [1-9][0-9]*" "$CAPTURE_LOG"; then TCP_HTTP_DATA_CAPTURED=YES; fi
+		if printf '%s\n' "$TCP_PARSE_OUTPUT" | grep -Fqx 'HTTP_DATA'; then TCP_HTTP_DATA_CAPTURED=YES; fi
+		if printf '%s\n' "$TCP_PARSE_OUTPUT" | grep -Fqx 'HTTP_GET'; then HTTP_GET_CAPTURED=YES; fi
+		if printf '%s\n' "$TCP_PARSE_OUTPUT" | grep -Fqx 'HTTP_200'; then HTTP_200_CAPTURED=YES; fi
 	fi
 
 	if [ -n "$NEW_IF" ] && [ -z "$T_EN_GONE" ] && ! ifconfig "$NEW_IF" >/dev/null 2>&1; then
@@ -676,6 +688,8 @@ echo "TCP_SYN_CAPTURED=$TCP_SYN_CAPTURED"
 echo "TCP_SYNACK_CAPTURED=$TCP_SYNACK_CAPTURED"
 echo "TCP_ACK_CAPTURED=$TCP_ACK_CAPTURED"
 echo "TCP_HTTP_DATA_CAPTURED=$TCP_HTTP_DATA_CAPTURED"
+echo "HTTP_GET_CAPTURED=$HTTP_GET_CAPTURED"
+echo "HTTP_200_CAPTURED=$HTTP_200_CAPTURED"
 echo "DEVICE_KMSG_AVAILABLE=$DEVICE_KMSG_AVAILABLE"
 echo "DEVICE_LISTEN_OK=$DEVICE_LISTEN_OK"
 echo "RECOVERY_SLOT=${RECOVERY_SLOT:-NONE}"
@@ -704,6 +718,7 @@ elif [ "$USB_IDENTITY_MATCHED" = YES ] && [ "$NEW_IF_FOUND" = YES ] && \
 	[ "$overall_http_identity" = YES ] && [ "$TCPDUMP_STARTED" = YES ] && \
 	[ "$TCP_SYN_CAPTURED" = YES ] && [ "$TCP_SYNACK_CAPTURED" = YES ] && \
 	[ "$TCP_ACK_CAPTURED" = YES ] && [ "$TCP_HTTP_DATA_CAPTURED" = YES ] && \
+	[ "$HTTP_GET_CAPTURED" = YES ] && [ "$HTTP_200_CAPTURED" = YES ] && \
 	[ "$RECOVERY_SLOT" = _a ] && [ "$RECOVERY_BOOT_COMPLETED" = 1 ]; then
 	FINAL_GATE=USB_STAGE4_HTTP_LIVENESS_PASS
 elif [ "$CURL_CONNECTED" = YES ] && [ "$HTTP_STATUS" = YES ] && [ "$overall_http_identity" = YES ]; then

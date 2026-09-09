@@ -1,0 +1,29 @@
+name: thyme-stock-kernel-usb-stage4-http-parser
+
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - scripts/stock-kernel-usb-stage4-http.sh
+      - scripts/stock-kernel-usb-stage4-http-tcp-parser.awk
+      - scripts/stock-kernel-usb-stage4-http-parser-regression.sh
+      - .github/workflows/thyme-stock-kernel-usb-stage4-http-parser.yml
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-stock-kernel-usb-stage4-http-parser-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  parser:
+    name: Stage4 tcpdump parser regression
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Run semantic TCP capture parser gates
+        run: bash scripts/stock-kernel-usb-stage4-http-parser-regression.sh
