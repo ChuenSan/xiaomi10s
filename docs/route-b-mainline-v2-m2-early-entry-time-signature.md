@@ -1,8 +1,7 @@
 # Route B Mainline V2 M2 — early-entry time signature
 
-Status: implementation prepared; GitHub Actions and the one-shot device gate are
-pending. M2 answers only whether ABL executed the Mainline ARM64 kernel through
-one very-early checkpoint.
+Status: CI passed; the one-shot device gate is pending. M2 answers only whether
+ABL executed the Mainline ARM64 kernel through one very-early checkpoint.
 
 ## Frozen experiment
 
@@ -126,6 +125,23 @@ reverse-unpack-report/
 ```
 
 No `vendor_boot`, `dtbo`, `vbmeta`, or firmware artifact is emitted.
+
+### CI result
+
+```text
+CI run:       34360812930
+CI commit:    8958c21645f9e0ebf9f135784b7e785ae49aff77
+CI gate:      READY_FOR_MAINLINE_V2_M2_EARLY_DELAY
+artifact:     thyme-mainline-v2-m2-early-delay-8958c21645f9e0ebf9f135784b7e785ae49aff77
+Image SHA256: 4b37a48819730d3fae43f8eeff9d2a6c8fbaa9f28432819d52cce8407f6826b4
+boot SHA256:  70adf66a9769d0fc430154a71fc3335e9e4523c7beaa301bb888bc68c4be827f
+patch SHA256: 816161bec80d92ac1fb4836d99bb2fafaa23ffa188a5008d3b466ad26306d118
+M2 ramdisk:   exact M0 SHA256 b7d3949461a57b9855850cfe31ef423ce34216aa9ae164600ffbeed97d5a47de
+```
+
+The CI disassembly shows `mrs cntfrq_el0`, `mrs cntpct_el0`, `madd #20`,
+`yield`, and the branch to `__cpu_setup` after the delay block. No device
+conclusion is implied until the single Slot B run is completed.
 
 ## Device gate
 
