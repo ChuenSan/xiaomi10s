@@ -149,7 +149,8 @@ from pathlib import Path
 import sys
 
 entries = [line.strip() for line in Path(sys.argv[1]).read_text().splitlines() if line.strip()]
-if set(entries) != {".", "./init"} or len(entries) != 2:
+normalized = [entry[2:] if entry.startswith("./") else entry for entry in entries]
+if set(normalized) != {".", "init"} or len(normalized) != 2:
     raise SystemExit(f"unexpected M0 ramdisk entries: {entries!r}")
 PY
 ROOTFS="$REP/initramfs-root"
