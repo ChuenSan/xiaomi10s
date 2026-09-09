@@ -47,6 +47,7 @@ sha() { sha256sum "$1" | awk '{print $1}'; }
 BASE="$(git -C "$LINUX_DIR" rev-parse HEAD)"
 [ "$BASE" = "$EXPECTED_LINUX_BASE_COMMIT" ] || fail "MAINLINE_VERSION_PINNED=$BASE"
 pass "MAINLINE_VERSION_PINNED=$BASE"
+pass "MAINLINE_VERSION_PINNED=PASS"
 
 CHANGED="$(git -C "$LINUX_DIR" diff --name-only)"
 UNTRACKED="$(git -C "$LINUX_DIR" ls-files --others --exclude-standard)"
