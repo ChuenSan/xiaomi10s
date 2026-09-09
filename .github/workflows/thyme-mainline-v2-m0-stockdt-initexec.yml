@@ -3,8 +3,6 @@ name: thyme-mainline-v2-m0-stockdt-initexec
 # Mainline V2 M0: replace only boot_b's kernel. vendor_boot_b and dtbo_b
 # remain stock on the device and are deliberately not emitted as artifacts.
 on:
-  push:
-    branches: [route-b-v3]
   workflow_dispatch:
 
 concurrency:

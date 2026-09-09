@@ -1,6 +1,6 @@
 # Route B Mainline V2 M0 — stock-DT initexec
 
-Status: implementation prepared; GitHub Actions and the single authorized device run are pending.
+Status: complete; CI passed and the single authorized device run ended without a timed Fastboot return.
 
 This is an isolated handoff experiment. It changes only the kernel payload in `boot_b`:
 
@@ -12,7 +12,7 @@ Mainline Linux 6.6 Image
 ```
 
 It does not test USB, NCM, IP, HTTP, Mainline DTS peripherals, or a Mainline DTB.
-No device result is claimed until the CI artifact and the one-shot Slot B observation are complete.
+The CI artifact and one-shot Slot B result are recorded below.
 
 ## Control baseline
 
@@ -138,7 +138,7 @@ vbmeta_b = 37dfac44f336157d69b616e3567cdccff90273b36cd862a86f57abe1930f9d9c (fla
 vbmeta_system_b = 3217455014b5bb0cc05b638489589738863aeb6cc6b9423d56989b21fa8b8355
 ```
 
-## Device gate — not yet run
+## Device gate — completed
 
 Read-only Android A baseline captured before any M0 write:
 
@@ -154,8 +154,8 @@ vbmeta_b stock flags=2
 vbmeta_system_b stock=YES
 ```
 
-The Fastboot preflight was not entered, so no reboot or slot metadata mutation was performed.
-Before any write, return to Android A and independently verify:
+The pre-write Fastboot checks passed. No partition other than the authorized `boot_b` was
+written. The required Android A checks were:
 
 ```text
 ro.boot.slot_suffix=_a
@@ -188,50 +188,54 @@ fastboot reboot
 Observe for at least 60 seconds. USB absence, missing NCM, missing IP, and missing HTTP are
 not failure conditions in M0.
 
-## Device result template
+## Device result
 
 ```text
-CI run:
-artifact:
-commit:
-Mainline commit:
-Mainline kernel version:
-Image SHA256:
-boot SHA256:
-init-proof SHA256:
-initramfs SHA256:
-config SHA256:
+CI run: 34322563307
+artifact: thyme-mainline-v2-m0-stockdt-initexec-23a2d6c53dbfb7ed2db7e9fd1aa79d3ae6d3bd01
+commit: 23a2d6c
+Mainline commit: 8b73de7da85fde281a385e0b26eda9bffd3ca477
+Mainline kernel version: 6.6.156
+Image SHA256: 22d0ee238bb727bca29f9abb241786c94d333928001de5f051aa017da77ba2b6
+boot SHA256: 378190377e8e2dcf43287d548cccfd5796ecc9cbb31b37ffd8446e181c7826bb
+init-proof SHA256: aab8211a07d26f7a05937618d851891fe0eb1398c6567560927cdd67a5ae02e8
+initramfs SHA256: b7d3949461a57b9855850cfe31ef423ce34216aa9ae164600ffbeed97d5a47de
+config SHA256: 4ae37ddc7831151b35bb937e2fbc8bf101cac54a5c09b0f6cba3a673b8a3da49
 
-vendor_boot_b stock: PENDING
- dtbo_b stock: PENDING
-vbmeta_b stock: PENDING
-vbmeta_system_b stock: PENDING
+vendor_boot_b stock: YES
+dtbo_b stock: YES
+vbmeta_b stock: YES, flags=2
+vbmeta_system_b stock: YES
 
-retry before flash: PENDING
-after flash: PENDING
-before set_active: PENDING
-after set_active: PENDING
-after boot: PENDING
-unbootable after: PENDING
+retry before flash: 6
+after flash: 7
+before set_active: 7
+after set_active: 7
+after boot: 0
+unbootable after: YES
 
-Fastboot disappear: PENDING
-Fastboot automatic reappear: PENDING
-elapsed: PENDING
-manual key required: PENDING
+Fastboot disappear: +0.433s after fastboot reboot finished
+Fastboot automatic reappear: NOT_OBSERVED within 90s
+elapsed: automatic Fastboot return not measured
+manual key required: NO; Android A later returned automatically
 
-Pstore:
-new oops: PENDING
-kernel version: PENDING
-Run /init: PENDING
-restart command: PENDING
-panic: PENDING
-PSTORE_MAINLINE_EVIDENCE: PENDING
+Pstore / dump evidence:
+oops before: 9bf22d04d5c046ebd51743ef058a544f39bd27b9960abe56310e6d7984a016b0
+oops after: 3d459efa5c9a6ef78ae435d48824dd9f54417547e03387830877d5b2d2713feb
+minidump after: 4f00e3599293cb23b4dc9ed5bd97a7740f2c39dc573f99c411bbde68598fb8ef
+rawdump after: 080acf35a507ac9849cfcba47dc2ad83e01b75663a516279c8b9d243b719643e
+logdump after: 080acf35a507ac9849cfcba47dc2ad83e01b75663a516279c8b9d243b719643e
+kernel version: no Mainline 6.6 marker available
+Run /init: NOT_OBSERVED for M0
+restart command: NOT_OBSERVED for M0
+panic: NOT_OBSERVED for M0
+PSTORE_MAINLINE_EVIDENCE: NOT_AVAILABLE
 
 MAINLINE_KERNEL_HANDOFF: UNKNOWN
 MAINLINE_INITRAMFS_UNPACK: UNKNOWN
-MAINLINE_INIT_EXECUTION: UNKNOWN
-Android A restored: PENDING
-Final Gate: PENDING
+MAINLINE_INIT_EXECUTION: NOT_CONFIRMED
+Android A restored: YES
+Final Gate: MAINLINE_V2_M0_NO_TIMED_RETURN
 ```
 
 Allowed final gates:
