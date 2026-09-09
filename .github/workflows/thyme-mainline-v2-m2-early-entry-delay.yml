@@ -169,8 +169,9 @@ jobs:
         run: |
           set -euo pipefail
           IMAGE="out/arch/arm64/boot/Image"
+          VMLINUX="out/vmlinux"
           test -s "$IMAGE"
-          test -s vmlinux
+          test -s "$VMLINUX"
           kernel_version=$(make $MAKEARGS -s kernelversion)
           case "$kernel_version" in
             6.6.*) ;;
@@ -181,7 +182,7 @@ jobs:
           echo "IMAGE_SHA256=$image_sha" | tee "$GITHUB_WORKSPACE/image-sha256.txt"
           echo "KERNEL_VERSION=$kernel_version" >> "$GITHUB_ENV"
           file "$IMAGE"
-          file vmlinux
+          file "$VMLINUX"
           echo "Image bytes=$(wc -c < "$IMAGE")"
 
       - name: Stage M2 release inputs
@@ -204,7 +205,7 @@ jobs:
             "$PWD/$RELEASE_DIR/Image" \
             "$PWD/m0-artifact/initramfs.cpio.gz" \
             "$PWD/m0-artifact/init-proof" \
-            "$PWD/$LINUX_DIR/vmlinux" \
+            "$PWD/$LINUX_DIR/out/vmlinux" \
             "$PWD/m0-artifact/Image"
 
       - name: Generate SHA256SUMS
