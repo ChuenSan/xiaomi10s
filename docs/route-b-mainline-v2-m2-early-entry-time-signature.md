@@ -85,7 +85,7 @@ checks these immutable inputs before packaging:
 ```text
 M0 Image:              22d0ee238bb727bca29f9abb241786c94d333928001de5f051aa017da77ba2b6
 M0 /init:              aab8211a07d26f7a05937618d851891fe0eb1398c6567560927cdd67a5ae02e8
-M0 initramfs:          b7d3949461a57b985585c0fe31ef423ce34216aa9ae164600ffbeed97d5a47de
+M0 initramfs:          b7d3949461a57b9855850cfe31ef423ce34216aa9ae164600ffbeed97d5a47de
 ```
 
 All checkout, patch application, kernel compilation, disassembly, image
