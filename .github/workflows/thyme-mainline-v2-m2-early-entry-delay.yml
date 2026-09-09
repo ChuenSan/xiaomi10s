@@ -162,7 +162,7 @@ jobs:
         working-directory: ${{ env.LINUX_DIR }}
         run: |
           set -o pipefail
-          make $MAKEARGS -j"$(nproc)" Image 2>&1 | tee build.log
+          make $MAKEARGS -j"$(nproc)" Image 2>&1 | tee "$RUNNER_TEMP/thyme-mainline-v2-m2-build.log"
 
       - name: Record built kernel identity
         working-directory: ${{ env.LINUX_DIR }}
