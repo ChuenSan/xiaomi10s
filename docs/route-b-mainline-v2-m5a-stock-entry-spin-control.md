@@ -134,7 +134,9 @@ Otherwise:
 
 The patched word must be `0x14000000`. Magic, `text_offset`, `image_size`,
 flags, and PE offset stay unchanged. No timer, MMIO, WFI/WFE, BRK/UDF, PSCI,
-SMC, or HVC is introduced.
+SMC, or HVC is introduced. The patch occupies one 32-bit instruction. The
+reported `KERNEL_DIFF_BYTE_COUNT` is the number of bytes that actually differ
+inside that word; unchanged immediate bytes are not a failure.
 
 ## Public / private split
 

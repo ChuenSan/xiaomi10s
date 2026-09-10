@@ -260,11 +260,12 @@ def diff_offsets(original: bytes, patched: bytes) -> list[int]:
 
 def assert_minimal_kernel_patch(original: bytes, patched: bytes, plan: PatchPlan) -> list[int]:
     diffs = diff_offsets(original, patched)
-    expected = list(range(plan.offset, plan.offset + 4))
-    if diffs != expected:
+    allowed = list(range(plan.offset, plan.offset + 4))
+    extra = [off for off in diffs if off not in allowed]
+    if extra or not diffs:
         raise TransformError(
             "M5A_BINARY_TRANSFORM_VALIDATION_FAILED",
-            f"kernel delta {diffs} != expected {expected}",
+            f"kernel delta {diffs} is not a subset of instruction {allowed}",
         )
     if original[METADATA_SLICE] != patched[METADATA_SLICE]:
         raise TransformError(
@@ -356,6 +357,7 @@ def analyze_and_patch(original: bytes) -> tuple[bytes, PatchPlan, ImageHeader, d
         "ORIGINAL_TARGET_CLASS": classify_word(target_word),
         "ORIGINAL_TARGET_DECODE": decode_a64(target_word, plan.original_target),
         "PATCH_REASON": plan.reason,
+        "KERNEL_PATCH_WORD_SIZE": "4",
         "KERNEL_DIFF_BYTE_COUNT": str(len(diffs)),
         "DIFF_OFFSETS": ",".join(str(v) for v in diffs),
         "KERNEL_ONLY_EXPECTED_BYTES_CHANGED": "PASS",

@@ -330,15 +330,17 @@ bb = Path(src_boot).read_bytes()
 ob = Path(patched_boot).read_bytes()
 kdiff = diffs(kb, pb)
 bdiff = diffs(bb, ob)
-expected = list(range(patch_off, patch_off + 4))
-expected_boot = [4096 + off for off in expected]
-if kdiff != expected:
-    raise SystemExit(f"kernel diffs {kdiff} != {expected}")
+allowed = list(range(patch_off, patch_off + 4))
+allowed_boot = [4096 + off for off in allowed]
+if not kdiff or any(off not in allowed for off in kdiff):
+    raise SystemExit(f"kernel diffs {kdiff} outside instruction {allowed}")
+expected_boot = [4096 + off for off in kdiff]
 if bdiff != expected_boot:
     raise SystemExit(
-        f"boot diffs {bdiff} != kernel overlay at header page + {expected}"
+        f"boot diffs {bdiff} != kernel overlay {expected_boot} (word window {allowed_boot})"
     )
 lines = [
+    f"KERNEL_PATCH_WORD_SIZE=4",
     f"KERNEL_DIFF_BYTE_COUNT={len(kdiff)}",
     f"KERNEL_DIFF_OFFSETS={','.join(str(v) for v in kdiff)}",
     f"BOOT_DIFF_BYTE_COUNT={len(bdiff)}",
@@ -348,9 +350,7 @@ lines = [
 ]
 Path(report).write_text("\n".join(lines) + "\n")
 print("\n".join(lines))
-if len(kdiff) != 4 or len(bdiff) != 4:
-    raise SystemExit("minimal 4-byte delta not proven")
-print("BOOT_DIFF_BYTE_COUNT_MINIMAL=PASS")
+print("BOOT_DIFF_MINIMAL_WORD_OVERLAY=PASS")
 PY
 cat "$DIFFRPT" >>"$RPT"
 pass "BOOT_DIFF_MINIMAL=PASS"
