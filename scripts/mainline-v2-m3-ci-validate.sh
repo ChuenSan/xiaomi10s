@@ -229,7 +229,7 @@ if "either in EL2 (RECOMMENDED" not in booting or "or in EL1." not in booting:
     raise SystemExit("boot protocol EL2/EL1 entry requirement missing")
 if "__init_el2_timers" not in el2 or "msr\tcnthctl_el2" not in el2:
     raise SystemExit("EL2 timer initialization source missing")
-if "isb\n mrs %0, cntpct_el0" not in arch_timer:
+if "isb\\n mrs %0, cntpct_el0" not in arch_timer:
     raise SystemExit("existing ordered CNTPCT_EL0 accessor missing")
 
 print("M2_CHECKPOINT_FILE=arch/arm64/kernel/head.S")
