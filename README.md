@@ -89,6 +89,17 @@ M0 P15 initramfs from the pinned M0 Actions run. No local build, USB gadget
 probe, OEM artifact, or Slot A write is part of this phase. See
 `docs/route-b-mainline-v2-m2-early-entry-time-signature.md`.
 
+## Mainline V2 M3 earliest-entry short time signature (Slot B)
+
+`.github/workflows/thyme-mainline-v2-m3-earliest-entry-short-delay.yml` applies
+`patches/experiments/mainline-v2-m3-earliest-entry-short-delay.patch`, injects a
+2-second architected-counter delay immediately after `preserve_boot_args` and
+before `create_idmap`, and emits only the audited `boot_b` v3 image plus
+reports. It reuses the exact M0/M1/M2 P15 ramdisk and keeps the M1 DT context
+unchanged. No local build, USB gadget probe, OEM artifact, or Slot A write is
+part of this phase. See
+`docs/route-b-mainline-v2-m3-earliest-entry-short-time-signature.md`.
+
 ## Route B (stock-shaped boot v3)
 
 Isolated branch `route-b-v3`, workflow `.github/workflows/thyme-route-b-v3.yml`.

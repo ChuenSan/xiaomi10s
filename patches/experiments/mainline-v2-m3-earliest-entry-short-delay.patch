@@ -1,0 +1,27 @@
+diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
+--- a/arch/arm64/kernel/head.S
++++ b/arch/arm64/kernel/head.S
+@@ -83,6 +83,25 @@ SYM_CODE_START(primary_entry)
+ 	bl	record_mmu_state
+ 	bl	preserve_boot_args
++
++.Lthyme_m3_earliest_delay_start:
++	/* THYME_M3: safe boot arguments, before create_idmap/init_kernel_el. */
++	isb
++	mrs	x0, cntfrq_el0
++	isb
++	mrs	x1, cntpct_el0
++	mov	x3, #2
++	madd	x2, x0, x3, x1
++.Lthyme_m3_earliest_delay_loop:
++	isb
++	mrs	x0, cntpct_el0
++	cmp	x0, x2
++	b.hs	.Lthyme_m3_earliest_delay_end
++	yield
++	b	.Lthyme_m3_earliest_delay_loop
++.Lthyme_m3_earliest_delay_end:
++
+ 	bl	create_idmap
+ 
+ 	/*
