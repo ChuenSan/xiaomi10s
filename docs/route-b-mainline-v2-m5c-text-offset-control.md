@@ -1,6 +1,8 @@
 # Route B Mainline V2 M5C — text_offset 0x80000 control
 
-Status: CI implementation pending. No device operation is authorized.
+Status: CI artifact ready. Final gate:
+`READY_FOR_MAINLINE_V2_M5C_TEXT_OFFSET_CONTROL`.
+No device operation is authorized or was performed.
 
 M5C isolates one ARM64 Image header field. It reuses the exact M5B Image and
 boot v3 artifact, changes `text_offset` from `0` to `0x80000`, and changes no
@@ -169,8 +171,82 @@ PRIMARY_ENTRY_SPIN_POSITION_INDEPENDENT=PASS
 READY_FOR_MAINLINE_V2_M5C_TEXT_OFFSET_CONTROL
 ```
 
-Until every gate passes, only a failure gate is valid. No runtime result may be
-recorded during this CI stage.
+## Completed CI result
+
+The public source audit and private exact-binary workflow both passed:
+
+```text
+public source commit: 901dd1cf7c8fdcef6196b8399a379e6403811068
+public source-audit run: 34483036008
+private workflow commit: ee8d447d280efa1edd5d04244505d1c0b849b347
+private CI run: 34483231020
+artifact: thyme-mainline-v2-m5c-text-offset-ee8d447d280efa1edd5d04244505d1c0b849b347
+CI result: success
+```
+
+Both source identities were exact before parsing or transformation. The exact
+Stock binary confirmed the assumption rather than relying on prior notes:
+
+```text
+Stock:
+  code0=0x14a60000
+  code1=0x00000000
+  text_offset=0x80000
+  image_size=0x3d0b000
+  flags=0xa
+  res2=0x0 res3=0x0 res4=0x0
+  magic=41524d64 (ARM\x64)
+  PE offset=0x0
+
+M5B:
+  code0=0x146c7028
+  code1=0x146c7027
+  text_offset=0x0
+  image_size=0x2220000
+  flags=0xa
+  res2=0x0 res3=0x0 res4=0x0
+  magic=41524d64 (ARM\x64)
+  PE offset=0x40
+
+M5C:
+  code0=0x146c7028
+  code1=0x146c7027
+  text_offset=0x80000
+  image_size=0x2220000
+  flags=0xa
+  res2=0x0 res3=0x0 res4=0x0
+  magic=41524d64 (ARM\x64)
+  PE offset=0x40
+```
+
+The actual calculated delta matched the one-byte prediction:
+
+```text
+IMAGE_DIFF_BYTE_COUNT=1
+IMAGE_DIFF_OFFSETS=0x0a
+IMAGE_DIFF_OUTSIDE_TEXT_OFFSET=0
+BOOT_KERNEL_PAYLOAD_OFFSET=0x1000
+BOOT_DIFF_BYTE_COUNT=1
+BOOT_DIFF_OFFSETS=0x100a
+BOOT_DIFF_OUTSIDE_TEXT_OFFSET=0
+```
+
+All non-target header fields, the boot metadata, kernel size, ramdisk, and PE
+region remained exact. Reverse unpacking passed. The direct branch still targets
+`primary_entry` at Image offset `0x1b1c0a0`; its first instruction remains
+`0x14000000` (`b .`).
+
+```text
+PE_REGION_SHA_BEFORE=01a36888696f7d34c98d6c91c74dab3ea6a1fa5acb32730e149cdd73b0af2afd
+PE_REGION_SHA_AFTER=01a36888696f7d34c98d6c91c74dab3ea6a1fa5acb32730e149cdd73b0af2afd
+RAMDISK_SHA256=b7d3949461a57b9855850cfe31ef423ce34216aa9ae164600ffbeed97d5a47de
+M5C_IMAGE_SHA256=e0f1fa08555a9134f44af62d9f96258fa9903ec49052aa906aac6cb8a1365e35
+M5C_BOOT_SHA256=66a001eb8065f64e879be5a9cef199fae2c8e7a4587f583d2d4581f8429083ec
+FINAL_GATE=READY_FOR_MAINLINE_V2_M5C_TEXT_OFFSET_CONTROL
+DEVICE_OPERATION=NO
+```
+
+No runtime conclusion follows from these static gates.
 
 ## Future true-device criteria — not authorized
 
