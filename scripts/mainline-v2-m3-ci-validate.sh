@@ -182,7 +182,8 @@ if not preserve < m3_start < m3_end < create < init < cpu:
 if not m3_start < m2_start:
     raise SystemExit("M3 checkpoint is not earlier than M2 checkpoint")
 for pattern in (r"\.Lthyme_m2_early_delay_start:", r"\.Lthyme_m2_early_delay_end:",
-                r"bl\s+init_kernel_el", r"mov\s+x20,\s*x0", r"bl\s+__cpu_setup"):
+                r"bl\s+init_kernel_el", r"mov\s+x20,\s*x0",
+                r"__cpu_setup follows below"):
     if not re.search(pattern, m2_patch):
         raise SystemExit(f"historical M2 checkpoint evidence missing: {pattern}")
 
