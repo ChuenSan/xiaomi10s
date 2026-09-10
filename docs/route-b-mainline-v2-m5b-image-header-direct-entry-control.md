@@ -1,6 +1,7 @@
 # Route B Mainline V2 M5B — Image header direct-entry control
 
-Status: CI implementation pending. Device operation is forbidden in this stage.
+Status: CI artifact ready. Final gate: `READY_FOR_MAINLINE_V2_M5B_DIRECT_ENTRY_CONTROL`.
+Device operation remains forbidden in this stage.
 
 M5B is a binary-level handoff control, not kernel development. It asks whether the
 Mainline Image `code0` MZ/EFI-style entry semantics, rather than the unchanged
@@ -211,19 +212,50 @@ NEXT=MAINLINE_V2_M5C_HEADER_FIELD_ISOLATION
 M5C is not implemented or executed in this stage. `primary_entry` must remain
 unchanged.
 
-## CI result record
-
-Populate only from the successful GitHub Actions artifact:
+## Completed CI result
 
 ```text
-CI_COMMIT=PENDING
-CI_RUN=PENDING
-ARTIFACT=PENDING
-M4B_CODE0_WORD=PENDING
-M4B_CODE1_WORD=PENDING
-PRIMARY_ENTRY_IMAGE_OFFSET=PENDING
-M5B_CODE0_WORD=PENDING
-M5B_IMAGE_SHA256=PENDING
-M5B_BOOT_SHA256=PENDING
-FINAL_GATE=PENDING
+CI_COMMIT=c71fd8c19c127725f5cfbe4b007c81fcf9312cc3
+CI_RUN=34478750866
+ARTIFACT=thyme-mainline-v2-m5b-direct-entry-c71fd8c19c127725f5cfbe4b007c81fcf9312cc3
+CI_RESULT=success
+
+M4B_CODE0_BYTES=4d5a40fa
+M4B_CODE0_WORD=0xfa405a4d
+M4B_CODE0_DISASM=ccmp x18, #0, #0xd, pl
+M4B_EFI_SIGNATURE_NOP_CONFIRMED=YES
+M4B_CODE1_WORD=0x146c7027
+M4B_CODE1_DISASM=b 0x1b1c0a0
+PRIMARY_ENTRY_IMAGE_OFFSET=0x1b1c0a0
+PRIMARY_ENTRY_INSTRUCTION=b .
+PRIMARY_ENTRY_SPIN_PRESERVED=PASS
+
+TEXT_OFFSET=0x0
+IMAGE_SIZE=0x2220000
+FLAGS=0xa
+MAGIC=ARMd (ARM\\x64 bytes)
+PE_HEADER_OFFSET=0x40
+MZ_SIGNATURE_PRESENT_BEFORE=YES
+
+M5B_CODE0_WORD=0x146c7028
+M5B_CODE0_DISASM=b 0x1b1c0a0
+MZ_SIGNATURE_PRESENT_AFTER=NO
+
+IMAGE_DIFF_BYTE_COUNT=4
+IMAGE_DIFF_OFFSETS=0x0,0x1,0x2,0x3
+IMAGE_DIFF_OUTSIDE_CODE0=0
+BOOT_KERNEL_CODE0_OFFSET=0x1000
+BOOT_DIFF_BYTE_COUNT=4
+BOOT_DIFF_OFFSETS=0x1000,0x1001,0x1002,0x1003
+BOOT_DIFF_OUTSIDE_KERNEL_CODE0=0
+
+RAMDISK_SHA256=b7d3949461a57b9855850cfe31ef423ce34216aa9ae164600ffbeed97d5a47de
+M5B_IMAGE_SHA256=502529d643d0907db3cb429e04de60617f0aba5bf6753d693e07f42a6db1bb1f
+M5B_BOOT_SHA256=2125ebab7eafc8fdc2c2901138ba41bfe0a61f97d9d898094b9020116937f681
+FINAL_GATE=READY_FOR_MAINLINE_V2_M5B_DIRECT_ENTRY_CONTROL
+DEVICE_OPERATION=NO
 ```
+
+All required ARM64 header, boot metadata, ramdisk, reverse-unpack, minimal-diff,
+and artifact-scope gates passed in GitHub Actions. The artifact is ready for a
+future separately approved true-device stage; it has not been used on the device.
