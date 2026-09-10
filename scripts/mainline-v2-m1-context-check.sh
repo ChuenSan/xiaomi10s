@@ -125,13 +125,21 @@ validate_sha_output() {
 }
 
 parse_decimal() {
-	local raw="$1"
-	printf '%s\n' "$raw" | validate_decimal_output
+	if [ "$#" -eq 0 ]; then
+		validate_decimal_output
+	else
+		local raw="$1"
+		printf '%s\n' "$raw" | validate_decimal_output
+	fi
 }
 
 parse_sha() {
-	local raw="$1"
-	printf '%s\n' "$raw" | validate_sha_output
+	if [ "$#" -eq 0 ]; then
+		validate_sha_output
+	else
+		local raw="$1"
+		printf '%s\n' "$raw" | validate_sha_output
+	fi
 }
 
 ADB="${ADB:-adb}"
