@@ -1,7 +1,7 @@
 diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
 --- a/arch/arm64/kernel/head.S
 +++ b/arch/arm64/kernel/head.S
-@@ -83,6 +83,25 @@ SYM_CODE_START(primary_entry)
+@@ -83,5 +83,21 @@ SYM_CODE_START(primary_entry)
  	bl	record_mmu_state
  	bl	preserve_boot_args
 +
