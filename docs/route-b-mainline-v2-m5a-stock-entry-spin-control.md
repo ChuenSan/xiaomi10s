@@ -1,7 +1,8 @@
 # Route B Mainline V2 M5A — stock kernel entry spin control
 
-Status: CI artifact phase. Final public gate is recorded only after the private
-builder run. This phase performs no device operation.
+Status: CI artifact ready. Final gate:
+`READY_FOR_M5A_STOCK_ENTRY_SPIN_CONTROL`.
+This phase performed no device operation.
 
 M4B placed `b .` at Mainline `primary_entry`. The automatic Fastboot return was
 still 4.755s. That does not prove ABL entered Mainline, and it does not prove an
@@ -207,22 +208,85 @@ No true-device gate is produced.
 ## Private CI result
 
 ```text
-PUBLIC_SOURCE_COMMIT=PENDING_FIRST_PUBLIC_PUSH
-PRIVATE_CI_RUN=PENDING
-PRIVATE_CI_RESULT=PENDING
-IMAGE_HEADER=PENDING
-RAW_ENTRY=PENDING
-ORIGINAL_INSTRUCTION=PENDING
-PATCHED_INSTRUCTION=PENDING
-PATCH_OFFSET=PENDING
-KERNEL_DIFF_BYTE_COUNT=PENDING
-BOOT_DIFF_BYTE_COUNT=PENDING
-PATCHED_IMAGE_SHA256=PENDING
-PATCHED_BOOT_SHA256=PENDING
-FINAL_GATE=PENDING
+PUBLIC_SOURCE_COMMIT=0accc1bfce8b9c755c14f233e78e421d1d910d2d
+PUBLIC_SOURCE_AUDIT_RUN=34472210815
+PRIVATE_CI_RUN=34472283836
+PRIVATE_CI_COMMIT=6539ebcedf8218747908d88aa8ca73f5a4ec4d77
+PRIVATE_CI_RESULT=success
+ARTIFACT=thyme-m5a-stock-entry-spin-6539ebcedf8218747908d88aa8ca73f5a4ec4d77
+STAGE4_BOOT_TAG=stock-kernel-usb-stage4-http-c780694
+SOURCE_STOCK_CONTROL_BOOT_SHA_MATCH=YES
+NO_STOCK_KERNEL_REBUILD=PASS
+LOCAL_BUILD=NO
+DEVICE_OPERATION=NO
+FINAL_GATE=READY_FOR_M5A_STOCK_ENTRY_SPIN_CONTROL
 ```
 
-These fields are filled only from the private run. They are not estimated.
+Entry audit from the exact extracted stock Image, not from Mainline `head.S`:
+
+```text
+ARM64_IMAGE_HEADER_VALID=PASS
+MAGIC=ARM\x64
+CODE0=0x14a60000          b 0x2980000
+CODE1=0x00000000          .long 0
+TEXT_OFFSET=0x80000
+IMAGE_SIZE=64008192
+IMAGE_FILE_SIZE=52654096
+FLAGS=0xa
+PE_OFFSET=0x0
+ENTRY_LAYOUT=NON_EFI_CODE0_BRANCH_TO_ENTRY
+RAW_ENTRY=Image offset 0
+ORIGINAL_INSTRUCTION=0x14a60000
+PATCHED_INSTRUCTION=0x14000000
+PATCH_OFFSET=0
+ORIGINAL_BRANCH_TARGET=0x2980000
+ORIGINAL_TARGET_WORD=0x94000008   BL
+OBJDUMP=0: 14000000 b 0x0
+```
+
+The binary matches the downstream non-EFI `head.S` path (`b stext; .long 0`)
+and `kona-perf` `# CONFIG_EFI is not set`. The first executable instruction is
+the branch-to-entry itself, so that is the spin site.
+
+Minimal delta:
+
+```text
+KERNEL_PATCH_WORD_SIZE=4
+KERNEL_DIFF_BYTE_COUNT=1
+KERNEL_DIFF_OFFSETS=2
+BOOT_DIFF_BYTE_COUNT=1
+BOOT_DIFF_OFFSETS=4098
+EXPECTED_PATCHED_WORD=0x14000000
+```
+
+Original little-endian code0 is `00 00 a6 14`. Patched is `00 00 00 14`. Only
+the immediate byte at kernel offset 2 / boot offset 4098 changes. The 32-bit
+instruction word is still the only patched location.
+
+Header invariants:
+
+```text
+ARM64 magic unchanged
+image_size unchanged
+text_offset unchanged
+PE offset unchanged
+boot v3 / os 13.0.0 / 2023-09 / empty cmdline unchanged
+kernel_size 52654096 unchanged
+ramdisk SHA e31cab1bef3408d1b87074ff7bcf573b9ebb74b96d535c55b9c97953ef1d0ac9
+BOOT_REPACK_IDENTITY=PASS
+```
+
+Private artifact hashes:
+
+```text
+patched Image SHA:
+  6a69ed3f4130e2a9a9357151fb01a586877cfa6e1267dfe90e81291c3a388327
+patched boot SHA:
+  790ee1265a5c2419e815870d43d6e34c60195e380aba772c55ccc7fa3aa5c141
+```
+
+No flashable M5A boot or patched stock kernel was uploaded to the public
+repository.
 
 ## Device boundary
 
