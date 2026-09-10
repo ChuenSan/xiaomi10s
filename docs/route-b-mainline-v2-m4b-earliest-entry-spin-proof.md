@@ -1,7 +1,7 @@
 # Route B Mainline V2 M4B — earliest-entry spin proof
 
-Status: CI gate passed; one-shot Slot B device test is pending explicit approval.
-Final device gate is not assigned until the single B observation exists.
+Status: complete. Final gate: `MAINLINE_V2_M4B_ENTRY_SPIN_NOT_CONFIRMED`.
+One Slot B boot was executed; the ~4.7s automatic Fastboot return was not suppressed.
 
 This experiment is intentionally narrower than M1–M3. It changes only the Mainline
 `boot_b` kernel payload and places one unconditional branch at the first instruction
@@ -188,7 +188,8 @@ PATCH_SHA256=30738f0e27f8ecc2d44a3a6e9c9c86b2d1991dfe1b7ba2bfa317448c1bba0833
 BOOT_IMAGE_SIZE=35110912
 FINAL_CI_GATE=READY_FOR_MAINLINE_V2_M4B_ENTRY_SPIN
 LOCAL_BUILD=NO
-DEVICE_TEST=NOT_RUN
+DEVICE_TEST=COMPLETE
+FINAL_DEVICE_GATE=MAINLINE_V2_M4B_ENTRY_SPIN_NOT_CONFIRMED
 ```
 
 Disassembly of the built `vmlinux` `primary_entry`:
@@ -322,14 +323,114 @@ MAINLINE_V2_M4B_INCONCLUSIVE
 
 Do not repeat B. Preserve the exact timing and recovery metadata.
 
-## Result record
+## Completed true-device run
 
-Do not fill pending values from expectation. Record only GHA logs, the one host
-observation, and read-only Android A evidence:
+```text
+MEM0_READ_BEFORE_DEVICE_TEST=YES
+LOCAL_BUILD=NO
+GHA_ONLY=YES
+SLOT_A_WRITTEN=NO
+B_BOOT_COUNT=1
+SECOND_B_BOOT=FORBIDDEN_AND_NOT_PERFORMED
+
+ANDROID_A_BASELINE:
+slot_suffix=_a
+boot_completed=1
+root=uid=0
+
+M1_VENDOR_BOOT_PREFIX_MATCH=YES
+M1_VENDOR_BOOT_PREFIX_SHA256=29ba377ecae631273103f944d9833070c25e7c4dd2f0b7fce439cc2c80d9d1e5
+M1_DTBO_PREFIX_MATCH=YES
+M1_DTBO_PREFIX_SHA256=316c12d9bbff26072f0924a9bd4b9d524c0dd2869b73e9743a0fb441af15d9c1
+WHOLE_HASH_GATE=NO
+VBMETA_B_STOCK=YES
+VBMETA_B_PREFIX_SHA256=37dfac44f336157d69b616e3567cdccff90273b36cd862a86f57abe1930f9d9c
+VBMETA_SYSTEM_B_STOCK=YES
+VBMETA_SYSTEM_B_PREFIX_SHA256=3217455014b5bb0cc05b638489589738863aeb6cc6b9423d56989b21fa8b8355
+PRE_WRITE_BOOT_B_PREFIX_SHA256=80afd2859333ea47d3aaa1fbdf6ec8cc678e65510de96c8f3671baad99d1a7ff
+
+DEVICE_WRITES:
+boot_b=YES
+vendor_boot_b=NO
+dtbo_b=NO
+vbmeta*=NO
+firmware=NO
+Slot_A=NO_WRITE
+
+POST_WRITE_ANDROID_A:
+slot_suffix=_a
+boot_completed=1
+boot_b_prefix_bytes=35110912
+boot_b_prefix_sha256=622a09516ddfcda7efad3cc42b92d2c205130ba7b0a8cf8cbba32c26a822b4c0
+M4B_CONTEXT_VERIFIED=YES
+M1_CONTEXT_STILL_MATCH=YES
+
+B_METADATA:
+B_RETRY_BEFORE_FLASH=6
+B_UNBOOTABLE_BEFORE_FLASH=no
+B_CURRENT_AFTER_FLASH=a
+B_RETRY_AFTER_FLASH=7
+B_UNBOOTABLE_AFTER_FLASH=no
+B_CURRENT_AFTER_SET_ACTIVE=b
+B_RETRY_AFTER_SET_ACTIVE=7
+B_UNBOOTABLE_AFTER_SET_ACTIVE=no
+B_CURRENT_AFTER_BOOT=b
+B_RETRY_AFTER_BOOT=6
+B_UNBOOTABLE_AFTER_BOOT=no
+
+TIMING:
+USB_SIGNAL=Fastboot identity disappearance/reappearance (18d1:d00d); no screen or network timing
+FASTBOOT_REBOOT_COMMAND_DURATION=0.045s
+FASTBOOT_DISAPPEAR_TIMESTAMP=2026-09-10T11:05:35.072Z
+FASTBOOT_REAPPEAR_TIMESTAMP=2026-09-10T11:05:39.827Z
+M4B_ELAPSED=4.755s
+REFERENCE_MEAN=4.710s
+M4B_DELTA_FROM_BASELINE=+0.045s
+AUTOMATIC_RETURN=YES
+MANUAL_INTERVENTION=NO
+HARD_WINDOW=12s
+
+M4B_SPIN_SUPPRESSION_EFFECT=NO
+BASELINE_EARLY_RETURN_SUPPRESSED=NO
+ABL_TO_MAINLINE_ENTRY=NOT_CONFIRMED
+MAINLINE_PRIMARY_ENTRY=NOT_CONFIRMED
+EXTERNAL_4P7S_RESET_HYPOTHESIS=SUPPORTED
+FINAL_GATE=MAINLINE_V2_M4B_ENTRY_SPIN_NOT_CONFIRMED
+
+PSTORE:
+pstore_entries=none
+new_Mainline_evidence=NO
+oops_baseline_sha256=40862e59301f20c392218369b962d0f6a8b3e8335eb312cf811f94eaa60c02e7
+oops_post_sha256=edbbad0dc2c0dd5a74609ecf82eeea9eb6a093903088de0906e20a3ab8310816
+minidump_baseline_and_post_sha256=e8caa0f3d96e1329070bd93062d3d728bcb19bc54694df65abe47310fa96d04a
+rawdump_baseline_and_post_sha256=254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917
+logdump_baseline_and_post_sha256=3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351
+mainline_string_scan=NO_MATCH
+oops_change=stock Android 4.19 controlled reboot,bootloader records (index 1198/1199); not Mainline crash evidence
+
+RECOVERY:
+ANDROID_A_RESTORED=YES
+slot_suffix=_a
+boot_completed=1
+boot_b_still_m4b=YES
+M1_CONTEXT_AFTER_RECOVERY=MATCH
+
+NEXT_RECOMMENDED_STAGE=MAINLINE_V2_M5_EXTERNAL_WATCHDOG_CONTROL
+NEXT_STAGE_EXECUTED=NO
+```
+
+The 4.755-second automatic return sits inside the M1/M2/M3 4.598–4.821s cluster.
+A pure `b .` at the first `primary_entry` instruction did not suppress it. This is
+not proof that ABL never entered the Image; it is proof that moving the kernel
+checkpoint earlier than `preserve_boot_args` is no longer useful. The next stage,
+if approved, is external reset / watchdog control, not another earlier kernel
+instrumentation.
+
+## Result record
 
 ```text
 Constraints:
-mem0 read: YES/NO
+mem0 read: YES
 local build: NO
 GHA only: YES
 Slot A written: NO
@@ -342,12 +443,12 @@ M4: RESET_SOURCE_INCONCLUSIVE
 
 M4B instrumentation:
 kernel: 6.6.156
-commit: 8b73de7...
+commit: 8b73de7da85fde281a385e0b26eda9bffd3ca477
 IMAGE_ENTRY_SYMBOL: _text
 PRIMARY_ENTRY_SYMBOL: primary_entry
-FIRST_ORIGINAL_PRIMARY_ENTRY_INSN:
-M4B_FIRST_PRIMARY_ENTRY_INSN:
-disassembly verified: YES/NO
+FIRST_ORIGINAL_PRIMARY_ENTRY_INSN: bl record_mmu_state
+M4B_FIRST_PRIMARY_ENTRY_INSN: b .Lthyme_m4b_earliest_entry_spin
+disassembly verified: YES
 timer instructions: NO
 MMIO: NO
 PSCI/SMC/HVC: NO
@@ -355,52 +456,45 @@ WFE/WFI: NO
 BRK/UDF: NO
 
 CI:
-run:
-commit:
-artifact:
-Image SHA:
-boot SHA:
-patch SHA:
+run: 34464472317
+commit: ace24d1c4f9537ab8726c551fa0d88155b581f7a
+artifact: thyme-mainline-v2-m4b-entry-spin-ace24d1c4f9537ab8726c551fa0d88155b581f7a
+Image SHA: 52e429db5ba7ba411598625f706dc11d3d7c247458a932969e9913db0d1511a2
+boot SHA: 622a09516ddfcda7efad3cc42b92d2c205130ba7b0a8cf8cbba32c26a822b4c0
+patch SHA: 30738f0e27f8ecc2d44a3a6e9c9c86b2d1991dfe1b7ba2bfa317448c1bba0833
 
 Context:
-M1 vendor_boot prefix: MATCH/MISMATCH
-M1 dtbo prefix: MATCH/MISMATCH
-vbmeta: STOCK/UNKNOWN
+M1 vendor_boot prefix: MATCH
+M1 dtbo prefix: MATCH
+vbmeta: STOCK
 
 Device writes:
-boot_b: YES/NO
+boot_b: YES
 other B partitions: NO
 Slot A: NO WRITE
 
 Runtime:
-Fastboot disappear:
-automatic Fastboot reappear: YES/NO
-elapsed if automatic:
-elapsed before manual recovery:
-baseline 4.7s return suppressed: YES/NO
-manual recovery required: YES/NO
+Fastboot disappear: 2026-09-10T11:05:35.072Z
+automatic Fastboot reappear: YES
+elapsed if automatic: 4.755s
+elapsed before manual recovery: N/A
+baseline 4.7s return suppressed: NO
+manual recovery required: NO
 B boots: 1
 
 Pstore:
-Mainline evidence:
+Mainline evidence: NO
 
 Conclusion:
-ABL_TO_MAINLINE_ENTRY: CONFIRMED/NOT_CONFIRMED
-MAINLINE_PRIMARY_ENTRY: CONFIRMED/NOT_CONFIRMED
-EXTERNAL_4P7S_RESET_HYPOTHESIS: SUPPORTED/UNKNOWN
+ABL_TO_MAINLINE_ENTRY: NOT_CONFIRMED
+MAINLINE_PRIMARY_ENTRY: NOT_CONFIRMED
+EXTERNAL_4P7S_RESET_HYPOTHESIS: SUPPORTED
 
 Recovery:
-Android A restored: YES/NO
-slot_suffix:
-boot_completed:
+Android A restored: YES
+slot_suffix: _a
+boot_completed: 1
 
 Final Gate:
-MAINLINE_V2_M4B_ENTRY_SPIN_CONFIRMED
 MAINLINE_V2_M4B_ENTRY_SPIN_NOT_CONFIRMED
-MAINLINE_V2_M4B_EXTERNAL_RESET_SUSPECTED
-MAINLINE_V2_M4B_INCONCLUSIVE
-MAINLINE_V2_M4B_NOT_SAFE
 ```
-
-The final report and mem0 update must be written only after the one permitted B boot
-and Android A recovery. Do not store serials, tokens, or CPU identifiers.
