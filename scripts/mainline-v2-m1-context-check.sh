@@ -273,7 +273,7 @@ verify_partition() {
 		if ! prefix_count="$(parse_decimal "$prefix_raw")"; then
 			fail "prefix byte-count output is invalid: $partition"
 		fi
-		if ! prefix_raw="$(adb_su "set -o pipefail; dd if='$device_path' bs=1 count=$artifact_size 2>/dev/null | sha256sum")"; then
+		if ! prefix_raw="$(adb_su "dd if='$device_path' bs=1 count=$artifact_size 2>/dev/null | sha256sum")"; then
 			fail "prefix SHA read failed: $partition"
 		fi
 		if ! prefix_sha="$(parse_sha "$prefix_raw")"; then
