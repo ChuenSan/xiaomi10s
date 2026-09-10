@@ -181,10 +181,10 @@ if not preserve < m3_start < m3_end < create < init < cpu:
     raise SystemExit("M3 order is not preserve_boot_args -> checkpoint -> create_idmap -> init_kernel_el -> __cpu_setup")
 if not m3_start < m2_start:
     raise SystemExit("M3 checkpoint is not earlier than M2 checkpoint")
-for phrase in (".Lthyme_m2_early_delay_start:", ".Lthyme_m2_early_delay_end:",
-               "bl\tinit_kernel_el", "mov\tx20,\tx0", "bl\t__cpu_setup"):
-    if phrase not in m2_patch:
-        raise SystemExit(f"historical M2 checkpoint evidence missing: {phrase}")
+for pattern in (r"\.Lthyme_m2_early_delay_start:", r"\.Lthyme_m2_early_delay_end:",
+                r"bl\s+init_kernel_el", r"mov\s+x20,\s*x0", r"bl\s+__cpu_setup"):
+    if not re.search(pattern, m2_patch):
+        raise SystemExit(f"historical M2 checkpoint evidence missing: {pattern}")
 
 delay = primary[m3_start:m3_end]
 comments_removed = re.sub(r"/\*.*?\*/", "", delay, flags=re.DOTALL)
