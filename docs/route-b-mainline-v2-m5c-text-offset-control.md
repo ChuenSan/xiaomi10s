@@ -1,8 +1,8 @@
 # Route B Mainline V2 M5C — text_offset 0x80000 control
 
-Status: CI artifact ready. Final gate:
-`READY_FOR_MAINLINE_V2_M5C_TEXT_OFFSET_CONTROL`.
-No device operation is authorized or was performed.
+Status: true-device test complete. Final gate:
+`MAINLINE_V2_M5C_TEXT_OFFSET_NO_EFFECT`.
+Android A restored; no M5D or M6 action was performed.
 
 M5C isolates one ARM64 Image header field. It reuses the exact M5B Image and
 boot v3 artifact, changes `text_offset` from `0` to `0x80000`, and changes no
@@ -248,21 +248,112 @@ DEVICE_OPERATION=NO
 
 No runtime conclusion follows from these static gates.
 
-## Future true-device criteria — not authorized
+## Completed true-device result
 
-Current Slot B remains:
+The approved device phase used GitHub Actions artifacts only. Mem0 was read at
+start and again immediately before entering Fastboot for the only write. No
+local build, validator, source gate, actionlint, binary conversion,
+disassembly, or binary validation ran.
+
+Android A baseline passed with `_a`, `boot_completed=1`, and root available.
+The downloaded artifact was checked read-only before use:
 
 ```text
-M1 Mainline DT context + M5B boot_b
+M5C_BOOT_ARTIFACT_SIZE=35110912
+M5C_BOOT_SHA256=66a001eb8065f64e879be5a9cef199fae2c8e7a4587f583d2d4581f8429083ec
 ```
 
-M5C CI does not inspect or change the device. Slot A is permanently protected.
-No ADB change, Fastboot, flash, erase, format, slot switch, or Slot B boot is
-permitted.
+### Pre-write safety gates
 
-If a later, separately approved M5C device phase occurs, it keeps M1
-`vendor_boot_b` and `dtbo_b`, Stock vbmeta and firmware, writes only the exact
-M5C `boot_b`, and performs one B boot. More than 12 seconds without automatic
-Fastboot return would strongly support a `text_offset` handoff effect; a return
-inside the historical 4.3–5.3-second band would classify the field change as no
-effect. Neither result has occurred.
+The fixed prefix-domain verifier proved that the existing Slot B was exactly
+M1 Mainline DT context plus M5B boot:
+
+```text
+boot_b first 35110912 SHA256=2125ebab7eafc8fdc2c2901138ba41bfe0a61f97d9d898094b9020116937f681
+vendor_boot_b first 114688 SHA256=29ba377ecae631273103f944d9833070c25e7c4dd2f0b7fce439cc2c80d9d1e5 MATCH=YES
+vendor_boot_b remainder SHA256=3d6cb7047e6d0b70a764b6dae548a720904378c62f151732d5faaab8ea703a74 MATCH=YES
+dtbo_b first 387 SHA256=316c12d9bbff26072f0924a9bd4b9d524c0dd2869b73e9743a0fb441af15d9c1 MATCH=YES
+dtbo_b remainder SHA256=0a0549ee65b90de9843c37d92ff337add3c848c21cf68ca9b90e8064e40dffdd MATCH=YES
+M1_CONTEXT_EXACT_PRESERVED=YES
+```
+
+Stock prefixes also matched for `vbmeta_b`, `vbmeta_system_b`, `xbl_b`,
+`abl_b`, and `tz_b`. Fastboot preflight passed with `product=thyme`,
+`unlocked=yes`, `current-slot=a`, `snapshot-update-status=none`, and
+`battery-soc-ok=yes`. Slot B metadata before the write was retry count 6 and
+`unbootable=no`.
+
+### Only partition write and independent verification
+
+The only partition write was the exact M5C artifact to `boot_b`.
+`vendor_boot_b`, `dtbo_b`, vbmeta, firmware, all other B partitions, and every
+Slot A partition were untouched. The device remained on Slot A after the write;
+Slot B retry count became 7 and remained bootable. Android A then independently
+verified:
+
+```text
+boot_b first 35110912 SHA256=66a001eb8065f64e879be5a9cef199fae2c8e7a4587f583d2d4581f8429083ec
+M5C_DEVICE_BOOT_PREFIX_MATCH=YES
+boot_b whole-partition SHA256=73fa2c3beef207f4ab294c9302ed785f56c6e5d140affde1e5aab0957b955503 (observation only)
+M5C_FULL_CONTEXT_VERIFIED=YES
+```
+
+The complete M1 prefix/remainder, stock vbmeta, and stock firmware gates were
+repeated and remained exact before permitting the B boot.
+
+### Single B boot and timing
+
+Slot B was selected with retry count 7 and `unbootable=no`. Exactly one B boot
+was issued. Only the Fastboot USB identity `18d1:d00d` was monitored:
+
+```text
+FASTBOOT_DISAPPEAR_TIMESTAMP=2026-09-10T13:51:41.128Z
+FASTBOOT_REAPPEAR_TIMESTAMP=2026-09-10T13:51:45.917Z
+AUTOMATIC_FASTBOOT_REAPPEAR=YES
+M5C_ELAPSED=4.788s
+OBSERVATION_WINDOW=12s
+M5B_REFERENCE=4.492s
+M5C_4P7S_RETURN_SUPPRESSED=NO
+MANUAL_RECOVERY=NO
+SECOND_B_BOOT_FORBIDDEN=YES
+```
+
+The automatic return remained inside the predefined 4.3–5.3-second band.
+Post-attempt metadata was `current-slot=b`, retry count 6, and
+`unbootable=no`. Slot A was selected immediately and Android A restored with
+`slot_suffix=_a` and `boot_completed=1`. Slot B was not booted again and its
+M5C content was not restored or replaced.
+
+### Dumps and causal conclusion
+
+```text
+pstore entries baseline/post=0/0 UNCHANGED
+oops baseline=94eb250aa317fb63ac7ed896c3ad6244a9041f27ae0d8239fbaed9f9f13fb76c
+oops post=bff164e3a5fcfaf401fb7e40784a545a7fc39d26d1475b46b21c7c989970a1a3 CHANGED
+minidump=e8caa0f3d96e1329070bd93062d3d728bcb19bc54694df65abe47310fa96d04a UNCHANGED
+rawdump=254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917 UNCHANGED
+logdump=3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351 UNCHANGED
+```
+
+The changed oops contains the Android A stock-kernel
+`reboot,bootloader` record and is not Mainline evidence. No new Mainline PC or
+log was found.
+
+Changing only the ARM64 Image `text_offset` byte from `0x0` to `0x80000` did
+not suppress the stable return. No other header field participates in this
+runtime conclusion:
+
+```text
+M5C_RUNTIME_CAUSAL_VARIABLE=ARM64_IMAGE_TEXT_OFFSET
+TEXT_OFFSET_LOAD_HANDOFF_EFFECT=NO
+MAINLINE_TEXT_OFFSET_ZERO_CAUSAL=NOT_SUPPORTED
+MAINLINE_PRIMARY_ENTRY_EXECUTION=NOT_CONFIRMED
+ABL_TO_MAINLINE_ENTRY=NOT_CONFIRMED
+ANDROID_A_RESTORED=YES
+FINAL_GATE=MAINLINE_V2_M5C_TEXT_OFFSET_NO_EFFECT
+```
+
+The next proposed stage is
+`MAINLINE_V2_M5D_PE_HEADER_OFFSET_ZERO_CONTROL`, incrementally based on M5C so
+that only PE header offset `0x40 -> 0x0` changes. It is not executed and awaits
+explicit user approval.
