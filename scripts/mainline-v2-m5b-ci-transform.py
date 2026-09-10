@@ -22,7 +22,7 @@ out.mkdir(parents=True, exist_ok=True)
 EXPECTED_IMAGE_SHA = "52e429db5ba7ba411598625f706dc11d3d7c247458a932969e9913db0d1511a2"
 EXPECTED_BOOT_SHA = "622a09516ddfcda7efad3cc42b92d2c205130ba7b0a8cf8cbba32c26a822b4c0"
 EXPECTED_RAMDISK_SHA = "b7d3949461a57b9855850cfe31ef423ce34216aa9ae164600ffbeed97d5a47de"
-EFI_SIGNATURE_NOP_WORD = 0x91005A4D
+EFI_SIGNATURE_NOP_WORD = 0xFA405A4D
 PAGE_SIZE = 4096
 
 
@@ -216,7 +216,7 @@ primary_disasm = disassemble(primary_bin, primary_offset)
     + primary_disasm
     + f"\nM4B_CODE0_WORD=0x{code0:08x}\n"
     + f"M4B_CODE1_WORD=0x{code1:08x}\n"
-    + "M4B_CODE0_DISASM=add x13, x18, #0x16\n"
+    + "M4B_CODE0_DISASM=ccmp x18, #0, #0xd, pl\n"
     + f"M4B_CODE1_DISASM=b 0x{primary_offset:x}\n"
     + f"M5B_CODE0_WORD=0x{m5b_code0:08x}\n"
     + f"M5B_CODE0_DISASM=b 0x{primary_offset:x}\n"
@@ -239,7 +239,7 @@ if header_after != header_before:
 (out / "Image-header-before-after-report.txt").write_text(
     f"M4B_CODE0_BYTES={m4b_image[:4].hex()}\n"
     f"M4B_CODE0_WORD=0x{code0:08x}\n"
-    f"M4B_CODE0_DISASM=add x13, x18, #0x16\n"
+    f"M4B_CODE0_DISASM=ccmp x18, #0, #0xd, pl\n"
     f"M4B_CODE1_BYTES={m4b_image[4:8].hex()}\n"
     f"M4B_CODE1_WORD=0x{code1:08x}\n"
     f"M4B_CODE1_DISASM=b 0x{primary_offset:x}\n"
