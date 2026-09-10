@@ -98,40 +98,30 @@ validate_sha_metadata M1_VENDOR_BOOT_ARTIFACT_SHA256
 validate_size_metadata M1_DTBO_ARTIFACT_SIZE
 validate_sha_metadata M1_DTBO_ARTIFACT_SHA256
 
-validate_decimal_output() {
-	awk '
-	NF == 0 { next }
-	NF != 1 || $1 !~ /^[0-9]+$/ { bad = 1; next }
-	count++
-	value = $1
-	END {
-		if (bad || count != 1)
-			exit 1
-		print value
-	}'
-}
-
-validate_sha_output() {
-	awk '
-	NF == 0 { next }
-	$1 !~ /^[0-9a-fA-F]+$/ || length($1) != 64 { bad = 1; next }
-	count++
-	value = tolower($1)
-	END {
-		if (bad || count != 1)
-			exit 1
-		print value
-	}'
-}
-
 parse_decimal() {
-	local raw="$1"
-	printf '%s\n' "$raw" | validate_decimal_output
+	python3 - "$1" <<'PY'
+import sys
+
+value = sys.argv[1].strip()
+if not value or any(char not in "0123456789" for char in value):
+    raise SystemExit(1)
+print(value)
+PY
 }
 
 parse_sha() {
-	local raw="$1"
-	printf '%s\n' "$raw" | validate_sha_output
+	python3 - "$1" <<'PY'
+import re
+import sys
+
+lines = [line.split() for line in sys.argv[1].splitlines() if line.split()]
+if len(lines) != 1:
+    raise SystemExit(1)
+value = lines[0][0].lower()
+if not re.fullmatch(r"[0-9a-f]{64}", value):
+    raise SystemExit(1)
+print(value)
+PY
 }
 
 ADB="${ADB:-adb}"
