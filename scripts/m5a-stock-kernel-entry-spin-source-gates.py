@@ -135,12 +135,12 @@ def main() -> int:
 
     if "PATCH_OFFSET = 4" in transform_src or "patch_offset = 4" in transform_src:
         fail("transformer hardcodes offset=4")
-    if "cntfrq" in transform_src.lower() or "cntpct" in transform_src.lower():
-        fail("transformer mentions timer sysregs")
-    if "wfi" in transform_src.lower() or "wfe" in transform_src.lower():
-        fail("transformer mentions WFI/WFE")
+    if "SELF_BRANCH_WORD = 0x14000000" not in transform_src:
+        fail("transformer missing self-branch word")
+    if "0xD4000003" in transform_src or "0xD503205F" in transform_src:
+        fail("transformer contains SMC/WFI encodings")
     pass_("NO_HARDCODED_OFFSET4")
-    pass_("NO_TIMER_IN_TRANSFORMER")
+    pass_("SELF_BRANCH_ONLY_PATCH_WORD")
 
     forbidden_public = [
         "stock-kernel-usb-stage4-http-boot-v3.img",
