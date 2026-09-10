@@ -1,6 +1,6 @@
 # Route B Mainline V2 M5D — PE header offset zero control
 
-Status: CI preparation only. No device operation is authorized. Final runtime
+Status: CI artifact ready. No device operation is authorized. Final runtime
 result is pending explicit approval for a future true-device test.
 
 M5D directly reuses the exact M5C Image and boot v3 artifact and changes only
@@ -187,6 +187,56 @@ SHA256SUMS
 It contains no Stock binary, `vendor_boot`, `dtbo`, `vbmeta`, or firmware.
 Public source, transformation logic, validation logic, hashes, and this document
 remain public; the OEM-derived Stock input remains private.
+
+## Completed CI result
+
+The public source audit and private exact-binary workflow passed:
+
+```text
+public source commit: 4d9fc57f21b882d59bcb7bd3580395ab91095128
+public source-audit run: 34487092827
+private workflow commit: 1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+private CI run: 34487382191
+artifact: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+CI result: success
+```
+
+The exact parser-derived field and calculated deltas were:
+
+```text
+PE_HEADER_OFFSET_FIELD_IMAGE_OFFSET=0x3c
+PE_HEADER_OFFSET_FIELD_WIDTH=4
+PE_HEADER_OFFSET_FIELD_ENDIAN=little-endian
+M5C PE offset=0x40
+Stock PE offset=0x0
+M5D PE offset=0x0
+IMAGE_DIFF_BYTE_COUNT=1
+IMAGE_DIFF_OFFSETS=0x3c
+IMAGE_DIFF_OUTSIDE_PE_OFFSET_FIELD=0
+BOOT_KERNEL_PAYLOAD_OFFSET=0x1000
+BOOT_DIFF_BYTE_COUNT=1
+BOOT_DIFF_OFFSETS=0x103c
+BOOT_DIFF_OUTSIDE_PE_OFFSET_FIELD=0
+```
+
+All fail-closed, reverse-unpack, header, ramdisk, boot metadata, direct-entry,
+primary-spin, and real-PE-region gates passed:
+
+```text
+M5D_IMAGE_SHA256=5d1d3c3370dc5617f94af1e9b66128a16e95166d7e440b9ea820f7a2c91c974a
+M5D_BOOT_SHA256=4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+RAMDISK_SHA256=b7d3949461a57b9855850cfe31ef423ce34216aa9ae164600ffbeed97d5a47de
+PRIMARY_ENTRY_IMAGE_OFFSET=0x1b1c0a0
+PRIMARY_ENTRY_WORD=0x14000000
+PE_REGION_SHA_BEFORE=01a36888696f7d34c98d6c91c74dab3ea6a1fa5acb32730e149cdd73b0af2afd
+PE_REGION_SHA_AFTER=01a36888696f7d34c98d6c91c74dab3ea6a1fa5acb32730e149cdd73b0af2afd
+FINAL_GATE=READY_FOR_MAINLINE_V2_M5D_PE_OFFSET_ZERO_CONTROL
+DEVICE_OPERATION=NO
+```
+
+The PE hash domain is the real payload `Image[0x40:validated PE header end]`;
+it excludes the pointer metadata field at `0x3c..0x3f`. No runtime conclusion
+follows from these static gates.
 
 ## Future true-device criteria
 
