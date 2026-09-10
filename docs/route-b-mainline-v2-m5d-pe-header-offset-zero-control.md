@@ -1,7 +1,8 @@
 # Route B Mainline V2 M5D — PE header offset zero control
 
-Status: CI artifact ready. No device operation is authorized. Final runtime
-result is pending explicit approval for a future true-device test.
+Status: true-device test complete. Final gate:
+`MAINLINE_V2_M5D_PE_OFFSET_NO_EFFECT`.
+Android A restored; no M5E action was performed.
 
 M5D directly reuses the exact M5C Image and boot v3 artifact and changes only
 the ARM64 Image header's PE/COFF header offset metadata from `0x40` to `0x0`.
@@ -238,17 +239,112 @@ The PE hash domain is the real payload `Image[0x40:validated PE header end]`;
 it excludes the pointer metadata field at `0x3c..0x3f`. No runtime conclusion
 follows from these static gates.
 
-## Future true-device criteria
+## Completed true-device result
 
-Current Slot B remains M1 Mainline DT context plus M5C `boot_b`, unchanged.
-Slot A is never written. This CI stage performs no ADB change, Fastboot, flash,
-erase, format, slot switch, or B boot.
+The approved device phase used the exact GitHub Actions artifact. Mem0 was read
+at the start and again immediately before entering Fastboot for the only write.
+No local build, validator, source gate, actionlint, binary transformation,
+disassembly, or binary validation ran.
 
-If a later explicitly approved M5D test remains past 12 seconds without an
-automatic Fastboot return, record that PE-offset metadata participates in causal
-handoff behavior; do not claim the PE header itself crashes the kernel. If the
-same 4.3–5.3-second return remains, record
-`MAINLINE_V2_M5D_PE_OFFSET_NO_EFFECT` and stop for
-`M5E_HEADER_LOAD_SEMANTICS_AUDIT`. Do not copy Stock's `image_size` into the
-shorter Mainline payload without first auditing actual Image length, header
-size, boot kernel size, loader copy bounds, load base, and entry semantics.
+Android A baseline passed with `_a`, `boot_completed=1`, and root available.
+The downloaded artifact identity was checked before use:
+
+```text
+M5D_BOOT_ARTIFACT_SIZE=35110912
+M5D_BOOT_SHA256=4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+```
+
+### Pre-write safety and exact context
+
+The existing `boot_b` first 35110912 bytes matched M5C SHA256
+`66a001eb8065f64e879be5a9cef199fae2c8e7a4587f583d2d4581f8429083ec`.
+All required read-only context gates passed:
+
+```text
+vendor_boot_b first 114688 SHA256=29ba377ecae631273103f944d9833070c25e7c4dd2f0b7fce439cc2c80d9d1e5 MATCH=YES
+vendor_boot_b remainder SHA256=3d6cb7047e6d0b70a764b6dae548a720904378c62f151732d5faaab8ea703a74 MATCH=YES
+dtbo_b first 387 SHA256=316c12d9bbff26072f0924a9bd4b9d524c0dd2869b73e9743a0fb441af15d9c1 MATCH=YES
+dtbo_b remainder SHA256=0a0549ee65b90de9843c37d92ff337add3c848c21cf68ca9b90e8064e40dffdd MATCH=YES
+vbmeta_b/vbmeta_system_b=stock
+xbl_b/abl_b/tz_b prefixes=stock
+M1_CONTEXT_EXACT_PRESERVED=YES
+```
+
+Fastboot preflight passed with `product=thyme`, `unlocked=yes`,
+`current-slot=a`, `snapshot-update-status=none`, and `battery-soc-ok=yes`.
+Slot B was retry count 6 and `unbootable=no` before the write.
+
+### Only write and independent readback
+
+The only partition write was the exact M5D artifact to `boot_b`. Slot A,
+`vendor_boot_b`, `dtbo_b`, vbmeta, firmware, and every other B partition were
+not written. The device remained on Slot A after the write; Slot B became retry
+count 7 and remained bootable. Android A independently established:
+
+```text
+boot_b first 35110912 SHA256=4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+M5D_DEVICE_BOOT_PREFIX_MATCH=YES
+boot_b whole-partition SHA256=bbb8a279a15af53a153ab605988311a7d381c22a10b56cecbc41ea68d3ceaab0 (observation only)
+M5D_FULL_CONTEXT_VERIFIED=YES
+```
+
+The complete M1 prefix/remainder, stock vbmeta, and stock firmware gates were
+repeated and remained exact before permitting the B boot.
+
+### Single B boot and timing
+
+Exactly one Slot B boot was issued with retry count 7 and `unbootable=no`.
+Only Fastboot USB identity `18d1:d00d` was monitored:
+
+```text
+FASTBOOT_DISAPPEAR_TIMESTAMP=2026-09-10T14:39:36.974Z
+FASTBOOT_REAPPEAR_TIMESTAMP=2026-09-10T14:39:41.506Z
+AUTOMATIC_FASTBOOT_REAPPEAR=YES
+M5D_ELAPSED=4.532s
+OBSERVATION_WINDOW=12s
+M5C_REFERENCE=4.788s
+M5B_REFERENCE=4.492s
+M5D_4P7S_RETURN_SUPPRESSED=NO
+MANUAL_RECOVERY=NO
+SECOND_B_BOOT_FORBIDDEN=YES
+```
+
+The automatic return was inside the predefined 4.3–5.3-second band. Post-boot
+metadata was `current-slot=b`, retry count 6, and `unbootable=no`. Slot A was
+selected immediately and Android A restored with `slot_suffix=_a` and
+`boot_completed=1`. Slot B was not booted again and retains M5D `boot_b`.
+
+### Dumps and causal conclusion
+
+```text
+pstore entries baseline/post=0/0 UNCHANGED
+oops baseline=1aea1fdc585b03b3a70d8b8ea6605032afc93529618c5e13d3f88bdd78536da5
+oops post=6da2ec0d26870e7477cdda0c07073d774ca40167ab46c2c0710c4b39b37136c6 CHANGED
+minidump=e8caa0f3d96e1329070bd93062d3d728bcb19bc54694df65abe47310fa96d04a UNCHANGED
+rawdump=254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917 UNCHANGED
+logdump=3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351 UNCHANGED
+```
+
+The changed oops contains Android A stock-kernel `reboot,bootloader` records
+and is not Mainline evidence. No new Mainline evidence was found.
+
+Changing only the ARM64 Image PE-header-offset metadata from `0x40` to `0x0`
+did not suppress the stable return. The PE payload, EFI stub, code0,
+`text_offset`, executable body, ramdisk, and boot metadata were unchanged and
+are not the tested variable:
+
+```text
+M5D_RUNTIME_CAUSAL_VARIABLE=ARM64_IMAGE_PE_HEADER_OFFSET
+PE_OFFSET_HANDOFF_EFFECT=NO
+MAINLINE_PE_OFFSET_40_CAUSAL=NOT_SUPPORTED
+MAINLINE_PRIMARY_ENTRY=NOT_CONFIRMED
+ABL_TO_MAINLINE=NOT_CONFIRMED
+ANDROID_A_RESTORED=YES
+FINAL_GATE=MAINLINE_V2_M5D_PE_OFFSET_NO_EFFECT
+```
+
+The next stage is analysis-only `M5E_HEADER_LOAD_SEMANTICS_AUDIT`, pending
+approval. Do not copy Stock's `image_size` into the shorter Mainline payload
+without first auditing actual Image length, boot kernel payload size, header
+`image_size`, `text_offset`, executable span, loader copy bounds, load base,
+and entry semantics.
