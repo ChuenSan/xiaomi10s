@@ -1,14 +1,12 @@
 diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
 --- a/arch/arm64/kernel/head.S
 +++ b/arch/arm64/kernel/head.S
-@@ -87,6 +87,9 @@
-  *  x25        primary_entry() .. start_kernel()        supported VA size
-  *  x28        create_idmap()                           callee preserved temp register
-  */
+@@ -87,6 +87,8 @@
+ 	 *  x28        create_idmap()                           callee preserved temp register
+ 	 */
  SYM_CODE_START(primary_entry)
 +.Lthyme_m4b_earliest_entry_spin:
-+	b .Lthyme_m4b_earliest_entry_spin
-+
++	b	.Lthyme_m4b_earliest_entry_spin
  	bl	record_mmu_state
  	bl	preserve_boot_args
  	bl	create_idmap

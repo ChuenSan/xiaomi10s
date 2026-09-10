@@ -94,6 +94,7 @@ pass "M4B_PATCH_SCOPE=PASS"
 
 python3 - "$M4B_PATCH" <<'PY'
 from pathlib import Path
+import re
 import sys
 
 patch = Path(sys.argv[1]).read_text()
@@ -106,7 +107,7 @@ if paths != {"arch/arm64/kernel/head.S"}:
     raise SystemExit(f"experimental patch scope is not head.S only: {sorted(paths)}")
 if ".Lthyme_m4b_earliest_entry_spin:" not in patch:
     raise SystemExit("M4B spin label is missing")
-if "b .Lthyme_m4b_earliest_entry_spin" not in patch:
+if not re.search(r"\bb\s+\.Lthyme_m4b_earliest_entry_spin\b", patch):
     raise SystemExit("M4B self-branch is missing")
 PY
 pass "M4B_PATCH_APPLIED=PASS"
@@ -186,9 +187,9 @@ added = "\n".join(
     line[1:] for line in patch.splitlines()
     if line.startswith("+") and not line.startswith("+++")
 )
-if f".Lthyme_m4b_earliest_entry_spin:" not in added:
+if f"{label}:" not in added:
     raise SystemExit("M4B label is not in patch additions")
-if f"b\t{label}" not in added:
+if not re.search(rf"\bb\s+{re.escape(label)}\b", added):
     raise SystemExit("M4B branch is not in patch additions")
 
 forbidden = re.compile(
