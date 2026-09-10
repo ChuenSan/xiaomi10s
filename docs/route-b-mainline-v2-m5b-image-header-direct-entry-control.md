@@ -1,7 +1,7 @@
 # Route B Mainline V2 M5B — Image header direct-entry control
 
-Status: CI artifact ready. Final gate: `READY_FOR_MAINLINE_V2_M5B_DIRECT_ENTRY_CONTROL`.
-Device operation remains forbidden in this stage.
+Status: true-device test complete. Final gate: `MAINLINE_V2_M5B_DIRECT_ENTRY_NO_EFFECT`.
+Android A restored; no M5C action was performed.
 
 M5B is a binary-level handoff control, not kernel development. It asks whether the
 Mainline Image `code0` MZ/EFI-style entry semantics, rather than the unchanged
@@ -154,63 +154,21 @@ validation-report.txt
 
 No `vendor_boot`, `dtbo`, `vbmeta`, or firmware artifact is emitted.
 
-## Current device state — do not change
+## True-device constraints
 
 ```text
-B context: exact stock vendor_boot + exact stock dtbo + M5A boot_b
-Slot A: permanently protected
-NO ADB DEVICE CHANGE
-NO FASTBOOT
-NO FLASH
-NO ERASE / FORMAT
-NO SLOT SWITCH
-NO B BOOT
-NO PARTITION OPERATION
+MEM0_READ_BEFORE_M5B=YES
+MEM0_READ_BEFORE_EACH_WRITE_PHASE=YES
+LOCAL_BUILD_OR_VALIDATION=NO
+GITHUB_ACTIONS_ONLY=YES
+SLOT_A_WRITE=NO
+SLOT_B_BOOTS=1
+SECOND_B_BOOT_FORBIDDEN=YES
+VBMETA_OR_FIRMWARE_WRITE=NO
 ```
 
-CI success does not authorize a true-device test and does not restore M1 context.
-
-## Future true-device context — plan only
-
-A future M5B test requires separate user approval and restoration of the exact M1
-Mainline DT context before writing or booting M5B:
-
-```text
-vendor_boot_b first 114688 bytes SHA256:
-29ba377ecae631273103f944d9833070c25e7c4dd2f0b7fce439cc2c80d9d1e5
-
-dtbo_b first 387 bytes SHA256:
-316c12d9bbff26072f0924a9bd4b9d524c0dd2869b73e9743a0fb441af15d9c1
-
-vbmeta_b: stock
-vbmeta_system_b: stock
-boot_b: exact M5B CI artifact
-```
-
-### Future Case A
-
-If no automatic Fastboot return occurs within 12 seconds while `primary_entry`
-remains `b .`:
-
-```text
-MAINLINE_PRIMARY_ENTRY_EXECUTION=STRONGLY_CONFIRMED
-MAINLINE_IMAGE_CODE0_OR_EFI_HANDOFF_PATH_CAUSAL=YES
-```
-
-This does not isolate an instruction fault. It isolates Image `code0 / MZ /
-EFI-vs-raw handoff semantics` as causal.
-
-### Future Case B
-
-If the approximately 4.3–5.3-second automatic return remains:
-
-```text
-MAINLINE_CODE0_DIRECT_BRANCH_EFFECT=NO
-NEXT=MAINLINE_V2_M5C_HEADER_FIELD_ISOLATION
-```
-
-M5C is not implemented or executed in this stage. `primary_entry` must remain
-unchanged.
+The approved test restored the private M1 context, wrote the exact M5B CI boot,
+and performed one Slot B boot. Slot A remained protected throughout.
 
 ## Completed CI result
 
@@ -257,5 +215,95 @@ DEVICE_OPERATION=NO
 ```
 
 All required ARM64 header, boot metadata, ramdisk, reverse-unpack, minimal-diff,
-and artifact-scope gates passed in GitHub Actions. The artifact is ready for a
-future separately approved true-device stage; it has not been used on the device.
+and artifact-scope gates passed in GitHub Actions.
+
+## Completed true-device result
+
+Android A baseline passed with `_a`, `boot_completed=1`, and root available. The
+pre-write B state matched the M5A end state:
+
+```text
+boot_b whole SHA256=1e44f7e823e4f680d4db92706b31f2e90569a4ff81aed4bc71bb945978e2d585
+vendor_boot_b whole SHA256=aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972
+dtbo_b whole SHA256=018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634
+vbmeta_b prefix=37dfac44f336157d69b616e3567cdccff90273b36cd862a86f57abe1930f9d9c
+vbmeta_system_b prefix=3217455014b5bb0cc05b638489589738863aeb6cc6b9423d56989b21fa8b8355
+```
+
+The downloaded M5B artifact was read-only checked before use:
+
+```text
+M5B_BOOT_ARTIFACT_SIZE=35110912
+M5B_BOOT_SHA256=2125ebab7eafc8fdc2c2901138ba41bfe0a61f97d9d898094b9020116937f681
+```
+
+### M1 context restoration
+
+Phase 1 preflight passed: `product=thyme`, `unlocked=yes`, `current-slot=a`,
+`snapshot-update-status=none`, and `battery-soc-ok=yes`. Only `vendor_boot_b` and
+`dtbo_b` were flashed from private M1 run 34338768052. The device then returned
+to Android A before independent verification:
+
+```text
+vendor_boot_b partition size=100663296
+vendor_boot_b first 114688 SHA256=29ba377ecae631273103f944d9833070c25e7c4dd2f0b7fce439cc2c80d9d1e5 MATCH=YES
+vendor_boot_b remainder SHA256=3d6cb7047e6d0b70a764b6dae548a720904378c62f151732d5faaab8ea703a74 MATCH=YES
+dtbo_b partition size=33554432
+dtbo_b first 387 SHA256=316c12d9bbff26072f0924a9bd4b9d524c0dd2869b73e9743a0fb441af15d9c1 MATCH=YES
+dtbo_b remainder SHA256=0a0549ee65b90de9843c37d92ff337add3c848c21cf68ca9b90e8064e40dffdd MATCH=YES
+M1_CONTEXT_EXACT_RECONSTRUCTED=YES
+```
+
+Stock prefixes for `vbmeta_b`, `vbmeta_system_b`, `xbl_b`, `abl_b`, and `tz_b`
+all matched. Phase 2 again passed the Fastboot product, unlock, and Slot A gates;
+only `boot_b` was flashed. After another return to Android A:
+
+```text
+boot_b first 35110912 SHA256=2125ebab7eafc8fdc2c2901138ba41bfe0a61f97d9d898094b9020116937f681
+M5B_DEVICE_BOOT_PREFIX_MATCH=YES
+M5B_FULL_CONTEXT_VERIFIED=YES
+```
+
+### Single B boot and timing
+
+Immediately before the boot, Slot B was bootable with retry count 7. Exactly one
+`fastboot reboot` was issued after selecting B. Only the Fastboot USB identity was
+observed:
+
+```text
+FASTBOOT_DISAPPEAR_TIMESTAMP=2026-09-10T13:07:02.427Z
+FASTBOOT_REAPPEAR_TIMESTAMP=2026-09-10T13:07:06.919Z
+AUTOMATIC_FASTBOOT_REAPPEAR=YES
+ELAPSED=4.492s
+OBSERVATION_WINDOW=12s
+M4B_REFERENCE=4.755s
+M5B_BASELINE_4P7S_RETURN_SUPPRESSED=NO
+MANUAL_RECOVERY=NO
+```
+
+The automatic return was inside the defined 4.3–5.3-second historical band. Slot
+metadata after the attempt was `current-slot=b`, retry count 6, and
+`unbootable=no`. Slot A was selected immediately, with no second B boot, and
+Android restored as `_a`, `boot_completed=1`.
+
+### Dumps and conclusion
+
+```text
+baseline oops=36734fcec8fdc29ec90aebfaca96b48777c91e92101b43ff08ab2b71f2afea5d
+post oops=f000538f9ab29f1578d6e5e50baa668c948cea7b2ad0dfb63ee1fcc5fb38a4a4 CHANGED
+pstore entries baseline/post=0/0
+minidump=e8caa0f3d96e1329070bd93062d3d728bcb19bc54694df65abe47310fa96d04a UNCHANGED
+rawdump=254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917 UNCHANGED
+logdump=3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351 UNCHANGED
+
+M5B_CODE0_HANDOFF_EFFECT=NO
+MAINLINE_CODE0_MZ_EFI_VS_RAW_HANDOFF_CAUSAL=NOT_SUPPORTED
+MAINLINE_PRIMARY_ENTRY_EXECUTION=NOT_CONFIRMED
+ABL_TO_MAINLINE_ENTRY=NOT_CONFIRMED
+FINAL_GATE=MAINLINE_V2_M5B_DIRECT_ENTRY_NO_EFFECT
+```
+
+The four-byte `code0`/MZ change was not sufficient to alter the 4.7-second return.
+No claim is made about a `ccmp` crash or ABL rejecting EFI. The next proposed stage
+is `MAINLINE_V2_M5C_IMAGE_HEADER_FIELD_ISOLATION`, focused on remaining Image
+header/load semantics. M5C awaits explicit approval and was not executed.
