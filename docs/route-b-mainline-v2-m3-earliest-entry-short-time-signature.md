@@ -1,6 +1,6 @@
 # Route B Mainline V2 M3 — earliest-entry short time signature
 
-Status: CI implementation prepared; no M3 device boot has been performed.
+Status: CI gate passed; no M3 device boot has been performed.
 M3 is a single-purpose Slot B experiment. It changes only the `boot_b` kernel
 payload and does not change the M1 DT context, ramdisk, vbmeta, firmware, or
 Slot A.
@@ -60,15 +60,15 @@ return from `preserve_boot_args` and immediately before `create_idmap`. This is
 strictly earlier than the historical M2 block, which was after `init_kernel_el`
 and `mov x20, x0`, before `__cpu_setup`.
 
-The CI report emits byte and line offsets and must contain:
+The CI report for run `34432765989` emits:
 
 ```text
 M2_CHECKPOINT_FILE=arch/arm64/kernel/head.S
 M2_CHECKPOINT_SYMBOL=primary_entry
-M2_CHECKPOINT_OFFSET=...
+M2_CHECKPOINT_OFFSET=byte:3652,line:126
 M3_CHECKPOINT_FILE=arch/arm64/kernel/head.S
 M3_CHECKPOINT_SYMBOL=primary_entry
-M3_CHECKPOINT_OFFSET=...
+M3_CHECKPOINT_OFFSET=byte:2920,line:93
 M3_EARLIER_THAN_M2=YES
 M3_POSITION_BEFORE_M2=YES
 ```
@@ -173,6 +173,21 @@ instrumentation is CI-only:
 ```text
 EXPERIMENTAL_INSTRUMENTATION=YES
 FINAL_MAINLINE_PATCH=NO
+```
+
+CI result:
+
+```text
+CI_RUN=34432765989
+CI_COMMIT=a8e91bc68def8f0b8edf688ba9da42eec31ed2e6
+CI_RESULT=success
+CI_ACTIONLINT=PASS
+ARTIFACT=thyme-mainline-v2-m3-early-short-delay-a8e91bc68def8f0b8edf688ba9da42eec31ed2e6
+IMAGE_SHA256=396532942ef01e1965ebf3d49ff41271581833c1d29e43c51a580d5d81694e7f
+BOOT_SHA256=80afd2859333ea47d3aaa1fbdf6ec8cc678e65510de96c8f3671baad99d1a7ff
+M3_PATCH_SHA256=69e765a39abd60e35921d1f86310456ac7b6956bbe5c652041334dd9a19fde60
+BOOT_IMAGE_SIZE=35110912
+FINAL_CI_GATE=READY_FOR_MAINLINE_V2_M3_EARLY_SHORT_DELAY
 ```
 
 Required CI gate:
@@ -364,23 +379,23 @@ M2 20s signature: NOT_OBSERVED
 watchdog caveat: RECORDED
 
 M3:
-checkpoint file:
-checkpoint symbol:
-checkpoint offset:
-position vs M2:
-M2 checkpoint offset:
+checkpoint file: arch/arm64/kernel/head.S
+checkpoint symbol: primary_entry
+checkpoint offset: byte:2920,line:93
+position vs M2: earlier; M3_POSITION_BEFORE_M2=YES
+M2 checkpoint offset: byte:3652,line:126
 timer: CNTFRQ_EL0+CNTPCT_EL0
 delay: 2s
 scratch registers: x0,x1,x2,x3
 boot args preserved: YES
 
 CI:
-run:
-commit:
-artifact:
-Image SHA:
-boot SHA:
-patch SHA:
+run: 34432765989
+commit: a8e91bc68def8f0b8edf688ba9da42eec31ed2e6
+artifact: thyme-mainline-v2-m3-early-short-delay-a8e91bc68def8f0b8edf688ba9da42eec31ed2e6
+Image SHA: 396532942ef01e1965ebf3d49ff41271581833c1d29e43c51a580d5d81694e7f
+boot SHA: 80afd2859333ea47d3aaa1fbdf6ec8cc678e65510de96c8f3671baad99d1a7ff
+patch SHA: 69e765a39abd60e35921d1f86310456ac7b6956bbe5c652041334dd9a19fde60
 
 Exact reuse:
 ramdisk:
