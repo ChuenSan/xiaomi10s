@@ -125,21 +125,13 @@ validate_sha_output() {
 }
 
 parse_decimal() {
-	if [ "$#" -eq 0 ]; then
-		validate_decimal_output
-	else
-		local raw="$1"
-		printf '%s\n' "$raw" | validate_decimal_output
-	fi
+	local raw="$1"
+	printf '%s\n' "$raw" | validate_decimal_output
 }
 
 parse_sha() {
-	if [ "$#" -eq 0 ]; then
-		validate_sha_output
-	else
-		local raw="$1"
-		printf '%s\n' "$raw" | validate_sha_output
-	fi
+	local raw="$1"
+	printf '%s\n' "$raw" | validate_sha_output
 }
 
 ADB="${ADB:-adb}"
@@ -237,7 +229,8 @@ verify_partition() {
 	local artifact_sha="$4"
 	local artifact_name="$5"
 	local device_path="/dev/block/by-name/$partition"
-	local path partition_size prefix_count prefix_raw prefix_sha whole_sha whole_raw
+	local path partition_size partition_raw prefix_count prefix_count_raw prefix_raw
+	local prefix_sha prefix_sha_raw whole_sha whole_raw parsed_whole
 	local read_limit="$artifact_size"
 
 	case "$partition" in
@@ -249,8 +242,11 @@ verify_partition() {
 	if [ "$MODE" = fixture ]; then
 		path="$FIXTURE_DIR/$partition"
 		[ -f "$path" ] || fail "fixture partition missing: $path"
-		if ! partition_size="$(wc -c < "$path" | tr -d '[:space:]' | parse_decimal)"; then
+		if ! partition_raw="$(wc -c < "$path" | tr -d '[:space:]')"; then
 			fail "cannot query fixture partition size: $partition"
+		fi
+		if ! partition_size="$(parse_decimal "$partition_raw")"; then
+			fail "fixture partition size is invalid: $partition"
 		fi
 		if [ "$FIXTURE_READ_LIMIT_PARTITION" = "$partition" ]; then
 			read_limit="$FIXTURE_READ_LIMIT"
@@ -261,10 +257,16 @@ verify_partition() {
 		if ! prefix_raw="$(fixture_measure "$path" "$read_limit")"; then
 			fail "fixture prefix read failed: $partition"
 		fi
-		if ! prefix_count="$(printf '%s\n' "$prefix_raw" | sed -n '1p' | parse_decimal)"; then
+		if ! prefix_count_raw="$(printf '%s\n' "$prefix_raw" | sed -n '1p')"; then
+			fail "fixture prefix byte count extraction failed: $partition"
+		fi
+		if ! prefix_count="$(parse_decimal "$prefix_count_raw")"; then
 			fail "fixture prefix byte count is invalid: $partition"
 		fi
-		if ! prefix_sha="$(printf '%s\n' "$prefix_raw" | sed -n '2p' | parse_sha)"; then
+		if ! prefix_sha_raw="$(printf '%s\n' "$prefix_raw" | sed -n '2p')"; then
+			fail "fixture prefix SHA extraction failed: $partition"
+		fi
+		if ! prefix_sha="$(parse_sha "$prefix_sha_raw")"; then
 			fail "fixture prefix SHA is invalid: $partition"
 		fi
 	else
