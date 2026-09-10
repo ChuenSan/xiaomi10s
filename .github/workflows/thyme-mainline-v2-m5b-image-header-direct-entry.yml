@@ -1,0 +1,121 @@
+name: thyme-mainline-v2-m5b-image-header-direct-entry
+
+# CI-only deterministic transformation of the exact M4B Image and boot artifact.
+# No kernel/initramfs rebuild and no device operation.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m5b-image-header-direct-entry.yml'
+      - 'scripts/mainline-v2-m5b-ci-transform.py'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-mainline-v2-m5b-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  M4B_RUN_ID: "34464472317"
+  M4B_COMMIT: ace24d1c4f9537ab8726c551fa0d88155b581f7a
+  M4B_ARTIFACT_NAME: thyme-mainline-v2-m4b-entry-spin-ace24d1c4f9537ab8726c551fa0d88155b581f7a
+  EXPECTED_M4B_IMAGE_SHA256: 52e429db5ba7ba411598625f706dc11d3d7c247458a932969e9913db0d1511a2
+  EXPECTED_M4B_BOOT_SHA256: 622a09516ddfcda7efad3cc42b92d2c205130ba7b0a8cf8cbba32c26a822b4c0
+  RELEASE_DIR: out-release
+
+jobs:
+  artifact:
+    name: M5B exact M4B code0 direct-entry control
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout pinned public transformation source
+        uses: actions/checkout@v4
+
+      - name: Lint workflow source in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-mainline-v2-m5b-image-header-direct-entry.yml
+
+      - name: Download exact authoritative M4B artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.M4B_ARTIFACT_NAME }}
+          path: m4b-artifact
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.M4B_RUN_ID }}
+
+      - name: Verify exact M4B artifact identity before transformation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s m4b-artifact/Image
+          test -s m4b-artifact/mainline-v2-m4b-entry-spin-boot-v3.img
+          test -s m4b-artifact/validation-report.txt
+          test "$(sha256sum m4b-artifact/Image | awk '{print $1}')" = "$EXPECTED_M4B_IMAGE_SHA256"
+          test "$(sha256sum m4b-artifact/mainline-v2-m4b-entry-spin-boot-v3.img | awk '{print $1}')" = "$EXPECTED_M4B_BOOT_SHA256"
+          grep -Fq 'READY_FOR_MAINLINE_V2_M4B_ENTRY_SPIN' m4b-artifact/validation-report.txt
+          echo "M4B_RUN_ID=$M4B_RUN_ID"
+          echo "M4B_COMMIT=$M4B_COMMIT"
+          echo "M4B_ARTIFACT_NAME=$M4B_ARTIFACT_NAME"
+          echo "M4B_IMAGE_SHA_EXACT=PASS"
+          echo "M4B_BOOT_SHA_EXACT=PASS"
+
+      - name: Install AArch64 disassembler
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y binutils-aarch64-linux-gnu
+          aarch64-linux-gnu-objdump --version | head -1
+
+      - name: Transform exact M4B code0 and run all binary gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/mainline-v2-m5b-ci-transform.py m4b-artifact "$RELEASE_DIR"
+
+      - name: Assert final artifact scope and hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          ( cd "$RELEASE_DIR" && sha256sum -c SHA256SUMS )
+          python3 - "$RELEASE_DIR" <<'PY'
+          from pathlib import Path
+          import sys
+
+          root = Path(sys.argv[1])
+          expected = {
+              "mainline-v2-m5b-direct-entry-spin-boot-v3.img",
+              "Image",
+              "binary-diff-report.txt",
+              "Image-header-before-after-report.txt",
+              "disassembly-proof.txt",
+              "SHA256SUMS",
+              "validation-report.txt",
+          }
+          actual = {path.name for path in root.iterdir()}
+          if actual != expected:
+              raise SystemExit(f"artifact scope mismatch: {sorted(actual)}")
+          forbidden = [
+              path for path in root.rglob("*")
+              if any(token in path.name.lower() for token in
+                     ("vendor_boot", "dtbo", "vbmeta", "firmware"))
+          ]
+          if forbidden:
+              raise SystemExit(f"forbidden artifact: {forbidden}")
+          print("NO_VENDOR_BOOT_ARTIFACT=PASS")
+          print("NO_DTBO_ARTIFACT=PASS")
+          print("READY_FOR_MAINLINE_V2_M5B_DIRECT_ENTRY_CONTROL")
+          PY
+
+      - name: Upload M5B artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-mainline-v2-m5b-direct-entry-${{ github.sha }}
+          if-no-files-found: error
+          path: out-release/**
