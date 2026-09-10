@@ -216,6 +216,37 @@ READY_FOR_MAINLINE_V2_M3_EARLY_SHORT_DELAY
 
 Otherwise: `NO DEVICE TEST`.
 
+## M1 context gate hash-domain correction
+
+The original M3 read-only preflight was stopped as `MAINLINE_V2_M3_NOT_SAFE`
+because it compared whole physical partition SHA256 values with the smaller
+M1 artifact-file SHA256 values. The audit result was
+`M1_CONTEXT_INTACT_HASH_DOMAIN_MISMATCH`; it did not establish M1 context
+drift. The corrected verifier is:
+
+```text
+scripts/mainline-v2-m1-context-check.sh
+```
+
+It identifies each artifact with authoritative `ARTIFACT_SIZE` and
+`ARTIFACT_SHA256` metadata from private CI run `34338768052`, reads exactly the
+first N bytes of the corresponding device partition, and compares only that
+prefix SHA256 with the artifact SHA256. The whole partition SHA256 is recorded
+as observation-only and has `WHOLE_HASH_GATE=NO`.
+
+Authoritative metadata:
+
+```text
+vendor_boot: N=114688 SHA256=29ba377ecae631273103f944d9833070c25e7c4dd2f0b7fce439cc2c80d9d1e5
+dtbo:        N=387    SHA256=316c12d9bbff26072f0924a9bd4b9d524c0dd2869b73e9743a0fb441af15d9c1
+```
+
+Synthetic prefix-domain tests run only in GitHub Actions through
+`.github/workflows/thyme-mainline-v2-m1-context-gate.yml`. No device operation
+is part of that workflow. See
+`docs/mainline-v2-m1-context-hash-domain-audit.md` for the test matrix and
+read-only boundary.
+
 ## M1 DT context freeze
 
 The only device payload change permitted for M3 is `boot_b`:

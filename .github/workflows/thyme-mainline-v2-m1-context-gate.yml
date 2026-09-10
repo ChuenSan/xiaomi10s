@@ -1,0 +1,35 @@
+name: thyme-mainline-v2-m1-context-gate
+
+# Verify the frozen M1 context over the artifact-byte domain. This workflow
+# creates only synthetic fixtures; it does not build or access a device.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m1-context-gate.yml'
+      - 'scripts/mainline-v2-m1-context-check.sh'
+      - 'scripts/mainline-v2-m1-context-metadata.env'
+      - 'scripts/test-mainline-v2-m1-context-check.sh'
+      - 'docs/mainline-v2-m1-context-hash-domain-audit.md'
+      - 'docs/route-b-mainline-v2-m3-earliest-entry-short-time-signature.md'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-mainline-v2-m1-context-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  context-gate:
+    name: M1 prefix-domain synthetic context gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Run synthetic prefix-domain and fail-closed tests
+        shell: bash
+        run: bash scripts/test-mainline-v2-m1-context-check.sh
