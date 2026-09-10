@@ -1,7 +1,7 @@
 # Route B Mainline V2 M4B — earliest-entry spin proof
 
-Status: implementation prepared; GitHub Actions and the one-shot device gate are pending.
-Final gate is not assigned until the CI artifact and true-device observation exist.
+Status: CI gate passed; one-shot Slot B device test is pending explicit approval.
+Final device gate is not assigned until the single B observation exists.
 
 This experiment is intentionally narrower than M1–M3. It changes only the Mainline
 `boot_b` kernel payload and places one unconditional branch at the first instruction
@@ -171,6 +171,41 @@ READY_FOR_MAINLINE_V2_M4B_ENTRY_SPIN
 ```
 
 If any gate fails, no device operation is safe.
+
+## Completed CI run
+
+```text
+CI_RUN=34464472317
+CI_COMMIT=ace24d1c4f9537ab8726c551fa0d88155b581f7a
+CI_RESULT=success
+CI_ACTIONLINT=PASS
+ARTIFACT=thyme-mainline-v2-m4b-entry-spin-ace24d1c4f9537ab8726c551fa0d88155b581f7a
+KERNEL_VERSION=6.6.156
+LINUX_BASE_COMMIT=8b73de7da85fde281a385e0b26eda9bffd3ca477
+IMAGE_SHA256=52e429db5ba7ba411598625f706dc11d3d7c247458a932969e9913db0d1511a2
+BOOT_SHA256=622a09516ddfcda7efad3cc42b92d2c205130ba7b0a8cf8cbba32c26a822b4c0
+PATCH_SHA256=30738f0e27f8ecc2d44a3a6e9c9c86b2d1991dfe1b7ba2bfa317448c1bba0833
+BOOT_IMAGE_SIZE=35110912
+FINAL_CI_GATE=READY_FOR_MAINLINE_V2_M4B_ENTRY_SPIN
+LOCAL_BUILD=NO
+DEVICE_TEST=NOT_RUN
+```
+
+Disassembly of the built `vmlinux` `primary_entry`:
+
+```text
+ffff800081b1c0a0 <primary_entry>:
+ffff800081b1c0a0:       14000000        b       ffff800081b1c0a0 <primary_entry>
+ffff800081b1c0a4:       94007464        bl      ffff800081b39234 <record_mmu_state>
+```
+
+The Image header at `_text+4` is `b primary_entry` (`0x146c7027`), and the first
+word at Image offset `0x1b1c0a0` is `0x14000000` (`b .`). That is the earliest
+instruction inside `primary_entry`; the Image still has the required header
+trampoline `efi_signature_nop; b primary_entry` before that symbol.
+
+M3 timer instrumentation is absent. The exact M0/M1 P15 ramdisk and `/init` were
+reused. No `vendor_boot`, `dtbo`, `vbmeta`, or firmware artifact was emitted.
 
 ## Frozen M1 context
 
