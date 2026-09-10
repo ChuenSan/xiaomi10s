@@ -1,0 +1,65 @@
+name: thyme-mainline-v2-m5d-public-source-audit
+
+# Public source audit only. Exact Stock 4.19 input stays private; all binary
+# transformation, disassembly, validation, and artifact upload run in Actions.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m5d-pe-header-offset-zero-control.yml'
+      - 'scripts/mainline-v2-m5d-ci-transform.py'
+      - 'docs/route-b-mainline-v2-m5d-pe-header-offset-zero-control.md'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m5d-pe-header-offset-zero-control.yml'
+      - 'scripts/mainline-v2-m5d-ci-transform.py'
+      - 'docs/route-b-mainline-v2-m5d-pe-header-offset-zero-control.md'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-mainline-v2-m5d-public-source-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: M5D public source audit (no binary transformation)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-mainline-v2-m5d-pe-header-offset-zero-control.yml
+
+      - name: Assert CI-only boundary and pinned identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          script=scripts/mainline-v2-m5d-ci-transform.py
+          grep -Fq 'GITHUB_ACTIONS' "$script"
+          grep -Fq 'e0f1fa08555a9134f44af62d9f96258fa9903ec49052aa906aac6cb8a1365e35' "$script"
+          grep -Fq '66a001eb8065f64e879be5a9cef199fae2c8e7a4587f583d2d4581f8429083ec' "$script"
+          grep -Fq '6b5689c99f56f42757e97c65ddd093f289c124f70f856261934c502501d0570a' "$script"
+          grep -Fq '85807cd4537c7c0a451c39db97a472afa00a96c8aeed9047106e8b8791c2a13a' "$script"
+          grep -Fq '01a36888696f7d34c98d6c91c74dab3ea6a1fa5acb32730e149cdd73b0af2afd' "$script"
+          grep -Fq 'READY_FOR_MAINLINE_V2_M5D_PE_OFFSET_ZERO_CONTROL' "$script"
+          echo 'M5D_PUBLIC_SOURCE_AUDIT=PASS'
+          echo 'LOCAL_BINARY_VALIDATION=NO'
+
+      - name: Assert public repository contains no private Stock input
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e MIUI14ROM/image/boot.img
+          if git ls-files | grep -Ei '(^|/)(stock-kernel|stage4).*(boot|Image).*\.(img|bin)$'; then
+            echo 'tracked private Stock binary found' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_STOCK_BINARY_TRACKING=PASS'
+          echo 'PRIVATE_M5D_BUILDER=ChuenSan/thyme-mainline-private-ci'
