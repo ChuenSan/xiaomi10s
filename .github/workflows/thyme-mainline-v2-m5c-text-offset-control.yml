@@ -1,0 +1,65 @@
+name: thyme-mainline-v2-m5c-public-source-audit
+
+# Public source audit only. Exact Stock 4.19 input is private; binary
+# transformation, disassembly, validation, and artifact upload run in
+# ChuenSan/thyme-mainline-private-ci.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m5c-text-offset-control.yml'
+      - 'scripts/mainline-v2-m5c-ci-transform.py'
+      - 'docs/route-b-mainline-v2-m5c-text-offset-control.md'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m5c-text-offset-control.yml'
+      - 'scripts/mainline-v2-m5c-ci-transform.py'
+      - 'docs/route-b-mainline-v2-m5c-text-offset-control.md'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-mainline-v2-m5c-public-source-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: M5C public source audit (no binary transformation)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-mainline-v2-m5c-text-offset-control.yml
+
+      - name: Assert CI-only boundary and pinned identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          script=scripts/mainline-v2-m5c-ci-transform.py
+          grep -Fq 'GITHUB_ACTIONS' "$script"
+          grep -Fq '502529d643d0907db3cb429e04de60617f0aba5bf6753d693e07f42a6db1bb1f' "$script"
+          grep -Fq '2125ebab7eafc8fdc2c2901138ba41bfe0a61f97d9d898094b9020116937f681' "$script"
+          grep -Fq '6b5689c99f56f42757e97c65ddd093f289c124f70f856261934c502501d0570a' "$script"
+          grep -Fq '85807cd4537c7c0a451c39db97a472afa00a96c8aeed9047106e8b8791c2a13a' "$script"
+          grep -Fq 'READY_FOR_MAINLINE_V2_M5C_TEXT_OFFSET_CONTROL' "$script"
+          echo 'M5C_PUBLIC_SOURCE_AUDIT=PASS'
+          echo 'LOCAL_BINARY_VALIDATION=NO'
+
+      - name: Assert public repository contains no private stock input
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e MIUI14ROM/image/boot.img
+          if git ls-files | grep -Ei '(^|/)(stock-kernel|stage4).*(boot|Image).*\.(img|bin)$'; then
+            echo 'tracked private stock binary found' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_STOCK_BINARY_TRACKING=PASS'
+          echo 'PRIVATE_M5C_BUILDER=ChuenSan/thyme-mainline-private-ci'
