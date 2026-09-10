@@ -1,8 +1,9 @@
 # Route B Mainline V2 M5A — stock kernel entry spin control
 
-Status: CI artifact ready. Final gate:
-`READY_FOR_M5A_STOCK_ENTRY_SPIN_CONTROL`.
-This phase performed no device operation.
+Status: complete. Final gate:
+`MAINLINE_V2_M5A_STOCK_SPIN_SUPPRESSES_4P7S`.
+CI produced the private stock-entry-spin boot. True-device control restored
+exact stock DT on B, flashed that boot once, and observed one Slot B boot.
 
 M4B placed `b .` at Mainline `primary_entry`. The automatic Fastboot return was
 still 4.755s. That does not prove ABL entered Mainline, and it does not prove an
@@ -288,53 +289,171 @@ patched boot SHA:
 No flashable M5A boot or patched stock kernel was uploaded to the public
 repository.
 
-## Device boundary
+## Device boundary used by the true-device run
 
 ```text
-NO ADB DEVICE CHANGE
-NO FASTBOOT
-NO FLASH
-NO SET_ACTIVE
-NO B BOOT
-Slot A: not written
-current B M1 context: not restored in this phase
+LOCAL_BUILD=NO
+LOCAL_VALIDATOR=NO
+GHA_ONLY=YES
+Slot A: NO WRITE / no flash / no erase / no format
+B writes: vendor_boot_b, dtbo_b, boot_b
+vbmeta_b / vbmeta_system_b / firmware: not written
+B boots: 1
+SECOND_B_BOOT_FORBIDDEN=YES
+OEM artifact: private only
 ```
 
-Even if private CI passes, this round stops at the CI artifact.
-
-## Future true-device matrix, not executed
-
-Restore B to stock DT context, then one B boot of the M5A image:
+Hash domain:
 
 ```text
-vendor_boot_b = exact stock V14.0.6.0.TGACNXM
-dtbo_b        = exact stock V14.0.6.0.TGACNXM
-vbmeta_b      = stock
-vbmeta_system_b = stock
-boot_b        = M5A stock-entry-spin boot
+stock vendor_boot.img size == vendor_boot_b == 100663296
+  STOCK_VENDOR_BOOT_FULL_PARTITION_DOMAIN=YES
+stock dtbo.img size == dtbo_b == 33554432
+  STOCK_DTBO_FULL_PARTITION_DOMAIN=YES
+M5A boot artifact size N=52674560
+boot_b partition size=201326592
+  device boot identity = first N bytes, not whole partition SHA
 ```
 
-Do not keep the M1 Mainline DT context for this control. A 4.7s return on stock
-kernel + Mainline DT would mix two variables.
+## Completed true-device control
 
-Timing interpretation, future only:
+Pre-write B was still the M1 Mainline DT context plus the M4B boot prefix:
 
 ```text
-Case A  >12s, no automatic Fastboot return
-  UNCONDITIONAL_EXTERNAL_4P7S_WATCHDOG = REFUTED / NOT SUPPORTED
-  STOCK_ENTRY_SPIN_EXECUTION = STRONGLY_CONFIRMED
-  with M4B still 4.755s:
-    MAINLINE_M4B_ENTRY_EXECUTION = LIKELY_NOT_REACHED
-  next: MAINLINE_BOOTLOADER_ACCEPTANCE / RAW IMAGE ENTRY
-
-Case B  still ~4.3-5.3s automatic Fastboot return
-  EXTERNAL_4P7S_RESET_WITH_KNOWN_EXECUTABLE_STOCK_KERNEL = SUPPORTED
-  next: bootloader/firmware watchdog control
+MEM0_READ_BEFORE_M5A=YES
+MEM0_READ_BEFORE_TRUE_DEVICE_WRITE=YES
+Android A: slot_suffix=_a boot_completed=1 root uid=0
+boot_b prefix 35110912 = 622a09516ddfcda7efad3cc42b92d2c205130ba7b0a8cf8cbba32c26a822b4c0  (M4B)
+vendor_boot_b prefix 114688 = 29ba377ecae631273103f944d9833070c25e7c4dd2f0b7fce439cc2c80d9d1e5  (M1)
+vendor_boot_b whole = 3fd702b13ae87cd6e53c1fb8ae8ae053f300de5f7a3da760dd42f568a91b9614
+dtbo_b prefix 387 = 316c12d9bbff26072f0924a9bd4b9d524c0dd2869b73e9743a0fb441af15d9c1  (M1)
+dtbo_b whole = b8127f44ea27080ea2852dc806a58dd5c3ae47616a6c0d50bfe83b3972fd001a
+vbmeta_b prefix 8192 = 37dfac44f336157d69b616e3567cdccff90273b36cd862a86f57abe1930f9d9c
+vbmeta_system_b prefix 4096 = 3217455014b5bb0cc05b638489589738863aeb6cc6b9423d56989b21fa8b8355
+xbl_b/abl_b/tz_b prefixes = stock
 ```
+
+Local stock ROM files were rehashed, not re-downloaded:
+
+```text
+vendor_boot.img size=100663296 SHA=aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972
+dtbo.img size=33554432 SHA=018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634
+```
+
+Private M5A boot, not regenerated:
+
+```text
+filename=m5a-stock-entry-spin-boot-v3.img
+M5A_BOOT_ARTIFACT_SIZE=52674560
+SHA256=790ee1265a5c2419e815870d43d6e34c60195e380aba772c55ccc7fa3aa5c141
+```
+
+Phase 1 restored stock DT only, then returned to Android A without booting B:
+
+```text
+fastboot: product=thyme unlocked=yes current-slot=a snapshot=none battery-soc-ok=yes
+retry:b before=6 unbootable:b=no
+WRITE: vendor_boot_b, dtbo_b
+DO NOT WRITE: boot_b, vbmeta*, firmware, *_a
+post-phase1 Android A:
+  vendor_boot_b whole = aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972
+  dtbo_b whole = 018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634
+  boot_b still M4B prefix
+  vbmeta*/firmware still stock
+M5A_STOCK_DT_CONTEXT_VERIFIED=YES
+```
+
+Phase 2 wrote only `boot_b`, then returned to Android A again:
+
+```text
+retry:b after boot flash=7 unbootable:b=no current-slot=a
+boot_b first 52674560 = 790ee1265a5c2419e815870d43d6e34c60195e380aba772c55ccc7fa3aa5c141
+M5A_DEVICE_BOOT_PREFIX_MATCH=YES
+whole boot_b = 1e44f7e823e4f680d4db92706b31f2e90569a4ff81aed4bc71bb945978e2d585  (observation only)
+vendor_boot_b / dtbo_b / vbmeta* / firmware still stock
+M5A_FULL_CONTROL_CONTEXT_VERIFIED=YES
+```
+
+Dump baseline immediately before the B boot, not cleared:
+
+```text
+oops=52ce2f2c6a13f5736b752df3ac901e75e44ebdd4244bf8005ada9c778491f783
+minidump=e8caa0f3d96e1329070bd93062d3d728bcb19bc54694df65abe47310fa96d04a
+rawdump=254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917
+logdump=3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351
+pstore_entries=0
+```
+
+One B boot only:
+
+```text
+set_active b: current-slot=b unbootable=no retry=7
+fastboot reboot: once
+SECOND_B_BOOT_FORBIDDEN=YES
+USB evidence: 18d1:d00d Fastboot identity only
+T_DISAPPEAR=2026-09-10T12:17:30.788Z
+HARD_WINDOW=12s
+T_REAPPEAR within 12s=NOT_OBSERVED
+AUTOMATIC_FASTBOOT_REAPPEAR=NO
+M1/M2/M3/M4B cluster 4.598-4.821s, M4B=4.755s: SUPPRESSED
+```
+
+Fastboot was reachable after the hard window. The agent did not press keys and
+did not issue an ordinary reboot on slot B. Recovery was `set_active a` from
+Fastboot, then one reboot to Android A.
+
+```text
+after B attempt: current-slot=b retry:b=6 unbootable:b=no
+set_active a: current-slot=a
+Android A restored: slot_suffix=_a boot_completed=1 root uid=0
+B not restored to M1 context
+NO M5B EXECUTED=YES
+```
+
+Post-test dumps:
+
+```text
+oops=9357ee68bf56669bbaf4a930829b107a745a7ca9717b075618f87726cfa1a9db  CHANGED
+minidump/rawdump/logdump = unchanged vs pre-B-boot and vs M4B
+pstore_entries=0
+Linux 6.6 / mainline / watchdog strings: none
+oops reboot,bootloader records: stock Android init `/system/bin/reboot`
+  (Android A `adb reboot bootloader` / recovery reboot), not a kernel watchdog
+```
+
+## Classification
+
+This is Case A of the approved matrix.
+
+```text
+STOCK_SPIN_BASELINE_RETURN_SUPPRESSED=YES
+STOCK_ENTRY_SPIN_CONTROL_FLOW_EFFECT=YES
+STOCK_RAW_ENTRY_EXECUTION=STRONGLY_CONFIRMED
+UNCONDITIONAL_KERNEL_INDEPENDENT_4P7S_WATCHDOG=REFUTED_BY_CONTROL
+UNCONDITIONAL_4P7S_EXTERNAL_WATCHDOG=REFUTED_BY_CONTROL
+MAINLINE_PRE_ENTRY_OR_HANDOFF_FAILURE_HYPOTHESIS=STRONGLY_SUPPORTED
+ABL_REJECTED_MAINLINE_IMAGE=NOT_ASSERTED
+```
+
+The known-good Stock 4.19 Image, already proven through ABL to userspace HTTP,
+remained past 12s after its first instruction was replaced with `b .`. The
+Mainline M4B `b .` at `primary_entry` still returned at 4.755s. There is no
+single mechanism that sends every payload back to Fastboot at ~4.7s regardless
+of kernel execution.
+
+That does not prove ABL rejected the Mainline Image. The remaining range is
+pre-`primary_entry` / handoff: Image header compatibility, EFI/PE layout,
+entry address, decompression/relocation, or bootloader validation.
 
 ## Next
 
 ```text
-M5A TRUE DEVICE CONTROL
-WAIT FOR USER APPROVAL
+NEXT=MAINLINE_V2_M5B_IMAGE_HEADER_HANDOFF_CONTROL
+NOT=EXTERNAL_WATCHDOG_CHARACTERIZATION
+NO M5B EXECUTED=YES
 ```
+
+Compare Stock 4.19 Image header (`code0` direct `b stext`, `code1=0`, PE=0,
+`CONFIG_EFI` off) with Mainline 6.6 (`efi_signature_nop`, `b primary_entry`,
+EFI/PE layout). Change only Mainline header/handoff compatibility. Do not
+change the kernel body in M5B unless a later gate says so.
