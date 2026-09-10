@@ -118,9 +118,11 @@ PREFIX_MISMATCH_FAIL_CLOSED=PASS
 WHOLE_SHA_NOT_USED_AS_ARTIFACT_GATE=PASS
 ```
 
-Required CI final gate:
+GHA result for commit `81ae2b268688133795463441446f5e19815402fc`:
 
 ```text
+CI_RUN=34442084099
+CI_RESULT=success
 M1_CONTEXT_ARTIFACT_METADATA=PASS
 VENDOR_BOOT_PREFIX_DOMAIN=PASS
 DTBO_PREFIX_DOMAIN=PASS
@@ -128,6 +130,11 @@ NON_ALIGNED_387_BYTE_READ=PASS
 TAIL_PRESERVATION_MODEL=PASS
 WHOLE_HASH_OBSERVATION_ONLY=PASS
 FAIL_CLOSED=PASS
+HASH_DOMAIN_PREFIX_NOT_WHOLE=PASS
+NON_BLOCK_ALIGNED_PREFIX_387=PASS
+TAIL_BYTES_IGNORED_FOR_ARTIFACT_IDENTITY=PASS
+PREFIX_MISMATCH_FAIL_CLOSED=PASS
+WHOLE_SHA_NOT_USED_AS_ARTIFACT_GATE=PASS
 READY_FOR_M3_CONTEXT_READONLY_RECHECK
 ```
 
@@ -148,20 +155,37 @@ vendor_boot_b whole SHA256:   3fd702b13ae87cd6e53c1fb8ae8ae053f300de5f7a3da760dd
  dtbo_b whole SHA256:          b8127f44ea27080ea2852dc806a58dd5c3ae47616a6c0d50bfe83b3972fd001a
 ```
 
-For the corrected Android A recheck, the required outputs are:
+Corrected Android A read-only recheck at `2026-09-10T05:44:42Z`:
 
 ```text
+slot_suffix=_a
+boot_completed=1
+
+vendor_boot_b partition size=100663296
+vendor_boot_b prefix N=114688
+vendor_boot_b prefix SHA256=29ba377ecae631273103f944d9833070c25e7c4dd2f0b7fce439cc2c80d9d1e5
+vendor_boot_b whole SHA256=3fd702b13ae87cd6e53c1fb8ae8ae053f300de5f7a3da760dd42f568a91b9614
 M1_VENDOR_BOOT_PREFIX_MATCH=YES
+
+dtbo_b partition size=33554432
+dtbo_b prefix N=387
+dtbo_b prefix SHA256=316c12d9bbff26072f0924a9bd4b9d524c0dd2869b73e9743a0fb441af15d9c1
+dtbo_b whole SHA256=b8127f44ea27080ea2852dc806a58dd5c3ae47616a6c0d50bfe83b3972fd001a
 M1_DTBO_PREFIX_MATCH=YES
+
 WHOLE_HASH_GATE=NO
+vbmeta_b=stock
+vbmeta_system_b=stock
+firmware_prefixes=xbl_b,abl_b,tz_b MATCH_STOCK
+M3_BOOT_SHA256=80afd2859333ea47d3aaa1fbdf6ec8cc678e65510de96c8f3671baad99d1a7ff
+M3_BOOT_ARTIFACT_MATCH=YES
+M3_CONTEXT_PREFLIGHT_SAFE=YES
+M3_CONTEXT_GATE_FIXED_AND_READONLY_PASS
 ```
 
-`vbmeta_b` and `vbmeta_system_b` remain stock observations. The M3 boot
-artifact remains read-only and unchanged:
-
-```text
-80afd2859333ea47d3aaa1fbdf6ec8cc678e65510de96c8f3671baad99d1a7ff
-```
+The firmware prefix observation covered `xbl_b` (`3575808` bytes), `abl_b`
+(`208896` bytes), and `tz_b` (`3190784` bytes); each matched the known stock
+image prefix. No full firmware re-audit was performed.
 
 ## Current safety boundary
 

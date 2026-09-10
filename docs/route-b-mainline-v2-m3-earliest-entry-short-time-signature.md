@@ -247,6 +247,13 @@ is part of that workflow. See
 `docs/mainline-v2-m1-context-hash-domain-audit.md` for the test matrix and
 read-only boundary.
 
+The fix passed GHA run `34442084099` at commit
+`81ae2b268688133795463441446f5e19815402fc`. The corrected Android A recheck
+returned both prefix matches, recorded whole hashes with
+`WHOLE_HASH_GATE=NO`, confirmed stock `vbmeta_b`/`vbmeta_system_b`, and ended
+with `M3_CONTEXT_GATE_FIXED_AND_READONLY_PASS`. No device write or B boot was
+performed.
+
 ## M1 DT context freeze
 
 The only device payload change permitted for M3 is `boot_b`:
