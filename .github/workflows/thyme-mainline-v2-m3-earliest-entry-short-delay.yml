@@ -181,10 +181,10 @@ jobs:
         working-directory: ${{ env.LINUX_DIR }}
         run: |
           set -euo pipefail
-          make $MAKEARGS defconfig
+          make O=out ARCH=arm64 LLVM=1 defconfig
           ./scripts/kconfig/merge_config.sh -m -O out out/.config \
             "$GITHUB_WORKSPACE/configs/thyme-route-b.config"
-          make $MAKEARGS olddefconfig
+          make O=out ARCH=arm64 LLVM=1 olddefconfig
           for symbol in ARM64 MMU BINFMT_ELF BLK_DEV_INITRD RD_GZIP PRINTK; do
             grep -Eq "^CONFIG_${symbol}=y$" out/.config || {
               echo "missing CONFIG_${symbol}=y" >&2
@@ -197,7 +197,7 @@ jobs:
         working-directory: ${{ env.LINUX_DIR }}
         run: |
           set -o pipefail
-          make $MAKEARGS -j"$(nproc)" Image 2>&1 | tee "$RUNNER_TEMP/thyme-mainline-v2-m3-build.log"
+          make O=out ARCH=arm64 LLVM=1 -j"$(nproc)" Image 2>&1 | tee "$RUNNER_TEMP/thyme-mainline-v2-m3-build.log"
 
       - name: Record built kernel identity
         working-directory: ${{ env.LINUX_DIR }}
@@ -207,7 +207,7 @@ jobs:
           VMLINUX="out/vmlinux"
           test -s "$IMAGE"
           test -s "$VMLINUX"
-          kernel_version=$(make $MAKEARGS -s kernelversion)
+          kernel_version=$(make O=out ARCH=arm64 LLVM=1 -s kernelversion)
           case "$kernel_version" in
             6.6.*) ;;
             *) echo "unexpected kernel version: $kernel_version" >&2; exit 1 ;;
