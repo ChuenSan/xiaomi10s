@@ -1,0 +1,75 @@
+name: thyme-mainline-v2-m5a-public-source-audit
+
+# Public source audit only. No OEM binary, no Stage4 boot download, and no
+# flashable M5A artifact. The private builder lives in PRIVATE repository
+# ChuenSan/thyme-mainline-private-ci.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m5a-stock-entry-spin-control.yml'
+      - 'scripts/m5a_stock_kernel_entry_spin.py'
+      - 'scripts/m5a-stock-kernel-entry-spin-ci-validate.sh'
+      - 'scripts/m5a-stock-kernel-entry-spin-source-gates.py'
+      - 'docs/route-b-mainline-v2-m5a-stock-entry-spin-control.md'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m5a-stock-entry-spin-control.yml'
+      - 'scripts/m5a_stock_kernel_entry_spin.py'
+      - 'scripts/m5a-stock-kernel-entry-spin-ci-validate.sh'
+      - 'scripts/m5a-stock-kernel-entry-spin-source-gates.py'
+      - 'docs/route-b-mainline-v2-m5a-stock-entry-spin-control.md'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-mainline-v2-m5a-public-source-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: M5A public source audit (no OEM)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+
+      - name: Lint workflow source
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-mainline-v2-m5a-stock-entry-spin-control.yml
+
+      - name: Assert public repository contains no stock binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e MIUI14ROM/image/boot.img
+          test ! -e MIUI14ROM/image/vendor_boot.img
+          test ! -e MIUI14ROM/image/dtbo.img
+          if git ls-files | grep -Ei '(^|/)(boot|vendor_boot|dtbo)\.img$'; then
+            echo 'tracked stock binary found' >&2
+            exit 1
+          fi
+          if git ls-files | grep -Ei '(^|/)(patched-stock-kernel|m5a-stock-entry-spin-boot-v3\.img)$'; then
+            echo 'tracked M5A OEM-derived artifact found' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_STOCK_BINARY_TRACKING=PASS'
+
+      - name: Run M5A public source gates
+        shell: bash
+        run: python3 scripts/m5a-stock-kernel-entry-spin-source-gates.py
+
+      - name: Assert private builder is not in this repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e .github/workflows/thyme-stock-kernel-entry-spin-control.yml
+          grep -Fq 'ChuenSan/thyme-mainline-private-ci' \
+            docs/route-b-mainline-v2-m5a-stock-entry-spin-control.md
+          grep -Fq 'GITHUB_ACTIONS' scripts/m5a-stock-kernel-entry-spin-ci-validate.sh
+          grep -Fq 'GITHUB_ACTIONS' scripts/m5a_stock_kernel_entry_spin.py
+          echo 'PUBLIC_M5A_SOURCE_GATES=PASS'
