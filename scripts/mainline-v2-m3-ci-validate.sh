@@ -223,7 +223,7 @@ for pattern, label in [
 
 if "CNTFRQ must be programmed with the timer frequency" not in booting:
     raise SystemExit("boot protocol CNTFRQ requirement missing")
-if "CNTHCTL_EL2 must have EL1PCTEN (bit 0) set where available" not in booting:
+if not re.search(r"CNTHCTL_EL2\s+must\s+have\s+EL1PCTEN\s+\(bit\s+0\)\s+set\s+where\s+available", booting):
     raise SystemExit("boot protocol EL1 counter-access requirement missing")
 if "either in EL2 (RECOMMENDED" not in booting or "or in EL1." not in booting:
     raise SystemExit("boot protocol EL2/EL1 entry requirement missing")
