@@ -483,12 +483,112 @@ reproduced L2 SHA == 408e5709d8f772c0759a4d8ef427b49329a41f38a98776571ac7252d1b8
 A is then L1 DTS with the marker property omitted. B is the L2 DTS with the
 historical marker inserted into `__overlay__`.
 
-## 19. Measured results
+## 19. Measured results (private CI run 34591653733)
 
-Private CI run: **PENDING**
+Public source commit `4bc0d68dd6d0b78cba37b71efb8cc8462bc598a7`, private
+wrapper commit `35e31fe` (pinned), `dtc 1.7.0`, all gates `PASS`,
+`FAIL_CLOSED=PASS`, 19/19 negative tests PASS. L1 and L2 payloads reproduced
+byte-for-byte before A/B construction.
 
-Until the private run completes, artifact SHAs, marker type/length/raw, merged
-SHAs and READY bits are not recorded here.
+### 19.1 Historical marker encoding
+
+Parsed from authoritative M1 and reproduced L1 (identical):
+
+```text
+path          /fragment@0/__overlay__
+name          qcom,thyme-route-b-noop
+type          EMPTY_BOOLEAN
+byte length   0
+raw bytes     EMPTY
+decoded       <empty>
+M1 present    YES
+L1 present    YES
+Stock entry21 FDT search    ABSENT
+Stock entry21 raw search    ABSENT
+qcom namespace              YES
+in overlay payload FDT      YES (visible before apply)
+ABL unknown-qcom-property failure   NOT_CLAIMED
+```
+
+Public-checkout string search for `qcom,thyme-route-b-noop` / `route-b-noop`:
+32 hits, all in this experiment's scripts/docs/workflows. No bootloader source
+hit. Not a gate.
+
+### 19.2 Candidate A (TM-10, READY)
+
+```text
+model              Stock exact
+target             target-path="/"
+marker             ABSENT
+fixups/symbols     ABSENT
+fragment count     1
+overlay body       empty (0 props, 0 children)
+A vs L1 source     only qcom,thyme-route-b-noop removed from overlay
+fdtoverlay         PASS
+merged SHA         324049d746aaa16ada3b425ea5eed30f6d49a90c9d63d5e57ea5a632c27becb8
+                   == exact Stock DTB0 (byte-identical)
+A_SEMANTIC_NOOP_CONFIRMED=YES
+A_MERGED_SHA_EQUALS_STOCK_DTB0=YES
+
+PAYLOAD_SIZE / SHA256          295 / 55df159d4915746bf294c3b2a723143d7b65480640828a27f9c658552c061b64
+ACTIVE_PREFIX_SIZE / SHA256    359 / 3cba896892e0ccdaccbf5daccaa725c04cb81f9085355e9b13cddb897af1246d
+STOCK_TAIL_OFFSET / SHA256     359 / a7e58eea2808e268af37071df9badaec9f06731e6baf11ba72bb1bd01ab4f984
+FULL_ARTIFACT_SIZE / SHA256    33554432 / 128bcd312769f34b218b809169317ae456ea10350ed5553067eed7f52035633c
+READY_FOR_MAINLINE_V2_M5M_A_TARGET_PATH_NO_MARKER_CONTROL=YES
+```
+
+`target-path="/" + empty overlay` is a true semantic no-op on exact Stock DTB0.
+
+### 19.3 Candidate B (TM-21, READY)
+
+```text
+model              Stock exact
+target             mdss_mdp via __fixups__
+target path        /soc/qcom,mdss_mdp@ae00000
+marker             PRESENT (exact historical empty boolean)
+fragment count     1
+fixups count       1
+overlay body       marker only
+B vs L2 source     only qcom,thyme-route-b-noop added to overlay
+                   (no fixup-offset shift observed)
+fdtoverlay         PASS
+merged delta       only added /soc/qcom,mdss_mdp@ae00000:qcom,thyme-route-b-noop
+B_ONLY_MARKER_SEMANTIC_DELTA=YES
+B_MARKER_MERGED_TARGET=/soc/qcom,mdss_mdp@ae00000
+MARKER_APPLIED_TO_SAME_BASE_NODE=NO
+
+PAYLOAD_SIZE / SHA256          391 / 5c5b070bf81f55ee68a8bce0c31a625d087aecda89f22e9e69416f89bfca0929
+ACTIVE_PREFIX_SIZE / SHA256    455 / 8a3fc0e9f0db7fb21627c983a036d81a664e6924223b6cba53c58236d1968812
+STOCK_TAIL_OFFSET / SHA256     455 / 04184621bbba922a3419c1980e0b85750249efd3035ffd35ce5dceced770dbdd
+FULL_ARTIFACT_SIZE / SHA256    33554432 / c5a355b942bf287d13a9c02e1fe96c13ebf43f20b61be7e05763b8d23872aba8
+READY_FOR_MAINLINE_V2_M5M_B_FIXUP_WITH_MARKER_CONTROL=YES
+```
+
+### 19.4 Factorial after CI (runtimes still pending device)
+
+```text
+T0/M1  L1  4.837s     measured
+T0/M0  A   PENDING    READY artifact
+T1/M0  L2  >12s       measured
+T1/M1  B   PENDING    READY artifact
+```
+
+### 19.5 Gate summary
+
+```text
+READY_FOR_MAINLINE_V2_M5M_A_TARGET_PATH_NO_MARKER_CONTROL=YES
+READY_FOR_MAINLINE_V2_M5M_B_FIXUP_WITH_MARKER_CONTROL=YES
+NEXT_TRUE_DEVICE_CONTROL=M5M_A_TARGET_PATH_NO_MARKER_TRUE_DEVICE_CONTROL
+A_FIRST=YES
+DO_NOT_FLASH_A_AND_B_TOGETHER=YES
+IF_A_GT_12S_DO_NOT_AUTO_RUN_B=YES
+CURRENT_B=UNCHANGED
+NO_NEXT_STAGE_EXECUTED=YES
+WAIT_FOR_USER_APPROVAL=YES
+```
+
+Both artifacts are validated and held in private Actions storage. Only A is
+recommended for the next true-device control, after explicit approval.
 
 ## 20. Current B and wait
 
