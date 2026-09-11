@@ -298,11 +298,6 @@ def overlay_apply(base, overlay, label, work):
     return ok, proc.returncode, (proc.stderr or proc.stdout).strip().replace("\n", " | "), merged
 
 
-def fail(gate):
-    FAILURES.append(gate)
-    return f"{gate}=FAIL"
-
-
 def main():
     if os.environ.get("GITHUB_ACTIONS") != "true":
         raise SystemExit("GitHub Actions only: local audit, transformation, and validation are forbidden")
