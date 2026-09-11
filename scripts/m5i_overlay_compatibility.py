@@ -242,8 +242,10 @@ def metadata_free_tree(fdt):
 
 
 def subtree(fdt, root):
-    return {path: {name: prop.value for name, prop in props.items()}
-            for path, props in fdt.nodes.items() if path == root or path.startswith(root.rstrip("/") + "/")}
+    return {path: {name: prop.value for name, prop in props.items() if name not in GENERATED_PROPS}
+            for path, props in fdt.nodes.items()
+            if (path == root or path.startswith(root.rstrip("/") + "/"))
+            and not any(path == synthetic or path.startswith(synthetic + "/") for synthetic in SYNTHETIC_ROOTS)}
 
 
 def selected_properties(fdt, predicate):
