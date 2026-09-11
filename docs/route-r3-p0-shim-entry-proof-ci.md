@@ -346,9 +346,9 @@ are not uploaded.
 Toolchain pin (private runner `ubuntu-24.04`, Ubuntu noble packages):
 
 ```text
-clang-18=1:18.1.3-1
-lld-18=1:18.1.3-1
-llvm-18=1:18.1.3-1
+clang-18=1:18.1.3-1ubuntu1
+lld-18=1:18.1.3-1ubuntu1
+llvm-18=1:18.1.3-1ubuntu1
 LLVM_VERSION=18.1.3
 ```
 
