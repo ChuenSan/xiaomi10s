@@ -27,6 +27,7 @@ SYNTHETIC_ROOTS = ("/__symbols__", "/__fixups__", "/__local_fixups__")
 GENERATED_PROPS = {"phandle", "linux,phandle"}
 KNOWN_SYMBOLS = ["firmware", "soc", "intc", "pdc", "tlmm", "ufshc_mem",
                  "qupv3_se11_i2c", "cam_cci0", "aw8697_gpio_reset", "clock_rpmh"]
+GENERIC_EQUIVALENCE_COMPATIBLES = {"simple-bus", "syscon"}
 
 
 def sha(data):
@@ -317,11 +318,11 @@ def basename(path):
 
 
 def probable_equivalent(stock, mainline, stock_path):
-    stock_compat = set(node_compatible(stock, stock_path))
+    stock_compat = set(node_compatible(stock, stock_path)) - GENERIC_EQUIVALENCE_COMPATIBLES
     candidates = []
     for path in mainline.nodes:
         score = 0
-        compat = set(node_compatible(mainline, path))
+        compat = set(node_compatible(mainline, path)) - GENERIC_EQUIVALENCE_COMPATIBLES
         if stock_compat and compat and stock_compat.intersection(compat):
             score += 100 + len(stock_compat.intersection(compat))
         if basename(path) == basename(stock_path):
@@ -712,16 +713,18 @@ def main():
             matrix.append(f"{name}|{stock_path}|{'YES' if name in source_labels else 'NO'}|{'YES' if mainline_path else 'NO'}|{target or 'NONE'}|{stock_compat}|{mainline_compat}|{status}|{confidence}|{category}")
         out.joinpath("m5i-remaining-incompatibility-matrix.txt").write_text("\n".join(matrix) + "\n", encoding="utf-8")
 
-    known = ["symbol|stock_source_path|stock_dtb_path|mainline_source_path|mainline_dtb_path|mainline_source_label_present|stock_compatible|mainline_compatible|mainline_status"]
+    known = ["symbol|stock_source_path|stock_dtb_path|mainline_source_label_path|symbolized_dtb_symbol_path|mainline_probable_equivalent_path|equivalence_confidence|mainline_source_label_present|stock_compatible|mainline_compatible|mainline_status"]
     for name in KNOWN_SYMBOLS:
         stock_path = stock_symbols.get(name, "ABSENT")
-        mainline_path = symbolized_symbols.get(name, "ABSENT")
+        mainline_symbol_path = symbolized_symbols.get(name, "ABSENT")
+        probable, confidence = probable_equivalent(stock_base, symbolized_abl, stock_path) if stock_path in stock_base.nodes else ("NONE", "NONE")
+        target = mainline_symbol_path if mainline_symbol_path != "ABSENT" else probable
         known.append(f"{name}|NOT_AVAILABLE_BINARY_DERIVED|{stock_path}|"
-                     f"{mainline_path if name in source_labels else 'ABSENT'}|{mainline_path}|"
-                     f"{'YES' if name in source_labels else 'NO'}|"
+                     f"{mainline_symbol_path if name in source_labels else 'ABSENT'}|{mainline_symbol_path}|"
+                     f"{probable}|{confidence}|{'YES' if name in source_labels else 'NO'}|"
                      f"{','.join(node_compatible(stock_base, stock_path)) if stock_path in stock_base.nodes else 'NONE'}|"
-                     f"{','.join(node_compatible(symbolized_abl, mainline_path)) if mainline_path in symbolized_abl.nodes else 'NONE'}|"
-                     f"{node_status(symbolized_abl, mainline_path) if mainline_path in symbolized_abl.nodes else 'ABSENT'}")
+                     f"{','.join(node_compatible(symbolized_abl, target)) if target in symbolized_abl.nodes else 'NONE'}|"
+                     f"{node_status(symbolized_abl, target) if target in symbolized_abl.nodes else 'ABSENT'}")
     out.joinpath("m5i-known-symbol-audit.txt").write_text("\n".join(known) + "\n", encoding="utf-8")
 
     selftest = True
