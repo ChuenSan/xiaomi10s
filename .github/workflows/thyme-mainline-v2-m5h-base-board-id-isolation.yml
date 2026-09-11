@@ -1,0 +1,67 @@
+name: thyme-mainline-v2-m5h-public-source-audit
+
+# Public source only. Exact Stock/M1 inputs, DT parsing, binary transformation,
+# validation, fdtoverlay audit, and flashable controls run only in the private
+# auxiliary CI repo.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m5h-base-board-id-isolation.yml'
+      - 'scripts/m5h_base_board_id_isolation.py'
+      - 'docs/route-b-mainline-v2-m5h-base-board-id-isolation.md'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m5h-base-board-id-isolation.yml'
+      - 'scripts/m5h_base_board_id_isolation.py'
+      - 'docs/route-b-mainline-v2-m5h-base-board-id-isolation.md'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-mainline-v2-m5h-public-source-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: M5H public source audit (no OEM input)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint workflow source
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-mainline-v2-m5h-base-board-id-isolation.yml
+
+      - name: Parse public isolation script
+        run: python3 -m py_compile scripts/m5h_base_board_id_isolation.py
+
+      - name: Assert CI-only and public/private boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          script=scripts/m5h_base_board_id_isolation.py
+          grep -Fq 'GITHUB_ACTIONS' "$script"
+          grep -Fq 'GitHub Actions only' "$script"
+          grep -Fq 'READY_FOR_MAINLINE_V2_M5H_BASE_BOARD_ID_CONTROL' "$script"
+          grep -Fq 'M5H_SOURCE_IDENTITY_FAILED' "$script"
+          grep -Fq 'M5H_BOARD_ID_LOCATION_FAILED' "$script"
+          grep -Fq 'M5H_NONMINIMAL_DTB_DIFF' "$script"
+          grep -Fq 'M5H_VENDOR_HEADER_CHANGED' "$script"
+          grep -Fq 'AUXILIARY_DIAGNOSTIC' "$script"
+          grep -Fq 'REFERENCE_IMPLEMENTATION_ONLY' "$script"
+          test ! -e MIUI14ROM/image/vendor_boot.img
+          test ! -e MIUI14ROM/image/dtbo.img
+          if git ls-files | grep -Ei '(^|/)(vendor_boot|dtbo)\.img$'; then
+            echo 'tracked OEM or hybrid binary found' >&2
+            exit 1
+          fi
+          if git ls-files | grep -Ei 'm5h-v-stock-dtb0-board45-vendor_boot\.img$'; then
+            echo 'tracked M5H OEM-derived artifact found' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_M5H_SOURCE_ONLY=PASS'
