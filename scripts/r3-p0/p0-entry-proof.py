@@ -510,11 +510,10 @@ def build(args: argparse.Namespace) -> None:
     struct.pack_into("<I", bad_br, 0, 0x14000000 | ((0x03000000 // 4) & 0x03FFFFFF))
     expect_reject(lambda: require_code0_inside(bytes(bad_br)), "CODE0_TARGET")
 
-    expect_reject(lambda: relocs(readelf, out / "p0-a8.o"), "RELOCATION")
-
     abs_elf = out / "p0-neg-absolute.elf"
     abs_bin = out / "p0-neg-absolute.bin"
     assemble(clang, lld, objcopy, HERE / "p0-neg-absolute.S", abs_elf, abs_bin, None)
+    expect_reject(lambda: relocs(readelf, out / "p0-neg-absolute.o"), "RELOCATION")
     abs_raw = abs_bin.read_bytes()
     if 0x80000000.to_bytes(4, "little") not in abs_raw:
         fail("P0_NEGATIVE_TEST_FAILED", "absolute constant not in neg binary")
