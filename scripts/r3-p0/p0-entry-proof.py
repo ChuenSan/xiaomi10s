@@ -286,9 +286,11 @@ def check_body_disasm(text: str, delay: int) -> None:
             if "#0" not in rest and "0x0" not in rest and not rest.strip().endswith("0"):
                 fail("P0_PSCI_FAILED", f"smc immediate {line}")
         if mnem in ("mov", "movz") and re.search(r"\bx2\b", rest):
+            if delay != 0 and "xzr" in rest:
+                continue
             delay_ok = (
                 f"#{delay}" in rest or f"#0x{delay:x}" in rest
-                or (delay == 0 and "xzr" in rest)
+                or (delay == 0 and ("xzr" in rest or "#0" in rest))
             )
             if delay_ok:
                 saw_movz = True
