@@ -683,3 +683,21 @@ pre-register the alternative reading: if `/model` is not treated as
 ABL-visible, the equivalent control is L2, which is equally READY. Both
 artifacts are validated and held in private Actions storage; only one will be
 flashed, after explicit approval.
+
+### 19.9 True-device order revision (pre-outcome)
+
+Before any L1 or L2 device result, the true-device order was revised from
+L1-first to L2-first. Cause: P1 is `ROOT_IDENTITY_TEXT_ONLY` (`/model`);
+strict ABL selector metadata already matches. L2 also carries Stock root
+identity, Stock-style target+`__fixups__`, empty overlay, and a byte-identical
+merged tree. See
+`docs/route-b-mainline-v2-m5l-l2-stock-style-minimal-noop-control.md`.
+
+```text
+M5L_TRUE_DEVICE_ORDER_REVISED_PRE_OUTCOME=YES
+```
+
+Measured L2 true-device outcome (CASE L2-A, after this revision, not used to
+choose the order): `PRIMARY_OBSERVATION=>12s`,
+`STOCK_STYLE_MINIMAL_NOOP_COMPATIBLE=STRONGLY_SUPPORTED`, final gate
+`MAINLINE_V2_M5L_L2_MINIMAL_NOOP_SUPPRESSES_4P7S`. L1 was not executed.
