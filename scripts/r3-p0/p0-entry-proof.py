@@ -285,11 +285,18 @@ def check_body_disasm(text: str, delay: int) -> None:
             saw_smc = True
             if "#0" not in rest and "0x0" not in rest and not rest.strip().endswith("0"):
                 fail("P0_PSCI_FAILED", f"smc immediate {line}")
-        if mnem == "movz" and "x2" in rest:
-            saw_movz = True
-            if f"#{delay}" not in rest and f"#0x{delay:x}" not in rest:
+        if mnem in ("mov", "movz") and re.search(r"\bx2\b", rest):
+            delay_ok = (
+                f"#{delay}" in rest or f"#0x{delay:x}" in rest
+                or (delay == 0 and "xzr" in rest)
+            )
+            if delay_ok:
+                saw_movz = True
+            else:
                 fail("P0_DISASM_FAILED", f"delay encoding {line}")
-        if mnem == "movz" and "w0" in rest and ("#9" in rest or "#0x9" in rest):
+        if mnem in ("mov", "movz") and re.search(r"\bw0\b", rest) and (
+            "#9" in rest or "#0x9" in rest
+        ):
             saw_fid_lo = True
         if mnem == "movk" and "w0" in rest and "8400" in rest and "16" in rest:
             saw_fid_hi = True
