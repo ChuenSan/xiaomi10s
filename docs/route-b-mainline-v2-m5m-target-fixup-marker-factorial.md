@@ -6,15 +6,22 @@ Stage id (CI):
 MAINLINE_V2_M5M_TARGET_FIXUP_MARKER_FACTORIAL_CI
 ```
 
-Stage id (Candidate A true-device, this round):
+Stage id (Candidate A true-device):
 
 ```text
 MAINLINE_V2_M5M_A_TARGET_PATH_NO_MARKER_TRUE_DEVICE_CONTROL
 ```
 
+Stage id (Candidate B true-device, this round):
+
+```text
+MAINLINE_V2_M5M_B_FIXUP_WITH_MARKER_TRUE_DEVICE_CONTROL
+```
+
 CI construction of A/B remains private-GHA-only (private run `34591653733`).
-Candidate A has now been flashed once as the single-variable L1→A marker
-control. Candidate B is READY and **not** authorized for device this round.
+Candidate A was the L1→A marker control (`CASE=A2`, 4.834s). Candidate B is
+the last factorial cell and has now been flashed once as the L2→B
+within-T1 marker control (`CASE=B1`, `PRIMARY_OBSERVATION=>12s`).
 
 ## 1. Constraints honoured
 
@@ -568,28 +575,34 @@ FULL_ARTIFACT_SIZE / SHA256    33554432 / c5a355b942bf287d13a9c02e1fe96c13ebf43f
 READY_FOR_MAINLINE_V2_M5M_B_FIXUP_WITH_MARKER_CONTROL=YES
 ```
 
-### 19.4 Factorial after A true-device
+### 19.4 Complete factorial after B true-device
 
 ```text
 T0/M1  L1  4.837s     measured
-T0/M0  A   4.834s     measured this round  CASE=A2
+T0/M0  A   4.834s     measured  CASE=A2
 T1/M0  L2  >12s       measured
-T1/M1  B   PENDING    READY artifact, NOT AUTHORIZED FOR DEVICE
+T1/M1  B   >12s       measured this round  CASE=B1
 ```
 
-### 19.5 Gate summary after A true-device
+Runtime groups entirely by Factor T: `target-path="/"` → ~4.8s;
+`target+__fixups__` → >12s. Marker presence does not change category
+under either targeting background.
+
+### 19.5 Gate summary after B true-device
 
 ```text
 READY_FOR_MAINLINE_V2_M5M_A_TARGET_PATH_NO_MARKER_CONTROL=YES
 READY_FOR_MAINLINE_V2_M5M_B_FIXUP_WITH_MARKER_CONTROL=YES
-A_TRUE_DEVICE=YES
-CASE=A2
-PRIMARY_OBSERVATION=4.834s
+A_TRUE_DEVICE=YES  CASE=A2  PRIMARY_OBSERVATION=4.834s
+B_TRUE_DEVICE=YES  CASE=B1  PRIMARY_OBSERVATION=>12s
 MARKER_PROPERTY_EFFECT_UNDER_TARGET_PATH=NO
-MARKER_REMOVAL_ALONE_SUFFICIENT=NO
-Final Gate=MAINLINE_V2_M5M_A_MARKER_REMOVAL_NO_EFFECT
-DO_NOT_FLASH_A_AND_B_TOGETHER=YES
-IF_A_GT_12S_DO_NOT_AUTO_RUN_B=YES   (A was ~4.7s; B still not auto-run)
+MARKER_PROPERTY_EFFECT_UNDER_TARGET_FIXUP=NO
+MARKER_PROPERTY_MAIN_EFFECT=NOT_SUPPORTED
+TARGET_FIXUP_MECHANISM_EFFECT=STRONGLY_SUPPORTED
+TARGETING_MECHANISM_IS_DOMINANT_CAUSAL_FAMILY=STRONGLY_SUPPORTED
+TARGET_MARKER_INTERACTION=NOT_SUPPORTED
+Final Gate A=MAINLINE_V2_M5M_A_MARKER_REMOVAL_NO_EFFECT
+Final Gate B=MAINLINE_V2_M5M_B_FIXUP_WITH_MARKER_SUPPRESSES_4P7S
 NO_NEXT_STAGE_EXECUTED=YES
 WAIT_FOR_USER_APPROVAL=YES
 ```
@@ -637,17 +650,101 @@ L2  T1/M0  target + __fixups__  >12s
 TARGET_FIXUP_MECHANISM_EFFECT under marker-absent  STRONGLY_SUPPORTED
 ```
 
-Candidate B (`T1/M1`) remains the last factorial cell. It is READY and is
-**not** executed here.
+Candidate B (`T1/M1`) was the last factorial cell. It is recorded in §22.
 
-## 21. Current B and wait
+## 21. Current B after A (historical, superseded by §22)
+
+After A, Slot B was exact M5D + M5H + M5M-A dtbo. L1 was not restored. B
+was READY and waited for a separate approval; it was not auto-run.
+
+## 22. Candidate B true-device result
+
+Full write-up: `docs/route-b-mainline-v2-m5m-b-fixup-with-marker-control.md`.
+
+L2→B single-variable relation:
+
+```text
+boot     exact M5D           held
+vendor   M5H board45 DTB0    held
+model    Stock exact         held
+fragment 1                   held
+target   mdss_mdp + __fixups__  held
+marker   ABSENT → PRESENT   only source semantic delta
+runtime  >12s → >12s
+```
+
+```text
+T_DISAPPEAR_ISO=2026-09-11T11:30:44.602Z
+PRIMARY_OBSERVATION=>12s
+AUTOMATIC_FASTBOOT_REAPPEAR_WITHIN_12S=NO
+MANUAL_RECOVERY=YES
+MANUAL_RECOVERY_TIME=685s
+MANUAL_RECOVERY_TIME_ISO=2026-09-11T11:42:39Z
+B boots=1
+SECOND_B_BOOT_FORBIDDEN=YES
+SLOT_A_WRITTEN=NO
+ONLY_WRITE=dtbo_b
+```
+
+`MANUAL_RECOVERY_TIME` is not `T_REAPPEAR` / `NATURAL_RETURN_TIME` /
+`AUTOMATIC_RETURN_TIME`.
+
+Dumps: pstore 0; minidump/rawdump/logdump UNCHANGED; logfs and oops CHANGED.
+oops holds only 2023-09-04 stock Android records
+(`OOPS_MAINLINE_EVIDENCE=NO`).
+
+## 23. Complete 2×2 and merged-tree bound
+
+```text
+T0/M1  L1  target-path="/"      marker PRESENT  4.837s
+T0/M0  A   target-path="/"      marker ABSENT   4.834s
+T1/M0  L2  target + __fixups__  marker ABSENT   >12s
+T1/M1  B   target + __fixups__  marker PRESENT  >12s
+```
+
+```text
+MARKER_PROPERTY_EFFECT_UNDER_TARGET_PATH=NO
+MARKER_PROPERTY_EFFECT_UNDER_TARGET_FIXUP=NO
+MARKER_PROPERTY_MAIN_EFFECT=NOT_SUPPORTED
+TARGET_FIXUP_MECHANISM_EFFECT=STRONGLY_SUPPORTED
+TARGETING_MECHANISM_IS_DOMINANT_CAUSAL_FAMILY=STRONGLY_SUPPORTED
+TARGET_MARKER_INTERACTION=NOT_SUPPORTED
+Final Gate=MAINLINE_V2_M5M_B_FIXUP_WITH_MARKER_SUPPRESSES_4P7S
+```
+
+A and L2, under standard `fdtoverlay`/libfdt, both merge to byte-identical
+exact Stock DTB0
+`324049d746aaa16ada3b425ea5eed30f6d49a90c9d63d5e57ea5a632c27becb8`
+and still differ in runtime (4.834s vs >12s).
+`STANDARD_LIBFDT_FINAL_MERGED_TREE_CONTENT` alone cannot explain the
+observed split. That does **not** say Xiaomi ABL's final merged tree is the
+same, that ABL inspects the overlay before merge, or that ABL does not use
+the final DTB.
+
+L1 vs B, with the marker present in both overlay bodies, still category-flips
+with targeting mechanism. Combined with A vs L2, this more strongly supports
+raw overlay targeting representation / ABL-specific overlay application
+mechanics, rather than merged device-configuration content, as the causal
+family. Specific ABL source-code behaviour is not claimed.
+
+Do not continue marker research. `/model`, padding, container, and board-id
+are already deprioritised.
+
+## 24. Current B and wait
 
 ```text
 ANDROID_A_RESTORED=YES
-CURRENT_B=exact M5D boot + M5H board45 Stock DTB0 vendor + M5M-A dtbo
-L1 dtbo NOT restored
-NEXT=MAINLINE_V2_M5M_B_FIXUP_WITH_MARKER_TRUE_DEVICE_CONTROL
-      full SHA c5a355b942bf287d13a9c02e1fe96c13ebf43f20b61be7e05763b8d23872aba8
+CURRENT_B=exact M5D boot + M5H board45 Stock DTB0 vendor + M5M-B dtbo
+Candidate A dtbo NOT restored
+NEXT=MAINLINE_V2_M5N_TARGETING_MECHANISM_ISOLATION_CI
+      split target/fixup family internally:
+        target-path property
+        target phandle encoding
+        __fixups__ node presence
+        external symbol string
+        placeholder 0xffffffff
+        target symbol choice
+      find the minimal ABL-compatible targeting representation
 NO_NEXT_STAGE_EXECUTED=YES
 WAIT_FOR_USER_APPROVAL=YES
 ```
