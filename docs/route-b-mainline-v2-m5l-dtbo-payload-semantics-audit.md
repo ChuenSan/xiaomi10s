@@ -700,4 +700,47 @@ M5L_TRUE_DEVICE_ORDER_REVISED_PRE_OUTCOME=YES
 Measured L2 true-device outcome (CASE L2-A, after this revision, not used to
 choose the order): `PRIMARY_OBSERVATION=>12s`,
 `STOCK_STYLE_MINIMAL_NOOP_COMPATIBLE=STRONGLY_SUPPORTED`, final gate
-`MAINLINE_V2_M5L_L2_MINIMAL_NOOP_SUPPRESSES_4P7S`. L1 was not executed.
+`MAINLINE_V2_M5L_L2_MINIMAL_NOOP_SUPPRESSES_4P7S`.
+
+## 20. L1 true-device control (`ROOT_MODEL_TEXT`)
+
+Stage:
+`MAINLINE_V2_M5L_L1_SELECTOR_MATCHED_NOOP_TRUE_DEVICE_CONTROL`.
+Full record:
+`docs/route-b-mainline-v2-m5l-l1-selector-matched-noop-control.md`.
+
+The historical artifact name `L1_SELECTOR_MATCHED_NOOP` is retained. The
+causal variable is **`ROOT_MODEL_TEXT`**. It is not strict ABL selector
+metadata: `qcom,board-id`, `compatible`, and the msm-id / pmic-id /
+platform-id family were already identical.
+
+L1 keeps the M1 no-op mechanism (`one-entry`, `target-path="/"`, no
+`__fixups__` / `__symbols__`, marker `qcom,thyme-route-b-noop` present) and
+changes only `/model` to the exact Stock entry21 string. Artifact from
+private run `34585043442`, not regenerated:
+
+```text
+L1_PAYLOAD_SHA256              64344d59119b253d47b950385fbed1c8dd38bf28003604c2deb7dcf1f1777ca4
+L1_ACTIVE_PREFIX_SIZE/SHA256   395 / 36f6adbab104053acc1e501f0aae3bf3452f9968cda3c09aec85e6253adfa81b
+L1_FULL_ARTIFACT_SHA256        61dc3b75d66ff4b6411c6f744b19dc999475959709e8cf1f7882b40e827080d8
+L1_STOCK_TAIL_OFFSET/SHA256    395 / 62c06a96d36bac3084a2b3bf30805095158ba5f437a413f5a2374269ff3cc812
+```
+
+Only `dtbo_b` was written. One Slot B boot. Automatic Fastboot reappear
+`4.837s` (CASE L1-B).
+
+```text
+ROOT_MODEL_TEXT_EFFECT=NO
+STOCK_MODEL_TEXT_ALONE_SUFFICIENT=NO
+Final Gate=MAINLINE_V2_M5L_L1_STOCK_MODEL_NO_EFFECT
+```
+
+```text
+M1 no-op   /model=M1     target-path="/"  marker present      ~4.8-4.9s
+L1         /model=Stock  target-path="/"  marker present      4.837s
+L2         /model=Stock  target+fixup     marker absent       >12s
+```
+
+`/model` is deprioritised as a stand-alone cause in this context. Remaining
+factorial, Stock model held: target/fixup mechanism × marker presence. Next
+CI, not executed: `MAINLINE_V2_M5M_TARGET_FIXUP_MARKER_FACTORIAL_CI`.
