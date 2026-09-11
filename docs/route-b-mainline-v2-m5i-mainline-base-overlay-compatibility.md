@@ -1,6 +1,7 @@
 # Route B Mainline V2 M5I — Mainline base overlay compatibility
 
-Status: CI implementation prepared; private GHA result pending. No device operation is authorized.
+Status: CI complete. Final gate: `M5I_SYMBOLIZED_OVERLAY_STILL_INCOMPATIBLE`.
+No candidate was generated and no device operation is authorized.
 
 ## Question
 
@@ -142,6 +143,165 @@ m5i-candidate-diff-map.txt                 (candidate only)
 m5i-remaining-incompatibility-matrix.txt   (FAIL only)
 SHA256SUMS
 ```
+
+## CI result
+
+Private GHA run `34572191475` passed its bounded audit workflow. The public
+source audit run `34572156696` also passed. The private wrapper commit is
+`d54fbb7abd7f335fc29a14f5cdfa8b8198fa2533`; the audited public analyzer commit
+is `621f25f1f0575d9bdc5ba1e8aceef665a43f69b2`.
+
+### Exact M1 reproduction
+
+The historical normal build and historical ABL packaging operation reproduced
+both artifacts byte-for-byte:
+
+```text
+M5I_BASELINE_M1_RAW_DTB_REPRODUCED=YES
+raw size/SHA       105960  a91a512d4d8699dcae73bff3e0c5a758972e82eaa0b34e87ae1eb1528b9ede40
+M5I_BASELINE_M1_ABL_DTB_REPRODUCED=YES
+ABL size/SHA       106026  cefafcca5fa926998cd7b9aa320ce28fc52aad156c942e0adc0d9152f81ae9b0
+EXACT_HISTORICAL_ARTIFACT_BYTES_MATCH=YES
+```
+
+The baseline and symbolized output directories produced the same final config
+SHA256:
+
+```text
+4ae37ddc7831151b35bb937e2fbc8bf101cac54a5c09b0f6cba3a673b8a3da49
+```
+
+Their independently built in-tree DTC executables were also identical:
+
+```text
+3d96e33754a9a9ff6b53f090d78422815c26e0d16906846323de1454a6d46dba
+```
+
+### Overlay-compatible M1 DTB
+
+```text
+build mode                  DTC_FLAGS=-@ through normal kernel dtbs path
+symbolized raw size/SHA     143886  aa3a90b05d3bb12e743abbde4d01c9ac856b3484fb1d90edc4769de1b9d7f024
+symbolized ABL size/SHA     143952  a0e332bc3a558eaef23ca123b317ae092c5f8659884d61b6693c1945b774a41c
+raw size/totalsize delta    +37926 / +37926
+__symbols__                 present, 527 entries
+phandle properties          242 -> 527
+linux,phandle               0 -> 0
+__local_fixups__            absent
+other synthetic nodes       /__symbols__
+qcom,msm-id                 <356 0x20001>
+qcom,board-id               <45 0>
+compatible                  xiaomi,thyme / qcom,sm8250
+```
+
+This is not a symbol-table-only delta: it adds 285 `phandle` properties as well
+as 527 symbols and changes serialization/offsets. The private
+`m5i-symbol-delta.txt` contains the complete changed-range map.
+
+All semantic invariants passed after excluding generated overlay metadata:
+
+```text
+complete raw tree     PASS
+complete ABL tree     PASS
+model/compatible      PASS
+memory/chosen         PASS
+reserved-memory       PASS
+status/reg            PASS
+interrupts/clocks     PASS
+regulators            PASS
+source node set       PASS
+```
+
+### Overlay result and fixup coverage
+
+All three cases used system DTC/fdtoverlay 1.7.0 and exact Stock entry21:
+
+```text
+Stock DTB0 + Stock entry21          PASS (rc=0)
+historical M1 ABL + Stock entry21   FAIL, FDT_ERR_NOTFOUND
+symbolized M1 ABL + Stock entry21   FAIL, FDT_ERR_NOTFOUND
+```
+
+The symbolized build changed the fixup diagnosis, but not enough to make the
+overlay applicable:
+
+```text
+Stock entry21 fixups                154
+historical M1 resolved/missing      0 / 154
+symbolized base symbols             527
+symbolized resolved/missing         11 / 143
+resolved with different Stock path  11
+Stock-side unresolved               0
+source labels present/absent        11 / 143
+```
+
+The 11 automatically exposed labels are:
+
+```text
+intc mdss_dsi0 mdss_dsi1 mdss_mdp pcie1 pdc sdhc_2 soc spmi_bus tlmm xbl_aop_mem
+```
+
+Therefore the old `154/154 missing` result contained an 11-symbol build-mode
+artifact, but its dominant cause was not metadata absence: 143 Stock fixup
+labels are absent from the exact preprocessed historical Mainline source. Some
+of those nodes still have differently named Mainline equivalents, so this is a
+label/naming/tree incompatibility result, not proof that 143 hardware blocks
+are absent.
+
+The conservative remaining matrix is:
+
+```text
+A  same label + compatible-equivalent node        4
+B  different label + strong equivalent node       1
+C  node/topology candidate, not equivalent enough 17
+D  no automated Mainline equivalent               132
+```
+
+No alias was generated. The only current class-B high-confidence alias research
+candidate is `ufshc_mem`:
+
+```text
+Stock     /soc/ufshc@1d84000       qcom,ufshc
+Mainline  /soc@0/ufshc@1d84000     qcom,sm8250-ufshc / qcom,ufshc / jedec,ufs-2.0
+status    okay
+```
+
+Selected required examples:
+
+| Symbol | Stock DTB path | Mainline label/path or conservative candidate | Result |
+|---|---|---|---|
+| `firmware` | `/firmware` | path exists but no source label | C / medium |
+| `soc` | `/soc` | label `soc` -> `/soc@0` | A / medium |
+| `intc` | `/soc/interrupt-controller@17a00000` | `/soc@0/interrupt-controller@17a00000` | A / high |
+| `pdc` | `/soc/interrupt-controller@b220000` | `/soc@0/interrupt-controller@b220000` | C / low |
+| `tlmm` | `/soc/pinctrl@f000000` | `/soc@0/pinctrl@f100000` | C / low |
+| `ufshc_mem` | `/soc/ufshc@1d84000` | `/soc@0/ufshc@1d84000`, different label | B / high |
+| `qupv3_se11_i2c` | `/soc/i2c@a8c000` | probable `/soc@0/geniqup@ac0000/i2c@a94000`, disabled | C / low |
+| `cam_cci0` | `/soc/qcom,cci@ac4f000` | none | D |
+| `aw8697_gpio_reset` | `/soc/pinctrl@f000000/aw8697_gpio_reset` | none | D |
+| `clock_rpmh` | `/soc/rsc@18200000/qcom,rpmhclk` | none | D |
+
+Stock source paths were unavailable in the private inputs; the report marks
+them `NOT_AVAILABLE_BINARY_DERIVED` rather than inventing source genealogy.
+
+### Candidate decision
+
+Test C failed, so CI correctly produced neither a merged-tree report nor a
+hybrid vendor_boot candidate:
+
+```text
+OVERLAY_BUILD_METADATA_SUFFICIENT_FOR_LIBFDT_COMPAT=NO
+CANDIDATE_GENERATED=NO
+EXPECTED_STOCK_VENDOR_TAIL_SHA_FROM_M5I_EXTENT=NOT_APPLICABLE
+FAIL_CLOSED_TESTS=PASS
+READY_FOR_MAINLINE_V2_M5I_SYMBOLIZED_BASE_CONTROL=NO
+FINAL_GATE=M5I_SYMBOLIZED_OVERLAY_STILL_INCOMPATIBLE
+```
+
+No future true-device M5I stage is available from this result. The next bounded
+CI investigation should start from the incompatibility matrix, validate only
+high-confidence semantic equivalents, and must not synthesize all 143 missing
+labels or fake downstream-only hardware nodes.
 
 ## Boundaries
 
