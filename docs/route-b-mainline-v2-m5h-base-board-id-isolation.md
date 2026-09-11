@@ -1,9 +1,9 @@
 # Route B Mainline V2 M5H — base board-id isolation
 
-Status: CI artifact ready. Final gate:
-`READY_FOR_MAINLINE_V2_M5H_BASE_BOARD_ID_CONTROL`.
-No device operation. Slot B unchanged. True-device control not executed,
-pending explicit approval.
+Status: true-device test complete. Final gate:
+`MAINLINE_V2_M5H_BASE_BOARD_ID_NO_EFFECT`.
+Android A restored. Slot B retains exact M5D `boot_b` plus the M5H `<45 0>`
+`vendor_boot_b` candidate and exact Stock `dtbo_b`.
 
 ## Question
 
@@ -189,16 +189,16 @@ and asserts the whole node/property tree is identical to the source except
 `qcom,board-id`, together with an `fdtget` cross-read of `0 0 -> 2d 0` from the
 independent `libfdt` implementation.
 
-## Classification
+## Classification (artifact-preparation phase)
 
-This round is artifact preparation only. It establishes that a pure
-`BASE_QCOM_BOARD_ID` control artifact exists, is minimal, and is byte-auditable.
-It does not establish any runtime effect.
+That phase established that a pure `BASE_QCOM_BOARD_ID` control artifact exists,
+is minimal, and is byte-auditable. It did not establish any runtime effect; the
+runtime result is recorded in the true-device section below.
 
 ```text
-BASE_BOARD_ID_PLACEMENT_EFFECT=UNTESTED
-M1_BASE_BOARD_ID_45_SUFFICIENT=UNTESTED
-DEVICE_OPERATION=NONE
+BASE_BOARD_ID_PLACEMENT_EFFECT=UNTESTED at preparation time
+M1_BASE_BOARD_ID_45_SUFFICIENT=UNTESTED at preparation time
+DEVICE_OPERATION=NONE at preparation time
 ```
 
 ## Companion read-only diagnostic — Stock overlay on Mainline base
@@ -274,18 +274,99 @@ Backfilling all 154 symbols into the Mainline DTB was explicitly not attempted
 this round: a symbol name is not evidence that the underlying target node is
 semantically compatible.
 
-## Future true-device control
+## True-device control (executed)
 
-Any device operation requires separate approval. When approved, the only
-required write is one `vendor_boot_b` from this artifact, onto the current Slot B
-which already holds the M5G-V candidate and exact Stock `dtbo`.
+Approved and executed. Writes and boots were limited to the pre-registered
+single-variable design.
 
 ```text
-Reference M5G-V   base board-id <0 0>   same single topology, same Stock DTB0, same Stock dtbo -> >12s
-M5H               base board-id <45 0>  everything else identical                              -> ???
+MEM0_READ_BEFORE_M5H=YES
+MEM0_READ_BEFORE_WRITE=YES
+LOCAL_BUILD=NO
+LOCAL_VALIDATOR=NO
+LOCAL_SOURCE_GATE=NO
+LOCAL_ACTIONLINT=NO
+LOCAL_BINARY_VALIDATION=NO
+GHA_ONLY=YES
+new build this round=NO
+artifact re-downloaded, not regenerated, not modified
+SLOT_A_WRITE=NO (no flash/erase/format on Slot A)
+only partition write=vendor_boot_b
+boot_b write=NO
+dtbo_b write=NO
+vbmeta* / firmware write=NO
+B boots=1
+SECOND_B_BOOT_FORBIDDEN=YES
+old vendor_boot restore=NO
+M5I auto-exec=NO
 ```
 
-The only runtime variable is `BASE_QCOM_BOARD_ID`.
+### Android A baseline
+
+```text
+adb device=41a5627b
+ro.boot.slot_suffix=_a
+sys.boot_completed=1
+root=uid=0 magisk
+device=thyme
+build_fingerprint=Xiaomi/thyme/thyme:13/TKQ1.220829.002/V14.0.6.0.TGACNXM:user/release-keys
+```
+
+### Pre-write state — M5G-V context identity
+
+All readbacks are independent Android A device-side `dd | sha256sum` reads.
+No binary was pulled to the host for hashing.
+
+```text
+boot_b first 35110912                     4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63  MATCH
+vendor_boot_b first 548864                e49e12ad71839bc959237eb8ef6ad6ba7f2f38dffedcf31f3fe36b0845402e83  MATCH
+vendor_boot_b [548864,EOF)                5d98f207def3af98517cb4c74dc5befaee5a2b62209e32cd13b4c181bb374e52  MATCH
+dtbo_b whole                              018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634  MATCH
+vbmeta_b [0,8192)                          37dfac44f336157d69b616e3567cdccff90273b36cd862a86f57abe1930f9d9c  stock
+vbmeta_system_b [0,4096)                   3217455014b5bb0cc05b638489589738863aeb6cc6b9423d56989b21fa8b8355  stock
+M5H_START_M5G_V_EXACT=YES
+```
+
+Fastboot preflight:
+
+```text
+product=thyme   unlocked=yes   current-slot=a
+snapshot-update-status=none    battery-soc-ok=yes
+slot-retry-count:b=6   slot-unbootable:b=no
+```
+
+### Write
+
+```text
+fastboot flash vendor_boot_b m5h-v-stock-dtb0-board45-vendor_boot.img   OKAY
+NO WRITE: boot_b, dtbo_b, vbmeta*, firmware, ANY *_a
+current-slot remained a; reboot went to Android A, not B
+```
+
+Post-write readback on Android A:
+
+```text
+vendor_boot_b first 548864                2d58ef94802e3aaac3115a9ee1c3d69199b054e04f181e39a55a7e75b60564d9  MATCH
+vendor_boot_b [548864,EOF)                5d98f207def3af98517cb4c74dc5befaee5a2b62209e32cd13b4c181bb374e52  MATCH
+boot_b first 35110912                     4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63  MATCH (M5D)
+dtbo_b whole                              018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634  MATCH (Stock)
+abl_b / xbl_b / xbl_config_b / tz_b        byte-identical to pre-write
+M5H_FULL_CONTEXT_VERIFIED=YES
+```
+
+The artifact-identity gate is the exact artifact SHA256 on the device. No local
+binary validation was used as a gate.
+
+### Single B boot
+
+```text
+pre : current-slot=a, retry:b=6, unbootable:b=no
+fastboot set_active b -> current-slot=b, retry:b=7, unbootable:b=no
+exactly one fastboot reboot
+SECOND_B_BOOT_FORBIDDEN=YES
+```
+
+Pre-registered thresholds, unchanged from the artifact-preparation round:
 
 ```text
 ~4.3-5.3s automatic Fastboot return  -> MAINLINE_V2_M5H_BASE_BOARD_ID_RESTORES_4P7S
@@ -293,37 +374,126 @@ The only runtime variable is `BASE_QCOM_BOARD_ID`.
 5.3-12s                              -> INCONCLUSIVE
 ```
 
-Case H1 — if `<45 0>` restores the ~4.7s return:
+USB evidence is Fastboot protocol presence (`18d1:d00d`) only.
 
 ```text
-BASE_BOARD_ID_PLACEMENT_EFFECT=YES
-M1_BASE_BOARD_ID_45_SUFFICIENT=STRONGLY_SUPPORTED
+FASTBOOT_DISAPPEAR_TIMESTAMP=2026-09-11T06:14:51.308Z
+FASTBOOT_REAPPEAR_TIMESTAMP=NOT_OBSERVED
+OBSERVATION_WINDOW=12s
+AUTOMATIC_FASTBOOT_REAPPEAR_WITHIN_12S=NO
+PRIMARY_OBSERVATION=>12s
+MANUAL_FASTBOOT_RECOVERY_AFTER_WINDOW=YES
+MANUAL_RECOVERY=YES
+CASE=H2
 ```
 
-The permitted statement is then: with the current exact Stock DTBO background,
-changing only the base board-id from `<0 0>` to `<45 0>` flips the runtime
-behavior. The permitted statement is *not* "ABL requires base board-id 0" —
-selection and merge internals remain unobserved.
+After the 12s window the device was still stuck and did not enumerate USB
+(`18d1:d00d` absent, no Qualcomm port). The observation was stopped there: no
+further polling, no ordinary reboot, no second B boot. Fastboot only became
+reachable again at `2026-09-11T06:16:30.308Z` because the user performed a
+**manual physical Fastboot recovery** (Volume-Down + Power).
 
-The first vendor-track compatibility fix would then be: bring the Mainline base
-DTB `qcom,board-id` back to the Stock-style generic `<0 0>`, and continue with
-the remaining payload differences. The M1 `dtbo` problem still needs its own
-resolution, since Cell C proved M1 `dtbo` is independently sufficient.
+That `99.000s` interval is a manual-recovery time. It is not an automatic
+return and must not be used as evidence about the boot chain, a watchdog, an
+ABL fallback or any boot timeout. Same correction applies to the M5G-V
+reference, whose `+79.343s` is likewise a manual-recovery time.
 
-Case H2 — if it stays suppressed:
+User-reported device state during the stuck interval, recorded as a secondary
+observation only, not as causal evidence:
 
 ```text
-BASE_BOARD_ID_PLACEMENT_EFFECT=NO
-M1_BASE_BOARD_ID_45_ALONE_SUFFICIENT=NO
+USER_REPORTED_DEVICE_STATE=stuck at boot logo
 ```
 
-Then the next priority is decided by the appendix above rather than by field
-scanning: because the Mainline base resolves none of the 154 overlay fixups
-(`FDT_ERR_NOTFOUND`), a
+### Recovery
+
+```text
+pre-recovery metadata: current-slot=b, retry:b=6, unbootable:b=no, successful:b=no
+fastboot set_active a -> current-slot=a
+fastboot reboot
+ANDROID_A_RESTORED=YES
+ro.boot.slot_suffix=_a
+sys.boot_completed=1
+root=uid=0
+no second B boot
+no old vendor_boot context restored
+```
+
+### Dumps
+
+Read-only, not cleared. This round captured the `oops` baseline that M5G-V
+missed, in the same round and before the B boot.
+
+```text
+pstore entries            baseline/post = 0/0            UNCHANGED
+oops                      391d686d237b840c978581c531e0087ca3d3bd63631c0c3130457d6c71da6322
+                       -> 0c14499d01fa6924c1e629c4f5981fe0eda0fcaee463930e8cbd94f39f250bec  CHANGED
+minidump                  e8caa0f3d96e1329070bd93062d3d728bcb19bc54694df65abe47310fa96d04a  UNCHANGED
+rawdump                   254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917  UNCHANGED
+logdump                   3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351  UNCHANGED
+logfs                     637b6560c42a1e528a58ae51d77aa0abecd6e9e1e282d7e15625f317c523afe9
+                       -> 20045266ddf9f1c2158c85449caabaf85d846ceaa83f24133ed325516fc21e2a  CHANGED
+```
+
+`oops` changed, so it is judged at content level, not by the numeric delta.
+Post-test content, extracted with `strings`:
+
+```text
+Linux version banners            0
+literal "6.6." kernel strings    0
+mainline / 6.6.x markers         0
+"Unable to handle kernel"        0
+"Kernel panic"                   0
+"Call trace" / "pc :"            0
+reboot,bootloader records        21
+Reason: lines                    14
+records dated 2026               0
+records dated 2023-09-04         present
+```
+
+The baseline image is identical in content class (same 21 / 14 / 0 / 0 counts).
+An initial `grep -c "6.6.0"` hit 102/107 lines, but that is a false positive of
+a basic regex where `.` matches any byte (`6.690`, `60610`); the literal `6.6.`
+count is 0 in both images.
+
+```text
+OOPS_MAINLINE_EVIDENCE=NO
+```
+
+### Result
+
+Because the M5G-V reference held for over 12s and the board-id-only artifact
+also held for over 12s, changing only the base `qcom,board-id` from `<0 0>` to
+`<45 0>` did not change the runtime behavior.
+
+```text
+M5H_BASE_BOARD_ID_EFFECT=NO
+M1_BASE_BOARD_ID_45_SUFFICIENT=NO
+FINAL_GATE=MAINLINE_V2_M5H_BASE_BOARD_ID_NO_EFFECT
+```
+
+Permitted statement: with this exact Stock DTBO background, the base
+`qcom,board-id` placement alone is not sufficient to explain or to repair the
+Cell B `5.008s` versus M5G-V suppressed difference.
+
+Not permitted, and not claimed:
+
+- that `qcom,board-id` is irrelevant to the whole boot chain
+- that ABL never reads a base board-id
+- that the kernel did not execute
+- that fixing board-id alone would let Mainline boot
+- that the 99.000s or 79.343s intervals say anything about an automatic return
+
+`board-id` placement is removed from the suspect list as a stand-alone cause,
+but it is not proven to be irrelevant. A future Mainline vendor DTB is still
+expected to carry the Stock-style generic base `<0 0>` as a hygiene fix.
+
+Case H1 (restores ~4.7s) did not occur, so no board-id-only repair path is
+available. The realized case is H2, which confirms the priority decided by the
+appendix above rather than by field scanning: because the Mainline base resolves
+none of the 154 overlay fixups (`FDT_ERR_NOTFOUND`), a
 `M5I_MAINLINE_BASE_OVERLAY_COMPATIBILITY_CI` pass is better justified than a
-blind `compatible` sweep. If the overlay audit had passed, root
-metadata isolation would be the next variable. `/memory` is explicitly not the
-next target.
+blind `compatible` or `/memory` sweep.
 
 The DTBO track stays frozen this round; `D_CONTROL` is not run.
 
@@ -335,14 +505,15 @@ private wrapper commit   6ba7562ced0721415712853bcfdbbca8f928e9e3
 public source audit     34567640406   PASS
 private M5H run         34567840377   PASS
 OEM_DERIVED_ARTIFACT=PRIVATE_ONLY
-DEVICE_OPERATION=NO
+DEVICE_OPERATION=YES (this round; artifact-preparation round was NO)
 ```
 
 ## Next, not executed
 
 ```text
-NEXT=MAINLINE_V2_M5H_BASE_BOARD_ID_TRUE_DEVICE_CONTROL
-required: user approval, then one vendor_boot_b write
+NEXT=MAINLINE_V2_M5I_MAINLINE_BASE_OVERLAY_COMPATIBILITY_CI
+focus: make the Mainline base DTB resolvable against the 154 Stock overlay fixups
+not a board-id, compatible-only or /memory sweep
 Slot A untouched, no slot switch, no second B boot, no old context restore
 WAIT_FOR_USER_APPROVAL=YES
 NO NEXT STAGE EXECUTED=YES

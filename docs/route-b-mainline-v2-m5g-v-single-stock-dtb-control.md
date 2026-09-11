@@ -174,9 +174,29 @@ V_SINGLE_STOCK_DTB_EFFECT=YES
 CASE=V1
 ```
 
-Fastboot became reachable again at `2026-09-11T05:35:39.905Z`, 79.343s after
-disappear, during the bounded read-only recovery poll (M5E equivalent: 149.164s).
-The agent pressed no keys and issued no ordinary reboot on slot B.
+Fastboot did **not** return automatically within the 12s primary observation
+window, and the device stayed stuck afterwards. Fastboot only became reachable
+at `2026-09-11T05:35:39.905Z` (79.343s after disappear) because the user
+performed a **manual physical Fastboot recovery** (Volume-Down + Power).
+
+The 79.343s value is therefore only the time at which manual recovery happened.
+It is not an automatic return time and must not be cited as evidence about the
+boot chain, a watchdog, an ABL fallback, or any boot timeout. The following
+labels are withdrawn as wrong: `AUTOMATIC_FASTBOOT_REAPPEAR_AT_79P343S`,
+`NATURAL_RETURN_TIME_79P343S`. The agent itself pressed no keys and issued no
+ordinary reboot on slot B.
+
+```text
+AUTOMATIC_FASTBOOT_REAPPEAR_WITHIN_12S=NO
+M5G_V_4P7S_RETURN_SUPPRESSED=YES
+MANUAL_FASTBOOT_RECOVERY_AFTER_WINDOW=YES
+MANUAL_RECOVERY=YES
+PRIMARY_OBSERVATION=>12s
+```
+
+For every future >12s case, record only `PRIMARY_OBSERVATION=>12s` plus
+`MANUAL_RECOVERY=YES/NO`. Never record a manual recovery time as an automatic
+return time.
 
 ## Recovery
 

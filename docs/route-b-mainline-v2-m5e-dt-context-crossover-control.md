@@ -196,9 +196,18 @@ CASE=A
 ```
 
 USB evidence is Fastboot protocol presence (`18d1:d00d`). Fastboot became
-reachable again at `2026-09-11T02:18:03.193Z` (149.164s after disappear)
-during the physical-recovery poll. The agent did not press keys and did
-not issue an ordinary reboot on slot B.
+reachable again at `2026-09-11T02:18:03.193Z` (149.164s after disappear) only
+because of the **user's manual physical Fastboot recovery**, not an automatic
+return. The agent did not press keys and did not issue an ordinary reboot on
+slot B. The 149.164s value is a manual-recovery time, not boot-chain,
+watchdog, ABL-fallback or timeout evidence.
+
+```text
+AUTOMATIC_FASTBOOT_REAPPEAR_WITHIN_12S=NO
+MANUAL_FASTBOOT_RECOVERY_AFTER_WINDOW=YES
+MANUAL_RECOVERY=YES
+PRIMARY_OBSERVATION=>12s
+```
 
 Post-attempt metadata before recovery:
 
