@@ -1028,7 +1028,7 @@ def container_probe(container_bytes, expected_payload):
         parsed = parse_dtbo(container_bytes, "candidate-container")
     except ValueError as error:
         return False, [f"CONTAINER_PARSE_FAILED {error}"]
-    problems = audit_container(parsed, expected_payload)
+    problems = audit_container(parsed, expected_payload, parsed.label)
     return (not problems), problems
 
 
