@@ -223,12 +223,12 @@ def assemble(clang: str, lld: str, objcopy: str, src: Path, out_elf: Path,
     cmd = [
         clang, "--target=aarch64-unknown-none", "-nostdlib", "-ffreestanding",
         "-fno-asynchronous-unwind-tables", "-fno-unwind-tables", "-fno-ident",
-        "-c", "-o", str(obj), str(src),
     ]
     if delay is not None:
-        cmd.insert(-2, f"-DP0_DELAY_SECONDS={delay}")
+        cmd.append(f"-DP0_DELAY_SECONDS={delay}")
     if defines:
-        cmd[1:1] = defines
+        cmd.extend(defines)
+    cmd += ["-c", "-o", str(obj), str(src)]
     run(cmd)
     run([
         lld, "-T", str(HERE / "p0-shim.ld"), "--build-id=none", "--nmagic",
