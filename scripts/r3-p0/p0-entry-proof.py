@@ -530,9 +530,14 @@ def build(args: argparse.Namespace) -> None:
     expect_reject(lambda: check_body_disasm("      40: str xzr, [x0]\n", 8), "STORE")
     print("NEG_UNKNOWN_MEMORY_STORE=REJECT")
 
-    expect_reject(lambda: check_body_disasm(a8["dump"].replace("cntpct_el0", "cntvct_el0"), 8),
-                  "TIMER")
-    expect_reject(lambda: check_body_disasm(a8["dump"].replace("smc", "hvc"), 8), "PSCI")
+    expect_reject(
+        lambda: check_body_disasm(re.sub(r"cntpct_el0", "cntvct_el0", a8["dump"], flags=re.I), 8),
+        "TIMER",
+    )
+    expect_reject(
+        lambda: check_body_disasm(re.sub(r"\bsmc\b", "hvc", a8["dump"], flags=re.I), 8),
+        "PSCI",
+    )
 
     bad_rd = bytearray(a8["boot"])
     bad_rd[RAMDISK_OFFSET] ^= 0xFF
