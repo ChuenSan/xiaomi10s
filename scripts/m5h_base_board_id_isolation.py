@@ -371,7 +371,8 @@ def main():
         raise SystemExit("FAIL_CLOSED BOARD_ID_PROPERTY_FOUND: qcom,board-id absent at /")
     property_length = len(board_entry.value)
     relative_offset = board_entry.value_offset
-    absolute_offset = source.dtb_offset + source_offset + relative_offset
+    dtb_start = source.dtb_offset + source_offset
+    absolute_offset = dtb_start + relative_offset
     before_hex = board_entry.value.hex()
     if property_length != 8 or board_entry.value != struct.pack(">II", *BOARD_ID_BEFORE):
         raise SystemExit(f"FAIL_CLOSED BOARD_ID_BEFORE_0_0: len={property_length} hex={before_hex}")
@@ -386,10 +387,10 @@ def main():
     with tempfile.TemporaryDirectory(prefix="m5h-") as temp_name:
         work = Path(temp_name)
         dtc_before_ok, dtc_before_err = run_dtc(source_fdt.data, "m5h-before-dtb0", work)
-        dtc_after_ok, dtc_after_err = run_dtc(candidate[absolute_offset:absolute_offset + len(source_fdt.data)],
+        dtc_after_ok, dtc_after_err = run_dtc(candidate[dtb_start:dtb_start + len(source_fdt.data)],
                                               "m5h-after-dtb0", work)
         fdtget_before, fdtget_before_err = run_fdtget(source_fdt.data, "m5h-before", work, "/", BOARD_ID)
-        fdtget_after, fdtget_after_err = run_fdtget(candidate[absolute_offset:absolute_offset + len(source_fdt.data)],
+        fdtget_after, fdtget_after_err = run_fdtget(candidate[dtb_start:dtb_start + len(source_fdt.data)],
                                                     "m5h-after", work, "/", BOARD_ID)
         stock_overlay_ok, stock_rc, stock_err, stock_merged = overlay_apply(
             stock_base.data, thyme_entry.payload, "stock-base0-stock-entry21", work)
@@ -408,7 +409,7 @@ def main():
     vendor_diff = diff_offsets(blobs["m5g_v"], candidate)
     board_range = set(range(relative_offset, relative_offset + property_length))
     dtb_diff_outside = [index for index in dtb_diff if index not in board_range]
-    vendor_relative = source.dtb_offset + source_offset
+    vendor_relative = dtb_start
     expected_vendor_diff = [vendor_relative + index for index in dtb_diff]
 
     header_unchanged = candidate[:source.dtb_offset] == blobs["m5g_v"][:source.dtb_offset]
