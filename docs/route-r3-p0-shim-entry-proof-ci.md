@@ -267,7 +267,9 @@ Keep M5D header geometry. Only the kernel payload bytes change.
 ```text
 boot header:          v3
 boot size:            35110912
+M5D boot SHA256:      4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
 kernel payload size:  35101184
+M5D Image SHA256:     5d1d3c3370dc5617f94af1e9b66128a16e95166d7e440b9ea820f7a2c91c974a
 ramdisk:              exact M5D, SHA256 b7d3949461a57b9855850cfe31ef423ce34216aa9ae164600ffbeed97d5a47de
 cmdline:              empty MATCH
 text_offset:          0x80000
