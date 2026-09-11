@@ -1,16 +1,20 @@
-# Route B Mainline V2 — M5M target/fixup × marker factorial (CI only)
+# Route B Mainline V2 — M5M target/fixup × marker factorial
 
-Stage id:
+Stage id (CI):
 
 ```text
 MAINLINE_V2_M5M_TARGET_FIXUP_MARKER_FACTORIAL_CI
 ```
 
-This round is **CI only**. No device operation of any kind is performed. Exact
-Stock / M1 / L1 / L2 inputs, every DT parse, every DTC compilation, every
-`fdtoverlay` application, every artifact transformation, every binary diff and
-every fail-closed negative test run inside the private GitHub Actions runner.
-Nothing OEM-derived leaves private Actions storage.
+Stage id (Candidate A true-device, this round):
+
+```text
+MAINLINE_V2_M5M_A_TARGET_PATH_NO_MARKER_TRUE_DEVICE_CONTROL
+```
+
+CI construction of A/B remains private-GHA-only (private run `34591653733`).
+Candidate A has now been flashed once as the single-variable L1→A marker
+control. Candidate B is READY and **not** authorized for device this round.
 
 ## 1. Constraints honoured
 
@@ -564,38 +568,86 @@ FULL_ARTIFACT_SIZE / SHA256    33554432 / c5a355b942bf287d13a9c02e1fe96c13ebf43f
 READY_FOR_MAINLINE_V2_M5M_B_FIXUP_WITH_MARKER_CONTROL=YES
 ```
 
-### 19.4 Factorial after CI (runtimes still pending device)
+### 19.4 Factorial after A true-device
 
 ```text
 T0/M1  L1  4.837s     measured
-T0/M0  A   PENDING    READY artifact
+T0/M0  A   4.834s     measured this round  CASE=A2
 T1/M0  L2  >12s       measured
-T1/M1  B   PENDING    READY artifact
+T1/M1  B   PENDING    READY artifact, NOT AUTHORIZED FOR DEVICE
 ```
 
-### 19.5 Gate summary
+### 19.5 Gate summary after A true-device
 
 ```text
 READY_FOR_MAINLINE_V2_M5M_A_TARGET_PATH_NO_MARKER_CONTROL=YES
 READY_FOR_MAINLINE_V2_M5M_B_FIXUP_WITH_MARKER_CONTROL=YES
-NEXT_TRUE_DEVICE_CONTROL=M5M_A_TARGET_PATH_NO_MARKER_TRUE_DEVICE_CONTROL
-A_FIRST=YES
+A_TRUE_DEVICE=YES
+CASE=A2
+PRIMARY_OBSERVATION=4.834s
+MARKER_PROPERTY_EFFECT_UNDER_TARGET_PATH=NO
+MARKER_REMOVAL_ALONE_SUFFICIENT=NO
+Final Gate=MAINLINE_V2_M5M_A_MARKER_REMOVAL_NO_EFFECT
 DO_NOT_FLASH_A_AND_B_TOGETHER=YES
-IF_A_GT_12S_DO_NOT_AUTO_RUN_B=YES
-CURRENT_B=UNCHANGED
+IF_A_GT_12S_DO_NOT_AUTO_RUN_B=YES   (A was ~4.7s; B still not auto-run)
 NO_NEXT_STAGE_EXECUTED=YES
 WAIT_FOR_USER_APPROVAL=YES
 ```
 
-Both artifacts are validated and held in private Actions storage. Only A is
-recommended for the next true-device control, after explicit approval.
+## 20. Candidate A true-device result
 
-## 20. Current B and wait
+Full write-up: `docs/route-b-mainline-v2-m5m-a-target-path-no-marker-control.md`.
+
+L1→A single-variable relation:
 
 ```text
-DEVICE_OPERATION=NO
-CURRENT_B=exact M5D boot + M5H board45 Stock DTB0 vendor + M5L-L1 dtbo
-UNCHANGED
+boot     exact M5D           held
+vendor   M5H board45 DTB0    held
+model    Stock exact         held
+fragment 1                   held
+target   target-path="/"     held
+fixups   ABSENT              held
+symbols  ABSENT              held
+marker   PRESENT → ABSENT   only source semantic delta
+runtime  4.837s → 4.834s
+```
+
+```text
+T_DISAPPEAR_ISO=2026-09-11T11:15:38.641Z
+T_REAPPEAR_ISO=2026-09-11T11:15:43.475Z
+AUTOMATIC_FASTBOOT_REAPPEAR_WITHIN_12S=YES
+AUTOMATIC_ELAPSED=4.834
+MANUAL_RECOVERY=NO
+B boots=1
+SECOND_B_BOOT_FORBIDDEN=YES
+SLOT_A_WRITTEN=NO
+ONLY_WRITE=dtbo_b
+```
+
+Dumps: pstore 0; minidump/rawdump/logdump UNCHANGED; logfs and oops CHANGED.
+oops holds only 2023-09-04 stock Android records
+(`OOPS_MAINLINE_EVIDENCE=NO`).
+
+Marker removal under `target-path="/"` does not leave the ~4.7s wall.
+A vs L2 (both marker-absent) therefore isolates targeting mechanism:
+
+```text
+A   T0/M0  target-path="/"      4.834s
+L2  T1/M0  target + __fixups__  >12s
+TARGET_FIXUP_MECHANISM_EFFECT under marker-absent  STRONGLY_SUPPORTED
+```
+
+Candidate B (`T1/M1`) remains the last factorial cell. It is READY and is
+**not** executed here.
+
+## 21. Current B and wait
+
+```text
+ANDROID_A_RESTORED=YES
+CURRENT_B=exact M5D boot + M5H board45 Stock DTB0 vendor + M5M-A dtbo
+L1 dtbo NOT restored
+NEXT=MAINLINE_V2_M5M_B_FIXUP_WITH_MARKER_TRUE_DEVICE_CONTROL
+      full SHA c5a355b942bf287d13a9c02e1fe96c13ebf43f20b61be7e05763b8d23872aba8
 NO_NEXT_STAGE_EXECUTED=YES
 WAIT_FOR_USER_APPROVAL=YES
 ```
