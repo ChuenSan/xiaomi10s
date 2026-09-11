@@ -797,7 +797,8 @@ def analyse_fixup_encoding(work):
     cell_conventions = []
     for name, template in PROBE_DTS.items():
         blob = dtc_compile(work, f"m5l-probe-{name}",
-                           template.format(target=PROBE_TARGET_SYMBOL, body=PROBE_BODY_SYMBOL))
+                           template.replace("{target}", PROBE_TARGET_SYMBOL)
+                           .replace("{body}", PROBE_BODY_SYMBOL))
         fdt = Fdt(blob, f"m5l-probe-{name}")
         fixups = fdt.node("/__fixups__")
         record = {
