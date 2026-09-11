@@ -162,7 +162,7 @@ class Fdt:
                 path = "/" if not stack else stack[-1].rstrip("/") + "/" + name
                 stack.append(path)
                 self.nodes[path] = {}
-                if stack == [path] and name.startswith("fragment@"):
+                if len(stack) == 2 and stack[0] == "/" and name.startswith("fragment@"):
                     self.fragments.append(path)
             elif token == 2:  # FDT_END_NODE
                 if not stack:
@@ -210,7 +210,7 @@ class Fdt:
         result = {}
         for path in ("/__fixups__", "/__local_fixups__", "/__symbols__"):
             props = self.nodes.get(path)
-            result[path] = 0 if props is None else len(props)
+            result[path] = "ABSENT" if props is None else len(props)
         return result
 
 
@@ -744,6 +744,9 @@ def main():
         f"SELECTED_PAYLOAD_OFFSET={entry.dt_offset}",
         f"SELECTED_PAYLOAD_SIZE={entry.dt_size}",
         f"SELECTED_PAYLOAD_SHA256={sha(entry.payload)}",
+        f"SELECTED_PAYLOAD_FRAGMENT_COUNT={len(entry.fdt.fragments)}",
+        f"SELECTED_PAYLOAD_FIXUPS_COUNT={special['/__fixups__']}",
+        f"SELECTED_PAYLOAD_SYMBOLS_COUNT={special['/__symbols__']}",
         "DTC_ROUNDTRIP_SELECTED_PAYLOAD=PASS",
         "DTC_ROUNDTRIP_M1_NOOP=PASS",
         "FDTOVERLAY_STOCK_DTB0_PLUS_CELLD_PAYLOAD=PASS",
@@ -807,7 +810,13 @@ def main():
         and len(m1_extended_zone) == 1
         and m1_extended_zone[0] == (M1_DTBO_SIZE, FULL_PREFIX_END, "ADDED")
     )
-    safe = (not failed_negative) and container_preserved and ranges_ok and merged_matches_m5h
+    payload_shape_ok = (
+        len(entry.fdt.fragments) == 124
+        and special["/__fixups__"] == 154
+        and special["/__symbols__"] == 386
+    )
+    safe = ((not failed_negative) and container_preserved and ranges_ok
+            and merged_matches_m5h and payload_shape_ok)
 
     matrix = f"""# M5K0 DTBO 2x2 factorial — missing Cell D
 
@@ -994,6 +1003,10 @@ diff vs Stock exact ranges        {len(stock_ranges)}
         "D_CONTROL2_PAYLOAD_SHA_EXACT_STOCK_ENTRY21=YES",
         "D_CONTROL2_PAYLOAD_BYTES_EXACT_STOCK_ENTRY21=YES",
         "D_CONTROL2_PAYLOAD_IS_NOT_M1_NOOP=YES",
+        f"D_CONTROL2_PAYLOAD_FRAGMENT_COUNT={len(entry.fdt.fragments)}",
+        f"PAYLOAD_FRAGMENT_COUNT_124={'YES' if len(entry.fdt.fragments) == 124 else 'NO'}",
+        f"PAYLOAD_FIXUPS_COUNT_154={'YES' if special['/__fixups__'] == 154 else 'NO'}",
+        f"PAYLOAD_SYMBOLS_COUNT_386={'YES' if special['/__symbols__'] == 386 else 'NO'}",
         "CONTAINER_SEMANTICS_PRESERVED_ONE_ENTRY=" + ("YES" if container_preserved else "NO"),
         "CHANGED_HEADER_FIELD_VS_M1=" + (",".join(changed_header_fields) or "NONE"),
         "CHANGED_ENTRY_FIELD_VS_M1=" + (",".join(changed_entry_fields) or "NONE"),
