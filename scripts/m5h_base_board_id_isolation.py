@@ -32,6 +32,22 @@ FDT_MAGIC = 0xD00DFEED
 DTBO_MAGIC = 0xD7B7AB1E
 FDT_BEGIN_NODE, FDT_END_NODE, FDT_PROP, FDT_NOP, FDT_END = 1, 2, 3, 4, 9
 
+AUXILIARY_GATES = {"STOCK_BASE_PLUS_STOCK_OVERLAY_FDTOVERLAY", "M1_BASE_PLUS_STOCK_OVERLAY_FDTOVERLAY"}
+FAILURE_LABELS = {
+    "M5G_V_SOURCE_SHA_EXACT": "M5H_SOURCE_IDENTITY_FAILED",
+    "STOCK_DTB0_SHA_EXACT": "M5H_SOURCE_IDENTITY_FAILED",
+    "BOARD_ID_PROPERTY_FOUND": "M5H_BOARD_ID_LOCATION_FAILED",
+    "BOARD_ID_BEFORE_0_0": "M5H_BOARD_ID_LOCATION_FAILED",
+    "BOARD_ID_PATCHED_45_0": "M5H_BOARD_ID_LOCATION_FAILED",
+    "DTB_TOTALSIZE_UNCHANGED": "M5H_NONMINIMAL_DTB_DIFF",
+    "DTB_DIFF_BOARD_ID_ONLY": "M5H_NONMINIMAL_DTB_DIFF",
+    "VENDOR_BOOT_DIFF_BOARD_ID_ONLY": "M5H_NONMINIMAL_DTB_DIFF",
+    "ARTIFACT_SIZE_UNCHANGED": "M5H_NONMINIMAL_DTB_DIFF",
+    "VENDOR_BOOT_HEADER_UNCHANGED": "M5H_VENDOR_HEADER_CHANGED",
+    "REVERSE_PARSE": "M5H_VALIDATION_FAILED",
+}
+M5H_NOT_SAFE = "M5H_NOT_SAFE"
+
 FAILURES = []
 
 
@@ -393,6 +409,7 @@ def main():
     board_range = set(range(relative_offset, relative_offset + property_length))
     dtb_diff_outside = [index for index in dtb_diff if index not in board_range]
     vendor_relative = source.dtb_offset + source_offset
+    expected_vendor_diff = [vendor_relative + index for index in dtb_diff]
 
     header_unchanged = candidate[:source.dtb_offset] == blobs["m5g_v"][:source.dtb_offset]
     ramdisk_unchanged = parsed.ramdisk == source.ramdisk
@@ -506,10 +523,14 @@ def main():
     gates.append(f"AUXILIARY_DIAGNOSTIC_ONLY=YES")
     gates.append(f"REFERENCE_IMPLEMENTATION_ONLY=YES")
 
-    mandatory = [line for line in gates if line.endswith("=FAIL")]
+    mandatory = [line for line in gates
+                 if line.endswith("=FAIL") and line.split("=", 1)[0] not in AUXILIARY_GATES]
+    labels = sorted({FAILURE_LABELS.get(line.split("=", 1)[0], M5H_NOT_SAFE) for line in mandatory})
     ready = not mandatory and not FAILURES
     gates.append(f"FAIL_CLOSED={'PASS' if ready else 'FAIL'}")
     gates.append(f"READY_FOR_MAINLINE_V2_M5H_BASE_BOARD_ID_CONTROL={'YES' if ready else 'NO'}")
+    if labels:
+        gates.append(f"M5H_FAILURE_LABELS={','.join(labels)}")
 
     json_note = [
         f"BOARD_ID_NODE_PATH=/",
