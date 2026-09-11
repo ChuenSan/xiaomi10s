@@ -193,7 +193,8 @@ def memory_summary(fdt):
     for path, props in fdt.nodes.items():
         base = path.rsplit("/", 1)[-1]
         device_type = props.get("device_type")
-        if base == "memory" or base.startswith("memory@") or (device_type and strings(device_type.value) == ["memory"]):
+        root_child = path.startswith("/") and path.count("/") == 1
+        if root_child and (base == "memory" or base.startswith("memory@") or (device_type and strings(device_type.value) == ["memory"])):
             fields = []
             for name in ("device_type", "reg", "status"):
                 if name in props:
