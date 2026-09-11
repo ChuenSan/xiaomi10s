@@ -163,10 +163,12 @@ normalization only.
 
 ```text
 size                                   33554432
-SHA256                                 computed in GitHub Actions
+SHA256                                 045fa86dadec5be129554a33289c2d9937df9f0a853473a9a3ffd44a4f22c989
 first 484949 bytes SHA256              bfa80da2032ad016916052f45059cb33c32013bde6789737c553d07f7870390a
-[484949,EOF) SHA256                    == exact Stock dtbo.img same-range SHA
+[484949,EOF) SHA256                    d23955ce270321bbf3ddefe9beb0d9eea71abea54397fe69236bb9865fb3d5f3
+[484949,EOF) == Stock same-range SHA   YES
 Stock entry21 slot [9666706,10151591)  == exact Stock thyme overlay payload
+Stock entry21 slot SHA256              44ebabe29b0f2a759af0fedcda05674c441465c790f183541164f0721e99bf93
 M5J no-op residue in tail              NO
 ```
 
@@ -367,23 +369,71 @@ source, workflow and documentation only, never an OEM-derived image.
 
 ## 19. GitHub Actions results
 
-Filled from the private M5K0 run; see the workflow log and `m5k0-gates.txt`.
+Authoritative run: private GHA
+[`34580065358`](https://github.com/ChuenSan/thyme-mainline-private-ci/actions/runs/34580065358),
+private wrapper commit `4939a9d59d55619e128a19095f9cb3521e065a11`, pinned public
+source commit `f6bc9b72e3ceb4a217d692c27c65ab3642ffe69f`.
 
 ```text
-private run                 PENDING
-M5K0_FULL_ARTIFACT_SIZE     33554432 (expected)
-M5K0_FULL_ARTIFACT_SHA256   PENDING
-prefix match                PENDING
-Stock same-offset tail      PENDING
-entry_count                 1 (re-audited)
-dt_offset                   64 (re-audited)
+private run                 34580065358
+public source commit        f6bc9b72e3ceb4a217d692c27c65ab3642ffe69f
+public source audit         345798...(source commit) PASS
+M5K0_FULL_ARTIFACT_SIZE     33554432
+M5K0_FULL_ARTIFACT_SHA256   045fa86dadec5be129554a33289c2d9937df9f0a853473a9a3ffd44a4f22c989
+prefix [0,484949) SHA256    bfa80da2032ad016916052f45059cb33c32013bde6789737c553d07f7870390a  MATCH
+Stock same-offset tail SHA  d23955ce270321bbf3ddefe9beb0d9eea71abea54397fe69236bb9865fb3d5f3  MATCH
+entry_count                 1     (re-audited)
+dt_offset                   64    (re-audited)
 dt_size                     484885 (re-audited)
 entry metadata              all zero (re-audited)
-Stock payload exact         YES (re-audited)
-fdtoverlay Stock base       PENDING
-negative tests              PENDING
-READY gate                  PENDING
+Stock payload exact         YES   (re-audited)
+payload fragments/fixups/symbols   124 / 154 / 386  (matches M5G record)
+fdtoverlay Stock base       PASS  merged c48ef53de0dc3ad3ca31818b913b7380f615bbed8df925416abbae8ef0a8535b
+                            == M5H record, FDTOVERLAY_MERGED_SHA_EQUALS_M5H_RECORD=YES
+diff vs M1 changed ranges   33
+diff vs Stock changed ranges 50405, changed bytes 368759
+Stock same-offset tail changed 0 ranges, 0 bytes
+negative tests              11/11 PASS, FAIL_CLOSED=PASS
+READY gate                  YES
 ```
+
+Full gate list is `m5k0-gates.txt` inside the private artifact
+`thyme-mainline-v2-m5k0-private-4939a9d...`.
+
+Run history, recorded for transparency:
+
+```text
+34579614134  FAILED  M1-vs-CellD range gate was over-strict: the leading zero
+                     byte of total_size/dt_size is equal, so the first changed
+                     byte is at offset 5 and 33, not at the field start.
+34579852041  PASS    superseded: FDT fragment walk counted 0 fragment nodes
+                     instead of 124 (root-child depth bug in the report only).
+                     The normalized image bytes and every image-level gate were
+                     already identical to the authoritative run.
+34580065358  PASS    authoritative
+```
+
+The executable image identity did not change between `34579852041` and
+`34580065358`: `M5K0_FULL_ARTIFACT_SHA256` is identical in both, because the
+second fix touched only the FDT report walk and the shape gate.
+
+## 19a. Private artifacts
+
+Only the private auxiliary CI repository stores OEM-derived output. Nothing
+below is committed to the public repository.
+
+```text
+m5k0-full-normalized-dtbo.img      33554432  045fa86dadec5be129554a33289c2d9937df9f0a853473a9a3ffd44a4f22c989
+m5k0-d-control2-short-dtbo.img       484949  bfa80da2032ad016916052f45059cb33c32013bde6789737c553d07f7870390a
+m5k0-binary-diff-vs-stock.txt                exact 50405 changed ranges
+m5k0-binary-diff-vs-m1.txt                   exact 33 changed ranges
+m5k0-negative-tests.txt                      11/11 PASS
+m5k0-factor-matrix.md                        corrected matrix and Cell-D design
+```
+
+`m5k0-d-control2-short-dtbo.img` is a byte-identical re-emission of the audited
+private run `34559797694` artifact, so the future device round has a single
+verified artifact set.
 
 ## 20. Next, not executed
 
