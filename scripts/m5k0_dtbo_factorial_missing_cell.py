@@ -85,7 +85,7 @@ M1_VS_CELLD_REGIONS = (
     ("EXTENDED_TO_CELL_D_EXTENT", M1_DTBO_SIZE, FULL_PREFIX_END),
 )
 
-DETAIL_RANGE_CAP = 4096
+DETAIL_RANGE_CAP = 65536
 DETAIL_RANGE_TAIL = 64
 BLOCK_SIZE = 4096
 
@@ -326,6 +326,11 @@ def changed_ranges(before, after):
     if len(before) != len(after):
         ranges.append((common, max(len(before), len(after)), "ADDED" if len(after) > len(before) else "REMOVED"))
     return ranges
+
+
+def covers(ranges, low, high):
+    """True when any changed range overlaps the half-open window [low,high)."""
+    return any(start < high and end > low for start, end, _ in ranges)
 
 
 def block_map(before, after):
@@ -763,10 +768,11 @@ def main():
     m1_diff.extend([
         "INTENTIONAL_VARIABLE=SELECTED_PAYLOAD_BYTES_ONLY",
         "CONTAINER_SEMANTICS_HELD=ONE_ENTRY",
-        "EXPECTED_RANGE_1=[4,8) header total_size",
-        "EXPECTED_RANGE_2=[32,36) entry dt_size",
+        "EXPECTED_CHANGE_CONTAINED_IN=[4,8) header total_size field",
+        "EXPECTED_CHANGE_CONTAINED_IN=[32,36) entry dt_size field",
         "EXPECTED_TRAILING_RANGE=ADDED[387,484949)",
-        "EXPECTED_UNCHANGED=[8,32) header format fields and [36,64) entry fields",
+        "EXPECTED_UNCHANGED=[0,4) and [8,32) and [36,64)",
+        "NOTE=TOTAL_SIZE_AND_DT_SIZE_LEADING_BYTES_CAN_BE_EQUAL",
         "",
     ])
     write_lines(args.out_dir / "m5k0-binary-diff-vs-m1.txt", m1_diff)
@@ -787,12 +793,19 @@ def main():
     ])
     write_lines(args.out_dir / "m5k0-binary-diff-vs-stock.txt", stock_diff)
 
+    m1_payload_zone = [r for r in m1_ranges if r[2] == "REPLACED" and DTBO_PAYLOAD_OFFSET <= r[0] < M1_DTBO_SIZE]
+    m1_extended_zone = [r for r in m1_ranges if r[0] >= M1_DTBO_SIZE]
     ranges_ok = (
         len(m1_ranges) >= 4
-        and m1_ranges[0] == (4, 8, "REPLACED")
-        and m1_ranges[1] == (DTBO_HEADER_SIZE, DTBO_HEADER_SIZE + 4, "REPLACED")
-        and m1_ranges[-1] == (M1_DTBO_SIZE, FULL_PREFIX_END, "ADDED")
-        and all(36 <= start and end <= M1_DTBO_SIZE for start, end, _ in m1_ranges[2:-1])
+        and not covers(m1_ranges, 0, 4)
+        and covers(m1_ranges, 4, 8)
+        and not covers(m1_ranges, 8, DTBO_HEADER_SIZE)
+        and covers(m1_ranges, DTBO_HEADER_SIZE, DTBO_HEADER_SIZE + 4)
+        and not covers(m1_ranges, DTBO_HEADER_SIZE + 4, DTBO_PAYLOAD_OFFSET)
+        and bool(m1_payload_zone)
+        and all(end <= M1_DTBO_SIZE for _, end, _ in m1_payload_zone)
+        and len(m1_extended_zone) == 1
+        and m1_extended_zone[0] == (M1_DTBO_SIZE, FULL_PREFIX_END, "ADDED")
     )
     safe = (not failed_negative) and container_preserved and ranges_ok and merged_matches_m5h
 

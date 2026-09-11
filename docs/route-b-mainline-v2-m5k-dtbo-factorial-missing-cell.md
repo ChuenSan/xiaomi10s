@@ -212,11 +212,23 @@ primary payload variable moved from `M1 no-op` to `exact Stock thyme entry21`.
 unchanged  [0,4) magic
 unchanged  [8,32) header_size entry_size entry_count entries_offset page_size version
 unchanged  [36,64) dt_offset id rev custom[0..3]
-changed    [4,8) total_size 387 -> 484949
-changed    [32,36) dt_size 323 -> 484885
-changed    [64,387) payload bytes
+changed    a sub-range of [4,8) header total_size 387 -> 484949
+changed    a sub-range of [32,36) entry dt_size 323 -> 484885
+changed    the payload bytes inside [64,387)
 added      [387,484949)
 ```
+
+The changed sub-ranges inside `[4,8)` and `[32,36)` need not start on the field
+boundary: both `387`/`484949` and `323`/`484885` share their leading zero byte,
+so the first differing byte can sit at offset 5 and offset 33 respectively. The
+gate is therefore containment plus "nothing changed outside the two integer
+fields in `[0,64)`", not a hard-coded start offset.
+
+The measured `DIFF_VS_M1_EXACT_CHANGED_RANGE_COUNT` is `33`: the FDT header and
+structure block of the two payloads differ in many places, so the exact range
+count is recorded rather than assumed. What is asserted is that every changed
+byte lies in `[4,8)`, `[32,36)`, `[64,387)`, and that the only range at or after
+`387` is `ADDED [387,484949)`.
 
 ## 11. libfdt / dtbo parser validation
 
@@ -251,8 +263,9 @@ tail differs from Stock       -> detected
 M5J no-op residue in slot     -> detected
 ```
 
-The unmutated artifacts must produce zero violations, so the checks are
-demonstrably reachable rather than vacuous.
+Nine mutation cases plus two unmutated control cases make
+`NEGATIVE_TEST_COUNT=11`. The unmutated artifacts must produce zero violations,
+so the checks are demonstrably reachable rather than vacuous.
 
 ## 13. Final READY gate
 
