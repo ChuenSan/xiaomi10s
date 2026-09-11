@@ -1,11 +1,13 @@
 # Route B Mainline V2 M5K0 — DTBO 2x2 factorial missing Cell D (CI qualification)
 
-Status: CI qualification / artifact preparation only. No device operation.
+Status: CI qualification **and** true-device Cell D control — complete.
 Final gate template:
-`READY_FOR_MAINLINE_V2_M5K_DTBO_ONE_ENTRY_STOCK_PAYLOAD_CONTROL`.
-Current Slot B is unchanged:
+`READY_FOR_MAINLINE_V2_M5K_DTBO_ONE_ENTRY_STOCK_PAYLOAD_CONTROL`
+(CI stage) → measured stage final gate
+`MAINLINE_V2_M5K_ONE_ENTRY_STOCK_PAYLOAD_SUPPRESSES_4P7S` (see §21).
+Current Slot B is unchanged in its constituents:
 exact M5D `boot_b` + M5H `<45 0>` single Stock DTB0 `vendor_boot_b` +
-M5J Stock-table / no-op `dtbo_b`.
+M5K one-entry / exact-Stock-payload `dtbo_b`.
 
 ## 0. Correcting the current conclusion boundary
 
@@ -33,7 +35,10 @@ Current DTBO matrix:
 | A | Stock 29-entry | Stock thyme entry21 | >12s | measured |
 | B | Stock 29-entry | M1 no-op | 4.922s | measured (M5J) |
 | C | M1 one-entry | M1 no-op | 4.812s | measured (M5F1) |
-| D | M1 one-entry | Stock thyme entry21 | UNKNOWN | artifact prepared this round |
+| D | M1 one-entry | Stock thyme entry21 | >12s | measured (M5K, §22) |
+
+The factorial is now complete: see §22 for the measured Cell D result and the
+full interpretation.
 
 ## 1. Existing D-Control-2 short artifact
 
@@ -435,10 +440,217 @@ m5k0-factor-matrix.md                        corrected matrix and Cell-D design
 private run `34559797694` artifact, so the future device round has a single
 verified artifact set.
 
-## 20. Next, not executed
+## 20. Next, not executed (superseded by §21)
 
 ```text
 NEXT=M5K DTBO MISSING CELL TRUE DEVICE CONTROL
 WAIT FOR USER APPROVAL
 NO NEXT STAGE EXECUTED=YES
 ```
+
+---
+
+# Part II — MAINLINE_V2_M5K_DTBO_MISSING_CELL_TRUE_DEVICE_CONTROL (measured)
+
+## 21. Round constraints and scope
+
+```text
+MEM0_READ_BEFORE_M5K            YES
+MEM0_READ_BEFORE_WRITE          YES
+LOCAL_BUILD                     NO
+LOCAL_VALIDATION                NO
+LOCAL_VALIDATOR                 NO
+LOCAL_SOURCE_GATE               NO
+LOCAL_ACTIONLINT                NO
+LOCAL_BINARY_VALIDATION         NO
+GHA_ONLY                        YES
+new build this round            NO
+artifact regeneration           NO
+artifact modification           NO
+ONLY PARTITION WRITE            dtbo_b
+boot_b / vendor_boot_b write    NO
+vbmeta* / firmware write        NO
+ANY *_a write                   NO
+B BOOTS                         1
+SECOND_B_BOOT_FORBIDDEN         YES
+older dtbo restore              NO
+file/directory deletion         NO
+M5L auto-execution              NO
+```
+
+The only intended logical variable of this round is the DTBO container/table
+topology. Boot, vendor, vbmeta and firmware are held byte-identical to the
+Reference Cell A context, and the selected overlay payload is the *same exact*
+Stock thyme entry21 that Cell A uses.
+
+## 22. Cell D true-device result — CASE K1
+
+```text
+CASE                            K1
+T_REBOOT_CMD                    2026-09-11T08:50:03.333Z
+T_DISAPPEAR                     1789116603.651
+T_DISAPPEAR_ISO                 2026-09-11T08:50:03.651Z
+PRIMARY_OBSERVATION             >12s
+AUTOMATIC_FASTBOOT_REAPPEAR_WITHIN_12S   NO
+AUTOMATIC_ELAPSED               N/A
+MANUAL_RECOVERY                 YES
+MANUAL_RECOVERY_TIME            211s
+MANUAL_RECOVERY_TIME_ISO        2026-09-11T08:54:13Z
+```
+
+The host observation window is 12 seconds and watches for the fastboot USB
+device to disappear and return. It did not return inside the window, so the
+observation is recorded as `PRIMARY_OBSERVATION=>12s`.
+
+Manual recovery semantics: Fastboot was restored by a physical user action,
+not by the device itself. The elapsed time is therefore recorded only as
+`MANUAL_RECOVERY_TIME`. It is explicitly **not** recorded as `T_REAPPEAR`,
+`AUTOMATIC_RETURN_TIME` or `NATURAL_RETURN_TIME`, because those labels would
+falsely assert an automatic return inside the window.
+
+## 23. Pre-write and post-write device identity
+
+```text
+PREFLIGHT  product=thyme unlocked=yes current-slot=a
+           snapshot-update-status=none battery-soc-ok=yes
+           slot-retry-count:b=6 slot-unbootable:b=no
+BASELINE   slot_suffix=_a boot_completed=1 root=uid=0 device=thyme
+
+PREWRITE boot_b[0,35110912)      4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63  MATCH
+PREWRITE vendor_boot_b[0,548864) 2d58ef94802e3aaac3115a9ee1c3d69199b054e04f181e39a55a7e75b60564d9  MATCH
+PREWRITE vendor_boot_b[548864,EOF) 5d98f207def3af98517cb4c74dc5befaee5a2b62209e32cd13b4c181bb374e52 MATCH
+PREWRITE dtbo_b whole            31e1c2ff828076c52a2f018f329fe23d7c62e59d3993a53bdf798396a61c7c37  MATCH (M5J)
+PREWRITE vbmeta_b[0,8192)        37dfac44f336157d69b616e3567cdccff90273b36cd862a86f57abe1930f9d9c  stock
+PREWRITE vbmeta_system_b[0,4096) 3217455014b5bb0cc05b638489589738863aeb6cc6b9423d56989b21fa8b8355  stock
+PREWRITE abl/xbl/xbl_config/tz    prefixes MATCH M5H record
+M5K_START_M5J_CONTEXT_EXACT      YES
+
+FLASH     fastboot flash dtbo_b  OKAY (32768 KB sent, 0.805s / 0.072s write)
+POST_FLASH_CURRENT_SLOT          a          (reboot to Android A, not B)
+
+POSTWRITE dtbo_b whole           045fa86dadec5be129554a33289c2d9937df9f0a853473a9a3ffd44a4f22c989  MATCH
+POSTWRITE boot_b                 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63  MATCH
+POSTWRITE vendor_boot_b[0,548864) 2d58ef94802e3aaac3115a9ee1c3d69199b054e04f181e39a55a7e75b60564d9 MATCH
+POSTWRITE vendor_boot_b[548864,EOF) 5d98f207def3af98517cb4c74dc5befaee5a2b62209e32cd13b4c181bb374e52 MATCH
+POSTWRITE vbmeta*/firmware       byte-identical to pre-write
+M5K_FULL_CONTEXT_VERIFIED        YES
+```
+
+The written artifact size (`33554432`) equals the physical `dtbo_b` partition
+size, so the whole-partition SHA is a valid authoritative gate for the write:
+the partition reads back exactly the artifact SHA.
+
+## 24. Recovery and Slot A restoration
+
+```text
+RECOVERY pre      current-slot=b slot-retry-count:b=6 slot-unbootable:b=no
+RECOVERY action   fastboot set_active a  ->  current-slot=a  ->  fastboot reboot
+ANDROID_A_RESTORED YES  slot_suffix=_a  boot_completed=1  root=uid=0
+SECOND_B_BOOT_FORBIDDEN YES
+```
+
+No ordinary reboot was issued while the device was in the suppressed state.
+
+## 25. Dumps (read-only, nothing cleared, nothing deleted)
+
+```text
+pstore               0 entries
+minidump             UNCHANGED
+rawdump              UNCHANGED
+logdump              UNCHANGED
+logfs                CHANGED
+oops                 CHANGED
+
+oops pre-boot baseline  2b4ea0ee3859a4eb791f2e65185a2d459189169f649811da5ed506fd916df735
+oops post               6d32c40d86fa67ba5f148ae345ccf9abd938d456e29d49a5fed9c59b017200d0
+oops content            stock Android 2023-09-04 records only
+                        21x "reboot,bootloader", 7x "Reason: Restart"
+                        0x "Linux version", 0x literal "6.6.", 0x mainline markers
+OOPS_MAINLINE_EVIDENCE  NO
+```
+
+An Android-A reboot and a bootloader round trip are not Mainline evidence, and
+the changed `oops`/`logfs` region contains only dated stock-Android records.
+
+## 26. Complete DTBO 2x2 factorial
+
+| cell | DTBO container/table | selected thyme payload | runtime | round |
+| --- | --- | --- | --- | --- |
+| A | Stock 29-entry | exact Stock thyme entry21 | **>12s** | M5G/M5D |
+| B | Stock 29-entry | M1 no-op | **4.922s** | M5J |
+| C | M1 one-entry | M1 no-op | **4.812s** | M5F1 |
+| D | M1 one-entry | exact Stock thyme entry21 | **>12s** | M5K |
+
+Reading the matrix column-wise:
+
+```text
+payload dimension   Stock payload  -> A >12s, D >12s   (return suppressed)
+                    M1 no-op       -> B 4.922s, C 4.812s (return restored)
+
+container dimension Stock table    -> A >12s, B 4.922s  (payload-determined)
+                    M1 one-entry   -> D >12s, C 4.812s  (payload-determined)
+```
+
+The runtime tracks the **payload** in both container contexts and does not
+track the container. With the payload held at the exact Stock overlay, the
+one-entry container reproduces the Reference Cell A behaviour (`>12s`), so the
+container alone is not the cause.
+
+## 27. Interpretation
+
+```text
+M5K_ONE_ENTRY_CONTAINER_EFFECT            NO
+M1_ONE_ENTRY_CONTAINER_ALONE_SUFFICIENT   NO
+M1_NOOP_PAYLOAD_SUFFICIENT                YES
+M1_NOOP_PAYLOAD_CAUSAL_FAMILY             STRONGLY_SUPPORTED
+
+OVERLAY_PAYLOAD_VARIABLE   NO
+BOOT_VARIABLE              NO
+VENDOR_VARIABLE            NO
+VBMETA_VARIABLE            NO
+FIRMWARE_VARIABLE          NO
+
+PRIMARY_LOGICAL_VARIABLE   DTBO_CONTAINER_TABLE_TOPOLOGY
+                           (entry_count / total_size / payload offset /
+                            one-entry image structure)
+                           -> rejected as the main cause
+```
+
+The DTBO container/table topology is downgraded as a primary cause: changing
+`entry_count` `29 -> 1`, `total_size` `-> 484949` and the payload layout while
+keeping the exact Stock overlay payload does **not** shorten the suppressed
+return. The M1 no-op overlay payload is the sufficient compatibility factor
+inside the DTBO track, in both the Stock 29-entry table (M5J) and the M1
+one-entry table (M5K).
+
+Not claimed by this round: any per-field statement about *why* the Stock
+overlay payload is incompatible with the M1 Mainline base DTB. The next stage
+must open the payload itself.
+
+Final gate:
+
+```text
+MAINLINE_V2_M5K_ONE_ENTRY_STOCK_PAYLOAD_SUPPRESSES_4P7S
+```
+
+## 28. Final state and next direction
+
+```text
+B_FINAL  exact M5D boot
+       + M5H <45 0> single Stock DTB0 vendor_boot
+       + M5K one-entry / exact-Stock-payload dtbo
+Stock / M5J dtbo NOT restored
+Slot A active and restored
+NO_NEXT_STAGE_EXECUTED=YES
+
+NEXT  MAINLINE_V2_M5K_DTBO_PAYLOAD_SEMANTICS_AUDIT_CI
+      (payload fragment structure, target paths, board-id placement,
+       overlay symbols/fixups, payload totalsize/padding)
+      because Cell D is >12s: the container is not the primary cause and the
+      overlay payload itself must be decomposed.
+```
+
+`MAINLINE_V2_M5K_DTBO_DUAL_FACTOR_AUDIT_CI` is **not** the next stage, because
+the dual-factor branch required a ~4.7s Cell D. `MAINLINE_V2_M5L` was not
+executed and awaits user approval.
+
