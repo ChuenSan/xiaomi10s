@@ -6,16 +6,12 @@ Stage: `MAINLINE_V2_R1_ALIOTH_THYME_REFERENCE_AUDIT`
 local build:                 NO
 local Image/DTB decompile:   NO
 GHA-only validation:         YES
-device operation:            NO
+device operation (R1):       NO
 Slot A written:              NO
-current B (unchanged):       M1 DT context + M5D boot_b
+B at R1 close:               M1 DT context + M5D boot_b
+B after later M5E:           Stock DT context + M5D boot_b
 M5E_HEADER_LOAD_SEMANTICS_AUDIT:        PAUSED
-M5E_STOCK_DT_TRUE_DEVICE_CROSSOVER:     PAUSED (recommended next, not executed)
-NO ADB DEVICE CHANGE
-NO FASTBOOT
-NO FLASH
-NO SET_ACTIVE
-NO B BOOT
+M5E_STOCK_DT_TRUE_DEVICE_CROSSOVER:     EXECUTED, see docs/route-b-mainline-v2-m5e-dt-context-crossover-control.md
 ```
 
 mem0 was read first (`user_id=default`, agent `bzg-thyme-mainline`).
@@ -194,26 +190,27 @@ R1_ALIOTH_SUCCESS_HEADER_MATCHES_MAINLINE_STYLE=CONFIG_YES_BINARY_PENDING_GHA
 R1_NO_DECISIVE_REFERENCE_DIFFERENCE=NO
 ```
 
-## Recommended next stage (not executed)
+## Recommended next stage — executed as M5E
 
 ```text
 RECOMMENDED=M5E_DT_CONTEXT_CROSSOVER_TRUE_DEVICE
+EXECUTED=YES
+FINAL_GATE=MAINLINE_V2_M5E_STOCK_DT_SUPPRESSES_4P7S
 ```
 
 M1 packaged selector *values* match thyme (`356/0x20001`, `45 0`) and follow
 the alioth-on-base *pattern*. That is not “missing IDs” versus alioth.
-The M0→M1 flip is still the strongest true-device fact, and M5D boot + stock
-DT is the isolation that M5A did not complete (M5A also changed the kernel).
+M5E kept exact M5D boot and swapped only M1 DT → Stock DT. The ~4.7s
+automatic Fastboot return was suppressed (`>12s`). Image-header-as-sole-cause
+is not supported. Next isolation, not executed:
+`MAINLINE_V2_M5F_DT_CONTEXT_FACTORIAL_ISOLATION`.
 
-Paused alternatives, not started:
+Paused alternatives remain paused:
 
 - `M5E_CORRECTED_DTB_METADATA_CONTROL_CI` — CI-only vendor_boot whose base
   DTB uses stock-like `board-id <0 0>` and keeps the no-op overlay at `<45 0>`.
-  Use if 白子哥 wants a packaging control *before* any B boot.
-- `M5F_M0_VS_M5D_BOOT_AUDIT` — only after crossover fails to suppress 4.7s.
+- `M5F_M0_VS_M5D_BOOT_AUDIT` — not indicated; crossover suppressed 4.7s.
 - Image header patches — still forbidden.
-
-No corrected DTB is flashed. No crossover is flashed. Wait for approval.
 
 ## Alioth vs thyme server leftovers (CLASS C)
 
