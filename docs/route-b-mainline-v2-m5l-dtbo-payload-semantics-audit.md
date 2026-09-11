@@ -184,16 +184,23 @@ use `target = <phandle> + __fixups__` while the single M1 fragment uses
 changes" alone — it is also an **overlay targeting and encoding mechanism**
 difference, and M5J/M5K cannot separate the two.
 
-### 6.1 How `__fixups__` offsets are attributed
+### 6.1 How `__fixups__` entries are attributed
 
-`__fixups__` values are offsets into the overlay blob, but the exact reference
-frame is an implementation detail of the local `dtc`. M5L does not assume it.
-A two-fragment probe overlay is compiled in the same run, and the
-interpretation that maps every probe fixup onto a known property-value offset
-is selected from a fixed candidate list and recorded as
-`FIXUP_OFFSET_CONVENTION`. The OEM payload is then attributed with the
-calibrated convention. Unresolvable offsets are counted, never silently
-dropped.
+A `__fixups__` property name is the unresolved symbol (label) and its value
+encodes where the placeholder phandle sits. Two encodings exist in the wild:
+
+```text
+STRING_PATH_PROP_INDEX   NUL separated "<node path>:<property>:<index>"
+CELL_OFFSET              a list of raw offsets into the overlay blob
+```
+
+M5L does not assume either. Three probe overlays (target only, body only, both)
+are compiled in the same run with the project's pinned `dtc`, their raw fixup
+values are decoded, and the encoding actually produced is the one used for the
+OEM payload. In `CELL_OFFSET` mode the offset reference frame is additionally
+resolved against a fixed candidate list instead of being assumed. The decision
+is recorded as `FIXUP_ENCODING`, with the raw probe values kept as evidence.
+Entries that cannot be attributed are counted, never silently dropped.
 
 ## 7. Stock overlay generated metadata and fixup classification
 

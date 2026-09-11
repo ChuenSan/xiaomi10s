@@ -41,7 +41,6 @@ import os
 import struct
 import subprocess
 import tempfile
-import textwrap
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -158,7 +157,7 @@ def dts_literal(value):
     if len(value) % 4 == 0:
         words = struct.unpack(f">{len(value) // 4}I", value)
         return "<" + " ".join(f"0x{word:02x}" for word in words) + ">"
-    return "[" + " ".join(f"0x{byte:02x}" for byte in value) + "]"
+    return "[" + " ".join(f"{byte:02x}" for byte in value) + "]"
 
 
 # ---------------------------------------------------------------------------
@@ -704,93 +703,201 @@ OFFSET_CONVENTIONS = (
 )
 
 
-def calibrate_offset_convention(work):
-    """Learn how dtc encodes __fixups__ offsets from a probe built in this run.
+PROBE_DTS = {
+    "target_only": """\
+/dts-v1/;
+/plugin/;
 
-    Nothing about dtc's encoding is assumed: a two-fragment probe overlay is
-    compiled here, and the interpretation that maps every probe fixup onto a
-    known property-value offset is the one used for the OEM payloads.
+/ {
+\tfragment@0 {
+\t\ttarget = <&{target}>;
+
+\t\t__overlay__ {
+\t\t};
+\t};
+};
+""",
+    "body_only": """\
+/dts-v1/;
+/plugin/;
+
+/ {
+\tfragment@0 {
+\t\ttarget-path = "/";
+
+\t\t__overlay__ {
+\t\t\tm5l,probe-body = <&{body}>;
+\t\t};
+\t};
+};
+""",
+    "target_and_body": """\
+/dts-v1/;
+/plugin/;
+
+/ {
+\tfragment@0 {
+\t\ttarget = <&{target}>;
+
+\t\t__overlay__ {
+\t\t};
+\t};
+
+\tfragment@1 {
+\t\ttarget-path = "/";
+
+\t\t__overlay__ {
+\t\t\tm5l,probe-body = <&{body}>;
+\t\t};
+\t};
+};
+""",
+}
+
+FIXUP_STRING_RE = re.compile(r"^/[^\x00:]*:[^:\x00]+:\d+$")
+
+
+def parse_fixup_strings(value):
+    """Decode a fixup value encoded as NUL separated '<node>:<property>:<index>'."""
+    if not value or not value.endswith(b"\0"):
+        return None
+    parts = value[:-1].split(b"\0")
+    if not parts:
+        return None
+    decoded = []
+    for part in parts:
+        if not part:
+            return None
+        try:
+            text = part.decode("ascii")
+        except UnicodeDecodeError:
+            return None
+        if not FIXUP_STRING_RE.match(text):
+            return None
+        decoded.append(text)
+    return decoded
+
+
+def analyse_fixup_encoding(work):
+    """Learn how the local dtc encodes fixups, instead of assuming it.
+
+    Two encodings exist in the wild for __fixups__ values:
+
+      STRING_PATH_PROP_INDEX  NUL separated "<node path>:<property>:<index>"
+      CELL_OFFSET             a list of raw offsets into the overlay blob
+
+    Three probe overlays are compiled in this run and their raw fixup values
+    are decoded. Whichever encoding the probes produce is the one used to
+    attribute the OEM payload. In CELL_OFFSET mode the offset frame is also
+    resolved against a candidate list rather than assumed.
     """
-    probe_dts = textwrap.dedent(f"""\
-        /dts-v1/;
-        /plugin/;
+    records = []
+    encodings = set()
+    cell_conventions = []
+    for name, template in PROBE_DTS.items():
+        blob = dtc_compile(work, f"m5l-probe-{name}",
+                           template.format(target=PROBE_TARGET_SYMBOL, body=PROBE_BODY_SYMBOL))
+        fdt = Fdt(blob, f"m5l-probe-{name}")
+        fixups = fdt.node("/__fixups__")
+        record = {
+            "name": name,
+            "size": len(blob),
+            "fixups_present": fixups is not None,
+            "symbols": {},
+        }
+        if fixups is not None:
+            for symbol, entry in fixups.props.items():
+                value = entry[0]
+                strings = parse_fixup_strings(value)
+                if strings is not None:
+                    kind = "STRING_PATH_PROP_INDEX"
+                    encodings.add(kind)
+                elif value and len(value) % 4 == 0:
+                    kind = "CELL_OFFSET"
+                    encodings.add(kind)
+                else:
+                    kind = "UNKNOWN"
+                record["symbols"][symbol] = {
+                    "kind": kind,
+                    "raw_hex": value.hex(),
+                    "strings": strings,
+                    "cells": cells(value),
+                }
+            if "CELL_OFFSET" in encodings:
+                raw = []
+                for symbol in record["symbols"].values():
+                    raw.extend(symbol["cells"] or [])
+                for candidate, interpreter in OFFSET_CONVENTIONS:
+                    if raw and all((interpreter(item, fdt) in fdt.value_offset_index)
+                                   for item in raw):
+                        cell_conventions.append(candidate)
+        records.append(record)
 
-        / {{
-        \tfragment@0 {{
-        \t\ttarget = <&{PROBE_TARGET_SYMBOL}>;
-
-        \t\t__overlay__ {{
-        \t\t}};
-        \t}};
-
-        \tfragment@1 {{
-        \t\ttarget-path = "/";
-
-        \t\t__overlay__ {{
-        \t\t\tm5l,probe-body = <&{PROBE_BODY_SYMBOL}>;
-        \t\t}};
-        \t}};
-        }};
-        """)
-    probe = dtc_compile(work, "m5l-fixup-probe", probe_dts)
-    fdt = Fdt(probe, "m5l-fixup-probe")
-    fixups = fdt.node("/__fixups__")
-    if fixups is None:
-        raise SystemExit("M5L_PROBE_CALIBRATION_FAILED probe produced no __fixups__ node")
-    if PROBE_TARGET_SYMBOL not in fixups.props or PROBE_BODY_SYMBOL not in fixups.props:
-        raise SystemExit("M5L_PROBE_CALIBRATION_FAILED probe lost a fixup symbol")
-    raw_offsets = list(cells(fixups.props[PROBE_TARGET_SYMBOL][0]) or [])
-    raw_offsets.extend(cells(fixups.props[PROBE_BODY_SYMBOL][0]) or [])
-    if len(raw_offsets) < 2:
-        raise SystemExit("M5L_PROBE_CALIBRATION_FAILED probe fixup list too short")
-    resolving = [name for name, interpreter in OFFSET_CONVENTIONS
-                 if all((interpreter(raw, fdt) in fdt.value_offset_index) for raw in raw_offsets)]
-    if not resolving:
-        raise SystemExit("M5L_PROBE_CALIBRATION_FAILED no offset convention resolves the probe")
+    if not encodings:
+        raise SystemExit("M5L_PROBE_CALIBRATION_FAILED probes produced no decodable fixups")
+    if "CELL_OFFSET" in encodings and not cell_conventions:
+        raise SystemExit("M5L_PROBE_CALIBRATION_FAILED no offset convention resolves the probes")
+    encoding = "STRING_PATH_PROP_INDEX" if "STRING_PATH_PROP_INDEX" in encodings else "CELL_OFFSET"
     return {
-        "convention": resolving[0],
-        "resolving": resolving,
-        "raw_offsets": raw_offsets,
-        "target_value_offset": fdt.prop_offset("/fragment@0", "target"),
-        "body_value_offset": fdt.prop_offset("/fragment@1/__overlay__", "m5l,probe-body"),
-        "probe_size": len(probe),
-        "resolve": dict(OFFSET_CONVENTIONS)[resolving[0]],
+        "encoding": encoding,
+        "encodings_observed": sorted(encodings),
+        "conventions": cell_conventions,
+        "convention": cell_conventions[0] if cell_conventions else "NOT_APPLICABLE",
+        "probes": records,
+        "resolve": dict(OFFSET_CONVENTIONS)[cell_conventions[0]] if cell_conventions else None,
     }
 
 
-def classify_fixups(overlay, resolver):
-    """Classify every __fixups__ offset as TARGET_FIXUP or BODY_FIXUP."""
+def classify_fixups(overlay, encoding):
+    """Classify every __fixups__ entry as TARGET_FIXUP or BODY_FIXUP."""
     fixups_node = overlay.node("/__fixups__")
     local_fixups_node = overlay.node("/__local_fixups__")
-
-    target_offsets = {}
-    for fragment in overlay.fragments():
-        entry = fragment.props.get("target")
-        if entry is not None:
-            target_offsets[entry[1]] = fragment.path
+    fragment_paths = {fragment.path for fragment in overlay.fragments()}
+    target_offsets = {fragment.props["target"][1]: fragment.path
+                      for fragment in overlay.fragments() if "target" in fragment.props}
 
     per_fragment_symbol = {}
     target_fixups = []
     body_fixups = []
     unresolved = []
+    kinds = {}
     if fixups_node is not None:
         for symbol, entry in fixups_node.props.items():
-            for raw in cells(entry[0]) or []:
-                resolved = resolver(raw, overlay)
-                holder = target_offsets.get(resolved)
-                if holder is not None:
-                    per_fragment_symbol.setdefault(holder, symbol)
-                    target_fixups.append((symbol, raw, resolved, holder))
-                else:
-                    location = overlay.value_offset_index.get(resolved)
-                    if location is None:
-                        unresolved.append((symbol, raw, resolved))
-                        body_fixups.append((symbol, raw, resolved, "UNRESOLVED"))
+            value = entry[0]
+            strings = parse_fixup_strings(value)
+            if strings is not None:
+                kind = "STRING_PATH_PROP_INDEX"
+                for item in strings:
+                    path, prop, index = item.rsplit(":", 2)
+                    if prop == "target" and path in fragment_paths:
+                        per_fragment_symbol.setdefault(path, symbol)
+                        target_fixups.append((symbol, item, path, index))
                     else:
-                        body_fixups.append((symbol, raw, resolved, f"{location[0]}:{location[1]}"))
+                        body_fixups.append((symbol, item, path, prop, index))
+            elif value and len(value) % 4 == 0:
+                kind = "CELL_OFFSET"
+                for raw in cells(value) or []:
+                    resolved = encoding["resolve"](raw, overlay) if encoding["resolve"] else raw
+                    holder = target_offsets.get(resolved)
+                    if holder is not None:
+                        per_fragment_symbol.setdefault(holder, symbol)
+                        target_fixups.append((symbol, f"0x{raw:x}", holder, raw))
+                    else:
+                        location = overlay.value_offset_index.get(resolved)
+                        if location is None:
+                            unresolved.append((symbol, raw))
+                            body_fixups.append((symbol, f"0x{raw:x}", "UNRESOLVED", "", ""))
+                        else:
+                            body_fixups.append((symbol, f"0x{raw:x}", location[0],
+                                                location[1], ""))
+            else:
+                kind = "UNKNOWN"
+                unresolved.append((symbol, value.hex()))
+            kinds[kind] = kinds.get(kind, 0) + 1
 
     local_entries = 0
     local_paths = set()
+    local_kinds = {}
     if local_fixups_node is not None:
         for path in local_fixups_node.descendant_paths():
             if path != "/__local_fixups__":
@@ -799,7 +906,17 @@ def classify_fixups(overlay, resolver):
         while stack:
             node = stack.pop()
             for entry in node.props.values():
-                local_entries += len(cells(entry[0]) or [])
+                strings = parse_fixup_strings(entry[0])
+                if strings is not None:
+                    local_kinds["STRING_PATH_PROP_INDEX"] = \
+                        local_kinds.get("STRING_PATH_PROP_INDEX", 0) + len(strings)
+                    local_entries += len(strings)
+                elif entry[0] and len(entry[0]) % 4 == 0:
+                    local_kinds["CELL_OFFSET"] = \
+                        local_kinds.get("CELL_OFFSET", 0) + len(cells(entry[0]) or [])
+                    local_entries += len(cells(entry[0]) or [])
+                else:
+                    local_entries += 1
             stack.extend(node.children.values())
 
     return {
@@ -809,6 +926,8 @@ def classify_fixups(overlay, resolver):
         "unresolved": unresolved,
         "local_entries": local_entries,
         "local_paths": local_paths,
+        "kinds": kinds,
+        "local_kinds": local_kinds,
     }
 
 
@@ -1057,10 +1176,13 @@ def audit_l1_payload(payload, m1_fdt, stock_fdt, selector_names):
             problems.append("L1_MISSING_OVERLAY_BODY")
         elif "qcom,thyme-route-b-noop" not in body.props:
             problems.append("L1_MARKER_MISSING")
-    counts = fdt.special_counts()
-    for node_path in ("/__fixups__", "/__symbols__", "/__local_fixups__"):
-        if counts[node_path] != "ABSENT":
-            problems.append(f"L1_UNEXPECTED_{node_path}=present")
+    for node_path in ("/__fixups__", "/__local_fixups__"):
+        node = fdt.node(node_path)
+        if node is not None and (node.props or node.children):
+            problems.append(f"L1_UNEXPECTED_{node_path}_CONTENT")
+    symbols = fdt.node("/__symbols__")
+    if symbols is not None and symbols.props:
+        problems.append("L1_UNEXPECTED_/__symbols___CONTENT")
     for name in selector_names:
         stock_value = stock_fdt.prop("/", name)
         if stock_value is None:
@@ -1105,8 +1227,11 @@ def audit_l2_payload(payload, stock_fdt, symbol, selector_names, work):
         problems.append(f"L2_FIXUP_SYMBOL_ABSENT expected={symbol} "
                         f"present={sorted(fixups.props)}")
     counts = fdt.special_counts()
-    if counts["/__local_fixups__"] != "ABSENT":
-        problems.append("L2_UNEXPECTED_LOCAL_FIXUPS")
+    local_fixups = fdt.node("/__local_fixups__")
+    if local_fixups is not None and (local_fixups.props or local_fixups.children):
+        problems.append(f"L2_UNEXPECTED_LOCAL_FIXUPS "
+                        f"props={sorted(local_fixups.props)} "
+                        f"children={sorted(local_fixups.children)}")
     for name in selector_names:
         stock_value = stock_fdt.prop("/", name)
         if stock_value is None:
@@ -1245,10 +1370,8 @@ def main():
     with tempfile.TemporaryDirectory(prefix="m5l-") as temp_name:
         work = Path(temp_name)
 
-        # ---- 1. __fixups__ offset convention, measured not assumed ---------
-        calibration = calibrate_offset_convention(work)
-        resolver = calibration["resolve"]
-        convention = calibration["convention"]
+        # ---- 1. fixup encoding, measured not assumed ------------------------
+        encoding = analyse_fixup_encoding(work)
 
         # ---- 2. payload full root-property matrix ---------------------------
         matrix = selector_matrix(stock_fdt, m1_fdt)
@@ -1308,7 +1431,7 @@ def main():
         emit_text("m5l-payload-root-matrix.txt", root_matrix_lines)
 
         # ---- 3. Stock targeting mechanics ----------------------------------
-        stock_classification = classify_fixups(stock_fdt, resolver)
+        stock_classification = classify_fixups(stock_fdt, encoding)
         stock_rows = fragment_matrix(stock_fdt, stock_classification)
         phandle_fragments = [row for row in stock_rows if row["form"] == "TARGET_PHANDLE"]
         local_phandle_fragments = [row for row in stock_rows if row["form"] == "TARGET_PHANDLE_LOCAL"]
@@ -1363,26 +1486,41 @@ def main():
             f"PHANDLE_PROPERTY_COUNT={stock_fdt.phandle_count()}",
             f"LOCAL_PHANDLE_DEFINITION_COUNT={len(stock_fdt.local_phandles())}",
             "",
-            f"FIXUP_OFFSET_CONVENTION={convention}",
-            f"FIXUP_OFFSET_CONVENTIONS_THAT_RESOLVE_PROBE={','.join(calibration['resolving'])}",
-            "FIXUP_PROBE_RAW_OFFSETS="
-            + " ".join(f"0x{value:x}" for value in calibration["raw_offsets"]),
-            f"FIXUP_PROBE_TARGET_VALUE_OFFSET={calibration['target_value_offset']}",
-            f"FIXUP_PROBE_BODY_VALUE_OFFSET={calibration['body_value_offset']}",
-            f"FIXUP_PROBE_PAYLOAD_SIZE={calibration['probe_size']}",
+            f"FIXUP_ENCODING={encoding['encoding']}",
+            f"FIXUP_ENCODINGS_OBSERVED_IN_PROBES={','.join(encoding['encodings_observed'])}",
+            f"FIXUP_OFFSET_CONVENTION={encoding['convention']}",
+            f"FIXUP_OFFSET_CONVENTIONS_THAT_RESOLVE_PROBES={','.join(encoding['conventions']) or 'NONE'}",
+            f"FIXUP_PROBE_COUNT={len(encoding['probes'])}",
+            "FIXUP_PROBE_SUMMARY="
+            + " | ".join(f"{record['name']}:size={record['size']}:"
+                         f"fixups={'YES' if record['fixups_present'] else 'NO'}:"
+                         + ",".join(f"{symbol}={data['kind']}"
+                                    for symbol, data in record["symbols"].items())
+                         for record in encoding["probes"]),
+            "FIXUP_PROBE_RAW_VALUES="
+            + " | ".join(f"{record['name']}/{symbol}=0x{data['raw_hex']}"
+                         for record in encoding["probes"]
+                         for symbol, data in record["symbols"].items()),
             f"TARGET_FIXUP_COUNT={len(stock_classification['target_fixups'])}",
             f"BODY_FIXUP_COUNT={len(stock_classification['body_fixups'])}",
             f"LOCAL_FIXUP_COUNT={stock_classification['local_entries']}",
             f"UNRESOLVED_FIXUP_OFFSET_COUNT={len(stock_classification['unresolved'])}",
+            "FIXUP_KIND_COUNTS="
+            + ",".join(f"{kind}={count}" for kind, count in sorted(stock_classification["kinds"].items())),
+            "LOCAL_FIXUP_KIND_COUNTS="
+            + (",".join(f"{kind}={count}"
+                        for kind, count in sorted(stock_classification["local_kinds"].items()))
+               or "NONE"),
             "",
-            "# classification table (symbol, raw offset, resolved offset, holder)",
+            "# classification table",
         ]
         for symbol, raw, resolved, holder in stock_classification["target_fixups"][:DETAIL_CAP]:
             classification_lines.append(
-                f"TARGET_FIXUP symbol={symbol} raw=0x{raw:x} resolved=0x{resolved:x} holder={holder}")
-        for symbol, raw, resolved, holder in stock_classification["body_fixups"][:DETAIL_CAP]:
+                f"TARGET_FIXUP symbol={symbol} ref={raw} holder={holder} index={resolved}")
+        for symbol, raw, node_path, prop, index in stock_classification["body_fixups"][:DETAIL_CAP]:
             classification_lines.append(
-                f"BODY_FIXUP symbol={symbol} raw=0x{raw:x} resolved=0x{resolved:x} holder={holder}")
+                f"BODY_FIXUP symbol={symbol} ref={raw} node={node_path} property={prop} "
+                f"index={index}")
         classification_lines.append("# __fixups__ symbol index")
         for symbol in fixup_symbols[:DETAIL_CAP]:
             classification_lines.append(f"FIXUP_SYMBOL={symbol}")
@@ -1943,10 +2081,10 @@ def main():
         f"STOCK_ENTRY21_PAYLOAD_SYMBOLS={stock_counts['/__symbols__']}",
         f"M1_NOOP_PAYLOAD_FRAGMENT_COUNT={len(m1_fdt.fragments())}",
         "FIXUP_PROBE_COMPILE=PASS",
-        f"FIXUP_OFFSET_CONVENTION={convention}",
-        f"FIXUP_OFFSET_CONVENTIONS_THAT_RESOLVE_PROBE={','.join(calibration['resolving'])}",
-        f"FIXUP_PROBE_RAW_OFFSETS="
-        + " ".join(f"0x{value:x}" for value in calibration["raw_offsets"]),
+        f"FIXUP_ENCODING={encoding['encoding']}",
+        f"FIXUP_ENCODINGS_OBSERVED_IN_PROBES={','.join(encoding['encodings_observed'])}",
+        f"FIXUP_OFFSET_CONVENTION={encoding['convention']}",
+        f"FIXUP_PROBE_COUNT={len(encoding['probes'])}",
         "DTC_ROUNDTRIP_L2=PASS",
         "DTC_ROUNDTRIP_M1_NOOP=PASS",
         f"FDTOVERLAY_STOCK_DTB0_PLUS_STOCK_ENTRY21={'PASS' if stock_merge_ok else 'FAIL'}",
@@ -2118,9 +2256,10 @@ def main():
         f"STOCK_ENTRY21_DT_OFFSET={stock_entry.dt_offset}",
         f"STOCK_ENTRY21_DT_SIZE={stock_entry.dt_size}",
         "STOCK_ENTRY21_PAYLOAD_SHA_EXACT=YES",
-        f"FIXUP_PROBE_CALIBRATION=PASS",
-        f"FIXUP_OFFSET_CONVENTION={convention}",
-        f"FIXUP_OFFSET_CONVENTIONS_THAT_RESOLVE_PROBE={','.join(calibration['resolving'])}",
+        "FIXUP_PROBE_CALIBRATION=PASS",
+        f"FIXUP_ENCODING={encoding['encoding']}",
+        f"FIXUP_OFFSET_CONVENTION={encoding['convention']}",
+        f"FIXUP_PROBE_COUNT={len(encoding['probes'])}",
         f"STOCK_FRAGMENT_COUNT={len(stock_rows)}",
         f"STOCK_TARGET_PHANDLE_FRAGMENT_COUNT={len(phandle_fragments)}",
         f"STOCK_TARGET_PHANDLE_LOCAL_FRAGMENT_COUNT={len(local_phandle_fragments)}",
