@@ -97,6 +97,15 @@ ABL_SELECTOR_PROPERTIES = (
 
 PHANDLE_PROPERTIES = ("phandle", "linux,phandle")
 
+# Strict subset used by the bootloader to *match* a DTBO entry and a base DTB.
+ABL_MATCHING_PROPERTIES = (
+    "qcom,board-id",
+    "qcom,msm-id",
+    "qcom,pmic-id",
+    "qcom,pmic-id-size",
+    "qcom,platform-id",
+)
+
 BOOKKEEPING_NODE_PREFIXES = ("/fragment@", "/__symbols__", "/__fixups__", "/__local_fixups__")
 
 FORBIDDEN_SEMANTIC_PROPERTIES = (
@@ -680,6 +689,8 @@ def selector_matrix(stock_fdt, m1_fdt):
 
     selector_rows = [row for row in rows if row[0] in ABL_SELECTOR_PROPERTIES]
     selector_differs = [row[0] for row in selector_rows if row[3] != "SAME"]
+    matching_differs = [row[0] for row in rows
+                        if row[0] in ABL_MATCHING_PROPERTIES and row[3] != "SAME"]
     other_differs = [row[0] for row in rows
                      if row[3] != "SAME" and row[0] not in ABL_SELECTOR_PROPERTIES]
     return {
@@ -687,6 +698,9 @@ def selector_matrix(stock_fdt, m1_fdt):
         "chosen": chosen,
         "selector_rows": selector_rows,
         "selector_differs": selector_differs,
+        "matching_differs": matching_differs,
+        "p1_family": ("STRICT_ABL_MATCHING" if matching_differs
+                      else ("ROOT_IDENTITY_TEXT_ONLY" if selector_differs else "NONE")),
         "other_differs": other_differs,
         "present_in_stock_only": [row[0] for row in rows if row[3] == "MISSING_IN_M1"],
         "present_in_m1_only": [row[0] for row in rows if row[3] == "MISSING_IN_STOCK"],
@@ -1423,6 +1437,9 @@ def main():
             f"STOCK_CHOSEN_PRESENT={'YES' if stock_fdt.node('/chosen') else 'NO'}",
             f"M1_CHOSEN_PRESENT={'YES' if m1_fdt.node('/chosen') else 'NO'}",
             "ABL_SELECTOR_FAMILY=" + ",".join(ABL_SELECTOR_PROPERTIES),
+            "ABL_MATCHING_FAMILY=" + ",".join(ABL_MATCHING_PROPERTIES),
+            f"ABL_MATCHING_PROPERTIES_DIFFERING={','.join(matrix['matching_differs']) or 'NONE'}",
+            f"P1_DIFFERENCE_FAMILY={matrix['p1_family']}",
             f"SELECTOR_PROPERTIES_DIFFERING={','.join(matrix['selector_differs']) or 'NONE'}",
             f"SELECTOR_DIFFERENCE_EXISTS={'YES' if matrix['selector_differs'] else 'NO'}",
             f"OTHER_ROOT_PROPERTIES_DIFFERING={','.join(matrix['other_differs']) or 'NONE'}",
@@ -2217,6 +2234,10 @@ def main():
         f"{'YES' if l2_ready else 'NO'}",
         "CURRENT_B=UNCHANGED",
         f"NEXT_TRUE_DEVICE_PAYLOAD_CONTROL={next_control}",
+        f"P1_DIFFERENCE_FAMILY={matrix['p1_family']}",
+        "P1_ALTERNATE_IF_TEXT_ONLY_NOT_ABL_VISIBLE="
+        + ("L2_STOCK_STYLE_MINIMAL_NOOP" if matrix["p1_family"] == "ROOT_IDENTITY_TEXT_ONLY"
+           else "NOT_APPLICABLE"),
         "NO_DEVICE_OPERATION=YES",
         "WAIT_FOR_USER_APPROVAL",
         "```",
@@ -2287,6 +2308,8 @@ def main():
         f"M1_MARKER_HOME={marker_home or 'ABSENT'}",
         "SELECTOR_DIFFERENCE_EXISTS=" + ("YES" if matrix["selector_differs"] else "NO"),
         "SELECTOR_PROPERTIES_DIFFERING=" + (",".join(matrix["selector_differs"]) or "NONE"),
+        "ABL_MATCHING_PROPERTIES_DIFFERING=" + (",".join(matrix["matching_differs"]) or "NONE"),
+        f"P1_DIFFERENCE_FAMILY={matrix['p1_family']}",
         "P1_ROOT_SELECTOR_METADATA_EXISTS=" + ("YES" if matrix["selector_differs"] else "NO"),
         "PADDING_OR_DT_SIZE_MISMATCH_AS_NECESSARY_CAUSE=NOT_SUPPORTED",
         "PADDING_PRIORITY=P6_DEPRIORITIZED",
@@ -2329,6 +2352,10 @@ def main():
         "OEM_DERIVED_ARTIFACT_PRIVATE_ONLY=YES",
         "READY_FOR_M5L_STOCK_STYLE_MINIMAL_NOOP_CONTROL=" + ("YES" if l2_ready else "NO"),
         f"NEXT_TRUE_DEVICE_PAYLOAD_CONTROL={next_control}",
+        f"P1_DIFFERENCE_FAMILY={matrix['p1_family']}",
+        "P1_ALTERNATE_IF_TEXT_ONLY_NOT_ABL_VISIBLE="
+        + ("L2_STOCK_STYLE_MINIMAL_NOOP" if matrix["p1_family"] == "ROOT_IDENTITY_TEXT_ONLY"
+           else "NOT_APPLICABLE"),
         "NO_NEXT_STAGE_EXECUTED=YES",
         "WAIT_FOR_USER_APPROVAL=YES",
     ]
