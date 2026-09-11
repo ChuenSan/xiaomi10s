@@ -513,3 +513,173 @@ Several payloads are never tested on device at once.
 - the M1 no-op marker is not promoted without measurement
 - padding is not excluded as a perturbation, only as a necessary cause
 - no claim is made about which libfdt entry point fails inside ABL
+
+## 19. Measured results (private CI run 34585043442)
+
+Public source commit `21e607b15f3c30e6faff8a7d7fec2c63e6d39934`, private
+wrapper commit `5d3f963` (pinned), `dtc 1.7.0`, all gates `PASS`,
+`FAIL_CLOSED=PASS`, 18/18 negative tests PASS.
+
+### 19.1 Payload root matrix (measured)
+
+```text
+property      Stock                                          M1                     verdict
+compatible    qcom,kona-mtp | qcom,kona | qcom,mtp           same                   SAME
+model         "Qualcomm Technologies, Inc. xiaomi thyme"     "Xiaomi Mi 10S..."     DIFFERENT
+qcom,board-id <45 0>                                          <45 0>                 SAME
+/chosen       absent in both payloads
+
+ROOT_PROPERTIES_MISSING_IN_M1     NONE
+ROOT_PROPERTIES_MISSING_IN_STOCK  NONE
+ROOT_PROPERTIES_VALUE_DIFFERENT   model
+```
+
+Key finding — the strict ABL matching family is **already identical**:
+
+```text
+ABL_MATCHING_PROPERTIES_DIFFERING  NONE
+qcom,board-id                      SAME
+P1_DIFFERENCE_FAMILY               ROOT_IDENTITY_TEXT_ONLY
+```
+
+The only P1 difference is the `/model` **string**, which is not part of the
+numeric board/msm/pmic matching family. P1 therefore exists in the widest
+selector family but **not** in the strict matching family.
+
+### 19.2 Stock targeting mechanics (measured)
+
+```text
+STOCK_FRAGMENT_COUNT                    124
+STOCK_TARGET_PHANDLE_FRAGMENT_COUNT     124   (all external, raw 0xffffffff)
+STOCK_TARGET_PHANDLE_LOCAL_COUNT        0
+STOCK_TARGET_PATH_FRAGMENT_COUNT        0
+STOCK_OTHER_TARGET_FRAGMENT_COUNT       0
+STOCK_FRAGMENTS_WITH_FIXUP_SYMBOL       124
+STOCK_FRAGMENTS_WITHOUT_FIXUP_SYMBOL    0
+STOCK_TARGET_PLUS_FIXUP_MECHANISM_MAJORITY  YES
+```
+
+**All 124 Stock fragments use `target = <0xffffffff>` + `__fixups__`, and zero
+use `target-path`.** The M1 no-op's single fragment uses `target-path = "/"`
+with no fixups. The contrast demanded by the round brief is confirmed and
+extreme: the payloads differ in targeting mechanism on every single fragment.
+
+### 19.3 Fixup encoding and classification (measured)
+
+```text
+FIXUP_ENCODING               STRING_PATH_PROP_INDEX   (self-calibrated, 3 probes)
+FIXUP_OFFSET_CONVENTION      NOT_APPLICABLE
+__fixups__ symbols           154
+__symbols__                  386
+__local_fixups__             present, 352 references (nested under children)
+phandle properties           386
+TARGET_FIXUP_COUNT           124    (every fragment target, 100%)
+BODY_FIXUP_COUNT             392    (overlay body properties: pinctrl-0 etc.)
+LOCAL_FIXUP_COUNT            352
+UNRESOLVED_FIXUP_COUNT       0
+```
+
+### 19.4 M1 no-op applied on the exact Stock base (measured)
+
+```text
+fdtoverlay                    PASS (merged 540231 bytes)
+added nodes                   0
+removed nodes                 0
+added properties              1   -> /:qcom,thyme-route-b-noop
+changed properties            0
+MARKER_HOME                   /fragment@0/__overlay__
+M1_NOOP_MARKER_REACHES_MERGED_TREE     YES
+M1_MARKER_IS_ONLY_EXTRA_PROPERTY       YES
+```
+
+The M1 no-op's entire applied effect is one root-level marker property. It is
+a semantic no-op apart from that marker, so the marker is the only remaining
+M1-specific content — but by the pre-registered rule it is still not promoted
+to a device test on its own.
+
+### 19.5 L1 candidate (measured, READY)
+
+```text
+L1_NEEDED                         YES   (P1 exists: /model differs)
+L1_SELECTOR_PROPERTIES_MODIFIED   model (board-id, compatible already equal)
+L1_FRAGMENT_COUNT                 1     target-path="/", marker preserved
+L1_FIXUPS / L1_SYMBOLS            ABSENT / ABSENT
+L1_CONTAINER_SEMANTICS_PRESERVED  YES
+L1_PAYLOAD_SIZE / SHA256          331 / 64344d59119b253d47b950385fbed1c8dd38bf28003604c2deb7dcf1f1777ca4
+L1_ACTIVE_PREFIX_SIZE / SHA256    395 / 36f6adbab104053acc1e501f0aae3bf3452f9968cda3c09aec85e6253adfa81b
+L1_STOCK_TAIL_OFFSET / SHA256     395 / 62c06a96d36bac3084a2b3bf30805095158ba5f437a413f5a2374269ff3cc812
+L1_FULL_ARTIFACT_SIZE / SHA256    33554432 / 61dc3b75d66ff4b6411c6f744b19dc999475959709e8cf1f7882b40e827080d8
+L1_READY                          YES
+```
+
+### 19.6 L2 candidate (measured, READY)
+
+Target selected from the exact Stock entry21 fragments (not invented):
+
+```text
+L2_TARGET_SYMBOL              mdss_mdp     (Stock fragment@71)
+L2_TARGET_PATH                /soc/qcom,mdss_mdp@ae00000
+L2_TARGET_CANDIDATES          54 considered, 70 rejected (local-fixup deps etc.)
+L2_FRAGMENT_COUNT             1
+L2_TARGET_MECHANISM           TARGET_PHANDLE_PLUS_FIXUPS   (target=<&mdss_mdp>)
+L2_FIXUPS_COUNT               1    (mdss_mdp -> /fragment@0:target:0)
+L2_OVERLAY_BODY_PROPERTIES    0    (empty)
+L2_OVERLAY_BODY_CHILDREN      0
+L2_ROOT_SELECTOR_METADATA     exact Stock (board-id, compatible, model)
+```
+
+Semantic no-op evidence on the exact Stock DTB0:
+
+```text
+L2_FDTOVERLAY                 PASS
+L2_MERGED_SHA256              324049d746aaa16ada3b425ea5eed30f6d49a90c9d63d5e57ea5a632c27becb8
+  == exact Stock DTB0 SHA256  (byte-identical merge)
+L2_SEMANTIC_NOOP_CONFIRMED    YES
+added/removed/changed         0 / 0 / 0
+```
+
+Artifact identity:
+
+```text
+L2_PAYLOAD_SIZE / SHA256          355 / 408e5709d8f772c0759a4d8ef427b49329a41f38a98776571ac7252d1b841740
+L2_ACTIVE_PREFIX_SIZE / SHA256    419 / 7822d64e8e399b6ad265800a3addd8c0e79cd9153475e540b21c0106c91c4c15
+L2_STOCK_TAIL_OFFSET / SHA256     419 / 02b0fc3a443a9ff9bb19eca0683015ab8b1cb67b7a90a46947eb84e4d287c247
+L2_FULL_ARTIFACT_SIZE / SHA256    33554432 / 0c66c6097dabaddbe58613a15199c97b06b0d0d706f18d200185f300666854ff
+L2_READY                          YES
+```
+
+Cross-check: `fdtoverlay` of the exact Stock DTB0 + Stock entry21 reproduces
+the M5H merged SHA `c48ef53d…` exactly, so the merge toolchain in this run is
+behaving identically to the M5H round.
+
+### 19.7 Factor decomposition after measurement
+
+```text
+P1  ROOT_SELECTOR_METADATA       exists but ROOT_IDENTITY_TEXT_ONLY (/model string);
+                                  strict ABL matching family already identical
+P2  FRAGMENT_TARGET_MECHANISM    124/124 target+fixup vs 1/1 target-path  (maximal contrast)
+P3  OVERLAY_GENERATED_METADATA   154 fixups/386 symbols/386 phandles vs all absent
+P4  FRAGMENT_TOPOLOGY            124 vs 1
+P5  APPLIED_OVERLAY_CONTENT      Stock adds 1139 nodes/161 props/32 changed;
+                                  M1 adds exactly 1 marker property
+P6  SIZE/PADDING                 484885 vs 323, not a necessary cause
+```
+
+### 19.8 Gate summary
+
+```text
+READY_FOR_M5L_STOCK_STYLE_MINIMAL_NOOP_CONTROL   YES
+NEXT_TRUE_DEVICE_PAYLOAD_CONTROL                 L1_SELECTOR_MATCHED_NOOP
+P1_ALTERNATE_IF_TEXT_ONLY_NOT_ABL_VISIBLE        L2_STOCK_STYLE_MINIMAL_NOOP
+CURRENT_B                                       UNCHANGED
+NO_NEXT_STAGE_EXECUTED                          YES
+WAIT_FOR_USER_APPROVAL                          YES
+```
+
+Per the pre-registered rule (P1 difference exists and L1 READY -> L1 first),
+the recommended next true-device control is **L1**. Because the measured P1
+family is text-only (`/model`) rather than strict ABL matching, the gates also
+pre-register the alternative reading: if `/model` is not treated as
+ABL-visible, the equivalent control is L2, which is equally READY. Both
+artifacts are validated and held in private Actions storage; only one will be
+flashed, after explicit approval.
