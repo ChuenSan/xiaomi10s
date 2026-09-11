@@ -517,7 +517,7 @@ Several payloads are never tested on device at once.
 ## 19. Measured results (private CI run 34585043442)
 
 Public source commit `21e607b15f3c30e6faff8a7d7fec2c63e6d39934`, private
-wrapper commit `5d3f963` (pinned), `dtc 1.7.0`, all gates `PASS`,
+wrapper commit `90b64cc` (pinned), `dtc 1.7.0`, all gates `PASS`,
 `FAIL_CLOSED=PASS`, 18/18 negative tests PASS.
 
 ### 19.1 Payload root matrix (measured)
