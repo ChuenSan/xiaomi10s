@@ -1,0 +1,88 @@
+name: thyme-mainline-v2-m5m-public-source-audit
+
+# Public source only. Exact Stock/M1/L1/L2 inputs, DT parsing, DTC compilation,
+# fdtoverlay application, Candidate A/B construction, semantic comparison,
+# binary diff and fail-closed negative tests run only in the private auxiliary
+# CI repository.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m5m-target-fixup-marker-factorial.yml'
+      - 'scripts/m5m_target_fixup_marker_factorial.py'
+      - 'docs/route-b-mainline-v2-m5m-target-fixup-marker-factorial.md'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m5m-target-fixup-marker-factorial.yml'
+      - 'scripts/m5m_target_fixup_marker_factorial.py'
+      - 'docs/route-b-mainline-v2-m5m-target-fixup-marker-factorial.md'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-mainline-v2-m5m-public-source-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: M5M public source audit (no OEM input)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint workflow source
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-mainline-v2-m5m-target-fixup-marker-factorial.yml
+
+      - name: Parse public factorial script
+        run: python3 -m py_compile scripts/m5m_target_fixup_marker_factorial.py
+
+      - name: Assert CI-only and public/private boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          script=scripts/m5m_target_fixup_marker_factorial.py
+          grep -Fq 'GITHUB_ACTIONS' "$script"
+          grep -Fq 'GitHub Actions only' "$script"
+          grep -Fq 'M5M_SOURCE_IDENTITY_FAILED' "$script"
+          grep -Fq 'M5M_L1_IDENTITY_FAILED' "$script"
+          grep -Fq 'M5M_L2_IDENTITY_FAILED' "$script"
+          grep -Fq 'M5M_MARKER_AUDIT_FAILED' "$script"
+          grep -Fq 'M5M_A_CONSTRUCTION_FAILED' "$script"
+          grep -Fq 'M5M_B_CONSTRUCTION_FAILED' "$script"
+          grep -Fq 'M5M_A_SEMANTIC_NOOP_FAILED' "$script"
+          grep -Fq 'M5M_B_SEMANTIC_DELTA_FAILED' "$script"
+          grep -Fq 'M5M_NEGATIVE_TEST_FAILED' "$script"
+          grep -Fq 'M5M_DTC_FAILED' "$script"
+          grep -Fq 'M5M_FDTOVERLAY_FAILED' "$script"
+          grep -Fq 'M5M_NOT_SAFE' "$script"
+          grep -Fq 'STOCK_DTBO_ENTRY_COUNT = 29' "$script"
+          grep -Fq 'THYME_ENTRY_INDEX = 21' "$script"
+          grep -Fq 'L1_PAYLOAD_SHA256 = "64344d59119b253d47b950385fbed1c8dd38bf28003604c2deb7dcf1f1777ca4"' "$script"
+          grep -Fq 'L2_PAYLOAD_SHA256 = "408e5709d8f772c0759a4d8ef427b49329a41f38a98776571ac7252d1b841740"' "$script"
+          grep -Fq 'L2_TARGET_SYMBOL = "mdss_mdp"' "$script"
+          grep -Fq 'MARKER_PROPERTY = "qcom,thyme-route-b-noop"' "$script"
+          grep -Fq 'A_SEMANTIC_NOOP_CONFIRMED' "$script"
+          grep -Fq 'B_ONLY_MARKER_SEMANTIC_DELTA' "$script"
+          grep -Fq 'READY_FOR_MAINLINE_V2_M5M_A_TARGET_PATH_NO_MARKER_CONTROL' "$script"
+          grep -Fq 'READY_FOR_MAINLINE_V2_M5M_B_FIXUP_WITH_MARKER_CONTROL' "$script"
+          grep -Fq 'M5M_A_TARGET_PATH_NO_MARKER_TRUE_DEVICE_CONTROL' "$script"
+          grep -Fq 'CURRENT_B_UNCHANGED=YES' "$script"
+          grep -Fq 'MARKER_APPLIED_TO_SAME_BASE_NODE=NO' "$script"
+          grep -Fq 'NEG_A_MARKER_PRESENT_MUTANT_REJECTED' "$script"
+          grep -Fq 'NEG_B_WRONG_MARKER_VALUE_MUTANT_REJECTED' "$script"
+          test ! -e MIUI14ROM/image/vendor_boot.img
+          test ! -e MIUI14ROM/image/dtbo.img
+          if git ls-files | grep -Ei '(^|/)(vendor_boot|dtbo)\.img$'; then
+            echo 'tracked OEM or hybrid binary found' >&2
+            exit 1
+          fi
+          if git ls-files | grep -Ei '(^|/)m5m-(a|b).*\.(dtbo|img)$'; then
+            echo 'tracked M5M OEM-derived artifact found' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_M5M_SOURCE_ONLY=PASS'
