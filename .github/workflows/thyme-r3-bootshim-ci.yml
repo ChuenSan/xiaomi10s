@@ -1,0 +1,107 @@
+name: thyme-r3-bootshim-public-source-audit
+
+# Public source audit only.
+# Does not compile, assemble, link, mkbootimg, or emit a boot image.
+# Assemble/link/objdump/boot packing run in private GHA:
+#   ChuenSan/thyme-mainline-private-ci  thyme-r3-p0-shim-entry-proof.yml
+# Exact M5D boot identity stays private as a download pin, not a public blob.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-r3-bootshim-ci.yml'
+      - 'docs/route-r3-thyme-copydown-bootshim-ci-design.md'
+      - 'docs/route-r3-p0-shim-entry-proof-ci.md'
+      - 'scripts/r3-p0/**'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-bootshim-ci.yml'
+      - 'docs/route-r3-thyme-copydown-bootshim-ci-design.md'
+      - 'docs/route-r3-p0-shim-entry-proof-ci.md'
+      - 'scripts/r3-p0/**'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-r3-bootshim-public-source-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: R3 P0 public source audit (no binary)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-r3-bootshim-ci.yml
+
+      - name: Parse P0 scripts
+        run: python3 -m py_compile scripts/r3-p0/p0-entry-proof.py
+
+      - name: Assert design and P0 pins
+        shell: bash
+        run: |
+          set -euo pipefail
+          design=docs/route-r3-thyme-copydown-bootshim-ci-design.md
+          doc=docs/route-r3-p0-shim-entry-proof-ci.md
+          script=scripts/r3-p0/p0-entry-proof.py
+          test -s "$design"
+          test -s "$doc"
+          test -s scripts/r3-p0/p0-shim.S
+          test -s scripts/r3-p0/p0-shim.ld
+          grep -Fq 'LOCAL_BUILD:                       NO' "$doc"
+          grep -Fq 'LOCAL_BINARY_VALIDATION:           NO' "$doc"
+          grep -Fq 'DEVICE_OPERATION:                  NO' "$doc"
+          grep -Fq 'Slot A written:                    NO' "$doc"
+          grep -Fq 'f75a917e155a56c288bfe60c6fdf5717c87537cc' "$doc"
+          grep -Fq 'AUTHORITATIVE_M5M_B_STATUS=RUN_AND_VALIDATED' "$doc"
+          grep -Fq 'AUTHORITATIVE_CURRENT_B=M5D+M5H+M5M-B' "$doc"
+          grep -Fq '4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63' "$doc"
+          grep -Fq '5d1d3c3370dc5617f94af1e9b66128a16e95166d7e440b9ea820f7a2c91c974a' "$doc"
+          grep -Fq 'b7d3949461a57b9855850cfe31ef423ce34216aa9ae164600ffbeed97d5a47de' "$doc"
+          grep -Fq 'c5a355b942bf287d13a9c02e1fe96c13ebf43f20b61be7e05763b8d23872aba8' "$doc"
+          grep -Fq 'THYME_FASTBOOT_BOOT_PRECEDENT=YES' "$doc"
+          grep -Fq 'THYME_PSCI_CONDUIT=SMC' "$doc"
+          grep -Fq 'P0_TIMER_SOURCE=CNTPCT' "$doc"
+          grep -Fq 'P0_TERMINATION_METHOD=PSCI_SYSTEM_RESET' "$doc"
+          grep -Fq '0x84000009' "$doc"
+          grep -Fq 'P1_BLOCKED_BY_P0_ENTRY_PROOF=YES' "$doc"
+          grep -Fq 'P1_RELOCATION_BLOCKED_BY_LOAD_ADDRESS=YES' "$doc"
+          grep -Fq 'GITHUB_ACTIONS' "$script"
+          grep -Fq 'clang-18=1:18.1.3-1' "$script" || grep -Fq '1:18.1.3-1' "$script"
+          grep -Fq '35101184' "$script"
+          grep -Fq 'PRIVATE_P0_BUILDER=ChuenSan/thyme-mainline-private-ci' "$doc"
+          echo 'R3_P0_PUBLIC_SOURCE_PINS=PASS'
+
+      - name: P0 source-gate
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python3 scripts/r3-p0/p0-entry-proof.py --mode source-gate
+
+      - name: Assert this workflow cannot emit a flashable boot
+        shell: bash
+        run: |
+          set -euo pipefail
+          wf=.github/workflows/thyme-r3-bootshim-ci.yml
+          if grep -E '^[[:space:]]+[^#[:space:]].*(mkbootimg\.py|unpack_bootimg|fastboot |[[:space:]]adb |flash )' "$wf"; then
+            echo 'device-or-pack verbs found in public R3 workflow' >&2
+            exit 1
+          fi
+          grep -Fq 'Does not compile, assemble, link, mkbootimg, or emit a boot image' "$wf"
+          if git ls-files | grep -Ei '(^|/)(bootshim|p0).*\.(img|bin|elf)$'; then
+            echo 'tracked bootshim binary found' >&2
+            exit 1
+          fi
+          test ! -e MIUI14ROM/image/boot.img
+          test ! -e MIUI14ROM/image/vendor_boot.img
+          test ! -e MIUI14ROM/image/dtbo.img
+          echo 'PUBLIC_R3_P0_SOURCE_ONLY=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'PRIVATE_P0_BUILDER=ChuenSan/thyme-mainline-private-ci'
