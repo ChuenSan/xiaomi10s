@@ -1,0 +1,199 @@
+name: thyme-mainline-v2-r1-alioth-thyme-reference-audit
+
+# Public R1 reference audit. Alioth clone + Image/DTB build and all dump/decompile
+# run only in GitHub Actions. Local compile, Image parse, DTB decompile, source
+# gate, and actionlint are forbidden. Exact M1 vendor_boot binary remains private.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-mainline-v2-r1-alioth-thyme-reference-audit.yml'
+      - 'scripts/r1-alioth-thyme-reference-audit.sh'
+      - 'scripts/r1-parse-arm64-image-header.py'
+      - 'scripts/r1-reference-pins.env'
+      - 'docs/reference-alioth-mainline-audit.md'
+      - 'docs/reference-astide-sm8250-audit.md'
+      - 'docs/route-b-r1-boot-handoff-reference-matrix.md'
+      - 'patches/linux-6.6/**'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-mainline-v2-r1-alioth-thyme-reference-audit.yml'
+      - 'scripts/r1-alioth-thyme-reference-audit.sh'
+      - 'scripts/r1-parse-arm64-image-header.py'
+      - 'scripts/r1-reference-pins.env'
+      - 'docs/reference-alioth-mainline-audit.md'
+      - 'docs/reference-astide-sm8250-audit.md'
+      - 'docs/route-b-r1-boot-handoff-reference-matrix.md'
+      - 'patches/linux-6.6/**'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-mainline-v2-r1-reference-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  ALIOTH_HEAD: 7a70eaac0d9e7ffbaa9abf5badc82c41b391af59
+  LINUX_6_6_HEAD: 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+jobs:
+  source-audit:
+    name: R1 public source audit (no build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-mainline-v2-r1-alioth-thyme-reference-audit.yml
+
+      - name: Assert CI-only pins and untracked refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/r1-alioth-thyme-reference-audit.sh source-pins
+          grep -Fq 'BOOT_PACKAGING_NOT_PRESENT_IN_REPO' docs/reference-alioth-mainline-audit.md
+          grep -Fq 'MAINLINE_EFI_HEADER_AS_ROOT_CAUSE' docs/route-b-r1-boot-handoff-reference-matrix.md
+          grep -Fq 'NO ADB DEVICE CHANGE' docs/route-b-r1-boot-handoff-reference-matrix.md
+          echo 'R1_PUBLIC_SOURCE_AUDIT=PASS'
+          echo 'LOCAL_BUILD=NO'
+          echo 'LOCAL_BINARY_VALIDATION=NO'
+
+  alioth-build:
+    name: Alioth Image+DTB GHA parse
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    needs: source-audit
+    steps:
+      - name: Checkout public scripts
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc bison clang cmake device-tree-compiler dwarves flex \
+            libelf-dev libfdt-dev libssl-dev lld llvm make
+
+      - name: Clone alioth at pinned depth=1 commit
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          git init alioth
+          git -C alioth remote add origin https://github.com/Techuouo520/linux7.2.2-alioth-mainline.git
+          git -C alioth fetch --depth 1 origin "$ALIOTH_HEAD"
+          git -C alioth checkout --detach FETCH_HEAD
+          got="$(git -C alioth rev-parse HEAD)"
+          test "$got" = "$ALIOTH_HEAD"
+          echo "ALIOTH_HEAD=$got"
+          echo "ALIOTH_DEPTH=1"
+          echo "ALIOTH_DIRTY=$(git -C alioth status --porcelain | wc -l | tr -d ' ')"
+
+      - name: CMake logic Image+dtbs (modules skipped)
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          src="$RUNNER_TEMP/alioth"
+          out="$RUNNER_TEMP/alioth-build/kernel"
+          mkdir -p "$out"
+          make --no-silent -C "$src" O="$out" LLVM=1 ARCH=arm64 LOCALVERSION= alioth_defconfig
+          "$src/scripts/config" --file "$out/.config" --disable EFI_ZBOOT
+          make --no-silent -C "$src" O="$out" LLVM=1 ARCH=arm64 LOCALVERSION= olddefconfig
+          make --no-silent -C "$src" O="$out" LLVM=1 ARCH=arm64 LOCALVERSION= -j"$(nproc)" Image dtbs
+          echo "CMAKE_MODULES_SKIPPED=YES"
+          echo "CMAKE_IMAGE_DTB_LOGIC=PRESERVED"
+
+      - name: Parse Image and DTB
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          rel="$GITHUB_WORKSPACE/r1-alioth-out"
+          mkdir -p "$rel"
+          img="$RUNNER_TEMP/alioth-build/kernel/arch/arm64/boot/Image"
+          dtb="$RUNNER_TEMP/alioth-build/kernel/arch/arm64/boot/dts/qcom/sm8250-xiaomi-alioth.dtb"
+          test -s "$img"
+          test -s "$dtb"
+          cp "$img" "$rel/Image"
+          cp "$dtb" "$rel/sm8250-xiaomi-alioth.dtb"
+          bash "$GITHUB_WORKSPACE/scripts/r1-alioth-thyme-reference-audit.sh" dump-image \
+            "$img" "$rel/alioth-image-header.txt"
+          bash "$GITHUB_WORKSPACE/scripts/r1-alioth-thyme-reference-audit.sh" dump-dtb \
+            "$dtb" "$rel/alioth-dtb.txt" alioth
+          {
+            echo "ALIOTH_IMAGE_SHA=$(sha256sum "$img" | awk '{print $1}')"
+            echo "ALIOTH_DTB_SHA=$(sha256sum "$dtb" | awk '{print $1}')"
+            echo "ALIOTH_HEAD=$ALIOTH_HEAD"
+            grep -E '^(CONFIG_EFI|CONFIG_EFI_STUB|CONFIG_EFI_GENERIC_STUB|CONFIG_EFI_ZBOOT|CONFIG_RELOCATABLE|CONFIG_RANDOMIZE_BASE|CONFIG_SERIAL_EARLYCON|CONFIG_SERIAL_QCOM_GENI|CONFIG_QCOM_GENI_SE)=' \
+              "$RUNNER_TEMP/alioth-build/kernel/.config" || true
+          } | tee "$rel/alioth-build-identity.txt"
+
+      - name: Upload alioth reference artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: r1-alioth-image-dtb
+          if-no-files-found: error
+          path: r1-alioth-out/
+
+  thyme-dt:
+    name: Thyme M1 DTB/DTBO reconstruct dump
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    needs: source-audit
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc bison clang device-tree-compiler flex libelf-dev libfdt-dev \
+            libssl-dev lld llvm make python3
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          got="$(git -C linux-6.6 rev-parse HEAD)"
+          test "$got" = "$LINUX_6_6_HEAD"
+          echo "LINUX_6_6_HEAD=$got"
+
+      - name: Apply thyme patch series
+        run: |
+          set -euo pipefail
+          PATCH_DIR="$GITHUB_WORKSPACE/patches/linux-6.6"
+          for p in "$PATCH_DIR"/*.patch; do
+            git -C linux-6.6 apply --whitespace=nowarn "$p"
+          done
+
+      - name: Configure and build thyme DTB only
+        working-directory: linux-6.6
+        run: |
+          set -euo pipefail
+          make O=out ARCH=arm64 LLVM=1 defconfig
+          make O=out ARCH=arm64 LLVM=1 -j"$(nproc)" dtbs
+          test -s out/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dtb
+
+      - name: Reconstruct ABL metadata and no-op DTBO
+        run: |
+          set -euo pipefail
+          mkdir -p r1-thyme-out
+          bash scripts/r1-alioth-thyme-reference-audit.sh reconstruct-thyme-m1-dt \
+            linux-6.6 r1-thyme-out
+          echo "EXACT_M1_VENDOR_BOOT_UNPACK=PRIVATE_CI_REQUIRED" | tee -a r1-thyme-out/boundary.txt
+          echo "M1_VENDOR_BOOT_SHA256=29ba377ecae631273103f944d9833070c25e7c4dd2f0b7fce439cc2c80d9d1e5" >> r1-thyme-out/boundary.txt
+          echo "M1_DTBO_SHA256=316c12d9bbff26072f0924a9bd4b9d524c0dd2869b73e9743a0fb441af15d9c1" >> r1-thyme-out/boundary.txt
+
+      - name: Upload thyme reconstructed DT artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: r1-thyme-m1-dt-reconstruct
+          if-no-files-found: error
+          path: r1-thyme-out/

@@ -8,3 +8,5 @@ artifacts/local/
 .cache/
 out-initramfs/
 out-release/
+# Local read-only reference clones. Never commit.
+refs/
