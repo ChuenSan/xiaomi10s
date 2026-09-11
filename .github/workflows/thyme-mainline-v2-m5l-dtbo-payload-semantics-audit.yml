@@ -1,0 +1,80 @@
+name: thyme-mainline-v2-m5l-public-source-audit
+
+# Public source only. Exact Stock/M1 inputs, DT parsing, DTC compilation,
+# fdtoverlay application, payload construction, semantic no-op comparison,
+# binary diff and fail-closed negative tests run only in the private auxiliary
+# CI repository.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m5l-dtbo-payload-semantics-audit.yml'
+      - 'scripts/m5l_dtbo_payload_semantics_audit.py'
+      - 'docs/route-b-mainline-v2-m5l-dtbo-payload-semantics-audit.md'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-mainline-v2-m5l-dtbo-payload-semantics-audit.yml'
+      - 'scripts/m5l_dtbo_payload_semantics_audit.py'
+      - 'docs/route-b-mainline-v2-m5l-dtbo-payload-semantics-audit.md'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-mainline-v2-m5l-public-source-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: M5L public source audit (no OEM input)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint workflow source
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-mainline-v2-m5l-dtbo-payload-semantics-audit.yml
+
+      - name: Parse public semantics-audit script
+        run: python3 -m py_compile scripts/m5l_dtbo_payload_semantics_audit.py
+
+      - name: Assert CI-only and public/private boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          script=scripts/m5l_dtbo_payload_semantics_audit.py
+          grep -Fq 'GITHUB_ACTIONS' "$script"
+          grep -Fq 'GitHub Actions only' "$script"
+          grep -Fq 'M5L_SOURCE_IDENTITY_FAILED' "$script"
+          grep -Fq 'M5L_DTC_FAILED' "$script"
+          grep -Fq 'M5L_FDTOVERLAY_FAILED' "$script"
+          grep -Fq 'M5L_PROBE_CALIBRATION_FAILED' "$script"
+          grep -Fq 'M5L_TARGET_SYMBOL_UNRESOLVED' "$script"
+          grep -Fq 'M5L_L1_CONSTRUCTION_FAILED' "$script"
+          grep -Fq 'M5L_L2_CONSTRUCTION_FAILED' "$script"
+          grep -Fq 'M5L_NEGATIVE_TEST_FAILED' "$script"
+          grep -Fq 'M5L_NOT_SAFE' "$script"
+          grep -Fq 'STOCK_DTBO_ENTRY_COUNT = 29' "$script"
+          grep -Fq 'THYME_ENTRY_INDEX = 21' "$script"
+          grep -Fq 'M1_DTBO_SHA256 = "316c12d9bbff26072f0924a9bd4b9d524c0dd2869b73e9743a0fb441af15d9c1"' "$script"
+          grep -Fq 'L2_SEMANTIC_NOOP_CONFIRMED' "$script"
+          grep -Fq 'M1_NOOP_PAYLOAD_CAUSAL_FAMILY=STRONGLY_SUPPORTED' "$script"
+          grep -Fq 'PADDING_OR_DT_SIZE_MISMATCH_AS_NECESSARY_CAUSE=NOT_SUPPORTED' "$script"
+          grep -Fq 'M1_ONE_ENTRY_CONTAINER_ALONE_SUFFICIENT=NO' "$script"
+          grep -Fq 'M5L_AUDIT_COMPLETE=YES' "$script"
+          grep -Fq 'NEXT_TRUE_DEVICE_PAYLOAD_CONTROL' "$script"
+          grep -Fq 'CURRENT_B_UNCHANGED=YES' "$script"
+          test ! -e MIUI14ROM/image/vendor_boot.img
+          test ! -e MIUI14ROM/image/dtbo.img
+          if git ls-files | grep -Ei '(^|/)(vendor_boot|dtbo)\.img$'; then
+            echo 'tracked OEM or hybrid binary found' >&2
+            exit 1
+          fi
+          if git ls-files | grep -Ei '(^|/)m5l-(l1|l2).*\.(dtbo|img)$'; then
+            echo 'tracked M5L OEM-derived artifact found' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_M5L_SOURCE_ONLY=PASS'
