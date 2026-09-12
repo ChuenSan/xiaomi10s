@@ -486,3 +486,135 @@ user approval; core metric `INIT24_TOTAL − INIT8_TOTAL ≈ +16.000s` with
 INIT8_TOTAL = 23.184s as the frozen baseline. CopyMem/staging margin stays
 first failure-isolation item if INIT24 returns abnormally. M5N FROZEN;
 device final: Android A.
+
+## 23. TRUE DEVICE INIT24 RESULT (2026-09-12)
+
+### 23.1 Constraints
+
+mem0 read twice (round start + before `adb reboot bootloader`). No local
+build/validator/source gate/actionlint/binary validation; GHA-only artifact
+from private run 34698327535, not regenerated. PARTITION_WRITES=0, Slot A
+never written, no set_active/flash/erase. INIT24 ONLY: exactly one
+experimental command `fastboot boot thyme-r3-p1b-init24-boot.img`; INIT8
+rerun and second boot forbidden and not executed. M5N FROZEN.
+
+### 23.2 Artifact identity (all FULL SHA256, MATCH=YES)
+
+Authoritative manifests: public run 34696279424 (two-pass build + clean
+baseline) and private run 34698327535 (M5D splice + pack). Local artifact
+file re-hashed before boot and re-verified by the observer identity gate.
+
+```
+boot       948455f45b0d4cb8b7a2f7a26807c70aa4ef9b84e5d83a62c84d61401f83159f 37380096
+payload    c8d2d33a3e771455cce49b867858dbb8779eb5900312e86578f2afe203632f58 37369041
+Image      d4ebba64ea9647c055ac5118217e95527dd66b87f3136a70e4bfdb89390590a6 (image_size 0x2230000)
+clean base 005d5aba192005b0a45c789acac8568bbee0c9c84c527984301afff52fdcbc85 (no initramfs)
+trampoline 362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623 (48 B)
+/init      b5eb44c8cf5c4e0278851e6820378795079129083ae77fb5659e32979f5b7f55 (delay=24)
+initramfs  651a2ce4e5cdb3281c2d238344717ad47f630a6b70638fdc343616a9d7082f9c
+RT-D       4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327
+```
+
+### 23.3 Pair identity (read-only manifest check)
+
+INIT8 vs INIT24: boot size 37380096==37380096; payload size
+37369041==37369041; DTB_OFFSET 0x2380000==0x2380000; trampoline SHA
+identical; RT-D SHA identical; primary_entry 0x1b1c0a0 identical; same M5D
+boot envelope; patch queue d470701d… identical →
+`PAIR_GEOMETRY_IDENTICAL=YES`, `P1B_INIT_PAIR_SEMANTIC_DELTA=
+DELAY_CONSTANT_ONLY` (CI-proven). Only /init (4c1491b2… → b5eb44c8…) and
+initramfs (c45fa7a0… → 651a2ce4…) differ, as required.
+
+### 23.4 Observer reuse
+
+`scripts/r3-p1b/observe-r3-p1b-init8.py` reused VERBATIM (no rewrite this
+round): identity gate driven by env (R3_INIT8_BOOT_IMG → INIT24 img,
+R3_INIT8_SHA256 → INIT24 full SHA); same event loop, locking, 120s window,
+timing formula as the INIT8-device-verified build (fixtures GHA run
+34702388735, AST deadlock gate PASS). Its summary key is printed as
+`P1B_INIT8_BOOTING_TO_RETURNED_KERNEL_START`; for this round that value IS
+INIT24_TOTAL (the ARTIFACT_IDENTITY line records the INIT24 SHA proving
+which image was booted). Banner text remains INIT8-branded — cosmetic reuse
+artifact, recorded here.
+
+### 23.5 Preflight and timeline
+
+Preflight: product=thyme, unlocked=yes, current-slot=a,
+snapshot-update-status=none, battery-soc-ok=yes (4408 mV), retry
+a=6/unbootable:no/successful:yes, b=7/unbootable:no/successful:no.
+ARTIFACT_IDENTITY MATCH size=37380096 sha256=948455f4…159f.
+
+Timeline (UTC 2026-09-12):
+
+```
+T_COMMAND_START            20:42:40.072Z
+T_SENDING_OKAY             20:42:41.009Z  Sending OKAY [0.907s]
+T_BOOTING_OKAY             20:42:41.229Z  Booting OKAY [0.220s]
+T_USB_NONE                 20:42:42.501Z
+T_FASTBOOT_DISAPPEAR       20:42:42.520Z  (+1.291s)
+T_USB_FIRST_REENUM         20:43:13.556Z  usb=18d1:4ee7
+T_ADB_FIRST_SEEN           20:43:13.669Z
+host_before 20:43:13.669Z  /proc/uptime 7.87
+RETURNED_ANDROID_KERNEL_START 20:43:05.799Z
+T_BOOT_COMPLETED           20:43:23.819Z  (cross-check kernel_start 20:43:05.808Z)
+```
+
+### 23.6 Timing pair verdict
+
+Same formula as INIT8 (host_wallclock_before_uptime_read − /proc/uptime);
+no P0 overhead used. Preregistered windows: STRONG 15.000–17.000s,
+SUPPORTED 14.000–18.000s (never re-picked).
+
+```
+INIT8_TOTAL   23.184s   (frozen)
+INIT24_TOTAL  24.570s   (cross-check 24.579s)
+PAIR_DELTA    24.570 − 23.184 = 1.386s
+EXPECTED      16.000s
+PAIR_ERROR    −14.614s
+VERDICT       NO_MATCH (|PAIR_ERROR| > 2.000s)
+```
+
+`P1B_INIT_TIMING_PAIR_MATCH=NO`;
+`MAINLINE_INIT_EXECUTION_TIMING_PAIR_PROVEN=NO`. Per §29 the two single
+auto-returns are NOT summed into an /init-proven claim; no E1–E4 upgrade.
+The INIT8-round provisional signature is not downgraded (§31 applies to log
+absence, not to a positive disconfirming result), but its causal reading
+(8s delay vs panic=5/early-panic/firmware-reset) is now MORE ambiguous, not
+less — resolution belongs to failure isolation.
+
+### 23.7 Observed behavior
+
+Automatic reset: YES (+1.291s disappear). Android A auto-return: YES
+(RECOVERY_KIND=AUTOMATIC_ANDROID_RETURN). Stable Fastboot return: NO →
+4.7s path NOT observed. Transient fastboot: NO. Manual recovery: NO.
+`P1B_INIT24_AUTOMATIC_RETURNED=YES`.
+
+### 23.8 Persistent evidence
+
+pstore: 0 entries. rawdump 254bcc3f… and logdump 3b6a07d0… byte-identical
+to entry-state/LAP/INIT8 rounds (UNCHANGED). minidump (fab86dc1…), logfs
+(6fb22ac6…), oops (4abacab2…) boot-time deltas. Bounded scan of
+oops/logfs/logdump/minidump: zero matches for `Linux version 6.6.156`,
+`THYME-R3-P1B-INIT`, `DELAY=24`; every `Linux version` / `Run /init as
+init process` line found is Stock 4.19.157-perf.
+EXPLICIT_MAINLINE_6.6_EVIDENCE=NO; EXPLICIT_INIT_EVIDENCE=NO.
+
+### 23.9 Current B post-test and restore
+
+All four domains MATCH post-test:
+`CURRENT_B_UNCHANGED_AFTER_P1B_INIT24=YES` (boot_b[0,35110912)=4db8151b…,
+vendor_boot_b 2d58ef94…/5d98f207…, dtbo_b whole c5a355b9…). Android A
+restored: slot_suffix=_a, boot_completed=1, root uid=0, Stock
+4.19.157-perf, bootreason=bootloader → `ANDROID_A_RESTORED=YES`.
+
+### 23.10 Final gate, next
+
+Final gate: `R3_P1B_INIT_TIMING_PAIR_NOT_CONFIRMED`. Next stage:
+`MAINLINE_V2_R3_P1B_FAILURE_ISOLATION_CI` (user approval required) —
+discriminate /init-delay paths (8s/24s) against panic=5, early mainline
+panic, other firmware reset, and /init-reboot using the established timing
+control; CopyMem/staging is no longer the primary suspect (INIT24
+same-size artifact was accepted and auto-reset like INIT8:
+`COPYMEM_STAGING_NOT_PRIMARY_PREBOOT_BLOCKER=YES` stands). P2
+(MAINLINE_V2_R3_P2_MINIMAL_LINUX_RUNTIME) is NOT unlocked by this round.
+M5N FROZEN; device final: Android A.

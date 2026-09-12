@@ -1,0 +1,19 @@
+-- oops total strings count --
+41759
+-- oops android/boot sample --
+<6>[  780.065988] Alarmtimer { android.fg', '805967'}
+<6>[  780.066007] alarmtimer_enqueue: comm:android.fg pid:2097 exp:805967 func:timerfd_alarmproc
+<6>[  780.066810] Alarmtimer { android.fg', '805967'}
+<6>[  780.066817] alarmtimer_enqueue: comm:android.fg pid:2097 exp:805967 func:timerfd_alarmproc
+<6>[  780.067193] Alarmtimer { android.fg', '805967'}
+-- logfs total strings count --
+2176
+-- minidump 6.6/p1b scan --
+[    0.000000] Linux version 4.19.157-perf-g9d90dd04aa7c (builder@pangu-build-component-vendor-144082-xmbbk-vqbzf-3sb9s) (clang version 10.0.7 for Android NDK, GNU ld (binutils-2.27-bd24d23f) 2.27.0.20170315) #1 SMP PREEMPT Mon Sep 4 10:51:57 UTC 2023
+[    1.907445] Run /init as init process
+[    0.000000] Linux version 4.19.157-perf-g9d90dd04aa7c (builder@pangu-build-component-vendor-144082-xmbbk-vqbzf-3sb9s) (clang version 10.0.7 for Android NDK, GNU ld (binutils-2.27-bd24d23f) 2.27.0.20170315) #1 SMP PREEMPT Mon Sep 4 10:51:57 UTC 2023
+[    1.575752] Run /init as init process
+[    0.000000] Linux version 4.19.157-perf-g9d90dd04aa7c (builder@pangu-build-component-vendor-144082-xmbbk-vqbzf-3sb9s) (clang version 10.0.7 for Android NDK, GNU ld (binutils-2.27-bd24d23f) 2.27.0.20170315) #1 SMP PREEMPT Mon Sep 4 10:51:57 UTC 2023
+[    1.587654] Run /init as init process
+[    0.000000] Linux version 4.19.157-perf-g9d90dd04aa7c (builder@pangu-build-component-vendor-144082-xmbbk-vqbzf-3sb9s) (clang version 10.0.7 for Android NDK, GNU ld (binutils-2.27-bd24d23f) 2.27.0.20170315) #1 SMP PREEMPT Mon Sep 4 10:51:57 UTC 2023
+[    1.423565] Run /init as init process

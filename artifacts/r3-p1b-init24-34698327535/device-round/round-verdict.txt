@@ -1,0 +1,90 @@
+== R3 P1B INIT24 TIMING CONFIRMATION — ROUND VERDICT (2026-09-12) ==
+
+Constraints honored:
+mem0 read: 2 (round start + before adb reboot bootloader)
+local build: NO (GHA-only; authoritative artifact from private run 34698327535, not regenerated)
+partition writes: 0
+Slot A written: NO
+set_active: NO
+experimental boots: 1 (fastboot boot thyme-r3-p1b-init24-boot.img)
+INIT8 rerun: NO
+second boot: FORBIDDEN/NOT EXECUTED
+M5N: FROZEN
+
+Artifact identity (all full SHA256, MATCH=YES; private run 34698327535 + public run 34696279424):
+boot       948455f45b0d4cb8b7a2f7a26807c70aa4ef9b84e5d83a62c84d61401f83159f  size=37380096
+payload    c8d2d33a3e771455cce49b867858dbb8779eb5900312e86578f2afe203632f58  size=37369041 dtb_offset=0x2380000
+Image      d4ebba64ea9647c055ac5118217e95527dd66b87f3136a70e4bfdb89390590a6  file_size=0x2189a00 image_size=0x2230000
+clean base 005d5aba192005b0a45c789acac8568bbee0c9c84c527984301afff52fdcbc85  (no initramfs, image_size=0x2220000)
+trampoline 362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623  size=48
+/init      b5eb44c8cf5c4e0278851e6820378795079129083ae77fb5659e32979f5b7f55  size=65968 delay=24
+initramfs  651a2ce4e5cdb3281c2d238344717ad47f630a6b70638fdc343616a9d7082f9c  size=66556 delay=24
+RT-D       4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327
+
+Pair geometry identity (INIT8 vs INIT24, from authoritative manifests only):
+boot size           37380096 == 37380096   YES
+payload size        37369041 == 37369041   YES
+DTB_OFFSET          0x2380000 == 0x2380000 YES
+trampoline SHA      identical (362d9c6e…)  YES
+RT-D SHA            identical (48497432…)  YES
+primary_entry       0x1b1c0a0 == 0x1b1c0a0 YES
+boot envelope       same M5D envelope, P1B_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY  YES
+PAIR_GEOMETRY_IDENTICAL=YES
+patch queue         d470701d58d62bf10b96adb4dbf0c639945afccd45d4d3f039e8051e7aaaf1b5 (both)  DELAY_CONSTANT_ONLY
+
+Observer: scripts/r3-p1b/observe-r3-p1b-init8.py REUSED VERBATIM (no rewrite; INIT8-branded
+labels; identity gate env points at INIT24 img + INIT24 full SHA). Prior gates: observer GHA
+run 34702388735 fixture PASS, AST deadlock gate PASS, INIT8-device-verified. 120s window;
+USB NONE does not terminate; transient fastboot does not terminate; manual recovery excluded.
+
+Preflight (fastboot): product=thyme unlocked=yes current-slot=a snapshot-update-status=none
+battery-soc-ok=yes voltage=4408mV retry:a=6/unbootable:no/successful:yes retry:b=7/unbootable:no/successful:no
+
+Timeline (UTC 2026-09-12):
+T_COMMAND_START          20:42:40.072Z
+T_SENDING_OKAY           20:42:41.009Z   (Sending OKAY [0.907s])
+T_BOOTING_OKAY           20:42:41.229Z   (Booting OKAY [0.220s])
+T_USB_NONE               20:42:42.501Z
+T_FASTBOOT_DISAPPEAR     20:42:42.520Z   (+1.291s after BOOTING_OKAY)
+T_USB_FIRST_REENUM       20:43:13.556Z   usb=18d1:4ee7
+T_ADB_FIRST_SEEN         20:43:13.669Z
+host_before              20:43:13.669Z   /proc/uptime 7.87
+RETURNED_ANDROID_KERNEL_START 20:43:05.799Z
+T_BOOT_COMPLETED         20:43:23.819Z   (cross-check kernel_start 20:43:05.808Z, uptime 18.06)
+
+Timing pair (preregistered: STRONG 15.000–17.000s, SUPPORTED 14.000–18.000s):
+INIT8_TOTAL   = 23.184s  (frozen baseline, INIT8 true-device round)
+INIT24_TOTAL  = 24.570s  (cross-check 24.579s)
+PAIR_DELTA    = 24.570 − 23.184 = 1.386s
+EXPECTED      = 16.000s
+PAIR_ERROR    = 1.386 − 16.000 = −14.614s
+VERDICT       NO_MATCH (|PAIR_ERROR| > 2.000s → §29)
+P1B_INIT_TIMING_PAIR_MATCH=NO
+MAINLINE_INIT_EXECUTION_TIMING_PAIR_PROVEN=NO
+No E1–E4 upgrade; no /init-proven claim (INIT8+INIT24 single auto-returns must not be summed).
+
+Behavior:
+automatic reset:        YES (T_FASTBOOT_DISAPPEAR +1.291s)
+Android A auto-return:  YES (RECOVERY_KIND=AUTOMATIC_ANDROID_RETURN)
+stable Fastboot return: NO → 4.7s path: NO
+transient fastboot:     NO
+manual recovery:        NO
+P1B_INIT24_AUTOMATIC_RETURNED=YES
+
+Persistent evidence:
+pstore: 0 entries. rawdump whole 254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917
+and logdump whole 3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351 — byte-identical
+to entry-state/LAP/INIT8 rounds (UNCHANGED). minidump (fab86dc1…), logfs (6fb22ac6…), oops
+(4abacab2…) are boot-time deltas. Bounded scan of oops/logfs/logdump/minidump: zero matches for
+Linux version 6.6.156 / THYME-R3-P1B-INIT / DELAY=24; every `Run /init as init process` and
+`Linux version` line found is Stock 4.19.157-perf. EXPLICIT_MAINLINE_6.6_EVIDENCE=NO;
+EXPLICIT_INIT_EVIDENCE=NO.
+
+Current B post-test: all four domains MATCH (boot_b[0,35110912)=4db8151b…, vendor_boot_b
+2d58ef94…/5d98f207…, dtbo_b whole c5a355b9…) → CURRENT_B_UNCHANGED_AFTER_P1B_INIT24=YES.
+Android A final: slot_suffix=_a boot_completed=1 root uid=0 Stock 4.19.157-perf
+bootreason=bootloader → ANDROID_A_RESTORED=YES.
+
+Final gate: R3_P1B_INIT_TIMING_PAIR_NOT_CONFIRMED
+Next stage: MAINLINE_V2_R3_P1B_FAILURE_ISOLATION_CI (waiting user approval)
+Device final: Android A.

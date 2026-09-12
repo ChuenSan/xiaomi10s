@@ -1,0 +1,6 @@
+== PIPELINE SANITY CHECK ==
+-- oops 'Linux version' count --
+0
+-- oops sample (first 4 'Linux version' lines) --
+-- logfs 'Linux version' count --
+0
