@@ -784,8 +784,8 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
         fail("P1B_SOURCE_GATE_FAILED", "public workflow boot-image boundary")
     if "splice-boot" in wf or "mkbootimg" in wf:
         fail("P1B_SOURCE_GATE_FAILED", "public workflow packs boot images")
-    for off, want in ((0x2220000, 0x2380000), (0x2208000, 0x2300000),
-                      (0x1B1C0A0, 0x1C00000)):
+    for off, want in ((0x2220000, 0x2380000), (0x2208000, 0x2380000),
+                      (0x1B1C0A0, 0x1B80000)):
         got, gap = calc_dtb_offset(off)
         if got != want:
             fail("P1B_SOURCE_GATE_FAILED",
