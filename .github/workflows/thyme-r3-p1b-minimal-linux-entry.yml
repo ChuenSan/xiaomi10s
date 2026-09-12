@@ -1,0 +1,242 @@
+name: thyme-r3-p1b-minimal-linux-entry
+
+# Public CI for the R3 P1B first real mainline Linux candidate.
+# Builds the clean M0-config-line baseline and the INIT8/INIT24 pair with the
+# RT-D trailer and the PC-relative handoff trampoline. Does not splice M5D and
+# does not emit a flashable boot image. Boot v3 packing runs in private GHA:
+#   ChuenSan/thyme-mainline-private-ci  thyme-r3-p1b-minimal-linux-entry.yml
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-r3-p1b-minimal-linux-entry.yml'
+      - 'docs/route-r3-p1b-minimal-linux-entry-ci.md'
+      - 'scripts/r3-p1b/**'
+      - 'configs/thyme-r3-p1b.config'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-p1b-minimal-linux-entry.yml'
+      - 'docs/route-r3-p1b-minimal-linux-entry-ci.md'
+      - 'scripts/r3-p1b/**'
+      - 'configs/thyme-r3-p1b.config'
+  workflow_dispatch:
+    inputs:
+      rt_d_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-runtime-dtb
+        required: false
+        default: "34678001413"
+
+concurrency:
+  group: thyme-r3-p1b-minimal-linux-entry-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: R3 P1B public source audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-r3-p1b-minimal-linux-entry.yml
+
+      - name: Parse builder
+        run: python3 -m py_compile scripts/r3-p1b/p1b-build.py
+
+      - name: P1B source-gate
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python3 scripts/r3-p1b/p1b-build.py --mode source-gate
+
+      - name: Assert this workflow cannot emit a flashable boot
+        shell: bash
+        run: |
+          set -euo pipefail
+          wf=.github/workflows/thyme-r3-p1b-minimal-linux-entry.yml
+          grep -Fq 'Does not splice M5D and does not emit a flashable boot image' "$wf"
+          if git ls-files | grep -Ei '(^|/)(r3-p1b|p1b).*\.(img)$'; then
+            echo 'tracked p1b flashable binary found' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_P1B_SOURCE_ONLY=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+  clean-baseline:
+    name: R3 P1B clean M0-line baseline (no initramfs)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    needs: source-audit
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install pinned LLVM 18.1.3 toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang lld llvm make gcc bc bison flex libssl-dev libelf-dev \
+            cpio file python3
+          clang --version | head -1 | tee clang-version.txt
+          grep -F '18.1.3' clang-version.txt
+          echo "TOOLCHAIN_PINNED=$(clang --version | head -1)"
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          git submodule update --init --depth 1 linux-6.6
+          base=$(git -C linux-6.6 rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base"
+          test "$base" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+      - name: Build clean baseline and run kernel gates
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          mkdir -p out-clean
+          python3 scripts/r3-p1b/p1b-build.py \
+            --mode clean-baseline --out out-clean --jobs "$(nproc)" \
+            | tee out-clean-run.txt
+          grep -Fxq 'P1B_CLEAN_BASELINE_GATES=PASS' out-clean/clean-baseline-gates.txt
+          grep -Fxq 'PRIMARY_ENTRY_NORMAL=YES' out-clean/clean-baseline-gates.txt
+          grep -Fxq 'DEVICE_OPERATION=NO' out-clean/clean-baseline-gates.txt
+
+      - name: Stage clean baseline release inputs
+        run: |
+          mkdir -p out-clean-release
+          cp out-clean/out-kernel-base/arch/arm64/boot/Image out-clean-release/Image
+          cp out-clean/out-kernel-base/.config out-clean-release/.config
+          cp out-clean/clean-baseline-gates.txt out-clean-release/
+          cp out-clean/clean-baseline-primary-entry-disasm.txt out-clean-release/
+          cp out-clean-run.txt out-clean-release/
+          test -s out-clean-release/Image
+
+      - name: Assert no flashable output exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'flashable image emitted' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_P1B_NO_BOOT_IMAGE=PASS'
+          echo 'DEVICE_OPERATION=NO'
+
+      - name: Upload clean baseline artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-clean-baseline
+          if-no-files-found: error
+          path: out-clean-release/**
+
+  p1b-pair:
+    name: R3 P1B INIT8/INIT24 two-pass build + gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    needs: source-audit
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install pinned LLVM 18.1.3 toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang lld llvm make gcc bc bison flex libssl-dev libelf-dev \
+            cpio file python3 gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu
+          clang --version | head -1 | tee clang-version.txt
+          grep -F '18.1.3' clang-version.txt
+          echo "TOOLCHAIN_PINNED=$(clang --version | head -1)"
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          git submodule update --init --depth 1 linux-6.6
+          base=$(git -C linux-6.6 rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base"
+          test "$base" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+      - name: Download frozen RT-D from public GHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RT_D_RUN_ID: ${{ inputs.rt_d_run_id || '34678001413' }}
+        run: |
+          set -euo pipefail
+          gh run download "$RT_D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-runtime-dtb --dir rt-d
+          test -s rt-d/rt-d.dtb
+          printf '%s  rt-d/rt-d.dtb\n' \
+            4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 \
+            | sha256sum -c -
+          echo 'RT_D_SOURCE=PUBLIC_GHA_RUN'
+
+      - name: Build INIT8/INIT24 pair and run all P1B gates
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          mkdir -p out-p1b
+          python3 scripts/r3-p1b/p1b-build.py \
+            --mode build-pair --out out-p1b --rt-d rt-d/rt-d.dtb \
+            --jobs "$(nproc)" | tee out-p1b-run.txt
+          grep -Fxq 'P1B_BUILD_PAIR_GATES=PASS' out-p1b/p1b-gates.txt
+          grep -Fxq 'P1B_DTB_PLACEMENT_PROOF=PASS' out-p1b/p1b-gates.txt
+          grep -Fxq 'P1B_TRAMPOLINE_GATES=PASS' out-p1b/p1b-gates.txt
+          grep -Fxq 'P1B_INIT_PAIR_SEMANTIC_DELTA=DELAY_CONSTANT_ONLY' out-p1b/p1b-gates.txt
+          grep -Fxq 'P1B_INITRAMFS_REBUILD_IDENTICAL=YES' out-p1b/p1b-gates.txt
+          grep -Fxq 'P1B_RT_D_SHA_EXACT=PASS' out-p1b/p1b-gates.txt
+          grep -Fxq 'ABL_LOADS_FULL_BOOT_KERNEL_SIZE=YES' out-p1b/p1b-gates.txt
+          grep -Fxq 'READY_FOR_DEVICE=NO' out-p1b/p1b-gates.txt
+
+      - name: Stage P1B release inputs
+        run: |
+          mkdir -p out-p1b-release
+          cp out-p1b/thyme-r3-p1b-init8-kernel-payload.bin out-p1b-release/
+          cp out-p1b/thyme-r3-p1b-init24-kernel-payload.bin out-p1b-release/
+          cp out-p1b/p1b-trampoline-final.elf out-p1b-release/p1b-trampoline-init8.elf
+          cp out-p1b/p1b-trampoline-final.bin out-p1b-release/p1b-trampoline-init8.bin
+          cp out-p1b/p1b-trampoline-disasm.txt out-p1b-release/
+          cp out-p1b/p1b-payload-8s-head-hex.txt out-p1b-release/
+          cp out-p1b/p1b-payload-24s-head-hex.txt out-p1b-release/
+          cp out-p1b/p1b-manifest.json out-p1b-release/
+          cp out-p1b/p1b-gates.txt out-p1b-release/
+          cp out-p1b/initramfs-8s.cpio out-p1b-release/
+          cp out-p1b/initramfs-24s.cpio out-p1b-release/
+          cp out-p1b/p1b-init-8s out-p1b-release/p1b-init-8s
+          cp out-p1b/p1b-init-24s out-p1b-release/p1b-init-24s
+          cp out-p1b-run.txt out-p1b-release/
+          ( cd out-p1b-release && sha256sum \
+              thyme-r3-p1b-init8-kernel-payload.bin \
+              thyme-r3-p1b-init24-kernel-payload.bin \
+              p1b-trampoline-init8.bin p1b-trampoline-init8.elf \
+              initramfs-8s.cpio initramfs-24s.cpio p1b-init-8s p1b-init-24s \
+              > SHA256SUMS )
+          cat out-p1b-release/SHA256SUMS
+
+      - name: Assert no flashable output exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'flashable image emitted' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_P1B_NO_BOOT_IMAGE=PASS'
+          echo 'DEVICE_OPERATION=NO'
+
+      - name: Upload P1B pair artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-init8-init24
+          if-no-files-found: error
+          path: out-p1b-release/**
