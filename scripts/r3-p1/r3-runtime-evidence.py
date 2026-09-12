@@ -444,8 +444,24 @@ def build_matrix(rep: dict, iomem: dict, meminfo: dict) -> dict:
         else:
             status = "UNKNOWN"
         per_bank.append({"base": b["base"], "size": b["size"], "status": status})
-    orphans = [r for r in ram if not any(
-        b["base"] <= r["base"] and r["end"] <= b["end"] for b in banks)]
+    overlapping_banks = []
+    for i in range(len(banks)):
+        for j in range(i + 1, len(banks)):
+            a, c = banks[i], banks[j]
+            if a["base"] <= c["end"] and c["base"] <= a["end"]:
+                overlapping_banks.append([a["base"], c["base"]])
+    # The kernel merges contiguous multi-bank RAM into one iomem resource,
+    # so orphan detection must use union coverage, not per-bank containment.
+    def covered(r: dict) -> int:
+        total = 0
+        for b in banks:
+            lo = max(r["base"], b["base"])
+            hi = min(r["end"], b["end"])
+            if hi >= lo:
+                total += hi - lo + 1
+        return total
+    orphans = [r for r in ram
+               if covered(r) != r["end"] - r["base"] + 1]
     total = rep["memory"]["total"] // 1024
     memtotal = meminfo.get("MemTotal", 0)
     sanity = None
@@ -466,6 +482,7 @@ def build_matrix(rep: dict, iomem: dict, meminfo: dict) -> dict:
         }
     return {
         "banks": per_bank,
+        "overlapping_banks": overlapping_banks,
         "iomem_orphans_outside_banks": orphans,
         "iomem_status": "CONFLICT" if orphans and not iomem["redacted"] else "OK",
         "meminfo_sanity": sanity, "stock_kernel_alignment": align,
@@ -481,6 +498,9 @@ def gate(rep: dict, matrix: dict, crosscheck: dict | None) -> None:
             fail("RAM_MAP_EMPTY", f"zero-size bank base={b['base']:#x}")
         if b["base"] + b["size"] <= b["base"]:
             fail("RAM_MAP_OVERFLOW", f"base={b['base']:#x} size={b['size']:#x}")
+    if matrix.get("overlapping_banks"):
+        fail("R3_RUNTIME_DTB_EVIDENCE_CONFLICT",
+             f"memory banks overlap: {matrix['overlapping_banks']}")
     if matrix.get("iomem_status") == "CONFLICT":
         fail("R3_RUNTIME_DTB_EVIDENCE_CONFLICT",
              "iomem System RAM outside FDT-described banks")
@@ -707,18 +727,31 @@ def mode_fixture_selfcheck(tmpdir: Path) -> None:
         "\t9c000000-9e3fffff : reserved\n"
         "\ta0080000-a29fffff : Kernel code\n"
         "\t8a000000-8bffffff : CMA\n"
-        "c0000000-1ffffffff : System RAM\n"
-        "200000000-37fffffff : System RAM\n")
+        "c0000000-ffbfffff : System RAM\n"
+        "ffc20000-37fffffff : System RAM\n")
     assert len(iomem["system_ram"]) == 4
     assert iomem["kernel"]["Kernel code"]["base"] == 0xa0080000
     assert iomem["reserved_children"] == 1 and len(iomem["cma"]) == 1
     matrix = build_matrix(rep, iomem, {"MemTotal": 11875576})
     assert matrix["banks"][0]["status"] == "CONFIRMED"
-    assert matrix["banks"][1]["status"] == "CONFIRMED"
-    assert matrix["banks"][2]["status"] == "CONFIRMED"
+    assert matrix["banks"][1]["status"] == "SUPPORTED"
+    assert matrix["banks"][2]["status"] == "SUPPORTED"
+    assert matrix["overlapping_banks"] == []
+    assert matrix["iomem_orphans_outside_banks"] == []
     assert matrix["iomem_status"] == "OK"
     assert matrix["meminfo_sanity"]["pass"] is True
+    assert matrix["meminfo_sanity"]["memtotal_kb"] == 11875576
     assert matrix["stock_kernel_alignment"]["mod_2m"] == 0x80000
+    orphan_matrix = build_matrix(
+        rep, parse_iomem("40000000-4fffffff : System RAM\n"), {})
+    assert orphan_matrix["iomem_status"] == "CONFLICT"
+    try:
+        gate(rep, {**matrix,
+                   "overlapping_banks": [[0x80000000, 0x90000000]]}, None)
+    except SystemExit:
+        pass
+    else:
+        fail("FIXTURE_SELFCHECK_FAILED", "bank overlap did not fail")
     try:
         gate(rep, build_matrix(
             rep, iomem, {"MemTotal": 0x2F9900000 // 1024 + 1}), None)
