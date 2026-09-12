@@ -1,0 +1,11 @@
+== ANDROID A BASELINE (pre-test) 2026-09-12T15:32:41Z ==
+slot_suffix=_a
+boot_completed=1
+root=uid=0(root) gid=0(root) groups=0(root) context=u:r:magisk:s0
+uname=Linux localhost 4.19.157-perf-g9d90dd04aa7c #1 SMP PREEMPT Mon Sep 4 10:51:57 UTC 2023 aarch64 Toybox
+uptime=23638.03 187169.07
+== CURRENT B PRE-TEST ==
+boot_b[0,35110912)=4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63  -
+vendor_boot_b[0,548864)=2d58ef94802e3aaac3115a9ee1c3d69199b054e04f181e39a55a7e75b60564d9  -
+vendor_boot_b[548864,EOF)=5d98f207def3af98517cb4c74dc5befaee5a2b62209e32cd13b4c181bb374e52  -
+dtbo_b=c5a355b942bf287d13a9c02e1fe96c13ebf43f20b61be7e05763b8d23872aba8  -

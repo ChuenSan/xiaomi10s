@@ -348,3 +348,141 @@ guesswork.
 - Regardless of verdict: P1B device executed: NO; READY_FOR_DEVICE=NO until
   user approval; M5N_TARGETING_ISOLATION=FROZEN; COPYDOWN_REQUIRED=NO;
   Current B unchanged.
+
+## 22. TRUE DEVICE INIT8 RESULT (2026-09-12)
+
+MAINLINE_V2_R3_P1B_INIT8_TRUE_DEVICE_CONTROL. One experimental boot only
+(EXPERIMENTAL_BOOTS=1), PARTITION_WRITES=0, no flash/erase/set_active, Slot A
+never written, SECOND_BOOT_FORBIDDEN honored, INIT24 NOT executed. mem0 read
+twice (round start + before `adb reboot bootloader`). Observer =
+`scripts/r3-p1b/observe-r3-p1b-init8.py` (LAP-derived; source changes gated by
+public GHA run 34702388735, OBSERVER_INIT8_SUMMARY_FIXTURE=PASS,
+OBSERVER_INIT8_AST_DEADLOCK_GATE=PASS).
+
+### 22.1 Artifact full identity (authoritative GHA, full SHAs, all MATCH)
+
+| Item | SHA256 | Source |
+|---|---|---|
+| boot INIT8 (37380096 B) | e6ac6308f274de34b89222bb011f20a00465d26f5b9d9c6cd923e2f722911264 | private run 34698327535 |
+| kernel payload (37369041 B) | 9720451ca7622d7578b114cab3a0a61ee50cd9cf27cf9053d73fb8ded2075a5c | public run 34696279424 + embedded re-extract |
+| clean Image | 005d5aba192005b0a45c789acac8568bbee0c9c84c527984301afff52fdcbc85 | public clean-baseline |
+| trampoline (48 B) | 362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623 | public pair artifact |
+| /init (INIT8) | 4c1491b21d83080b5303e6294aad516f6eeb79bd276e2b159059f665a22135f4 | public pair artifact |
+| initramfs cpio (8s) | c45fa7a0bd8f7ca7062524b4f4b11e33ef0808553764d23e4ddc2707295ef684 | public pair artifact |
+| RT-D trailer (144593 B) | 4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 | embedded trailer re-extract |
+
+Boot img header kernel_size field = 37369041 (matches P1B_KERNEL_SIZE); DTB at
+0x2380000; P1B_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY;
+P1B_PACK_GATES=PASS. All MATCH=YES → proceed.
+
+### 22.2 Preboot CopyMem recheck (source/evidence only)
+
+P1B_PREBOOT_COPYMEM_STATUS=UNKNOWN (NO_CONTRADICTION) — no explicit source
+evidence that kernel_size exceeds ABL destination/staging capacity, and no
+dangerous-overlap counter-evidence; experiment proceeded, CopyMem remains the
+first isolation candidate. Source evidence (LA.UM.9.12.c26):
+FastbootCmds.h MIN_BUFFER_SIZE=67108864 (download buffer ≥ 64 MiB) vs P1B
+need 0x80000+37369041 = 37451681 B (35.72 MiB); CmdDownload rejects
+`mNumDataBytes > MaxDownLoadSize` BEFORE any CopyMem; CmdBoot re-checks
+`(MaxDownLoadSize − (ImageSizeActual − SigActual)) < PageSize`; BootLinux.c
+kernel64 check `ImageSize ≤ DeviceTreeLoadAddr − KernelLoadAddr` else
+RETURN_OUT_OF_RESOURCES (fail-fast before kernel entry); fallback destination
+BaseMem()=0x80000000 + KernelLoadAddress 0x80000, KernelEndAddr = BaseMemory +
+RamdiskEndAddress 0x05600000 → CopyMem dest end 0x82422A91 < 0x85600000
+(~50 MiB margin). Live preflight: `max-download-size=805306368` (768 MiB).
+Effective runtime values of the UEFI-var path (KernelBaseAddr/KernelSize)
+remain unproven — UNKNOWN retained.
+
+### 22.3 Preflight
+
+Android A baseline: slot_suffix=_a, boot_completed=1, root uid=0, Stock
+4.19.157-perf-g9d90dd04aa7c. Fastboot getvar: product=thyme, unlocked=yes,
+current-slot=a, snapshot-update-status=none, battery-soc-ok=yes,
+max-download-size=805306368; slot a: retry=6/unbootable=no/successful=yes;
+slot b: retry=7/unbootable=no/successful=no. Current B pre-test all four
+domains MATCH (boot_b M5D 4db8151b…, vendor_boot_b head 2d58ef94…/tail
+5d98f207…, dtbo_b M5M-B c5a355b9…aba8).
+
+### 22.4 Fastboot acceptance
+
+Sending: OKAY (+0.928s after T_COMMAND_START). Booting: OKAY (+1.149s). No
+FAIL lines. R3_P1B_INIT8_BOOT_NOT_ACCEPTED=NO.
+
+### 22.5 Timeline (UTC 2026-09-12, absolute host clock)
+
+```
+T_COMMAND_START            15:33:35.513Z
+T_SENDING_OKAY             15:33:36.441Z
+T_BOOTING_OKAY             15:33:36.662Z
+T_USB_NONE                 15:33:38.014Z
+T_FASTBOOT_DISAPPEAR       15:33:38.016Z   (BOOTING_OKAY + 1.354s)
+T_USB_FIRST_REENUM         15:34:08.782Z   (18d1:4ee7 adb gadget)
+T_ADB_FIRST_SEEN           15:34:09.375Z   (uptime 9.53s)
+RETURNED_ANDROID_KERNEL_START 15:33:59.845Z (= host_before 15:34:09.375Z − /proc/uptime 9.53s)
+T_BOOT_COMPLETED           15:34:18.542Z
+```
+
+P1B_INIT8_BOOTING_TO_RETURNED_KERNEL_START = **23.184s**
+(BOOTING_OKAY → returned Android A kernel_start; future INIT24 differential
+baseline, INIT24_BASELINE_SAVED=YES). Independent cross-check via
+BOOT_COMPLETED snapshot: kernel_start 15:33:59.825Z → 23.164s (Δ 20 ms).
+No P0-overhead bucket decoding applied this round (task §14/§16); no Mainline
+kernel-start moment derived.
+
+### 22.6 Observed behavior
+
+Automatic reset: YES (P1B_INIT8_AUTOMATIC_RESET_OBSERVED=YES). Android A
+auto-return: YES (ANDROID_A_AUTO_RETURNED=YES, RECOVERY_KIND=
+AUTOMATIC_ANDROID_RETURN). Stable Fastboot return: NO
+(P1B_AUTOMATIC_FASTBOOT_RETURN=NO) → P1B_4P7S_PATH_OBSERVED=NO (no
+pre-primary-entry failure signature). Manual recovery: NO. USB behavior: no
+custom/mainline gadget at any point; adb re-enumerated only after Android A
+returned (18d1:4ee7); E5 USB stays FROZEN.
+
+### 22.7 Persistent evidence (pstore/dumps, read-only, nothing cleared)
+
+pstore: 0 entries. rawdump whole 254bcc3fc4f27172636df4bf32de9f107f620d559b20
+d760197e452b97453917 and logdump whole 3b6a07d0d404fab4e23b6d34bc6696a6a312dd9
+2821332385e5af7c01c421351 — byte-identical to entry-state/LAP rounds
+(UNCHANGED). minidump (ace865ca…), oops (5745f412…), logfs (3261fb5e…) are
+boot-time deltas only; bounded content scan (16 MiB prefix each, all dumps)
+found every `Run /init as init process` and `Linux version` line to be Stock
+4.19.157-perf (including historical panic deltas). EXPLICIT_MAINLINE_6.6_
+EVIDENCE=NO; EXPLICIT_INIT_EVIDENCE=NO. Note: absence is expected, not
+contradictory — this artifact configures no persistent console/pstore sink;
+loglevel=7 output goes only to a UART we do not have.
+
+### 22.8 Evidence ladder
+
+```
+E0 ABL→shim                PROVEN      (P0/LAP lineage, unchanged)
+E1 normal Mainline reached SUPPORTED   (no 4.7s pre-entry failure signature;
+                                        auto-reset timing consistent; no direct log)
+E2 early kernel boot       SUPPORTED   (indirect only, no persistent mainline log)
+E3 initramfs               NOT_PROVEN  (no direct evidence)
+E4 /init                   PROVISIONAL (single auto-reset consistent with the
+                                        8s delay; competing paths panic=5 / early
+                                        panic / firmware reset / init-reboot not
+                                        excluded → INIT24 pair required)
+E5 USB                     FROZEN
+```
+
+### 22.9 Current B post-test
+
+All four domains re-verified MATCH post-test:
+`CURRENT_B_UNCHANGED_AFTER_P1B_INIT8=YES`. Android A restored:
+slot_suffix=_a, boot_completed=1, root uid=0, Stock 4.19.157-perf,
+bootreason=bootloader → `ANDROID_A_RESTORED=YES`.
+
+### 22.10 Causal limits, final gate, next
+
+A single INIT8 auto-reset cannot prove /init execution (§25): competing reset
+paths include panic=5, early mainline panic, other firmware reset, and /init
+reboot. No MAINLINE_INIT_PROVEN / MAINLINE_INIT_EXECUTED claim is made. Final
+gate: `MAINLINE_V2_R3_P1B_INIT8_SIGNATURE_OBSERVED`
+(P1B_INIT8_PROVISIONAL_SIGNATURE=YES). Next stage:
+`MAINLINE_V2_R3_P1B_INIT24_TIMING_CONFIRMATION` — INIT24 requires separate
+user approval; core metric `INIT24_TOTAL − INIT8_TOTAL ≈ +16.000s` with
+INIT8_TOTAL = 23.184s as the frozen baseline. CopyMem/staging margin stays
+first failure-isolation item if INIT24 returns abnormally. M5N FROZEN;
+device final: Android A.

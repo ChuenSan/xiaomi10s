@@ -1,0 +1,7 @@
+== ANDROID A FINAL RESTORE 2026-09-12T15:41:00Z ==
+slot_suffix=_a
+boot_completed=1
+root=uid=0(root) gid=0(root) groups=0(root) context=u:r:magisk:s0
+uname=Linux localhost 4.19.157-perf-g9d90dd04aa7c #1 SMP PREEMPT Mon Sep 4 10:51:57 UTC 2023 aarch64 Toybox
+bootreason=bootloader
+uptime=421.05 2906.02
