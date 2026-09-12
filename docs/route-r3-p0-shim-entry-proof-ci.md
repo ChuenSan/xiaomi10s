@@ -1,8 +1,9 @@
-# Route R3 P0 — shim entry-proof CI + A8 true-device
+# Route R3 P0 — shim entry-proof CI + A8/A24 timing pair
 
 CI stage: `MAINLINE_V2_R3_P0_SHIM_ENTRY_PROOF_CI` — complete.
-Device stage: `MAINLINE_V2_R3_P0_A8_ENTRY_PROOF_TRUE_DEVICE_CONTROL` — complete.
-Final Gate: `MAINLINE_V2_R3_P0_A8_SIGNATURE_OBSERVED`
+A8 device: `MAINLINE_V2_R3_P0_A8_ENTRY_PROOF_TRUE_DEVICE_CONTROL` — complete.
+A24 device: `MAINLINE_V2_R3_P0_A24_ENTRY_PROOF_CONFIRMATION` — complete.
+Final Gate: `MAINLINE_V2_R3_P0_TIMING_PAIR_ENTRY_PROVEN`
 
 Construct and validate the minimum mechanism that can later prove:
 
@@ -11,7 +12,9 @@ ABL executed the first shim instruction we supplied
 ```
 
 CI round (§1–17) is source / GHA validation only.
-True-device A8 is §18. A24 and P1 were not executed.
+True-device A8 is §18. True-device A24 is §26. P1 was not executed.
+
+CI-round constraints (device A8/A24 are §18 / §26):
 
 ```text
 mem0 read:                         YES
@@ -702,14 +705,14 @@ timing signature observed (~14.1s to kernel start vs 8s programmed delay).
 Forbidden from A8 alone: ABL definitely executed the shim; CNTPCT definitely
 ran; PSCI definitely returned on the intended path; P0 fully proven.
 
-Not proven this round: Mainline kernel, runtime DTB, x0 handoff, copydown,
+Not proven from A8 alone: Mainline kernel, runtime DTB, x0 handoff, copydown,
 physical load address, P1.
 
-A24 is the confirmation: same path, delay 8→24, host timeline should shift
-~+16s. Not executed.
+A24 confirmation is §26. Same path, delay 8→24, host kernel-start timeline
+shifted +15.993s versus the frozen A8 14.148s baseline (expected +16.000s).
 
 ```text
-P1_BLOCKED_BY_P0_ENTRY_PROOF=YES
+P1_BLOCKED_BY_P0_ENTRY_PROOF=YES     (A8-only; A24 timing pair is §26)
 P1_RELOCATION_BLOCKED_BY_LOAD_ADDRESS=YES
 physical load address=UNKNOWN
 ```
@@ -730,6 +733,390 @@ PARTITION_WRITES=0
 EXPERIMENTAL_BOOTS=1
 Final Gate=MAINLINE_V2_R3_P0_A8_SIGNATURE_OBSERVED
 Next=MAINLINE_V2_R3_P0_A24_ENTRY_PROOF_CONFIRMATION
+Device final=Android A
+WAIT FOR USER APPROVAL=YES
+```
+
+A8 gate above is frozen. A24 confirmation follows.
+
+---
+
+## 26. P0-A24 confirmation — constraints
+
+Stage: `MAINLINE_V2_R3_P0_A24_ENTRY_PROOF_CONFIRMATION`
+
+```text
+MEM0_READ_BEFORE_R3_P0_A24=YES
+MEM0_READ_BEFORE_FASTBOOT=YES
+LOCAL_BUILD=NO
+LOCAL_VALIDATION=NO
+LOCAL_VALIDATOR=NO
+LOCAL_SOURCE_GATE=NO
+LOCAL_ACTIONLINT=NO
+LOCAL_BINARY_VALIDATION=NO
+GHA_ONLY=YES
+artifact regeneration=NO
+assemble/link/pack A24=NO
+PARTITION_WRITES=0
+Slot A written=NO
+Slot B written=NO
+set_active=NO
+flash/erase/format=NO
+EXPERIMENTAL_BOOTS=1
+command=fastboot boot <exact P0-A24>
+P0-A8 re-boot=NO
+P1=NOT EXECUTED
+M5N/M5M experiments=NOT EXECUTED
+RESET0=NOT BOOTED
+failure-isolation=NOT EXECUTED
+file/directory deletion=NO
+```
+
+Only question this round:
+
+```text
+DOES_THE_A8_A24_DELAY_CONSTANT_SHIFT_KERNEL_START_BY_~16s?
+```
+
+Frozen A8 differential reference (do not re-interpret):
+
+```text
+T_BOOTING_OKAY_A8           2026-09-12T00:18:11.773Z
+T_FASTBOOT_DISAPPEAR_A8     2026-09-12T00:18:11.793Z
+kernel_start_A8             2026-09-12T00:18:25.922Z
+BOOTING_OKAY → kernel_start 14.148s
+programmed delay            8s
+```
+
+Primary metric is Stock Android kernel_start from host wallclock − `/proc/uptime`.
+ADB first-seen and boot_completed are secondary (USB enum / userspace variance).
+
+Preregistered tolerance (before the boot, not after):
+
+```text
+EXPECTED_TIMING_DELTA=16.000s
+STRONG_MATCH     OBSERVED_TIMING_DELTA in 14.5s .. 17.5s
+SUPPORTED_MATCH  OBSERVED_TIMING_DELTA in 13.0s .. 19.0s
+NO_MATCH         <13s or >19s
+```
+
+---
+
+## 27. A24 artifact identity
+
+Authoritative private run [`34615985929`](https://github.com/ChuenSan/thyme-mainline-private-ci/actions/runs/34615985929).
+Downloaded, not rebuilt. Identity read only (size + SHA256):
+
+```text
+file: thyme-r3-p0-a24-entry-proof-boot.img
+size: 35110912 MATCH
+SHA256: 098481cd1fb5907e15c9256f4c180d69277c0795e479d63d08a77e7dcf6988d3 MATCH
+kernel SHA256: 70824f5194601283201f3bbcf94787939c78f9af68120244bb899ca368b697d9
+shim SHA256:   757e6fe3c7d4070643f1b3cab6a01959ebe0955f200ff35fa7f42bb9004ccd03
+delay: 24s
+```
+
+GHA A8 vs A24 semantic delta remains DELAY CONSTANT ONLY:
+
+```text
+kernel offset 73
+A8  movz x2, #0x8   encoding 0xd2800102
+A24 movz x2, #0x18  encoding 0xd2800302
+```
+
+---
+
+## 28. Android A baseline and Current B (read-only)
+
+Before reboot bootloader:
+
+```text
+adb wait-for-device
+slot_suffix=_a
+boot_completed=1
+root=uid=0(magisk)
+uname=Linux 4.19.157-perf-g9d90dd04aa7c
+uptime=902.16  (same Android A session that auto-returned from A8)
+product=thyme
+```
+
+Live Current B, then STOP if mismatch:
+
+```text
+boot_b[0,35110912)
+  4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63  MATCH M5D
+vendor_boot_b[0,548864)
+  2d58ef94802e3aaac3115a9ee1c3d69199b054e04f181e39a55a7e75b60564d9  MATCH M5H
+vendor_boot_b[548864,EOF)
+  5d98f207def3af98517cb4c74dc5befaee5a2b62209e32cd13b4c181bb374e52  MATCH M5H
+dtbo_b whole 33554432
+  c5a355b942bf287d13a9c02e1fe96c13ebf43f20b61be7e05763b8d23872aba8  MATCH M5M-B
+R3_P0_A24_PRE_B_CONTEXT_MATCH=YES
+```
+
+---
+
+## 29. Fastboot preflight and unique experimental boot
+
+`adb reboot bootloader` at `2026-09-12T00:34:08.305Z`. mem0 re-read immediately before.
+`current-slot` was `a`. No `set_active`.
+
+```text
+product=thyme
+unlocked=yes
+current-slot=a
+snapshot-update-status=none
+battery-soc-ok=yes
+battery-voltage=4374 (4385 at observer start)
+slot-retry-count:b=7
+slot-unbootable:b=no
+slot-successful:a=yes
+slot-successful:b=no
+USB before boot: 18d1:d00d
+```
+
+Printed then executed once:
+
+```text
+R3 P0-A24 SHIM ENTRY CONFIRMATION
+ACTIVE SLOT: A
+PARTITION WRITES: 0
+SET_ACTIVE: NO
+PROGRAMMED DELAY: 24s
+REFERENCE A8: 8s
+EXPECTED DIFFERENTIAL: +16s
+```
+
+```text
+fastboot boot thyme-r3-p0-a24-entry-proof-boot.img
+Sending 'boot.img' (34288 KB)  OKAY [  0.824s]
+Booting                        OKAY [  0.221s]
+Finished. Total time: 1.053s
+rc=0
+FASTBOOT_BOOT_ACCEPTED=YES
+```
+
+No second `fastboot boot`. No A8 re-boot. No partition write.
+
+---
+
+## 30. Observer improvements versus A8
+
+A8 observer treated a +0.190s `fastboot devices` flicker as
+`FASTBOOT_REAPPEAR_STABLE` and stopped at +2.244s with USB NONE.
+That gap is not a 4.7s path; it is an observer defect.
+
+A24 observer:
+
+```text
+continue through USB NONE and transient fastboot enumeration
+FASTBOOT_TRANSIENT: USB not 18d1:d00d, or present <3s then gone
+STABLE FASTBOOT: USB 18d1:d00d AND fastboot_present ≥3s
+minimum observe 45s; if no ADB, continue to 60s
+stop early only on ADB+boot_completed, stable Fastboot, or 60s empty
+on first ADB: immediately host_before + /proc/uptime + slot + uname
+```
+
+A24 did not stop on USB NONE. ADB and boot_completed were captured in-window.
+
+---
+
+## 31. A24 host timeline
+
+Host clocks are UTC. Experimental t0 is `T_BOOTING_OKAY`.
+Primary kernel_start uses the first ADB tight pair (same formula as A8):
+
+```text
+kernel_start = host_before − /proc/uptime
+```
+
+```text
+T_COMMAND_START         2026-09-12T00:34:34.029Z  1789173274.029
+T_SENDING_OKAY          2026-09-12T00:34:34.883Z  1789173274.884
+T_BOOTING_OKAY          2026-09-12T00:34:35.104Z  1789173275.104
+T_FASTBOOT_DISAPPEAR    2026-09-12T00:34:36.455Z  1789173276.455  +1.351s
+T_USB_NONE              2026-09-12T00:34:36.584Z  1789173276.584  +1.480s
+T_USB_FIRST_REENUM      2026-09-12T00:35:12.428Z  usb=18d1:4ee7   +37.324s
+T_ADB_FIRST_SEEN        2026-09-12T00:35:13.035Z                  +37.931s
+T_BOOT_COMPLETED        2026-09-12T00:35:23.501Z                  +48.397s
+```
+
+First ADB tight pair (authoritative kernel_start):
+
+```text
+host_before  2026-09-12T00:35:13.035Z
+proc_uptime  7.79
+kernel_start 2026-09-12T00:35:05.245Z
+slot_suffix  _a
+uname        Linux 4.19.157-perf-g9d90dd04aa7c
+root         uid=0(magisk)
+boot_completed at first ADB: not yet 1
+```
+
+BOOT_COMPLETED tight pair (secondary, not the gate):
+
+```text
+host_before  2026-09-12T00:35:23.532Z
+proc_uptime  18.3
+kernel_start 2026-09-12T00:35:05.232Z
+boot_completed=1
+```
+
+13 ms kernel_start difference between the two pairs is host/uptime sampling.
+Primary remains the first ADB pair.
+
+```text
+FASTBOOT_TRANSIENT_ENUMERATION_ONLY=NO
+AUTOMATIC_FASTBOOT_AFTER_P0=NO
+P0_A24_4P7S_PATH_OBSERVED=NO
+MANUAL_RECOVERY=NO
+```
+
+---
+
+## 32. A8/A24 differential
+
+```text
+                    A8                         A24
+programmed delay    8s                         24s
+T_BOOTING_OKAY      2026-09-12T00:18:11.773Z   2026-09-12T00:34:35.104Z
+kernel_start        2026-09-12T00:18:25.922Z   2026-09-12T00:35:05.245Z
+BOOTING → kernel    14.148s                    30.141s
+BOOTING → ADB       34.231s (gap)              37.931s
+BOOTING → boot_completed  ≤90.034s (late check) 48.397s
+```
+
+```text
+A24_BOOTING_TO_KERNEL_START = 30.141s
+A8_BOOTING_TO_KERNEL_START  = 14.148s
+OBSERVED_TIMING_DELTA       = 15.993s
+EXPECTED_TIMING_DELTA       = 16.000s
+error                       = −0.007s
+```
+
+ADB first-seen delta is only +3.700s. That is why kernel_start is primary:
+USB enumeration / host polling / adb daemon swamp the 16s delay in ADB-seen.
+boot_completed A8 was an upper bound from the observer gap; A24 captured it live.
+
+---
+
+## 33. Pair verdict
+
+Preregistered STRONG window: 14.5s .. 17.5s. Observed 15.993s.
+
+```text
+P0_TIMING_PAIR_MATCH=STRONG
+P0_A8_ENTRY_SIGNATURE=SUPPORTED
+P0_A24_ENTRY_SIGNATURE=SUPPORTED
+SHIM_ENTRY_PROVEN_BY_TIMING_PAIR=YES
+SHIM_ENTRY_PROVEN=YES
+P0_A24_AUTOMATIC_RESET_OBSERVED=YES
+ANDROID_A_AUTO_RETURNED=YES
+ACTIVE_A_PRESERVED_ACROSS_P0_RESET=YES
+```
+
+Allowed: ABL executed the controlled payload entry; the shim timer-controlled
+path executed; the programmed delay affected reset timing.
+
+Still forbidden: P1 proven; runtime DTB proven; copydown proven; Mainline
+kernel proven; physical load address known.
+
+`fastboot boot` of the P0 payload cannot become Slot A userspace without a
+reset. Automatic Android A return is therefore an automatic reset observation.
+
+---
+
+## 34. Android A auto-return and Current B post-test
+
+```text
+slot_suffix=_a
+boot_completed=1
+root=uid=0
+uname=Linux 4.19.157-perf-g9d90dd04aa7c #1 SMP PREEMPT Mon Sep 4 10:51:57 UTC 2023
+sys.boot.reason=bootloader
+ro.boot.bootreason=bootloader
+ANDROID_A_AUTO_RETURNED=YES
+ACTIVE_A_PRESERVED_ACROSS_P0_RESET=YES
+AUTOMATIC_FASTBOOT_AFTER_P0=NO
+MANUAL_RECOVERY=NO
+ANDROID_A_RESTORED=YES
+```
+
+Post-test Current B, read-only, zero writes:
+
+```text
+boot_b[0,35110912)        4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63 MATCH
+vendor_boot_b[0,548864)   2d58ef94802e3aaac3115a9ee1c3d69199b054e04f181e39a55a7e75b60564d9 MATCH
+vendor_boot_b[548864,EOF) 5d98f207def3af98517cb4c74dc5befaee5a2b62209e32cd13b4c181bb374e52 MATCH
+dtbo_b whole              c5a355b942bf287d13a9c02e1fe96c13ebf43f20b61be7e05763b8d23872aba8 MATCH
+CURRENT_B_UNCHANGED_AFTER_A24=YES
+```
+
+---
+
+## 35. Dumps
+
+Read-only, nothing cleared. Shim has no persistent log before PSCI reset.
+
+```text
+pstore     0 entries
+minidump   CHANGED  A8 e9af8b60… → eca37b75a24b035aa081595dd8f153ba533a489d45576758cd36cbb950c523c4
+rawdump    UNCHANGED 254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917
+logdump    UNCHANGED 3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351
+logfs      CHANGED   babe73bced3c9e218c72c6e021528e2f93bc475548db4f835da6eebc1a0a9efe
+oops       CHANGED   bd7ae2f0f4ec3c829a3c7766b61d8f3da3fd9126dd6f0159142423861041e400
+NO_P0_PERSISTENT_DUMP_EVIDENCE=YES
+```
+
+minidump/oops/logfs deltas are not shim evidence. No 6.6 / mainline kernel ran.
+
+---
+
+## 36. What P0 proven does not buy
+
+Entry is proven. Safe Mainline jump is not.
+
+```text
+ABL_KERNEL_PHYSICAL_LOAD_ADDRESS=UNKNOWN   (now P1 highest-priority unknown)
+runtime DTB physical placement=UNKNOWN
+Image entry physical address=UNKNOWN
+overlap vs reserved RAM=UNPROVEN
+relocation required?=UNKNOWN
+```
+
+Do not jump from this gate to a full lmi copydown. Split:
+
+```text
+R3-P1A  LOAD ADDRESS / HANDOFF GEOMETRY CI
+R3-P1B  MINIMAL X0 TRAMPOLINE CI
+copydown only if geometry allows
+```
+
+Primary future route: R3 bootshim handoff.
+Secondary: M5N targeting reverse engineering (not executed).
+M5M factorial remains complete (T0/M1 4.837s, T0/M0 4.834s, T1/M0 >12s,
+T1/M1 >12s); `TARGET_FIXUP_MECHANISM_EFFECT=STRONGLY_SUPPORTED` is an
+ABL-facing research line, not this boot path.
+
+---
+
+## 37. A24 Final Gate
+
+```text
+FASTBOOT_BOOT_ACCEPTED=YES
+P0_A8_ENTRY_SIGNATURE=SUPPORTED
+P0_A24_ENTRY_SIGNATURE=SUPPORTED
+P0_TIMING_PAIR_MATCH=STRONG
+SHIM_ENTRY_PROVEN_BY_TIMING_PAIR=YES
+SHIM_ENTRY_PROVEN=YES
+CURRENT_B_UNCHANGED_AFTER_A24=YES
+ANDROID_A_RESTORED=YES
+P1 executed=NO
+M5N executed=NO
+PARTITION_WRITES=0
+EXPERIMENTAL_BOOTS=1
+Final Gate=MAINLINE_V2_R3_P0_TIMING_PAIR_ENTRY_PROVEN
+Next=MAINLINE_V2_R3_P1_HANDOFF_GEOMETRY_CI
 Device final=Android A
 WAIT FOR USER APPROVAL=YES
 ```
