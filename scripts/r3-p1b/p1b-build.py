@@ -396,17 +396,20 @@ def trampoline_disasm_gates(out: Path, tools: dict, elf: Path,
                             offs: dict, dtb_rel: int, entry_rel: int) -> str:
     dump = run([tools["objdump"], "-d", str(elf)])
     (out / "p1b-trampoline-disasm.txt").write_text(dump)
-    ops = "\n".join(l.split("\t", 2)[-1] for l in dump.splitlines()
-                    if re.match(r"^\s*[0-9a-f]+:", l))
-    for token in ("msr\tdaifset, #0xf", "isb", "adr\tx0", "ldr\tx9",
-                  "add\tx0, x0, x9", "mov\tx1, xzr", "mov\tx2, xzr",
-                  "mov\tx3, xzr", "b\t"):
+    # normalize whitespace: llvm-objdump and GNU objdump differ in tab/space use
+    ops = "\n".join(
+        re.sub(r"\s+", " ", line.split(":", 1)[-1]).strip()
+        for line in dump.splitlines() if re.match(r"^\s*[0-9a-f]+:", line))
+    for token in ("msr daifset, #0xf", "isb", "adr x0", "ldr x9",
+                  "add x0, x0, x9", "mov x1, xzr", "mov x2, xzr",
+                  "mov x3, xzr", "b "):
         if token not in ops:
             fail("P1B_TRAMPOLINE_FAILED", f"missing {token!r}")
     if STORE_RE.search(ops):
         fail("P1B_TRAMPOLINE_FAILED", "store/adrp in trampoline")
-    for bad in ("sctlr", "eret", "bl\t", "ic\tiallu", "tlbi"):
-        if bad in ops:
+    for bad in (r"\bsctlr\b", r"\beret\b", r"\bbl\b", r"\bic\b\s*iallu",
+                r"\btlbi\b"):
+        if re.search(bad, ops):
             fail("P1B_TRAMPOLINE_FAILED", f"forbidden {bad!r}")
     branch_pc = offs["b_primary"]
     target = branch_pc + entry_rel
