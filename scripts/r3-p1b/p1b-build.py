@@ -416,7 +416,8 @@ def trampoline_disasm_gates(out: Path, tools: dict, elf: Path,
     if dtb_rel < 0 or dtb_rel >= (1 << 63):
         fail("P1B_TRAMPOLINE_FAILED", f"dtb_rel {dtb_rel:#x}")
     dump_s = run([tools["objdump"], "-s", "-j", ".text", str(elf)])
-    if struct.pack("<Q", dtb_rel).hex() not in dump_s.lower():
+    # objdump -s splits hex into 4-byte groups; strip whitespace before matching
+    if struct.pack("<Q", dtb_rel).hex() not in re.sub(r"\s+", "", dump_s.lower()):
         fail("P1B_TRAMPOLINE_FAILED", "dtb_rel quad value not in .text")
     print(f"P1B_TRAMPOLINE_DISASM_GATES=PASS branch {branch_pc:#x} -> "
           f"{target:#x} x0={TRAMP_OFFSET + offs['dtb_rel'] + dtb_rel:#x}")
