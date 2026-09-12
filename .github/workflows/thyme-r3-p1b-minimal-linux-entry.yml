@@ -2,9 +2,9 @@ name: thyme-r3-p1b-minimal-linux-entry
 
 # Public CI for the R3 P1B first real mainline Linux candidate.
 # Builds the clean M0-config-line baseline and the INIT8/INIT24 pair with the
-# RT-D trailer and the PC-relative handoff trampoline. Does not splice M5D and
-# does not emit a flashable boot image. Boot v3 packing runs in private GHA:
-#   ChuenSan/thyme-mainline-private-ci  thyme-r3-p1b-minimal-linux-entry.yml
+# RT-D trailer and the PC-relative handoff trampoline. Boot v3 packing runs in
+# private GHA: ChuenSan/thyme-mainline-private-ci thyme-r3-p1b-minimal-linux-entry.yml
+# Does not splice M5D and does not emit a flashable boot image.
 on:
   push:
     branches: [route-b-v3]
