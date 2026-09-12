@@ -708,15 +708,15 @@ def build_fixture_fdt() -> bytes:
              "/reserved-memory/carveout@88000000", "/chosen"]
     struct_block = b""
     strings = b"\x00"
-    names = [""]
+    offsets = {"": 0}
 
     def add_str(s: str) -> int:
         nonlocal strings
-        if s in names:
-            return names.index(s)
-        off = len(strings) - 1 if len(strings) > 1 else 0
+        if s in offsets:
+            return offsets[s]
+        off = len(strings)
         strings += s.encode() + b"\x00"
-        names.append(s)
+        offsets[s] = off
         return off
 
     def parent_of(npath: str) -> str:
