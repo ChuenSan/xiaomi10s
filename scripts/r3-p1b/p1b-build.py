@@ -153,7 +153,7 @@ def parse_fdt_chosen(blob: bytes) -> tuple[int, str]:
             pname = strings[nameoff:nend].decode("ascii", "replace")
             pval = body[i:i + plen]
             i = a4(i + plen)
-            if pname == "bootargs" and depth == 1:
+            if pname == "bootargs" and depth == 2:  # root node is depth 1
                 bootargs = pval.split(b"\x00")[0].decode("ascii", "replace")
         elif token == 4:  # NOP
             continue
@@ -180,10 +180,10 @@ def newc_entry(name: str, mode: int, data: bytes = b"", ino: int = 0,
                nlink: int = 1) -> bytes:
     name_b = name.encode()
     fields = [
-        len(str(ino)), mode, 0, 0, nlink, 0, len(data), 0, 0, 0, 0,
+        ino, mode, 0, 0, nlink, 0, len(data), 0, 0, 0, 0,
         len(name_b) + 1, 0,
     ]
-    hdr = b"070701" + b"".join(f"{f:08X}" for f in fields)
+    hdr = b"070701" + "".join(f"{f:08X}" for f in fields).encode("ascii")
     out = hdr + name_b + b"\x00"
     out += b"\x00" * ((4 - len(out) % 4) % 4)
     out += data
@@ -326,7 +326,8 @@ def syms(readelf: str, elf: Path, names: tuple[str, ...]) -> dict[str, int]:
     return found
 
 
-def kernel_gate(image_path: Path, vmlinux: Path, sysmap: Path) -> dict:
+def kernel_gate(image_path: Path, vmlinux: Path, sysmap: Path,
+                tools: dict) -> dict:
     image = image_path.read_bytes()
     hdr = parse_image_hdr(image, image_path.name)
     print(f"P1B_IMAGE_HEADER {json.dumps({k: (hex(v) if isinstance(v, int) else v) for k, v in hdr.items()})}")
@@ -338,7 +339,7 @@ def kernel_gate(image_path: Path, vmlinux: Path, sysmap: Path) -> dict:
         fail("P1B_IMAGE_HEADER_FAILED", "reserved nonzero")
     if hdr["image_size"] < hdr["file_size"] or hdr["image_size"] == 0:
         fail("P1B_IMAGE_HEADER_FAILED", "image_size semantics")
-    nm = run(["nm", str(vmlinux)])
+    nm = run([tools["nm"], str(vmlinux)])
     pe = [l for l in nm.splitlines() if l.endswith(" primary_entry")]
     tx = [l for l in nm.splitlines() if l.endswith(" _text")]
     if not pe or not tx:
@@ -348,20 +349,23 @@ def kernel_gate(image_path: Path, vmlinux: Path, sysmap: Path) -> dict:
     off_primary = pe_addr - text_addr
     if off_primary <= TRAMP_OFFSET + 0x100:
         fail("P1B_PRIMARY_ENTRY_FAILED", f"offset {off_primary:#x} in hole")
-    dump = run(["objdump", "-d", f"--start-address={pe_addr:#x}",
+    dump = run([tools["objdump"], "-d", f"--start-address={pe_addr:#x}",
                 f"--stop-address={pe_addr + 16:#x}", str(vmlinux)])
+    insns = [l for l in dump.splitlines() if re.match(r"^\s*[0-9a-f]+:", l)]
+    if (not insns or "<record_mmu_state>" not in insns[0]
+            or not re.search(r"\bbl\b", insns[0])):
+        fail("P1B_PRIMARY_ENTRY_FAILED",
+             "first instruction not bl record_mmu_state")
     body = dump.split("primary_entry", 1)[-1]
     if re.search(r"\b(b|br)\s+\.", body):
         fail("P1B_PRIMARY_ENTRY_FAILED", "spin at primary_entry")
-    if "bl\trecord_mmu_state" not in dump:
-        fail("P1B_PRIMARY_ENTRY_FAILED", "first instruction not bl record_mmu_state")
     expect_code1 = 0x14000000 | (((off_primary - CODE1_OFFSET) // 4) & 0x03FFFFFF)
     if hdr["code1"] != expect_code1:
         fail("P1B_PRIMARY_ENTRY_FAILED",
              f"code1 {hdr['code1']:#x} != b primary_entry {expect_code1:#x}")
     print(f"PRIMARY_ENTRY_NORMAL=YES offset={off_primary:#x}")
     print("P1B_CODE1_B_PRIMARY_ENTRY=PASS")
-    return {"off_primary": off_primary, "hdr": hdr,
+    return {"off_primary": off_primary, "text_addr": text_addr, "hdr": hdr,
             "vmlinux_sha": sha(vmlinux.read_bytes()),
             "sysmap_sha": sha(sysmap.read_bytes())}
 
@@ -419,7 +423,7 @@ def trampoline_disasm_gates(out: Path, tools: dict, elf: Path,
 def build_pass(out: Path, delay: int, cpio: Path, rt_d: bytes, tools: dict,
                jobs: int) -> dict:
     k = make_kernel(out, delay, cpio, jobs)
-    kg = kernel_gate(k["image"], k["vmlinux"], k["sysmap"])
+    kg = kernel_gate(k["image"], k["vmlinux"], k["sysmap"], tools)
     image = k["image"].read_bytes()
     image_size = kg["hdr"]["image_size"]
     dtb_offset, gap = calc_dtb_offset(image_size)
@@ -489,7 +493,7 @@ def build_pass(out: Path, delay: int, cpio: Path, rt_d: bytes, tools: dict,
         "tramp_sha": tramp_sha, "tramp_bin": tbin, "dtb_rel": dtb_rel,
         "entry_rel": entry_rel, "off_dtb_rel": offs3["dtb_rel"],
         "off_b_primary": offs3["b_primary"], "off_primary": kg["off_primary"],
-        "init_sha": sha(cpio.read_bytes()) if False else None,
+        "init_sha": None,
         "vmlinux_sha": kg["vmlinux_sha"], "sysmap_sha": kg["sysmap_sha"],
         "disasm": disasm,
     }
@@ -502,7 +506,7 @@ def cmd_build(args: argparse.Namespace) -> None:
     gate_rt_d(rt_d)
     tools = {
         "clang": args.clang, "lld": args.lld, "objcopy": args.objcopy,
-        "objdump": args.objdump, "readelf": args.readelf,
+        "objdump": args.objdump, "readelf": args.readelf, "nm": args.nm,
     }
     queue = sorted((REPO / "patches/linux-6.6").glob("*.patch"))
     if [p.name for p in queue] != [
@@ -598,7 +602,8 @@ def cmd_clean_baseline(args: argparse.Namespace) -> None:
     if qsha != PATCH_QUEUE_SHA:
         fail("P1B_PATCH_QUEUE_FAILED", f"{qsha}")
     k = make_kernel(out, None, None, args.jobs)
-    kg = kernel_gate(k["image"], k["vmlinux"], k["sysmap"])
+    tools = {"nm": args.nm, "objdump": args.objdump}
+    kg = kernel_gate(k["image"], k["vmlinux"], k["sysmap"], tools)
     image_sha = kg["hdr"]["sha256"]
     reproduced = image_sha == M0_IMAGE_SHA
     verdict = "YES" if reproduced else "PARTIAL"
@@ -610,10 +615,8 @@ def cmd_clean_baseline(args: argparse.Namespace) -> None:
         print("M0_BASELINE_REPRODUCED_SCOPE=toolchain/build metadata only; "
               "source commit, patch queue, config line, primary_entry and "
               "Image header semantics correspond to the clean baseline")
-    pe_addr = kg["off_primary"] + (int(
-        [l for l in run(["nm", str(k["vmlinux"])]).splitlines()
-         if l.endswith(" _text")][0].split()[0], 16))
-    dump = run(["objdump", "-d", f"--start-address={pe_addr:#x}",
+    pe_addr = kg["off_primary"] + kg["text_addr"]
+    dump = run([args.objdump, "-d", f"--start-address={pe_addr:#x}",
                 f"--stop-address={pe_addr + 16:#x}", str(k["vmlinux"])])
     (out / "clean-baseline-primary-entry-disasm.txt").write_text(dump)
     report = out / "clean-baseline-gates.txt"
@@ -720,7 +723,9 @@ def cmd_pack_gates(args: argparse.Namespace) -> None:
         fail("P1B_PACK_FAILED", "trailer RT-D mismatch after extraction")
     if (S_RESIDUE + dtb_offset) % ALIGN_2M != 0:
         fail("P1B_PACK_FAILED", "DTB residue geometry")
-    report = Path(args.out) / "p1b-pack-gates.txt"
+    report = Path(args.out)
+    report.mkdir(parents=True, exist_ok=True)
+    report = report / "p1b-pack-gates.txt"
     report.write_text(
         "P1B_PACK_GATES=PASS\n"
         f"P1B_BOOT_SIZE={len(boot)}\n"
@@ -810,6 +815,7 @@ def main() -> None:
     parser.add_argument("--lld", default="ld.lld-18")
     parser.add_argument("--objcopy", default="llvm-objcopy-18")
     parser.add_argument("--objdump", default="llvm-objdump-18")
+    parser.add_argument("--nm", default="llvm-nm-18")
     parser.add_argument("--readelf", default="llvm-readelf-18")
     parser.add_argument("--gcc", default="aarch64-linux-gnu-gcc")
     parser.add_argument("--strip", default="aarch64-linux-gnu-strip")
