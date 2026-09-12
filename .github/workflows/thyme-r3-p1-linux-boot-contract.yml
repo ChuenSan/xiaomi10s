@@ -1,0 +1,124 @@
+name: thyme-r3-p1-linux-boot-contract
+
+# Public contract audit + prototype (init/trampoline/DTB).
+# Does not emit a flashable boot image.
+# Full clean Image rebuild is workflow_dispatch / private GHA only.
+# Private builder: ChuenSan/thyme-mainline-private-ci
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-r3-p1-linux-boot-contract.yml'
+      - 'docs/route-r3-p1-linux-boot-contract.md'
+      - 'scripts/r3-p1/**'
+      - 'configs/thyme-r3-p1.config'
+      - 'configs/thyme-route-b.config'
+      - 'patches/linux-6.6/**'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-p1-linux-boot-contract.yml'
+      - 'docs/route-r3-p1-linux-boot-contract.md'
+      - 'scripts/r3-p1/**'
+      - 'configs/thyme-r3-p1.config'
+      - 'configs/thyme-route-b.config'
+      - 'patches/linux-6.6/**'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-r3-p1-boot-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  LINUX_DIR: linux-6.6
+  EXPECTED_LINUX_BASE_COMMIT: 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+jobs:
+  source-audit:
+    name: R3 P1 public source audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-r3-p1-linux-boot-contract.yml
+
+      - name: Parse P1 scripts
+        run: python3 -m py_compile scripts/r3-p1/p1-boot-contract.py
+
+      - name: P1 source-gate
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python3 scripts/r3-p1/p1-boot-contract.py --mode source-gate
+
+      - name: Assert this workflow cannot emit a flashable boot
+        shell: bash
+        run: |
+          set -euo pipefail
+          wf=.github/workflows/thyme-r3-p1-linux-boot-contract.yml
+          grep -Fq 'Does not emit a flashable boot image' "$wf"
+          if git ls-files | grep -Ei '(^|/)(boot|p1).*\.(img|bin|elf)$'; then
+            echo 'tracked p1 boot binary found' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_P1_SOURCE_ONLY_BOOT=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+  prototype:
+    name: R3 P1 init/trampoline/DTB prototype
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    needs: source-audit
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+
+      - name: Install prototype toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang llvm lld make gcc bc bison flex \
+            python3 file device-tree-compiler \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          echo "clang: $(clang --version | head -1)"
+          echo "dtc: $(dtc --version | head -1)"
+          echo "aarch64-gcc: $(aarch64-linux-gnu-gcc --version | head -1)"
+
+      - name: Fetch pinned linux-6.6 and apply DTS patches
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 "$LINUX_DIR"
+          base=$(git -C "$LINUX_DIR" rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base"
+          test "$base" = "$EXPECTED_LINUX_BASE_COMMIT"
+          PATCH_DIR="$GITHUB_WORKSPACE/patches/linux-6.6"
+          mapfile -t PATCHES < <(find "$PATCH_DIR" -maxdepth 1 -type f -name '*.patch' -print | sort)
+          test "${#PATCHES[@]}" -eq 2
+          for patch in "${PATCHES[@]}"; do
+            git -C "$LINUX_DIR" apply --whitespace=nowarn "$patch"
+          done
+          test -s "$LINUX_DIR/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dts"
+          echo "P1_DTS_PATCHES=PASS"
+
+      - name: Prototype init/trampoline/DTB
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python3 scripts/r3-p1/p1-boot-contract.py --mode prototype --out out-r3-p1
+
+      - name: Upload contract report
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1-boot-contract-prototype
+          path: |
+            out-r3-p1/contract-report.txt
+            out-r3-p1/*.dtb
+            out-r3-p1/p1-init-8s
+            out-r3-p1/p1-init-24s
+          if-no-files-found: error

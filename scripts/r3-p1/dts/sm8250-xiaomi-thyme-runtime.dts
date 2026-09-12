@@ -1,0 +1,68 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * thyme Linux-runtime DTB (RT-D candidate).
+ * ABL-facing msm-id/board-id/__symbols__ are intentionally absent.
+ * /memory size is left unfilled: CI must report NOT self-contained
+ * until THYME_PHYSICAL_MEMORY_MAP banks are proven.
+ */
+#include "sm8250-xiaomi-thyme.dts"
+
+/delete-node/ &xbl_aop_mem;
+/delete-node/ &slpi_mem;
+/delete-node/ &adsp_mem;
+/delete-node/ &spss_mem;
+/delete-node/ &cdsp_secure_heap;
+
+/ {
+	chosen {
+		bootargs = "rdinit=/init panic=5 loglevel=7";
+		stdout-path = "serial0:115200n8";
+	};
+
+	reserved-memory {
+		xbl_aop_mem: xbl-aop@80600000 {
+			reg = <0x0 0x80600000 0x0 0x260000>;
+			no-map;
+		};
+
+		xbl_uefi_log_mem: xbl-uefi-log@80880000 {
+			reg = <0x0 0x80880000 0x0 0x14000>;
+			no-map;
+		};
+
+		slpi_mem: slpi@88c00000 {
+			reg = <0x0 0x88c00000 0x0 0x2f00000>;
+			no-map;
+		};
+
+		adsp_mem: adsp@8bb00000 {
+			reg = <0x0 0x8bb00000 0x0 0x2500000>;
+			no-map;
+		};
+
+		spss_mem: spss@8e000000 {
+			reg = <0x0 0x8e000000 0x0 0x100000>;
+			no-map;
+		};
+
+		cdsp_secure_heap: cdsp-secure-heap@8e100000 {
+			reg = <0x0 0x8e100000 0x0 0x4600000>;
+			no-map;
+		};
+
+		cont_splash_mem: cont-splash@9c000000 {
+			reg = <0x0 0x9c000000 0x0 0x2300000>;
+			no-map;
+		};
+
+		dfps_data_mem: dfps-data@9e300000 {
+			reg = <0x0 0x9e300000 0x0 0x100000>;
+			no-map;
+		};
+
+		disp_rdump_mem: disp-rdump@b0400000 {
+			reg = <0x0 0xb0400000 0x0 0x1000000>;
+			no-map;
+		};
+	};
+};
