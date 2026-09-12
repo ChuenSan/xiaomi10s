@@ -298,47 +298,47 @@ def mode_fixture_selfcheck() -> None:
     assert summary["bootargs"] == "rdinit=/init panic=5 loglevel=7"
 
     def banks_mismatch():
-        bad = json.loads(json.dumps(evidence))
+        bad = fixture_evidence()
         bad["memory"]["banks"][0]["size"] = 0x10000000
         gates(nodes, bad)
 
     def reserved_missing():
-        bad = json.loads(json.dumps(evidence))
+        bad = fixture_evidence()
         bad["reserved"] = bad["reserved"][:2]
         gates(nodes, bad)
 
     def reserved_extra():
-        bad = json.loads(json.dumps(evidence))
+        bad = fixture_evidence()
         bad["reserved"].append({"node": "x@b0000000", "base": 0xB0000000,
                                 "size": 0x100000})
         gates(nodes, bad)
 
     def reserved_outside_ram():
-        bad = json.loads(json.dumps(nodes))
+        bad = fixture_nodes()
         bad["/reserved-memory/hyp@80000000"]["reg"] = \
             struct.pack(">QQ", 0x40000000, 0x600000)
-        bad_ev = json.loads(json.dumps(evidence))
+        bad_ev = fixture_evidence()
         bad_ev["reserved"][0]["base"] = 0x40000000
         gates(bad, bad_ev)
 
     def reserved_overlap():
-        bad = json.loads(json.dumps(nodes))
+        bad = fixture_nodes()
         bad["/reserved-memory/hyp@80000000"]["reg"] = \
             struct.pack(">QQ", 0x80700000, 0x400000)
         gates(bad, evidence)
 
     def reserved_unprotected():
-        bad = json.loads(json.dumps(nodes))
+        bad = fixture_nodes()
         del bad["/reserved-memory/pil@8bb00000"]["no-map"]
         gates(bad, evidence)
 
     def evidence_unsanitized():
-        bad = json.loads(json.dumps(evidence))
+        bad = fixture_evidence()
         bad["chosen"]["bootargs_sanitized"] = "androidboot.serialno=SECRET"
         assert_bootargs_sanitized(bad)
 
     def evidence_empty_map():
-        bad = json.loads(json.dumps(evidence))
+        bad = fixture_evidence()
         bad["memory"]["banks"] = []
         if not bad["memory"]["banks"]:
             fail("R3_EVIDENCE_INVALID", "memory map empty")
