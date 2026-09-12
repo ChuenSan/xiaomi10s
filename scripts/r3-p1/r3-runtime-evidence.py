@@ -726,8 +726,9 @@ def build_fixture_fdt() -> bytes:
     def emit(npath: str) -> None:
         nonlocal struct_block
         name = npath.rsplit("/", 1)[-1]
-        struct_block += struct.pack(">I", FDT_BEGIN_NODE)
-        struct_block += name.encode() + b"\x00"
+        nameb = name.encode() + b"\x00"
+        nameb += b"\x00" * ((4 - len(nameb) % 4) % 4)
+        struct_block += struct.pack(">I", FDT_BEGIN_NODE) + nameb
         for pname in sorted(nodes[npath]):
             value = nodes[npath][pname]
             struct_block += struct.pack(">III", FDT_PROP, len(value),
