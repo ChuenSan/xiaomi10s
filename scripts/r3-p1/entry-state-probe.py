@@ -966,6 +966,7 @@ def mode_build(args: argparse.Namespace) -> None:
         f"TOOLCHAIN_LLVM_VERSION={LLVM_VERSION}",
         f"TOOLCHAIN_PKG={LLVM_PKG}",
         f"TOOLCHAIN_RUNNER={RUNNER_IMAGE}",
+        "R3_ENTRY_STATE_PROBE_GATES=PASS",
     ]
     (out / "p1-entry-state-probe-gates.txt").write_text(
         "\n".join(lines) + "\n", encoding="utf-8")
@@ -990,7 +991,6 @@ def mode_build(args: argparse.Namespace) -> None:
     ]) + "\n", encoding="utf-8")
     for line in lines:
         print(line)
-    print("R3_ENTRY_STATE_PROBE_GATES=PASS")
 
 
 def main() -> None:
