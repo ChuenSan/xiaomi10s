@@ -97,11 +97,16 @@ SHA256 `daa111a2dbed74ff6aeb6234ea0c3fa64523965c23689a4753349dad8c9eb10a`,
 | bank | base | size | end |
 |---|---|---|---|
 | 0 | 0x0_80000000 | 0x0_39900000 | 0x0_B98FFFFF |
-| 1 | 0x1_C0000000 | 0x1_40000000 | 0x1_FFFFFFFF |
+| 1 | 0x0_C0000000 | 0x1_40000000 | 0x1_FFFFFFFF |
 | 2 | 0x2_00000000 | 0x1_80000000 | 0x3_7FFFFFFF |
 
 Total described: 0x2F9900000 = 12,477,440 kB = 11.899 GiB (12 GB class
 device; the 0xB9900000–0xC0000000 DDR hole below is ABL-excluded).
+
+Notation correction (2026-09-12, see `route-r3-entry-state-probe-ci.md`):
+bank 1 base was previously mis-notated here as `0x1_C0000000` (report-only
+error — the JSON, DTS, and built DTB always encoded `0x0_C0000000` =
+0xC0000000 with size 0x140000000, end-exclusive 0x200000000).
 
 ## 7. /proc/iomem cross-check
 
