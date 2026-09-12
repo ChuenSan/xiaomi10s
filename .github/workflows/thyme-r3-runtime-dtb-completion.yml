@@ -1,0 +1,95 @@
+name: thyme-r3-runtime-dtb-completion
+
+# R3 RUNTIME_DTB_COMPLETION CI: builds RT-D from the byte-verified runtime
+# memory evidence and enforces fail-closed gates.
+# No device operation. Does not emit a flashable boot image.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-r3-runtime-dtb-completion.yml'
+      - 'scripts/r3-p1/**'
+      - 'patches/linux-6.6/**'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-r3-runtime-dtb-completion-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  EXPECTED_LINUX_BASE_COMMIT: 8b73de7da85fde281a385e0b26eda9bffd3ca477
+  LINUX_DIR: linux-6.6
+
+jobs:
+  rtd-build-and-gates:
+    name: RT-D build + evidence gates (no device)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y device-tree-compiler
+          echo "dtc: $(dtc --version | head -1)"
+
+      - name: Fetch pinned linux-6.6 and apply DTS patches
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 "$LINUX_DIR"
+          base=$(git -C "$LINUX_DIR" rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base"
+          test "$base" = "$EXPECTED_LINUX_BASE_COMMIT"
+          PATCH_DIR="$GITHUB_WORKSPACE/patches/linux-6.6"
+          mapfile -t PATCHES < <(find "$PATCH_DIR" -maxdepth 1 -type f -name '*.patch' -print | sort)
+          test "${#PATCHES[@]}" -eq 2
+          for patch in "${PATCHES[@]}"; do
+            git -C "$LINUX_DIR" apply --whitespace=nowarn "$patch"
+          done
+          test -s "$LINUX_DIR/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dts"
+          echo "R3_DTS_PATCHES=PASS"
+
+      - name: Parser fixture selfcheck
+        env:
+          GITHUB_ACTIONS: "true"
+          RUNNER_TEMP: ${{ runner.temp }}
+        run: python3 scripts/r3-p1/r3-runtime-evidence.py --mode fixture-selfcheck
+
+      - name: RT-D validator fixture selfcheck
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python3 scripts/r3-p1/r3-runtime-dtb.py --mode fixture-selfcheck
+
+      - name: Build RT-D and enforce evidence gates
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1/r3-runtime-dtb.py \
+            --mode validate \
+            --dts scripts/r3-p1/dts/sm8250-xiaomi-thyme-runtime.dts \
+            --evidence scripts/r3-p1/dts/thyme-runtime-memory-evidence.json \
+            --linux "$LINUX_DIR" \
+            --out-dir out-r3-rtd
+
+      - name: Boundary audit
+        run: |
+          set -euo pipefail
+          grep -q "Does not emit a flashable boot image" \
+            .github/workflows/thyme-r3-runtime-dtb-completion.yml
+          echo R3_PUBLIC_WORKFLOW_BOUNDARY=NO_DEVICE_NO_BOOT_IMAGE
+
+      - name: Upload RT-D report
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-runtime-dtb
+          path: |
+            out-r3-rtd/r3-runtime-dtb-report.txt
+            out-r3-rtd/rt-d.dtb
+          if-no-files-found: error

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -20,6 +21,7 @@ REPO = HERE.parent.parent
 LINUX = REPO / "linux-6.6"
 DOC = REPO / "docs" / "route-r3-p1-linux-boot-contract.md"
 WF = REPO / ".github" / "workflows" / "thyme-r3-p1-linux-boot-contract.yml"
+EVIDENCE = HERE / "dts" / "thyme-runtime-memory-evidence.json"
 LLVM_VERSION = "18.1.3"
 LINUX_BASE = "8b73de7da85fde281a385e0b26eda9bffd3ca477"
 M0_IMAGE_SHA = "22d0ee238bb727bca29f9abb241786c94d333928001de5f051aa017da77ba2b6"
@@ -51,6 +53,25 @@ def run(cmd: list[str], *, cwd: Path | None = None) -> str:
     if proc.returncode != 0:
         fail("P1_CMD_FAILED", f"{' '.join(cmd)}\n{proc.stderr}")
     return proc.stdout
+
+
+def load_runtime_evidence() -> dict | None:
+    """Numeric RAM evidence from the R3 runtime capture, or None pre-R3."""
+    if not EVIDENCE.is_file():
+        return None
+    try:
+        data = json.loads(EVIDENCE.read_text())
+    except (json.JSONDecodeError, OSError) as exc:
+        fail("P1_RUNTIME_EVIDENCE_INVALID", str(exc))
+    banks = data.get("memory", {}).get("banks") or []
+    if not banks or not data.get("memory", {}).get("total"):
+        fail("P1_RUNTIME_EVIDENCE_INVALID", "memory map empty")
+    if not data.get("capture", {}).get("runtime_fdt_available"):
+        fail("P1_RUNTIME_EVIDENCE_INVALID", "runtime FDT unavailable")
+    for bank in banks:
+        if not bank.get("size"):
+            fail("P1_RUNTIME_EVIDENCE_INVALID", "zero-size bank")
+    return data
 
 
 def source_gate() -> None:
@@ -116,8 +137,12 @@ def source_gate() -> None:
     ):
         if token not in dts:
             fail("P1_SOURCE_GATE_FAILED", f"runtime dts missing {token}")
-    if "0x3bb00000" in dts or "0xc0000000" in dts:
-        fail("P1_SOURCE_GATE_FAILED", "runtime dts must not invent lmi RAM banks")
+    if load_runtime_evidence() is None:
+        if "0x3bb00000" in dts or "0xc0000000" in dts:
+            fail("P1_SOURCE_GATE_FAILED", "runtime dts must not invent lmi RAM banks")
+    else:
+        if "0x3bb00000" in dts:
+            fail("P1_SOURCE_GATE_FAILED", "runtime dts must not invent lmi RAM banks")
     if "GITHUB_ACTIONS" not in script:
         fail("P1_SOURCE_GATE_FAILED", "script missing GITHUB_ACTIONS guard")
     for token in (
@@ -387,12 +412,15 @@ def prototype(out: Path) -> None:
         dtb_reports = compile_and_audit_dts(out)
     else:
         print("P1_DTS_SKIP=linux thyme dts not applied in this job")
+    evidence = load_runtime_evidence()
     report = out / "contract-report.txt"
     lines = [
         "R3_P1_LINUX_BOOT_CONTRACT=INCOMPLETE",
         "Final Gate=R3_P1_BOOT_CONTRACT_INCOMPLETE",
-        "Primary blocker=RAM_MAP",
+        "Primary blocker=RAM_MAP" if evidence is None
+        else "Primary blocker=P1_TRUE_DEVICE_ENTRY_VALIDATION",
         "M1_RUNTIME_DTB_SELF_CONTAINED=NO",
+        f"RT_D_RUNTIME_DTB_SELF_CONTAINED={'YES' if evidence else 'NO'}",
         "M5D_IS_FULL_LINUX_BOOT_BASELINE=NO",
         "DEVICE_READY=NO",
         f"INIT_8_SHA256={sha(init8.read_bytes())}",
@@ -436,10 +464,27 @@ def compile_and_audit_dts(out: Path) -> list[dict]:
         pre.write_bytes(proc.stdout)
         run(["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", str(dtb), str(pre)])
         reports.append(audit_dtb(dtb.read_bytes(), label))
-    if reports[0]["self_contained"] or reports[1]["self_contained"]:
-        fail("P1_DTB_FALSE_SELF_CONTAINED", "RAM size is unproven; DTB must not pass")
+    evidence = load_runtime_evidence()
+    if evidence is None:
+        if reports[0]["self_contained"] or reports[1]["self_contained"]:
+            fail("P1_DTB_FALSE_SELF_CONTAINED", "RAM size is unproven; DTB must not pass")
+        print("M1_RUNTIME_DTB_SELF_CONTAINED=NO")
+        print("RT_D_RUNTIME_DTB_SELF_CONTAINED=NO")
+        return reports
+    # Evidence present: RT-A must keep the ABL-patched placeholder RAM;
+    # RT-D must be self-contained with exactly the evidence banks.
+    if reports[0]["self_contained"]:
+        fail("P1_DTB_FALSE_SELF_CONTAINED", "RT-A must keep placeholder RAM")
+    if not reports[1]["self_contained"]:
+        fail("R3_RUNTIME_DTB_NOT_SELF_CONTAINED", json.dumps(reports[1]))
+    ev_banks = sorted([b["base"], b["size"]] for b in evidence["memory"]["banks"])
+    rt_banks = sorted([list(b) for b in reports[1]["memory_banks"]])
+    if ev_banks != rt_banks:
+        fail("R3_RUNTIME_DTB_BANKS_MISMATCH",
+             f"evidence={ev_banks} dtb={rt_banks}")
     print("M1_RUNTIME_DTB_SELF_CONTAINED=NO")
-    print("RT_D_RUNTIME_DTB_SELF_CONTAINED=NO")
+    print("RT_D_RUNTIME_DTB_SELF_CONTAINED=YES")
+    print("RT_D_BANKS_PROVENANCE=THYME_RUNTIME_MEMORY_EVIDENCE")
     return reports
 
 

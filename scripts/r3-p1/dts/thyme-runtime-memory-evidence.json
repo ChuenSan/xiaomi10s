@@ -1,0 +1,463 @@
+{
+  "capture": {
+    "bundle_sha256": "cc428656bd0dd0b31ec8ecefdc9799b6e5cf0b9869d44b714ba7fa8925b10cf0",
+    "fdt_sha256": "7e9e6f8c50b428baf410220d71b05eac77dce56c9b0f4284138271cefd6e700f",
+    "fdt_size": 934898,
+    "runtime_fdt_available": true,
+    "devicetree_dump_sha256": "26ef1ff27dfd1163e2739b3aca46bc2340a23e8729dd33d66bc1b7499d44a832",
+    "devicetree_dump_file_markers": 32249,
+    "evidence_primary_source": "RUNTIME_OF_TREE_DUMP"
+  },
+  "fdt_header": {
+    "magic": 3490578157,
+    "totalsize": 933590,
+    "off_struct": 56,
+    "off_strings": 860084,
+    "off_rsv": 40,
+    "version": 17,
+    "size_strings": 73506,
+    "size_struct": 860028,
+    "memreserve": [],
+    "memreserve_terminated": true
+  },
+  "fdt_struct_walk_crosscheck": {
+    "struct_walk_complete": false,
+    "struct_walk_truncated_at": 880,
+    "walked_memory_reg_matches_livetree": false,
+    "walked_reserved_children": null,
+    "livetree_reserved_children": 34,
+    "verdict": "LIVETREE_PRIMARY"
+  },
+  "root": {
+    "address_cells": 2,
+    "size_cells": 2,
+    "model": "Qualcomm Technologies, Inc. xiaomi thyme",
+    "compatible": [
+      "qcom,kona-mtp",
+      "qcom,kona",
+      "qcom,mtp"
+    ],
+    "msm_id": 1529008488449,
+    "board_id": 193273528320
+  },
+  "memory": {
+    "reg_raw_size": 48,
+    "cell_count": 12,
+    "bank_count": 3,
+    "banks": [
+      {
+        "node": "/memory",
+        "base": 2147483648,
+        "size": 965738496,
+        "end": 3113222143
+      },
+      {
+        "node": "/memory",
+        "base": 8589934592,
+        "size": 6442450944,
+        "end": 15032385535
+      },
+      {
+        "node": "/memory",
+        "base": 3221225472,
+        "size": 5368709120,
+        "end": 8589934591
+      }
+    ],
+    "total": 12776898560
+  },
+  "reserved": [
+    {
+      "node": "/reserved-memory/adsp_region",
+      "base": null
+    },
+    {
+      "node": "/reserved-memory/cdsp_region",
+      "base": null
+    },
+    {
+      "node": "/reserved-memory/cdsp_secure_heap@8e100000",
+      "base": 2383413248,
+      "size": 73400320,
+      "end": 2456813567,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/cnss_wlan_region",
+      "base": null
+    },
+    {
+      "node": "/reserved-memory/cont_splash_region@9c000000",
+      "base": 2617245696,
+      "size": 36700160,
+      "end": 2653945855,
+      "no_map": false,
+      "reusable": false,
+      "compatible": ""
+    },
+    {
+      "node": "/reserved-memory/dfps_data_region@9e300000",
+      "base": 2653945856,
+      "size": 1048576,
+      "end": 2654994431,
+      "no_map": false,
+      "reusable": false,
+      "compatible": ""
+    },
+    {
+      "node": "/reserved-memory/disp_rdump_region@9c000000",
+      "base": 2956984320,
+      "size": 16777216,
+      "end": 2973761535,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/hyp_region@80000000",
+      "base": 2147483648,
+      "size": 6291456,
+      "end": 2153775103,
+      "no_map": true,
+      "reusable": false,
+      "compatible": ""
+    },
+    {
+      "node": "/reserved-memory/linux,cma",
+      "base": null
+    },
+    {
+      "node": "/reserved-memory/mailbox_region",
+      "base": null
+    },
+    {
+      "node": "/reserved-memory/mem_dump_region",
+      "base": null
+    },
+    {
+      "node": "/reserved-memory/pil_adsp_region@8bb00000",
+      "base": 2343567360,
+      "size": 38797312,
+      "end": 2382364671,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/pil_camera_region@86200000",
+      "base": 2250244096,
+      "size": 5242880,
+      "end": 2255486975,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/pil_cdsp_region@87800000",
+      "base": 2273312768,
+      "size": 20971520,
+      "end": 2294284287,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/pil_cvp_region@87300000",
+      "base": 2268069888,
+      "size": 5242880,
+      "end": 2273312767,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/pil_gpu_region@8681a000",
+      "base": 2256642048,
+      "size": 8192,
+      "end": 2256650239,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/pil_ipa_fw_region@86800000",
+      "base": 2256535552,
+      "size": 65536,
+      "end": 2256601087,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/pil_ipa_gsi_region@86810000",
+      "base": 2256601088,
+      "size": 40960,
+      "end": 2256642047,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/pil_npu_region@86900000",
+      "base": 2257584128,
+      "size": 5242880,
+      "end": 2262827007,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/pil_slpi_region@88c00000",
+      "base": 2294284288,
+      "size": 49283072,
+      "end": 2343567359,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/pil_spss_region@8e000000",
+      "base": 2382364672,
+      "size": 1048576,
+      "end": 2383413247,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/pil_video_region@86e00000",
+      "base": 2262827008,
+      "size": 5242880,
+      "end": 2268069887,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/pil_wlan_fw_region@86700000",
+      "base": 2255486976,
+      "size": 1048576,
+      "end": 2256535551,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/qseecom_region",
+      "base": null
+    },
+    {
+      "node": "/reserved-memory/qseecom_ta_region",
+      "base": null
+    },
+    {
+      "node": "/reserved-memory/removed_region@80b00000",
+      "base": 2159017984,
+      "size": 87031808,
+      "end": 2246049791,
+      "no_map": true,
+      "reusable": false,
+      "compatible": ""
+    },
+    {
+      "node": "/reserved-memory/res_xbl_uefi_log_region@80880000",
+      "base": 2156396544,
+      "size": 81920,
+      "end": 2156478463,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "removed-dma-pool"
+    },
+    {
+      "node": "/reserved-memory/reserved-memory@80860000",
+      "base": 2156265472,
+      "size": 131072,
+      "end": 2156396543,
+      "no_map": true,
+      "reusable": false,
+      "compatible": "qcom,cmd-db"
+    },
+    {
+      "node": "/reserved-memory/sdsp_region",
+      "base": null
+    },
+    {
+      "node": "/reserved-memory/secure_display_region",
+      "base": null
+    },
+    {
+      "node": "/reserved-memory/smem_region@80900000",
+      "base": 2156920832,
+      "size": 2097152,
+      "end": 2159017983,
+      "no_map": true,
+      "reusable": false,
+      "compatible": ""
+    },
+    {
+      "node": "/reserved-memory/sp_region",
+      "base": null
+    },
+    {
+      "node": "/reserved-memory/user_contig_region",
+      "base": null
+    },
+    {
+      "node": "/reserved-memory/xbl_aop_region@80700000",
+      "base": 2153775104,
+      "size": 2490368,
+      "end": 2156265471,
+      "no_map": true,
+      "reusable": false,
+      "compatible": ""
+    }
+  ],
+  "chosen": {
+    "bootargs_sanitized": "rcupdate.rcu_expedited=<redacted> rcu_nocbs=<redacted> kpti=<redacted> console=ttyMSM0,115200n8 androidboot.hardware=<redacted> androidboot.console=<redacted> androidboot.memcg=<redacted> lpm_levels.sleep_disabled=<redacted> video=<redacted> msm_rtb.filter=<redacted> service_locator.enable=<redacted> androidboot.usbcontroller=<redacted> swiotlb=<redacted> loop.max_part=<redacted> cgroup.memory=<redacted> reboot=<redacted> buildvariant=<redacted> androidboot.verifiedbootstate=<redacted> androidboot.keymaster=<redacted> androidboot.bootdevice=<redacted> androidboot.fstab_suffix=<redacted> androidboot.boot_devices=<redacted> androidboot.serialno=<redacted> androidboot.secureboot=<redacted> androidboot.hwversion=<redacted> androidboot.cpuid=<redacted> androidboot.hwc=<redacted> androidboot.hwlevel=<redacted> androidboot.baseband=<redacted> msm_drm.dsi_display0=<redacted> androidboot.oled_panel_id=<redacted> androidboot.oled_pmic_id=<redacted> androidboot.oled_wp=<redacted> androidboot.slot_suffix=_a rootwait ro init=/init androidboot.dtbo_idx=<redacted> androidboot.dtb_idx=<redacted> androidboot.force_normal_boot=<redacted> androidboot.ramdump=<redacted> block2mtd.block2mtd=<redacted> mtdoops.mtddev=<redacted> mtdoops.record_size=<redacted> mtdoops.dump_oops=<redacted> printk.always_kmsg_dump=<redacted> androidboot.profile_vendor_id=<redacted> androidboot.dp=<redacted> androidboot.cert=<redacted>",
+    "bootargs_tokens": 49,
+    "stdout_path": "",
+    "usable_memory_range": null,
+    "initrd_present": true,
+    "sensitive_props_present": [
+      "kaslr-seed",
+      "token",
+      "use-nv-mac"
+    ]
+  },
+  "iomem": {
+    "redacted": false,
+    "system_ram": [
+      {
+        "base": 2156478464,
+        "end": 2156920831
+      },
+      {
+        "base": 2246049792,
+        "end": 2250244095
+      },
+      {
+        "base": 2256650240,
+        "end": 2257584127
+      },
+      {
+        "base": 2456813568,
+        "end": 2956984319
+      },
+      {
+        "base": 2973761536,
+        "end": 3113222143
+      },
+      {
+        "base": 3221225472,
+        "end": 4290772991
+      },
+      {
+        "base": 4290904064,
+        "end": 15032385535
+      }
+    ],
+    "kernel": {
+      "Kernel code": {
+        "base": 2684878848,
+        "end": 2728394751
+      },
+      "Kernel data": {
+        "base": 2734686208,
+        "end": 2748887039
+      }
+    },
+    "reserved_children": 13,
+    "cma": []
+  },
+  "meminfo": {
+    "MemTotal": 11875576,
+    "MemFree": 4426076,
+    "MemAvailable": 8977640,
+    "CmaTotal": 356352,
+    "CmaFree": 0
+  },
+  "memory_sysfs": {
+    "block_size": 0,
+    "blocks": [],
+    "usable": false
+  },
+  "dmesg": {
+    "filtered_lines": 0,
+    "ring_wrapped": true
+  },
+  "stock_dtb0_comparison": {
+    "memory_banks_stock": [
+      [
+        0,
+        0
+      ]
+    ],
+    "memory_banks_runtime": [
+      [
+        2147483648,
+        965738496
+      ],
+      [
+        8589934592,
+        6442450944
+      ],
+      [
+        3221225472,
+        5368709120
+      ]
+    ],
+    "memory_mutated": true,
+    "reserved_added": [],
+    "reserved_removed": [],
+    "reserved_changed": [
+      "disp_rdump_region@9c000000",
+      "xbl_aop_region@80700000"
+    ],
+    "chosen_bootargs_mutated": true
+  },
+  "matrix": {
+    "banks": [
+      {
+        "base": 2147483648,
+        "size": 965738496,
+        "status": "CONFIRMED"
+      },
+      {
+        "base": 8589934592,
+        "size": 6442450944,
+        "status": "SUPPORTED"
+      },
+      {
+        "base": 3221225472,
+        "size": 5368709120,
+        "status": "SUPPORTED"
+      }
+    ],
+    "overlapping_banks": [],
+    "iomem_orphans_outside_banks": [],
+    "iomem_status": "OK",
+    "meminfo_sanity": {
+      "total_banks_kb": 12477440,
+      "memtotal_kb": 11875576,
+      "headroom_pct": 4.82,
+      "pass": true
+    },
+    "stock_kernel_alignment": {
+      "stock_kernel_code_base": 2684878848,
+      "mod_2m": 524288,
+      "role": "LOAD_ALIGNMENT_SUPPORTING_EVIDENCE_ONLY"
+    }
+  },
+  "provenance": {
+    "generated_by": "private CI run ChuenSan/thyme-mainline-private-ci#34672184547",
+    "public_parser_commit": "5e4148675eeb49900b6b672889c5458b1a7bd4db",
+    "captured_at": "2026-09-12",
+    "capture_method": "adb exec-out su -c, read-only, Android slot A (no reboot, PARTITION_WRITES=0)",
+    "device": "Xiaomi Mi 10S (thyme, SM8250)",
+    "stock_build": "stock-V14.0.6.0.TGACNXM",
+    "primary_source": "runtime OF tree /sys/firmware/devicetree/base (per-file base64 dump, 32249 files)",
+    "policy": "OEM-derived binaries stay in the private repository; this file is the numeric public summary. Sensitive properties are presence-only; bootargs are token-whitelisted."
+  }
+}

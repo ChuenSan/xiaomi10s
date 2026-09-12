@@ -2,8 +2,10 @@
 /*
  * thyme Linux-runtime DTB (RT-D candidate).
  * ABL-facing msm-id/board-id/__symbols__ are intentionally absent.
- * /memory size is left unfilled: CI must report NOT self-contained
- * until THYME_PHYSICAL_MEMORY_MAP banks are proven.
+ * /memory reg is the byte-verified runtime map: captured read-only from
+ * Stock Android A slot A (runtime OF tree, capture 20260912-b), decoded
+ * big-endian in CI, cross-checked against /proc/iomem and MemTotal.
+ * scripts/r3-p1/dts/thyme-runtime-memory-evidence.json is provenance.
  */
 #include "sm8250-xiaomi-thyme.dts"
 
@@ -14,6 +16,13 @@
 /delete-node/ &cdsp_secure_heap;
 
 / {
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x0 0x39900000>,
+		      <0x0 0xc0000000 0x1 0x40000000>,
+		      <0x2 0x0 0x1 0x80000000>;
+	};
+
 	chosen {
 		bootargs = "rdinit=/init panic=5 loglevel=7";
 		stdout-path = "serial0:115200n8";
