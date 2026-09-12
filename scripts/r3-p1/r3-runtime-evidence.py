@@ -600,24 +600,24 @@ def mode_parse(args: argparse.Namespace) -> None:
 def build_fixture_tree() -> dict:
     return {
         "/": {
-            b"#address-cells": struct.pack(">I", 2),
-            b"#size-cells": struct.pack(">I", 2),
-            b"model": b"fixture\x00",
-            b"compatible": b"fixture,dev\x00",
-            b"kaslr-seed": b"\x11" * 8,
+            "#address-cells": struct.pack(">I", 2),
+            "#size-cells": struct.pack(">I", 2),
+            "model": b"fixture\x00",
+            "compatible": b"fixture,dev\x00",
+            "kaslr-seed": b"\x11" * 8,
         },
         "/memory": {
-            b"device_type": b"memory",
-            b"reg": struct.pack(">QQQQ", 0x80000000, 0x10000000,
+            "device_type": b"memory",
+            "reg": struct.pack(">QQQQ", 0x80000000, 0x10000000,
                                 0x90000000, 0x08000000),
         },
         "/reserved-memory": {},
         "/reserved-memory/carveout@88000000": {
-            b"reg": struct.pack(">QQ", 0x88000000, 0x1000000),
-            b"no-map": b"",
+            "reg": struct.pack(">QQ", 0x88000000, 0x1000000),
+            "no-map": b"",
         },
         "/chosen": {
-            b"bootargs": b"console=ttyMSM0,115200n8 "
+            "bootargs": b"console=ttyMSM0,115200n8 "
                          b"androidboot.serialno=SECRET loglevel=7",
         },
     }
@@ -728,10 +728,10 @@ def build_fixture_fdt() -> bytes:
         name = npath.rsplit("/", 1)[-1]
         struct_block += struct.pack(">I", FDT_BEGIN_NODE)
         struct_block += name.encode() + b"\x00"
-        for pname in sorted(nodes[npath], key=lambda p: p.decode()):
+        for pname in sorted(nodes[npath]):
             value = nodes[npath][pname]
             struct_block += struct.pack(">III", FDT_PROP, len(value),
-                                        add_str(pname.decode()))
+                                        add_str(pname))
             struct_block += value + b"\x00" * ((4 - len(value) % 4) % 4)
         for child in order:
             if child != npath and parent_of(child) == npath:
