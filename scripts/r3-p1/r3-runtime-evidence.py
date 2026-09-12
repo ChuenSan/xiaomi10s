@@ -633,9 +633,47 @@ def mode_fixture_selfcheck() -> None:
     print("R3_RUNTIME_EVIDENCE_FIXTURE_SELFCHECK=PASS")
 
 
+def mode_debug(path: Path) -> None:
+    blob = path.read_bytes()
+    (magic, totalsize, off_struct, off_strings, off_rsv,
+     version, _lc, _cpu, _ss, _st) = struct.unpack(">10I", blob[:40])
+    print(f"DEBUG file={path.name} size={len(blob)} magic={magic:#x}"
+          f" totalsize={totalsize} off_struct={off_struct:#x}"
+          f" off_strings={off_strings:#x} off_rsv={off_rsv:#x}"
+          f" version={version} size_strings={_ss} size_struct={_st}")
+    print(f"DEBUG first 16 bytes: {blob[:16].hex()}")
+    structb = blob[off_struct:totalsize]
+    names = {1: "BEGIN_NODE", 2: "END_NODE", 3: "PROP", 4: "NOP", 9: "END"}
+    i = 0
+    for n in range(48):
+        if i + 4 > len(structb):
+            print(f"DEBUG struct exhausted at i={i:#x}")
+            return
+        token = struct.unpack_from(">I", structb, i)[0]
+        label = names.get(token, "UNKNOWN")
+        ctx = structb[i:i + 16].hex()
+        print(f"DEBUG token[{n}] i={i:#x} {token:#010x} {label} bytes={ctx}")
+        i += 4
+        if token == FDT_BEGIN_NODE:
+            end = structb.index(b"\x00", i)
+            print(f"DEBUG   node name={structb[i:end]!r}")
+            i = (end + 4) & ~3
+        elif token == FDT_PROP:
+            plen, nameoff = struct.unpack_from(">II", structb, i)
+            i += 8
+            nend = strings_idx = blob[off_strings:totalsize].index(b"\x00", nameoff)
+            pname = blob[off_strings + nameoff:off_strings + nend].decode(
+                "ascii", "replace")
+            print(f"DEBUG   prop name={pname!r} plen={plen} nameoff={nameoff:#x}")
+            i = (i + plen + 3) & ~3
+        elif token == FDT_END:
+            return
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--mode", choices=("parse", "fixture-selfcheck"), required=True)
+    p.add_argument("--mode",
+                   choices=("parse", "fixture-selfcheck", "debug"), required=True)
     p.add_argument("--fdt")
     p.add_argument("--devicetree-tar")
     p.add_argument("--iomem")
@@ -650,6 +688,11 @@ def main() -> None:
     args = p.parse_args()
     if args.mode == "fixture-selfcheck":
         mode_fixture_selfcheck()
+        return
+    if args.mode == "debug":
+        if not args.fdt:
+            fail("ARGS_MISSING", "fdt")
+        mode_debug(Path(args.fdt))
         return
     for req in ("fdt", "out_json", "out_report"):
         if not getattr(args, req):
