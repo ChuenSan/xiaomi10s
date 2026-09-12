@@ -314,9 +314,12 @@ def mode_fixture_selfcheck() -> None:
         gates(nodes, bad)
 
     def reserved_outside_ram():
-        bad = json.loads(json.dumps(evidence))
-        bad["reserved"][0]["base"] = 0x40000000
-        gates(nodes, bad)
+        bad = json.loads(json.dumps(nodes))
+        bad["/reserved-memory/hyp@80000000"]["reg"] = \
+            struct.pack(">QQ", 0x40000000, 0x600000)
+        bad_ev = json.loads(json.dumps(evidence))
+        bad_ev["reserved"][0]["base"] = 0x40000000
+        gates(bad, bad_ev)
 
     def reserved_overlap():
         bad = json.loads(json.dumps(nodes))
