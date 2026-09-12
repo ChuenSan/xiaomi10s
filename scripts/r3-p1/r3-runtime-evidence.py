@@ -663,8 +663,8 @@ def mode_fixture_selfcheck(tmpdir: Path) -> None:
     assert header["memreserve_terminated"] is True
     walk = walk_fdt_struct(blob, header)
     assert walk["complete"] is True
-    assert walk["nodes"]["/memory"][b"reg"] == \
-        build_fixture_tree()["/memory"][b"reg"]
+    assert walk["nodes"]["/memory"]["reg"] == \
+        build_fixture_tree()["/memory"]["reg"]
     cross = fdt_walk_crosscheck(blob, header, tar_nodes)
     assert cross["verdict"] == "MATCH" and cross["struct_walk_complete"]
 
