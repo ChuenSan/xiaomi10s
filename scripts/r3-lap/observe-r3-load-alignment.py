@@ -462,8 +462,8 @@ def main() -> int:
     ut.start()
     pt.start()
     time.sleep(0.4)
-    with lock:
-        log(f"USB_BEFORE_BOOT usb={usb_fmt(state['usb'])}")
+    usb_before = state["usb"] or ()
+    log(f"USB_BEFORE_BOOT usb={usb_fmt(usb_before)}")
 
     cmd = [FASTBOOT, "boot", PROBE]
     joined = " ".join(cmd)

@@ -244,3 +244,134 @@ on ubuntu-24.04:
 and the private artifact exists; otherwise
 `R3_LOAD_ALIGNMENT_PROBE_CI_NOT_READY`. Device operation stays NO this
 round; `M5N FROZEN`; USB frozen; RT-D frozen at the SHA above.
+
+## 18. True device result (2026-09-12)
+
+Milestone `MAINLINE_V2_R3_LOAD_ALIGNMENT_PROBE_TRUE_DEVICE`. mem0 read at
+round start and again before `adb reboot bootloader`. GHA-only artifact from
+private run 34683393244; no local build/validator/source gate; artifact not
+regenerated.
+
+### 18.1 Pre-boot observer incident (no boot issued)
+
+The first observer start self-deadlocked in `main()` before any boot:
+`with lock:` wrapped the `USB_BEFORE_BOOT` log call while `log()` itself
+acquires the same non-reentrant lock. The run-0 log
+(`observe-r3-load-alignment-deadlocked-run0.log`) shows identity MATCH,
+preflight PASS, banner, then nothing — no `T_COMMAND_START`, no
+`FASTBOOT_OUT`: `fastboot boot` was never launched and the probe never ran
+(`EXPERIMENTAL_BOOTS` consumed: 0). The device stayed in fastboot the whole
+time. Fix: unwrap the lock around that single log call; an AST scan proves
+no other `with lock:` block calls `log`/`emit_summary`/`decode_alignment`;
+all observer summary fixtures re-pass
+(`OBSERVER_KEYERROR_FIXED=YES`, `OBSERVER_SUMMARY_FIXTURE=PASS`).
+
+### 18.2 Artifact identity (read-only)
+
+boot `thyme-r3-load-alignment-probe.img` size 35110912, SHA256
+6403ad5258a768a3ed91acc23f219b2cb55fbbf04358d25d9e8c1afab515a4ba; kernel
+f1b9fe9fa4dd455502a035a876d10f5bcdf92937214a4268f11c5af0f18e9682; probe
+c6675eac04ec79538d3ede96209980ef4bb5aff5340f0a677832c27008f5e7b8. All full
+SHAs MATCH before any boot (no local binary validation involved).
+
+### 18.3 Preflight
+
+Android A baseline: `slot_suffix=_a`, `boot_completed=1`, root uid=0, Stock
+`4.19.157-perf-g9d90dd04aa7c`, uptime 6993.50 s. Current B read-only: all
+four hash domains MATCH (§20.4 domain set of the entry-state round). Boot
+state before reboot: retry:a=6/unbootable:no/successful:yes,
+retry:b=7/unbootable:no/successful:no.
+
+Fastboot (observer `getvar` gate): product=thyme, unlocked=yes,
+current-slot=a, snapshot-update-status=none, battery-soc-ok=yes
+(voltage 4393/4397 mV). PARTITION_WRITES=0; Slot A never written; no
+set_active; no flash/erase.
+
+### 18.4 Timeline (single experimental boot)
+
+```
+T_COMMAND_START       2026-09-12T08:58:28.522Z
+T_SENDING_OKAY        2026-09-12T08:58:29.375Z
+T_BOOTING_OKAY        2026-09-12T08:58:29.594Z
+T_USB_NONE            2026-09-12T08:58:30.929Z
+T_FASTBOOT_DISAPPEAR  2026-09-12T08:58:31.015Z
+T_USB_FIRST_REENUM    2026-09-12T08:58:52.097Z  (18d1:4ee7)
+T_ADB_FIRST_SEEN      2026-09-12T08:58:52.306Z
+kernel_start          2026-09-12T08:58:43.566Z
+T_BOOT_COMPLETED      2026-09-12T08:59:02.757Z
+```
+
+Fastboot acceptance: `Sending 'boot.img' (34288 KB) OKAY [0.824s]`,
+`Booting OKAY [0.220s]`, exit 0 —
+`R3_LOAD_ALIGNMENT_PROBE_BOOT_ACCEPTED`.
+
+### 18.5 Primary timing math
+
+kernel_start = host_wallclock_before_uptime_read − /proc/uptime
+= 08:58:52.306Z − 8.74 s = 08:58:43.566Z (same formula as P0 A8/A24 and
+the entry-state round).
+
+```
+OBSERVED_TOTAL (BOOTING_OKAY → kernel_start) = 13.972 s
+P0 reference overhead                        =  6.1445 s
+PROGRAMMED_ESTIMATE                          =  7.827 s
+nearest bucket                               =  8 s
+error                                        = −0.173 s
+verdict                                      =  STRONG (±0.75 s)
+```
+
+Independent cross-check from the boot_completed snapshot:
+kernel_start 08:58:43.545Z, TOTAL 13.951 s, estimate 7.807 s, error
+−0.193 s — same bucket, same verdict. Timing interpretation was fixed
+before the run; nothing was re-windowed after seeing the result.
+
+### 18.6 Alignment result
+
+```
+R3_LOAD_ALIGNMENT_PROBE_SIGNATURE      = MATCH
+R3_FASTBOOT_BOOT_IMAGE_BASE_MOD_2M     = 0x80000
+MAINLINE_IMAGE_ALIGNMENT_CONTRACT      = PROVEN_BY_TRUE_DEVICE_PROBE
+ABSOLUTE_S_REQUIRED_FOR_DIRECT_PATH    = NO
+LOAD_ALIGNMENT_BLOCKER                 = CLOSED
+DIRECT_IN_PLACE_HANDOFF_GEOMETRY       = SUPPORTED
+COPYDOWN_REQUIRED                      = NO
+```
+
+Causal boundary unchanged (§31-style): MATCH proves only that the runtime
+address of Image byte 0 on the temporary `fastboot boot` path satisfies
+`S mod 2MiB = 0x80000`; absolute S is unknown and not claimed; normal
+Mainline entry, RT-D handoff, /init, USB remain unproven. COPYDOWN
+`NO` means the first Mainline handoff candidate needs no copydown under
+the currently known geometry, not that copydown is forever useless.
+
+### 18.7 Recovery and post-test
+
+`AUTOMATIC_FASTBOOT_AFTER_PROBE=NO`; `RECOVERY_KIND=AUTOMATIC_ANDROID_RETURN`
+(PSCI SYSTEM_RESET → ABL → Android A); `MANUAL_RECOVERY=NO`. Android A
+restored: `slot_suffix=_a`, `boot_completed=1`, root uid=0, Stock kernel,
+`bootreason=bootloader`. `ANDROID_A_RESTORED=YES`.
+
+Current B post-test read-only, all four domains MATCH (boot_b prefix M5D
+4db8151b…, vendor_boot_b head 2d58ef94… and tail 5d98f207…, dtbo_b whole
+M5M-B c5a355b9…):
+`CURRENT_B_UNCHANGED_AFTER_ALIGNMENT_PROBE=YES`.
+
+### 18.8 Dumps
+
+pstore 0 entries; logdump whole
+3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351 and
+rawdump whole 254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917
+— both byte-identical to the entry-state round (UNCHANGED); minidump and
+oops rewritten as boot-time deltas only.
+`NO_ALIGNMENT_PROBE_PERSISTENT_DUMP_EVIDENCE=YES`.
+
+### 18.9 Final gate and next stage
+
+```
+R3_LOAD_ALIGNMENT_PROVEN
+```
+
+Next: `MAINLINE_V2_R3_P1B_MINIMAL_LINUX_ENTRY_CI` (clean 6.6.156 Image +
+embedded self-contained RT-D + deterministic built-in /init + minimal
+PC-relative x0 trampoline, CI-only). P1B not executed this round; M5N
+FROZEN; USB frozen. Device final: Android A.
