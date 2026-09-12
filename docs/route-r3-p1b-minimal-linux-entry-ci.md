@@ -53,7 +53,12 @@ compared to the historical M0 GHA run 34322563307 Image
 22d0ee238bb727bca29f9abb241786c94d333928001de5f051aa017da77ba2b6.
 Verdict M0_BASELINE_REPRODUCED=YES on byte-identity, else PARTIAL with explicit
 source/config/patch/primary_entry/header correspondence proof recorded in the
-CI log and manifest. Result: PENDING (filled from public run).
+CI log and manifest. Result: PARTIAL (run 34696279424,
+CLEAN_IMAGE_SHA256=005d5aba192005b0a45c789acac8568bbee0c9c84c527984301afff52fdcbc85;
+scope = toolchain/build metadata only — source commit 8b73de7d, patch queue
+d470701d, config line, primary_entry offset 0x1b1c0a0, header semantics and
+file_size 0x2179a00 all correspond; kernel builds embed UTS_VERSION build
+metadata, so cross-run byte identity of Image is not attainable).
 
 ## 4. Normal primary_entry proof (PRIMARY_ENTRY_NORMAL=YES)
 
@@ -108,8 +113,8 @@ CI log and manifest. Result: PENDING (filled from public run).
 - DTB_OFFSET = align_up(image_size + 0x80000, 0x200000) − 0x80000.
 - Asserts: (S_residue + DTB_OFFSET) mod 0x200000 == 0; DTB_OFFSET ≥ image_size.
 - Formula unit tests in CI: image_size 0x2220000 → 0x2380000 (gap 0x160000);
-  0x2208000 → 0x2300000; 0x1B1C0A0 → 0x1C00000. P1B actual image_size comes
-  from the built Image header (PENDING, filled from public run).
+  0x2208000 → 0x2380000; 0x1B1C0A0 → 0x1B80000. P1B actual: image_size
+  0x2230000 → DTB_OFFSET 0x2380000, gap 0x150000, payload 37369041 bytes.
 
 ## 9. ABL loads full kernel_size (ABL_LOADS_FULL_BOOT_KERNEL_SIZE=YES)
 
@@ -250,7 +255,26 @@ guesswork.
   workflow_dispatch inputs), downloads the pinned M5D boot, splices and packs
   boot v3 twice (INIT8, INIT24), runs pack gates, emits
   thyme-r3-p1b-init8-init24-boot + DO_NOT_FLASH.txt. Device operation none.
-- Results: PENDING (filled from runs).
+- Results (2026-09-12):
+  - Public run 34696279424 @ commit ff34d08426855375923172832669216aa0c2f4c6
+    (jobs: source audit, clean baseline, INIT8/INIT24 pair — all PASS).
+    Image (pair) header: image_size 0x2230000, text_offset 0x0, file_size
+    0x2189a00, flags 0xa; primary_entry offset 0x1b1c0a0 (PRIMARY_ENTRY_NORMAL=YES).
+    Trampoline sha256 362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623
+    (48 bytes, identical across pair); branch 0x60 → 0x1b1c0a0, x0 → 0x2380000.
+    INIT8 /init sha256 4c1491b21d83080b5303e6294aad516f6eeb79bd276e2b159059f665a22135f4;
+    INIT24 /init sha256 b5eb44c8cf5c4e0278851e6820378795079129083ae77fb5659e32979f5b7f55;
+    INIT8 payload sha256 9720451ca7622d7578b114cab3a0a61ee50cd9cf27cf9053d73fb8ded2075a5c;
+    INIT24 payload sha256 c8d2d33a3e771455cce49b867858dbb8779eb5900312e86578f2afe203632f58;
+    P1B_INIT_PAIR_SEMANTIC_DELTA=DELAY_CONSTANT_ONLY.
+  - Private run 34698327535 (M5D splice + boot v3 pack + pack gates — PASS):
+    INIT8 boot 37380096 bytes sha256
+    e6ac6308f274de34b89222bb011f20a00465d26f5b9d9c6cd923e2f722911264;
+    INIT24 boot sha256
+    948455f45b0d4cb8b7a2f7a26807c70aa4ef9b84e5d83a62c84d61401f83159f;
+    P1B_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY,
+    P1B_RT_D_TRAILER_SHA_EXACT=PASS, P1B_BOOT_CAPACITY=PASS
+    (201326592 − 37380096 ≈ 156.4 MiB free), READY_FOR_DEVICE=NO.
 
 ## 18. Fail-closed gates (all must PASS for READY)
 
@@ -286,19 +310,20 @@ guesswork.
    stock footprint ends 0xA3D8B000 inside bank1 (ends 0xB9900000), and the
    alternative S = 0x80080000 would overlap the hyp no-map region
    [0x80000000, 0x80600000) by 0x58000 bytes, which stock demonstrably survives,
-   so 0x80080000 is effectively excluded. P1B footprint (~36 MiB) at 0xa0080000
-   clears all RT-D reserved-memory regions (cont_splash ends 0x9E300000,
-   disp_rdump starts 0xB0400000, image end ≈ 0xA2450000 incl. trailer).
-   Still recorded as unknown because only the residue is device-proven.
+   so 0x80080000 is effectively excluded. P1B footprint (~36 MiB: payload
+   37369041 + boot envelope tail) at 0xa0080000 ends ≈ 0xA242B800 and clears
+   all RT-D reserved-memory regions (cont_splash ends 0x9E300000, disp_rdump
+   starts 0xB0400000). Still recorded as unknown because only the residue is
+   device-proven.
 3. create_idmap completeness under the observed entry state (EL1, M=0, C=0) has
    not been device-proven past primary_entry — M5x proved execution reaching
    primary_entry; P1B relies on 6.6.156 source logic from there.
 4. Timer/clock state handed over by ABL (CNTFRQ etc.) is assumed per
    booting.rst contract; INIT8/INIT24 sleep relies on the arch timer.
-5. Header text_offset field archaeology: 6.6.156 head.S declares `.quad 0`
-   while M5C/M5D doc records say 0x80000; P1B records the actual built value in
-   the manifest and gates nothing on it (geometry uses the device-proven S
-   residue).
+5. Header text_offset field archaeology: 6.6.156 head.S declares `.quad 0` and
+   the built Image confirms text_offset 0x0; the M5C/M5D doc records of
+   0x80000 are historical records only (geometry uses the device-proven S
+   residue 0x80000, unaffected).
 
 ## 20. Future INIT8 experiment design (not this round)
 
