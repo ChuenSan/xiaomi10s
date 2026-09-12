@@ -55,9 +55,17 @@ struct ts {
 
 #define STR2(x) #x
 #define STR(x) STR2(x)
+#if DELAY_SECONDS < 10
+#define DELAY_STR "0" STR(DELAY_SECONDS)
+#else
+#define DELAY_STR STR(DELAY_SECONDS)
+#endif
 
-static const char ident[] =
-	"THYME-R3-P1B-INIT DELAY=" STR(DELAY_SECONDS) " CMD=restart";
+/* used: survives -Os dead-code elimination; fixed width keeps the INIT8/INIT24
+ * pair byte-length identical so image geometry matches across delays.
+ */
+__attribute__((used)) static const char ident[] =
+	"THYME-R3-P1B-INIT DELAY=" DELAY_STR " CMD=restart";
 
 void main(void)
 {
@@ -65,7 +73,6 @@ void main(void)
 	struct ts rem = { 0, 0 };
 	long r;
 
-	(void)ident;
 	while (sys3(SYS_clock_nanosleep, CLOCK_MONOTONIC, (long)&req,
 		    (long)&rem) == -EINTR)
 		req = rem;

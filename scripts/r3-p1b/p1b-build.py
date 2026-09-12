@@ -236,7 +236,7 @@ def compile_init(out: Path, delay: int, gcc: str, strip: str) -> Path:
     if "NEEDED" in dyn.stdout:
         fail("P1B_INIT_FAILED", "dynamic NEEDED")
     ident = run(["strings", str(elf)])
-    if f"THYME-R3-P1B-INIT DELAY={delay}" not in ident:
+    if f"THYME-R3-P1B-INIT DELAY={delay:02d}" not in ident:
         fail("P1B_INIT_FAILED", "ident string")
     elf.chmod(0o755)
     print(f"P1B_INIT delay={delay} sha256={sha(elf.read_bytes())} "
