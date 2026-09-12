@@ -471,6 +471,7 @@ def make_synthetic_boot() -> bytes:
     hdr = bytearray(BOOT_HEADER_V3_SIZE)
     struct.pack_into("<8s", hdr, 0, BOOT_MAGIC)
     struct.pack_into("<IIII", hdr, 8, KERNEL_SIZE, RAMDISK_SIZE, 0, BOOT_HEADER_V3_SIZE)
+    struct.pack_into("<I", hdr, 40, 3)
     boot = bytearray(BOOT_SIZE)
     boot[0:BOOT_HEADER_V3_SIZE] = hdr
     boot[KERNEL_OFFSET:KERNEL_OFFSET + KERNEL_SIZE] = b"\x5a" * KERNEL_SIZE
