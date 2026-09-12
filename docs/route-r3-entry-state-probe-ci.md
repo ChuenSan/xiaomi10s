@@ -1,6 +1,7 @@
 # Route R3 — Entry State Probe CI (MAINLINE_V2_R3_ENTRY_STATE_PROBE_CI)
 
-Status: **CI design + gates** (public CI green; artifact from private GHA; no device operation)
+Status: **TRUE DEVICE RESULT** — bucket 4s STRONG → EL1, M=0, C=0 →
+R3_ENTRY_STATE_PRIMARY_CONTRACT_SATISFIED
 Date: 2026-09-12
 Branch: route-b-v3
 
@@ -340,3 +341,164 @@ are CI-only and never packed as boots.
 Device: NO OPERATION this round. Current B (M5D + M5H + M5M-B) UNCHANGED.
 Next if READY: MAINLINE_V2_R3_ENTRY_STATE_PROBE_TRUE_DEVICE — WAIT FOR USER
 APPROVAL.
+
+---
+
+## 20. TRUE DEVICE RESULT (MAINLINE_V2_R3_ENTRY_STATE_PROBE_TRUE_DEVICE, 2026-09-12)
+
+### 20.1 Constraints
+
+```
+mem0 read:                          YES (start + before bootloader)
+local build:                        NO
+GHA-only artifact:                  YES (downloaded, never rebuilt)
+partition writes:                   0
+Slot A written:                     NO
+set_active:                         NO
+flash/erase:                        NO
+experimental boots:                 1 (single fastboot boot)
+```
+
+### 20.2 Artifact identity (full SHA check before execution)
+
+Authoritative artifact from private run 34678013953, downloaded from GHA
+(archive 10293405077) and re-hashed locally; manifest values asserted equal:
+
+```
+boot   size 35110912           MATCH (manifest ESP_BOOT_SIZE=35110912)
+boot   SHA256 cb61889af66ec41b5a1cb61c1db84049c46d3e197446ab8bced11313adbee82c   MATCH
+kernel SHA256 d81649685153dd3f666a99b4ce9ef6fb89c223c51f46961c0f48256d8cdb7c10   MATCH
+probe  SHA256 071ef7f71af1dfba37d904d96c480541367921b9c256c10867ba39a52cb064c2   MATCH
+```
+
+### 20.3 Android A baseline (pre)
+
+`slot_suffix=_a`, `boot_completed=1`, root uid=0 (magisk), Stock
+`4.19.157-perf-g9d90dd04aa7c`.
+
+### 20.4 Current B pre-test (read-only, zero writes)
+
+```
+boot_b[0,35110912)        4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63 MATCH  (M5D)
+vendor_boot_b[0,548864)   2d58ef94802e3aaac3115a9ee1c3d69199b054e04f181e39a55a7e75b60564d9 MATCH  (M5H)
+vendor_boot_b[548864,EOF) 5d98f207def3af98517cb4c74dc5befaee5a2b62209e32cd13b4c181bb374e52 MATCH
+dtbo_b whole              c5a355b942bf287d13a9c02e1fe96c13ebf43f20b61be7e05763b8d23872aba8 MATCH  (M5M-B)
+```
+
+### 20.5 Fastboot preflight
+
+`adb reboot bootloader` → fastboot present. `product=thyme`,
+`unlocked=yes`, `current-slot=a`, `snapshot-update-status=none`,
+`battery-soc-ok=yes` (4377 mV),
+`slot-retry-count:a=6 slot-unbootable:a=no slot-successful:a=yes`,
+`slot-retry-count:b=7 slot-unbootable:b=no slot-successful:b=no`.
+current-slot=a confirmed; no set_active.
+
+### 20.6 Timeline (host observer, ISO UTC)
+
+```
+T_COMMAND_START      2026-09-12T06:46:42.213Z
+T_SENDING_OKAY       2026-09-12T06:46:43.094Z   Sending OKAY [0.833s]
+T_BOOTING_OKAY       2026-09-12T06:46:43.315Z   Booting OKAY [0.221s], rc=0
+T_USB_NONE           2026-09-12T06:46:44.715Z
+T_FASTBOOT_DISAPPEAR 2026-09-12T06:46:44.718Z
+T_USB_FIRST_REENUM   2026-09-12T06:47:01.421Z   usb=18d1:4ee7
+T_ADB_FIRST_SEEN     2026-09-12T06:47:02.288Z
+kernel_start         2026-09-12T06:46:53.408Z   (primary, ADB_FIRST snapshot)
+T_BOOT_COMPLETED     2026-09-12T06:47:11.506Z   boot_completed=1, bootreason=bootloader
+```
+
+Fastboot acceptance: Sending OKAY + Booting OKAY. The observer never stopped
+on USB NONE / transient events; no stable Fastboot return occurred
+(AUTOMATIC_FASTBOOT_AFTER_PROBE=NO, FASTBOOT_TRANSIENT_ENUMERATION_ONLY=NO).
+Observer note: the summary print aborted after all event capture
+(post-observation script KeyError); every primary event and both ADB
+snapshots were logged before that point, so no observation data was lost.
+
+### 20.7 kernel_start calculation (P0 formula, unchanged)
+
+kernel_start = host_wallclock_before_uptime_read − /proc/uptime.
+
+- Primary (ADB_FIRST): host_before 2026-09-12T06:47:02.288Z − uptime 8.88s
+  → kernel_start 2026-09-12T06:46:53.408Z
+- Consistency (BOOT_COMPLETED): host_before 06:47:11.547Z − 18.16s →
+  2026-09-12T06:46:53.387Z (21 ms spread, same second)
+
+### 20.8 Timing decode
+
+```
+OBSERVED_TOTAL (BOOTING_OKAY→kernel_start, primary)  10.094s
+reference overhead (P0 A8/A24 mean)                   6.1445s
+OBSERVED_PROGRAMMED_DELAY = 10.094 − 6.1445           3.949s
+BOOT_COMPLETED consistency: 10.072 − 6.1445           3.928s
+nearest bucket                                        4s
+ERROR = 3.949 − 4                                     −0.051s
+verdict (|ERROR| ≤ 0.75)                              STRONG
+```
+
+### 20.9 Decoded state (frozen section 7/9 table, applied as registered)
+
+```
+CurrentEL: EL1
+SCTLR_EL1.M = 0
+SCTLR_EL1.C = 0
+```
+
+Entry contract:
+
+```
+ENTRY_EL_ALLOWED=YES (EL1 is contract-legal; EL2 RECOMMENDED not required)
+ENTRY_MMU_OFF=YES
+ENTRY_DCACHE_OFF=YES
+ENTRY_STATE_PRIMARY_CONTRACT=SATISFIED
+FULL_ARM64_ENTRY_CONTRACT_PROVEN=NO (DAIF, I-cache coherency, EL2 ancillary
+state remain source-audit / future-requirement items; not this round's claim)
+```
+
+### 20.10 Recovery
+
+Automatic reset observed (probe → PSCI SYSTEM_RESET → Android A).
+`fastboot reboot` not needed; no manual recovery (MANUAL_RECOVERY=NO).
+Android A restored: `slot_suffix=_a`, `boot_completed=1`, root uid=0, Stock
+`4.19.157-perf-g9d90dd04aa7c`, `bootreason=bootloader`.
+ANDROID_A_RESTORED=YES.
+
+### 20.11 Current B post-test (read-only, zero writes)
+
+Identical four hashes as §20.4 — all MATCH.
+CURRENT_B_UNCHANGED_AFTER_STATE_PROBE=YES.
+
+### 20.12 Dumps (read-only, nothing cleared)
+
+```
+pstore     0 entries
+logdump    UNCHANGED  3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351
+rawdump    UNCHANGED  254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917
+minidump   REWRITTEN  8fd35ac81a70d214615751243a28287f73ce5403515fbc4bccb94b453de773cd (boot-time dump, not state evidence)
+oops       REWRITTEN  b0a2f1ac7100a06eeedee5c028771bd4a8527a9424a5714e2ec37f8eb11e16b6 (boot-time delta, not state evidence)
+```
+
+NO_STATE_PROBE_PERSISTENT_DUMP_EVIDENCE=YES — the probe has no persistent
+log design; minidump/oops deltas are not state evidence and are not
+interpreted further.
+
+### 20.13 Causal boundary
+
+Only CurrentEL, M, C are claimed from this run. No inference of I-cache
+state, DAIF, CNTVOFF, CNTHCTL, or Mainline entry-readiness follows from
+probe success; those stay source-audit / future requirements (§4, §5).
+
+### 20.14 Final gate and next branch
+
+```
+R3_ENTRY_STATE_PRIMARY_CONTRACT_SATISFIED
+P1B executed: NO
+M5N: FROZEN
+Device final: Android A (active slot A preserved)
+```
+
+Recommended next (requires explicit user approval, no automatic device run):
+MAINLINE_V2_R3_P1B_MINIMAL_LINUX_ENTRY_CI — clean normal 6.6.156 Image
+build, RT-D frozen at `4849743…f327`, deterministic built-in /init,
+PC-relative x0 trampoline, geometry validation; no true-device run in that
+CI stage.
