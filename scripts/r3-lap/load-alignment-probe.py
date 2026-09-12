@@ -508,7 +508,10 @@ def boot_envelope_fixtures() -> None:
         lambda: require_boot_geometry(
             parse_boot(bytes(bad_ksize), "neg-ksize"), "neg-ksize"),
         "LAP_BOOT_LAYOUT")
-    expect_reject(lambda: parse_boot(boot[:-1], "neg-short"), "LAP_BOOT_LAYOUT")
+    expect_reject(
+        lambda: require_boot_geometry(
+            parse_boot(boot[:-1], "neg-short"), "neg-short"),
+        "LAP_BOOT_LAYOUT")
     bad_rd = bytearray(boot)
     bad_rd[RAMDISK_OFFSET] ^= 0xFF
     expect_reject(lambda: ramdisk_must_match(bytes(bad_rd)), "LAP_RAMDISK")
