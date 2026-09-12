@@ -434,13 +434,13 @@ def build_matrix(rep: dict, iomem: dict, meminfo: dict) -> dict:
         per_bank.append({"base": b["base"], "size": b["size"], "status": status})
     orphans = [r for r in ram if not any(
         b["base"] <= r["base"] and r["end"] <= b["end"] for b in banks)]
-    total = rep["memory"]["total"]
+    total = rep["memory"]["total"] // 1024
     memtotal = meminfo.get("MemTotal", 0)
     sanity = None
     if total and memtotal:
         headroom_pct = (total - memtotal) * 100.0 / total
         sanity = {
-            "total_banks_kb": total // 1024, "memtotal_kb": memtotal,
+            "total_banks_kb": total, "memtotal_kb": memtotal,
             "headroom_pct": round(headroom_pct, 2),
             "pass": total > memtotal and headroom_pct < 40.0,
         }
