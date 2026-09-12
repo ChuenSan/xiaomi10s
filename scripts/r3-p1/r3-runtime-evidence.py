@@ -1,19 +1,27 @@
 #!/usr/bin/env python3
 """R3 RUNTIME_DTB_COMPLETION_CI evidence parser. GitHub Actions only.
 
-Parses the Stock Android A runtime FDT (/sys/firmware/fdt), the runtime
-OF-tree tar, /proc/iomem, /proc/meminfo, the memory sysfs fallback, filtered
-dmesg, and the raw Stock DTB0, then emits the numeric
-THYME_RUNTIME_MEMORY_EVIDENCE JSON. Sensitive properties (seeds/serials/MACs)
-are never emitted: presence only. bootargs are token-sanitized. The OEM
-binaries never leave the private repository; only this numeric summary may be
-mirrored to the public repo.
+Primary evidence source is the Stock Android A runtime OF tree tar
+(captured from /sys/firmware/devicetree/base — the tree the Stock kernel
+actually unflattened and serves). The captured /sys/firmware/fdt binary is
+used for the FDT header and the memreserve table, plus a lenient structure
+walk for cross-checking: the thyme ABL blob is misaligned inside /aliases
+(a one-byte shift around struct offset 0x370 and size_dt_struct overlapping
+the strings block), so a strict walk cannot be trusted and truncation is
+detected and reported instead.
+
+/proc/iomem, /proc/meminfo, the memory sysfs fallback, filtered dmesg and the
+raw Stock DTB0 provide the remaining cross-sources. Sensitive properties
+(seeds/serials/MACs) are never emitted: presence only. bootargs are
+token-sanitized. The OEM binaries never leave the private repository; only
+this numeric summary may be mirrored to the public repo.
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import re
@@ -65,41 +73,63 @@ def fold(parts: list[int]) -> int:
     return v
 
 
-def parse_fdt(blob: bytes) -> dict:
+def parse_fdt_header(blob: bytes) -> dict:
     if len(blob) < 40:
         fail("FDT_INVALID", "short header")
     (magic, totalsize, off_struct, off_strings, off_rsv,
-     version, _lc, _cpu, _ss, _st) = struct.unpack(">10I", blob[:40])
+     version, _lc, _cpu, size_strings, size_struct) = struct.unpack(
+        ">10I", blob[:40])
     if magic != FDT_MAGIC:
         fail("FDT_INVALID", f"magic=0x{magic:08x}")
     if totalsize > len(blob) or totalsize < 40:
         fail("FDT_INVALID", f"totalsize={totalsize} file={len(blob)}")
     if version < 16:
         fail("FDT_INVALID", f"version={version}")
+    if not (0 < off_rsv < totalsize and 0 < off_struct <= totalsize
+            and 0 < off_strings <= totalsize and off_rsv < off_struct):
+        fail("FDT_INVALID", "header offsets out of range")
     memreserve = []
     i = off_rsv
-    while i + 16 <= len(blob):
+    while i + 16 <= off_struct:
         addr, size = struct.unpack_from(">QQ", blob, i)
         i += 16
         if addr == 0 and size == 0:
-            break
+            return {"magic": magic, "totalsize": totalsize,
+                    "off_struct": off_struct, "off_strings": off_strings,
+                    "off_rsv": off_rsv, "version": version,
+                    "size_strings": size_strings, "size_struct": size_struct,
+                    "memreserve": memreserve, "memreserve_terminated": True}
         memreserve.append({"base": addr, "size": size})
-    strings = blob[off_strings:totalsize]
-    structb = blob[off_struct:totalsize]
+    return {"magic": magic, "totalsize": totalsize, "off_struct": off_struct,
+            "off_strings": off_strings, "off_rsv": off_rsv,
+            "version": version, "size_strings": size_strings,
+            "size_struct": size_struct, "memreserve": memreserve,
+            "memreserve_terminated": False}
+
+
+def walk_fdt_struct(blob: bytes, header: dict) -> dict:
+    """Lenient structure walk for cross-checking only.
+
+    Stops at the first invalid token (the thyme runtime blob misaligns
+    inside /aliases). The caller must treat a walk that never reached
+    FDT_END as truncated and must not trust its node set.
+    """
+    structb = blob[header["off_struct"]:header["totalsize"]]
+    strings = blob[header["off_strings"]:header["totalsize"]]
     nodes: dict[str, dict[str, bytes]] = {}
     path: list[str] = []
     i = 0
-
-    def align4(n: int) -> int:
-        return (n + 3) & ~3
-
+    truncated_at = None
     while i + 4 <= len(structb):
         token = struct.unpack_from(">I", structb, i)[0]
         i += 4
         if token == FDT_BEGIN_NODE:
-            end = structb.index(b"\x00", i)
+            end = structb.find(b"\x00", i)
+            if end < 0:
+                truncated_at = i
+                break
             name = structb[i:end].decode("ascii", "replace")
-            i = align4(end + 1)
+            i = (end + 4) & ~3
             if path or name:
                 path.append(name)
             nodes["/" + "/".join(path)] = {}
@@ -107,23 +137,27 @@ def parse_fdt(blob: bytes) -> dict:
             if path:
                 path.pop()
         elif token == FDT_PROP:
+            if i + 8 > len(structb):
+                truncated_at = i
+                break
             plen, nameoff = struct.unpack_from(">II", structb, i)
             i += 8
-            nend = strings.index(b"\x00", nameoff)
+            nend = strings.find(b"\x00", nameoff)
+            if nend < 0 or i + plen > len(structb):
+                truncated_at = i
+                break
             pname = strings[nameoff:nend].decode("ascii", "replace")
-            pval = structb[i:i + plen]
-            i = align4(i + plen)
-            nodes.setdefault("/" + "/".join(path), {})[pname] = pval
+            nodes.setdefault("/" + "/".join(path), {})[pname] = \
+                structb[i:i + plen]
+            i = (i + plen + 3) & ~3
         elif token == FDT_NOP:
             continue
         elif token == FDT_END:
-            break
+            return {"nodes": nodes, "complete": True, "truncated_at": None}
         else:
-            fail("FDT_INVALID", f"token={token}")
-    return {
-        "totalsize": totalsize, "version": version,
-        "memreserve": memreserve, "nodes": nodes, "size": len(blob),
-    }
+            truncated_at = i - 4
+            break
+    return {"nodes": nodes, "complete": False, "truncated_at": truncated_at}
 
 
 def prop_text(props: dict, name: str) -> str:
@@ -212,8 +246,7 @@ def collect_sensitive(nodes: dict) -> list:
     return sorted(present)
 
 
-def evidence_from_fdt(fdt: dict) -> dict:
-    nodes = fdt["nodes"]
+def evidence_from_nodes(nodes: dict) -> dict:
     root = nodes.get("/", {})
     raw_ac = root.get("#address-cells")
     raw_sc = root.get("#size-cells")
@@ -241,7 +274,6 @@ def evidence_from_fdt(fdt: dict) -> dict:
             "bank_count": len(banks), "banks": banks,
             "total": sum(b["size"] for b in banks),
         },
-        "memreserve": fdt["memreserve"],
         "reserved": reserved,
         "chosen": {
             "bootargs_sanitized": bootargs, "bootargs_tokens": ntok,
@@ -253,6 +285,28 @@ def evidence_from_fdt(fdt: dict) -> dict:
             "sensitive_props_present": collect_sensitive(nodes),
         },
     }
+
+
+def parse_livetree_tar(tar_path: Path) -> dict:
+    nodes: dict[str, dict[str, bytes]] = {}
+    try:
+        with tarfile.open(tar_path) as tf:
+            for member in tf:
+                norm = member.name.lstrip("./").rstrip("/")
+                if member.isdir() or not norm:
+                    continue
+                if not member.isfile():
+                    continue
+                data = tf.extractfile(member).read()
+                parts = norm.split("/")
+                *node_parts, prop = parts
+                npath = "/" + "/".join(node_parts)
+                nodes.setdefault(npath, {})[prop] = data
+    except (tarfile.TarError, OSError) as exc:
+        fail("TAR_PARSE_FAILED", str(exc))
+    if "/" not in nodes and "" in nodes:
+        nodes["/"] = nodes.pop("")
+    return nodes
 
 
 def parse_iomem(text: str) -> dict:
@@ -315,31 +369,29 @@ def parse_memory_sysfs(block_size_text: str, phys_index_text: str) -> dict:
             "usable": bool(block_size)}
 
 
-def tar_probe(tar_path: Path, banks: list) -> dict:
-    try:
-        with tarfile.open(tar_path) as tf:
-            names = [n.lstrip("./") for n in tf.getnames()]
-            memory_reg = None
-            for n in names:
-                if n == "memory/reg" or re.match(r"^memory[^/]*/reg$", n):
-                    memory_reg = tf.extractfile("./" + n).read()
-                    break
-            children = set()
-            for n in names:
-                if n.startswith("reserved-memory/"):
-                    rest = n[len("reserved-memory/"):]
-                    if rest:
-                        children.add(rest.split("/")[0])
-    except (tarfile.TarError, OSError) as exc:
-        fail("TAR_PARSE_FAILED", str(exc))
-    match = None
-    if memory_reg is not None and banks:
-        want = b"".join(struct.pack(">QQ", b["base"], b["size"]) for b in banks)
-        match = memory_reg == want
+def fdt_walk_crosscheck(fdt_bytes: bytes, header: dict, tar_nodes: dict) -> dict:
+    walk = walk_fdt_struct(fdt_bytes, header)
+    tar_reg = tar_nodes.get("/memory", {}).get("reg")
+    walk_reg = walk["nodes"].get("/memory", {}).get("reg")
+    banks_match = (walk_reg is not None and tar_reg is not None
+                   and walk_reg == tar_reg)
+    walk_reserved = len([
+        p for p in walk["nodes"]
+        if len([x for x in p.split("/") if x]) == 2
+        and p.split("/")[1] == "reserved-memory"]) if walk["complete"] else None
+    tar_reserved = len([
+        p for p in tar_nodes
+        if len([x for x in p.split("/") if x]) == 2
+        and p.split("/")[1] == "reserved-memory"])
     return {
-        "memory_reg_present": memory_reg is not None,
-        "memory_reg_matches_fdt": match,
-        "reserved_children": len(children),
+        "struct_walk_complete": walk["complete"],
+        "struct_walk_truncated_at": walk["truncated_at"],
+        "walked_memory_reg_matches_livetree": banks_match,
+        "walked_reserved_children": walk_reserved,
+        "livetree_reserved_children": tar_reserved,
+        "verdict": "LIVETREE_PRIMARY"
+        if not walk["complete"] else
+        ("MATCH" if banks_match else "MISMATCH"),
     }
 
 
@@ -408,10 +460,10 @@ def build_matrix(rep: dict, iomem: dict, meminfo: dict) -> dict:
     }
 
 
-def gate(rep: dict, matrix: dict, tar_check: dict | None) -> None:
+def gate(rep: dict, matrix: dict, crosscheck: dict | None) -> None:
     mem = rep["memory"]
     if mem["bank_count"] <= 0 or mem["total"] <= 0:
-        fail("RAM_MAP_EMPTY", "runtime FDT describes no usable RAM")
+        fail("RAM_MAP_EMPTY", "runtime OF tree describes no usable RAM")
     for b in mem["banks"]:
         if b["size"] <= 0:
             fail("RAM_MAP_EMPTY", f"zero-size bank base={b['base']:#x}")
@@ -423,8 +475,8 @@ def gate(rep: dict, matrix: dict, tar_check: dict | None) -> None:
     sanity = matrix.get("meminfo_sanity")
     if sanity and not sanity["pass"]:
         fail("MEMINFO_SANITY_FAIL", json.dumps(sanity))
-    if tar_check and tar_check.get("memory_reg_matches_fdt") is False:
-        fail("FDT_VS_LIVETREE_MISMATCH", "memory/reg differs from OF tree")
+    if crosscheck and crosscheck["verdict"] == "MISMATCH":
+        fail("FDT_VS_LIVETREE_MISMATCH", "memory/reg disagrees")
     outside = [r for r in rep["reserved"] if r.get("base") is not None
                and not any(b["base"] <= r["base"] and r["end"] <= b["end"]
                            for b in mem["banks"])]
@@ -434,9 +486,15 @@ def gate(rep: dict, matrix: dict, tar_check: dict | None) -> None:
 
 
 def mode_parse(args: argparse.Namespace) -> None:
-    fdt_bytes = Path(args.fdt).read_bytes()
-    fdt = parse_fdt(fdt_bytes)
-    rep = evidence_from_fdt(fdt)
+    if not args.devicetree_tar:
+        fail("ARGS_MISSING", "devicetree-tar (primary evidence source)")
+    tar_nodes = parse_livetree_tar(Path(args.devicetree_tar))
+    rep = evidence_from_nodes(tar_nodes)
+    fdt_bytes = Path(args.fdt).read_bytes() if args.fdt else b""
+    header = parse_fdt_header(fdt_bytes) if fdt_bytes else None
+    crosscheck = None
+    if header:
+        crosscheck = fdt_walk_crosscheck(fdt_bytes, header, tar_nodes)
     iomem_text = Path(args.iomem).read_text(errors="replace") if args.iomem else ""
     iomem = parse_iomem(iomem_text) if iomem_text else {"redacted": None}
     meminfo = parse_meminfo(Path(args.meminfo).read_text(errors="replace")) \
@@ -449,52 +507,67 @@ def mode_parse(args: argparse.Namespace) -> None:
     if args.dmesg:
         dmesg_lines = len(Path(args.dmesg).read_text(
             errors="replace").splitlines())
-    tar_check = tar_probe(Path(args.devicetree_tar), rep["memory"]["banks"]) \
-        if args.devicetree_tar else None
     stock_summary = None
     if args.stock_dtb:
-        stock = evidence_from_fdt(parse_fdt(Path(args.stock_dtb).read_bytes()))
+        stock_blob = Path(args.stock_dtb).read_bytes()
+        stock_header = parse_fdt_header(stock_blob)
+        stock_walk = walk_fdt_struct(stock_blob, stock_header)
+        if not stock_walk["complete"]:
+            fail("STOCK_DTB0_WALK_TRUNCATED",
+                 f"at {stock_walk['truncated_at']:#x}")
+        stock = evidence_from_nodes(stock_walk["nodes"])
+        stock["memreserve"] = stock_header["memreserve"]
         stock_summary = compare_stock(stock, rep)
     matrix = build_matrix(rep, iomem, meminfo) if iomem_text else {}
-    gate(rep, matrix, tar_check)
+    gate(rep, matrix, crosscheck)
     out = {
         "capture": {
             "bundle_sha256": args.capture_sha or "",
-            "fdt_sha256": sha(fdt_bytes), "fdt_size": len(fdt_bytes),
-            "fdt_totalsize": fdt["totalsize"], "fdt_version": fdt["version"],
-            "runtime_fdt_available": True,
+            "fdt_sha256": sha(fdt_bytes) if fdt_bytes else "",
+            "fdt_size": len(fdt_bytes),
+            "runtime_fdt_available": bool(fdt_bytes),
+            "evidence_primary_source": "RUNTIME_OF_TREE_TAR",
         },
+        "fdt_header": header,
+        "fdt_struct_walk_crosscheck": crosscheck,
         **rep,
         "iomem": iomem, "meminfo": meminfo, "memory_sysfs": sysfs,
         "dmesg": {"filtered_lines": dmesg_lines,
                   "ring_wrapped": args.dmesg is not None and dmesg_lines == 0},
-        "fdt_vs_livetree": tar_check,
         "stock_dtb0_comparison": stock_summary,
         "matrix": matrix,
     }
-    Path(args.out_json).write_text(json.dumps(out, indent=2) + "\n")
+    Path(args.out_json).write_text(json.dumps(out, indent=2, default=str) + "\n")
     report = [
         "THYME_RUNTIME_MEMORY_EVIDENCE",
-        f"fdt sha256={out['capture']['fdt_sha256']}"
-        f" size={out['capture']['fdt_size']}",
-        f"root cells={out['root']['address_cells']}/{out['root']['size_cells']}"
-        f" model={out['root']['model']!r}"
-        f" msm_id={hex(out['root']['msm_id']) if out['root']['msm_id'] is not None else None}"
-        f" board_id={hex(out['root']['board_id']) if out['root']['board_id'] is not None else None}",
-        f"MEMORY_REG_RAW_SIZE={out['memory']['reg_raw_size']}"
-        f" CELL_COUNT={out['memory']['cell_count']}"
-        f" BANK_COUNT={out['memory']['bank_count']}",
+        "primary source=RUNTIME_OF_TREE_TAR (/sys/firmware/devicetree/base)",
     ]
-    for b in out["memory"]["banks"]:
+    if header:
+        report.append(
+            f"fdt sha256={out['capture']['fdt_sha256']}"
+            f" size={out['capture']['fdt_size']}"
+            f" totalsize={header['totalsize']:#x} version={header['version']}")
+        report.append(f"FDT_MEMRESERVE_ENTRIES={len(header['memreserve'])}"
+                      f" terminated={header['memreserve_terminated']}")
+        for e in header["memreserve"]:
+            report.append(f"  memreserve base={e['base']:#x} size={e['size']:#x}")
+    if crosscheck:
+        report.append(f"fdt_struct_walk={json.dumps(crosscheck)}")
+    report.append(
+        f"root cells={rep['root']['address_cells']}/{rep['root']['size_cells']}"
+        f" model={rep['root']['model']!r}"
+        f" msm_id={hex(rep['root']['msm_id']) if rep['root']['msm_id'] is not None else None}"
+        f" board_id={hex(rep['root']['board_id']) if rep['root']['board_id'] is not None else None}")
+    report.append(f"MEMORY_REG_RAW_SIZE={rep['memory']['reg_raw_size']}"
+                  f" CELL_COUNT={rep['memory']['cell_count']}"
+                  f" BANK_COUNT={rep['memory']['bank_count']}")
+    for b in rep["memory"]["banks"]:
         report.append(f"  bank node={b['node']} base={b['base']:#x}"
                       f" size={b['size']:#x} end={b['end']:#x}")
-    report.append(f"total described={out['memory']['total']:#x}"
-                  f" ({out['memory']['total'] / (1 << 30):.3f} GiB)")
-    report.append(f"FDT_MEMRESERVE_ENTRIES={len(out['memreserve'])}")
-    for e in out["memreserve"]:
-        report.append(f"  memreserve base={e['base']:#x} size={e['size']:#x}")
-    report.append(f"RUNTIME_RESERVED_MEMORY_MAP ({len(out['reserved'])} nodes)")
-    for r in out["reserved"]:
+    report.append(f"total described={rep['memory']['total']:#x}"
+                  f" ({rep['memory']['total'] / (1 << 30):.3f} GiB)")
+    report.append(f"RUNTIME_RESERVED_MEMORY_MAP ({len(rep['reserved'])} nodes)")
+    for r in rep["reserved"]:
         if r.get("base") is None:
             report.append(f"  {r['node']} reg=absent")
             continue
@@ -502,9 +575,9 @@ def mode_parse(args: argparse.Namespace) -> None:
                 (" reusable" if r["reusable"] else "")
         report.append(f"  {r['node']} base={r['base']:#x} size={r['size']:#x}"
                       f" end={r['end']:#x} {flags} compatible={r['compatible']!r}")
-    report.append(f"chosen bootargs(sanitized)={out['chosen']['bootargs_sanitized']!r}")
+    report.append(f"chosen bootargs(sanitized)={rep['chosen']['bootargs_sanitized']!r}")
     report.append("sensitive props present (values withheld): "
-                  + json.dumps(out["chosen"]["sensitive_props_present"]))
+                  + json.dumps(rep["chosen"]["sensitive_props_present"]))
     if iomem_text:
         report.append(f"PROC_IOMEM_REDACTED={iomem['redacted']}")
         for r in iomem["system_ram"]:
@@ -516,8 +589,6 @@ def mode_parse(args: argparse.Namespace) -> None:
         report.append(f"meminfo={meminfo}")
     report.append(f"memory_sysfs={sysfs}")
     report.append(f"dmesg={out['dmesg']}")
-    if tar_check:
-        report.append(f"fdt_vs_livetree={tar_check}")
     if stock_summary:
         report.append(f"stock_dtb0_comparison={json.dumps(stock_summary)}")
     if matrix:
@@ -526,86 +597,77 @@ def mode_parse(args: argparse.Namespace) -> None:
     print("\n".join(report))
 
 
-def build_fixture_fdt() -> bytes:
-    struct_block = b""
-    strings = b"\x00"
-    names = [""]
-
-    def add_str(s: str) -> int:
-        nonlocal strings
-        if s in names:
-            return names.index(s)
-        off = len(strings) - 1 if len(strings) > 1 else 0
-        strings += s.encode() + b"\x00"
-        names.append(s)
-        return off
-
-    def prop(name: str, value: bytes) -> None:
-        nonlocal struct_block
-        struct_block += struct.pack(">III", FDT_PROP, len(value), add_str(name))
-        struct_block += value + b"\x00" * ((4 - len(value) % 4) % 4)
-
-    def begin(name: str) -> None:
-        nonlocal struct_block
-        struct_block += struct.pack(">I", FDT_BEGIN_NODE)
-        struct_block += name.encode() + b"\x00"
-
-    def end() -> None:
-        nonlocal struct_block
-        struct_block += struct.pack(">I", FDT_END_NODE)
-
-    begin("")
-    prop("#address-cells", struct.pack(">I", 2))
-    prop("#size-cells", struct.pack(">I", 2))
-    prop("model", b"fixture")
-    prop("compatible", b"fixture,dev\x00")
-    prop("kaslr-seed", b"\x11" * 8)
-    begin("memory")
-    prop("device_type", b"memory")
-    prop("reg", struct.pack(">QQQQ", 0x80000000, 0x10000000,
-                            0x90000000, 0x08000000))
-    end()
-    begin("reserved-memory")
-    begin("carveout@88000000")
-    prop("reg", struct.pack(">QQ", 0x88000000, 0x1000000))
-    prop("no-map", b"")
-    end()
-    end()
-    begin("chosen")
-    prop("bootargs",
-         b"console=ttyMSM0,115200n8 androidboot.serialno=SECRET loglevel=7")
-    end()
-    end()
-    struct_block += struct.pack(">I", FDT_END)
-    while len(strings) % 4:
-        strings += b"\x00"
-    off_struct = 40
-    off_strings = off_struct + len(struct_block)
-    off_rsv = off_strings + len(strings)
-    rsv = struct.pack(">QQ", 0xB0000000, 0x100000) + struct.pack(">QQ", 0, 0)
-    totalsize = off_rsv + len(rsv)
-    header = struct.pack(">10I", FDT_MAGIC, totalsize, off_struct,
-                         off_strings, off_rsv, 17, 0, 0,
-                         len(strings), len(struct_block))
-    blob = bytearray(header + struct_block + strings + rsv)
-    return bytes(blob)
+def build_fixture_tree() -> dict:
+    return {
+        "/": {
+            b"#address-cells": struct.pack(">I", 2),
+            b"#size-cells": struct.pack(">I", 2),
+            b"model": b"fixture\x00",
+            b"compatible": b"fixture,dev\x00",
+            b"kaslr-seed": b"\x11" * 8,
+        },
+        "/memory": {
+            b"device_type": b"memory",
+            b"reg": struct.pack(">QQQQ", 0x80000000, 0x10000000,
+                                0x90000000, 0x08000000),
+        },
+        "/reserved-memory": {},
+        "/reserved-memory/carveout@88000000": {
+            b"reg": struct.pack(">QQ", 0x88000000, 0x1000000),
+            b"no-map": b"",
+        },
+        "/chosen": {
+            b"bootargs": b"console=ttyMSM0,115200n8 "
+                         b"androidboot.serialno=SECRET loglevel=7",
+        },
+    }
 
 
-def mode_fixture_selfcheck() -> None:
-    fdt = parse_fdt(build_fixture_fdt())
-    rep = evidence_from_fdt(fdt)
+def write_fixture_tar(nodes: dict, path: Path) -> None:
+    with tarfile.open(path, "w") as tf:
+        for npath, props in nodes.items():
+            dpath = "./" + npath.lstrip("/")
+            info = tarfile.TarInfo(dpath)
+            info.type = tarfile.DIRTYPE
+            tf.addfile(info)
+            for pname, value in props.items():
+                info = tarfile.TarInfo(f"{dpath}/{pname}")
+                info.size = len(value)
+                tf.addfile(info, io.BytesIO(value))
+
+
+def mode_fixture_selfcheck(tmpdir: Path) -> None:
+    rep = evidence_from_nodes(build_fixture_tree())
     assert rep["memory"]["bank_count"] == 2, rep["memory"]
     assert rep["memory"]["banks"][0]["base"] == 0x80000000
     assert rep["memory"]["banks"][0]["size"] == 0x10000000
     assert rep["memory"]["banks"][1]["size"] == 0x08000000
     assert rep["memory"]["total"] == 0x18000000
     assert rep["memory"]["cell_count"] == 8 and rep["memory"]["reg_raw_size"] == 32
-    assert rep["memreserve"] == [{"base": 0xB0000000, "size": 0x100000}]
     assert len(rep["reserved"]) == 1 and rep["reserved"][0]["no_map"] is True
     assert "SECRET" not in rep["chosen"]["bootargs_sanitized"]
     assert "androidboot.serialno=<redacted>" in rep["chosen"]["bootargs_sanitized"]
     assert "kaslr-seed" in rep["chosen"]["sensitive_props_present"]
     assert rep["root"]["address_cells"] == 2 and rep["root"]["size_cells"] == 2
+
+    tar_path = tmpdir / "fixture.tar"
+    write_fixture_tar(build_fixture_tree(), tar_path)
+    tar_nodes = parse_livetree_tar(tar_path)
+    tar_rep = evidence_from_nodes(tar_nodes)
+    assert tar_rep["memory"]["total"] == rep["memory"]["total"]
+    assert tar_rep["reserved"][0]["no_map"] is True
+
+    blob = build_fixture_fdt()
+    header = parse_fdt_header(blob)
+    assert header["memreserve"] == [{"base": 0xB0000000, "size": 0x100000}]
+    assert header["memreserve_terminated"] is True
+    walk = walk_fdt_struct(blob, header)
+    assert walk["complete"] is True
+    assert walk["nodes"]["/memory"][b"reg"] == \
+        build_fixture_tree()["/memory"][b"reg"]
+    cross = fdt_walk_crosscheck(blob, header, tar_nodes)
+    assert cross["verdict"] == "MATCH" and cross["struct_walk_complete"]
+
     iomem = parse_iomem(
         "00000000-ffffffff : PCI Bus 0000:00\n"
         "80000000-8fffffff : System RAM\n"
@@ -630,44 +692,110 @@ def mode_fixture_selfcheck() -> None:
         pass
     else:
         fail("FIXTURE_SELFCHECK_FAILED", "meminfo sanity did not fail")
+
+    broken = bytearray(blob)
+    at = header["off_struct"] + (header["off_strings"]
+                                 - header["off_struct"]) - 4
+    broken[at:at] = b"\x00"
+    bad_walk = walk_fdt_struct(bytes(broken), header)
+    assert bad_walk["complete"] is False, bad_walk
     print("R3_RUNTIME_EVIDENCE_FIXTURE_SELFCHECK=PASS")
+
+
+def build_fixture_fdt() -> bytes:
+    nodes = build_fixture_tree()
+    order = ["/", "/memory", "/reserved-memory",
+             "/reserved-memory/carveout@88000000", "/chosen"]
+    struct_block = b""
+    strings = b"\x00"
+    names = [""]
+
+    def add_str(s: str) -> int:
+        nonlocal strings
+        if s in names:
+            return names.index(s)
+        off = len(strings) - 1 if len(strings) > 1 else 0
+        strings += s.encode() + b"\x00"
+        names.append(s)
+        return off
+
+    def parent_of(npath: str) -> str:
+        parent = npath.rsplit("/", 1)[0]
+        return parent or "/"
+
+    def emit(npath: str) -> None:
+        nonlocal struct_block
+        name = npath.rsplit("/", 1)[-1]
+        struct_block += struct.pack(">I", FDT_BEGIN_NODE)
+        struct_block += name.encode() + b"\x00"
+        for pname in sorted(nodes[npath], key=lambda p: p.decode()):
+            value = nodes[npath][pname]
+            struct_block += struct.pack(">III", FDT_PROP, len(value),
+                                        add_str(pname.decode()))
+            struct_block += value + b"\x00" * ((4 - len(value) % 4) % 4)
+        for child in order:
+            if child != npath and parent_of(child) == npath:
+                emit(child)
+        struct_block += struct.pack(">I", FDT_END_NODE)
+
+    emit("/")
+    struct_block += struct.pack(">I", FDT_END)
+    while len(strings) % 4:
+        strings += b"\x00"
+    off_struct = 40
+    off_strings = off_struct + len(struct_block)
+    off_rsv = off_strings + len(strings)
+    rsv = struct.pack(">QQ", 0xB0000000, 0x100000) + struct.pack(">QQ", 0, 0)
+    totalsize = off_rsv + len(rsv)
+    header = struct.pack(">10I", FDT_MAGIC, totalsize, off_struct,
+                         off_strings, off_rsv, 17, 0, 0,
+                         len(strings), len(struct_block))
+    return header + struct_block + strings + rsv
 
 
 def mode_debug(path: Path) -> None:
     blob = path.read_bytes()
-    (magic, totalsize, off_struct, off_strings, off_rsv,
-     version, _lc, _cpu, _ss, _st) = struct.unpack(">10I", blob[:40])
-    print(f"DEBUG file={path.name} size={len(blob)} magic={magic:#x}"
-          f" totalsize={totalsize} off_struct={off_struct:#x}"
-          f" off_strings={off_strings:#x} off_rsv={off_rsv:#x}"
-          f" version={version} size_strings={_ss} size_struct={_st}")
-    print(f"DEBUG first 16 bytes: {blob[:16].hex()}")
-    structb = blob[off_struct:totalsize]
+    header = parse_fdt_header(blob)
+    print(f"DEBUG file={path.name} size={len(blob)} totalsize={header['totalsize']:#x}"
+          f" off_struct={header['off_struct']:#x}"
+          f" off_strings={header['off_strings']:#x}"
+          f" off_rsv={header['off_rsv']:#x} version={header['version']}"
+          f" size_strings={header['size_strings']}"
+          f" size_struct={header['size_struct']}"
+          f" memreserve={header['memreserve']}"
+          f" memreserve_terminated={header['memreserve_terminated']}")
+    structb = blob[header["off_struct"]:header["totalsize"]]
     names = {1: "BEGIN_NODE", 2: "END_NODE", 3: "PROP", 4: "NOP", 9: "END"}
     i = 0
-    for n in range(48):
-        if i + 4 > len(structb):
-            print(f"DEBUG struct exhausted at i={i:#x}")
-            return
+    n = 0
+    while i + 4 <= len(structb) and n < 64:
         token = struct.unpack_from(">I", structb, i)[0]
         label = names.get(token, "UNKNOWN")
-        ctx = structb[i:i + 16].hex()
-        print(f"DEBUG token[{n}] i={i:#x} {token:#010x} {label} bytes={ctx}")
+        print(f"DEBUG token[{n}] rel={i:#x} abs={header['off_struct'] + i:#x}"
+              f" {token:#010x} {label} bytes={structb[i:i + 16].hex()}")
+        n += 1
         i += 4
         if token == FDT_BEGIN_NODE:
-            end = structb.index(b"\x00", i)
+            end = structb.find(b"\x00", i)
+            if end < 0:
+                break
             print(f"DEBUG   node name={structb[i:end]!r}")
             i = (end + 4) & ~3
         elif token == FDT_PROP:
+            if i + 8 > len(structb):
+                break
             plen, nameoff = struct.unpack_from(">II", structb, i)
             i += 8
-            nend = strings_idx = blob[off_strings:totalsize].index(b"\x00", nameoff)
-            pname = blob[off_strings + nameoff:off_strings + nend].decode(
-                "ascii", "replace")
+            nend = blob[header["off_strings"]:header["totalsize"]].find(
+                b"\x00", nameoff)
+            pname = blob[header["off_strings"] + nameoff:
+                         header["off_strings"] + nend].decode("ascii", "replace")
             print(f"DEBUG   prop name={pname!r} plen={plen} nameoff={nameoff:#x}")
             i = (i + plen + 3) & ~3
         elif token == FDT_END:
+            print("DEBUG   reached FDT_END")
             return
+    print(f"DEBUG WALK_STOPPED rel={i:#x}")
 
 
 def main() -> None:
@@ -687,7 +815,7 @@ def main() -> None:
     p.add_argument("--out-report")
     args = p.parse_args()
     if args.mode == "fixture-selfcheck":
-        mode_fixture_selfcheck()
+        mode_fixture_selfcheck(Path(os.environ.get("RUNNER_TEMP", "/tmp")))
         return
     if args.mode == "debug":
         if not args.fdt:
