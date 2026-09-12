@@ -61,10 +61,15 @@ else
 fi
 
 # ---- runtime OF tree (full enumeration, private) ---------------------------
-adb_su 'tar -C /sys/firmware/devicetree/base -cf - .' \
-	> "$OUT_DIR/thyme-stock-android-a-devicetree.tar" || true
-[ -s "$OUT_DIR/thyme-stock-android-a-devicetree.tar" ] \
-	|| fail "runtime OF tree tar capture empty"
+# Per-file base64 dump: resilient to single unreadable sysfs files (toybox tar
+# aborts silently on sysfs), binary-safe through adb exec-out.
+adb_su_text 'find /sys/firmware/devicetree/base -type f | sort' \
+	> "$OUT_DIR/thyme-stock-android-a-devicetree-paths.txt"
+adb_su 'for f in $(find /sys/firmware/devicetree/base -type f | sort); do
+	echo "===FILE $f"; base64 "$f" 2>/dev/null; done' \
+	> "$OUT_DIR/thyme-stock-android-a-devicetree-b64.txt"
+[ -s "$OUT_DIR/thyme-stock-android-a-devicetree-b64.txt" ] \
+	|| fail "runtime OF tree dump capture empty"
 
 # ---- LEVEL 2/3: proc + sysfs ----------------------------------------------
 adb_su_text 'cat /proc/iomem' > "$OUT_DIR/thyme-stock-android-a-iomem.txt"
@@ -81,7 +86,8 @@ adb_su_text 'dmesg | grep -Ei "Memory:|OF: reserved mem|Reserved memory|CMA|cma|
 # ---- integrity manifest (hashes only; parsing stays GHA-only) --------------
 : > "$OUT_DIR/manifest.txt"
 for f in baseline.txt thyme-stock-runtime-fdt.bin \
-	thyme-stock-android-a-devicetree.tar \
+	thyme-stock-android-a-devicetree-paths.txt \
+	thyme-stock-android-a-devicetree-b64.txt \
 	thyme-stock-android-a-iomem.txt thyme-stock-android-a-meminfo.txt \
 	thyme-stock-android-a-memory-block-size.txt \
 	thyme-stock-android-a-memory-phys-index.txt \

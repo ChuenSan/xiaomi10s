@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """R3 RUNTIME_DTB_COMPLETION_CI evidence parser. GitHub Actions only.
 
-Primary evidence source is the Stock Android A runtime OF tree tar
+Primary evidence source is the Stock Android A runtime OF tree dump
 (captured from /sys/firmware/devicetree/base — the tree the Stock kernel
-actually unflattened and serves). The captured /sys/firmware/fdt binary is
+actually unflattened and serves — as a per-file `===FILE <path>` + base64
+stream, because toybox tar silently truncates archives on sysfs). The
+captured /sys/firmware/fdt binary is
 used for the FDT header and the memreserve table, plus a lenient structure
 walk for cross-checking: the thyme ABL blob is misaligned inside /aliases
 (a one-byte shift around struct offset 0x370 and size_dt_struct overlapping
@@ -20,13 +22,12 @@ this numeric summary may be mirrored to the public repo.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
-import io
 import json
 import os
 import re
 import struct
-import tarfile
 from pathlib import Path
 
 if os.environ.get("GITHUB_ACTIONS") != "true":
@@ -48,6 +49,7 @@ DENYLIST_SUBSTR = ("kaslr", "rng-seed", "random-seed", "serial-number", "imei")
 BOOTARGS_ALLOW = {
     "console", "earlycon", "rdinit", "init", "root", "rootwait", "rw", "ro",
     "loglevel", "panic", "quiet", "ignore_loglevel",
+    "androidboot.slot_suffix",
 }
 
 
@@ -287,26 +289,36 @@ def evidence_from_nodes(nodes: dict) -> dict:
     }
 
 
-def parse_livetree_tar(tar_path: Path) -> dict:
-    nodes: dict[str, dict[str, bytes]] = {}
-    try:
-        with tarfile.open(tar_path) as tf:
-            for member in tf:
-                norm = member.name.lstrip("./").rstrip("/")
-                if member.isdir() or not norm:
-                    continue
-                if not member.isfile():
-                    continue
-                data = tf.extractfile(member).read()
-                parts = norm.split("/")
-                *node_parts, prop = parts
-                npath = "/" + "/".join(node_parts)
-                nodes.setdefault(npath, {})[prop] = data
-    except (tarfile.TarError, OSError) as exc:
-        fail("TAR_PARSE_FAILED", str(exc))
+def parse_livetree_dump(data: bytes) -> tuple[dict, dict]:
+    """Parse the per-file `===FILE <path>` + base64 dump of the runtime OF tree.
+
+    Every entry carries an explicit marker so a single unreadable sysfs file
+    degrades to an empty property instead of aborting the whole capture the
+    way toybox tar silently did.
+    """
+    prefix = "/sys/firmware/devicetree/base/"
+    pending: dict[str, dict[str, list[str]]] = {}
+    cur: list[str] | None = None
+    file_markers = 0
+    for line in data.decode("ascii", "strict").splitlines():
+        if line.startswith("===FILE "):
+            rel = line[len("===FILE "):].strip()
+            if rel.startswith(prefix):
+                rel = rel[len(prefix):]
+            *node_parts, prop = rel.split("/")
+            npath = "/" + "/".join(node_parts)
+            cur = pending.setdefault(npath, {}).setdefault(prop, [])
+            file_markers += 1
+        elif cur is not None and line:
+            cur.append(line.strip())
+    nodes = {npath: {p: base64.b64decode("".join(v))
+                     for p, v in props.items()}
+             for npath, props in pending.items()}
     if "/" not in nodes and "" in nodes:
         nodes["/"] = nodes.pop("")
-    return nodes
+    if not nodes.get("/memory", {}).get("reg"):
+        fail("EVIDENCE_PARSE_FAILED", "runtime dump lacks /memory/reg")
+    return nodes, {"file_markers": file_markers}
 
 
 def parse_iomem(text: str) -> dict:
@@ -369,18 +381,18 @@ def parse_memory_sysfs(block_size_text: str, phys_index_text: str) -> dict:
             "usable": bool(block_size)}
 
 
-def fdt_walk_crosscheck(fdt_bytes: bytes, header: dict, tar_nodes: dict) -> dict:
+def fdt_walk_crosscheck(fdt_bytes: bytes, header: dict, tree_nodes: dict) -> dict:
     walk = walk_fdt_struct(fdt_bytes, header)
-    tar_reg = tar_nodes.get("/memory", {}).get("reg")
+    tree_reg = tree_nodes.get("/memory", {}).get("reg")
     walk_reg = walk["nodes"].get("/memory", {}).get("reg")
-    banks_match = (walk_reg is not None and tar_reg is not None
-                   and walk_reg == tar_reg)
+    banks_match = (walk_reg is not None and tree_reg is not None
+                   and walk_reg == tree_reg)
     walk_reserved = len([
         p for p in walk["nodes"]
         if len([x for x in p.split("/") if x]) == 2
         and p.split("/")[1] == "reserved-memory"]) if walk["complete"] else None
-    tar_reserved = len([
-        p for p in tar_nodes
+    tree_reserved = len([
+        p for p in tree_nodes
         if len([x for x in p.split("/") if x]) == 2
         and p.split("/")[1] == "reserved-memory"])
     return {
@@ -388,7 +400,7 @@ def fdt_walk_crosscheck(fdt_bytes: bytes, header: dict, tar_nodes: dict) -> dict
         "struct_walk_truncated_at": walk["truncated_at"],
         "walked_memory_reg_matches_livetree": banks_match,
         "walked_reserved_children": walk_reserved,
-        "livetree_reserved_children": tar_reserved,
+        "livetree_reserved_children": tree_reserved,
         "verdict": "LIVETREE_PRIMARY"
         if not walk["complete"] else
         ("MATCH" if banks_match else "MISMATCH"),
@@ -486,15 +498,17 @@ def gate(rep: dict, matrix: dict, crosscheck: dict | None) -> None:
 
 
 def mode_parse(args: argparse.Namespace) -> None:
-    if not args.devicetree_tar:
-        fail("ARGS_MISSING", "devicetree-tar (primary evidence source)")
-    tar_nodes = parse_livetree_tar(Path(args.devicetree_tar))
-    rep = evidence_from_nodes(tar_nodes)
+    if not args.devicetree_dump:
+        fail("ARGS_MISSING", "devicetree-dump (primary evidence source)")
+    dump_path = Path(args.devicetree_dump)
+    dump_bytes = dump_path.read_bytes()
+    tree_nodes, dump_meta = parse_livetree_dump(dump_bytes)
+    rep = evidence_from_nodes(tree_nodes)
     fdt_bytes = Path(args.fdt).read_bytes() if args.fdt else b""
     header = parse_fdt_header(fdt_bytes) if fdt_bytes else None
     crosscheck = None
     if header:
-        crosscheck = fdt_walk_crosscheck(fdt_bytes, header, tar_nodes)
+        crosscheck = fdt_walk_crosscheck(fdt_bytes, header, tree_nodes)
     iomem_text = Path(args.iomem).read_text(errors="replace") if args.iomem else ""
     iomem = parse_iomem(iomem_text) if iomem_text else {"redacted": None}
     meminfo = parse_meminfo(Path(args.meminfo).read_text(errors="replace")) \
@@ -526,7 +540,9 @@ def mode_parse(args: argparse.Namespace) -> None:
             "fdt_sha256": sha(fdt_bytes) if fdt_bytes else "",
             "fdt_size": len(fdt_bytes),
             "runtime_fdt_available": bool(fdt_bytes),
-            "evidence_primary_source": "RUNTIME_OF_TREE_TAR",
+            "devicetree_dump_sha256": sha(dump_bytes),
+            "devicetree_dump_file_markers": dump_meta["file_markers"],
+            "evidence_primary_source": "RUNTIME_OF_TREE_DUMP",
         },
         "fdt_header": header,
         "fdt_struct_walk_crosscheck": crosscheck,
@@ -540,7 +556,9 @@ def mode_parse(args: argparse.Namespace) -> None:
     Path(args.out_json).write_text(json.dumps(out, indent=2, default=str) + "\n")
     report = [
         "THYME_RUNTIME_MEMORY_EVIDENCE",
-        "primary source=RUNTIME_OF_TREE_TAR (/sys/firmware/devicetree/base)",
+        "primary source=RUNTIME_OF_TREE_DUMP (/sys/firmware/devicetree/base)",
+        f"devicetree_dump sha256={out['capture']['devicetree_dump_sha256']}"
+        f" file_markers={out['capture']['devicetree_dump_file_markers']}",
     ]
     if header:
         report.append(
@@ -608,54 +626,68 @@ def build_fixture_tree() -> dict:
         },
         "/memory": {
             "device_type": b"memory",
-            "reg": struct.pack(">QQQQ", 0x80000000, 0x10000000,
-                                0x90000000, 0x08000000),
+            "reg": struct.pack(
+                ">QQQQQQ",
+                0x80000000, 0x39900000,
+                0xC0000000, 0x140000000,
+                0x200000000, 0x180000000),
         },
         "/reserved-memory": {},
         "/reserved-memory/carveout@88000000": {
             "reg": struct.pack(">QQ", 0x88000000, 0x1000000),
             "no-map": b"",
         },
+        "/reserved-memory/dynamic_region": {
+            "compatible": b"qcom,dynamic-pil\x00",
+        },
         "/chosen": {
             "bootargs": b"console=ttyMSM0,115200n8 "
-                         b"androidboot.serialno=SECRET loglevel=7",
+                         b"androidboot.serialno=SECRET "
+                         b"androidboot.slot_suffix=_a loglevel=7",
         },
     }
 
 
-def write_fixture_tar(nodes: dict, path: Path) -> None:
-    with tarfile.open(path, "w") as tf:
-        for npath, props in nodes.items():
-            dpath = "./" + npath.lstrip("/")
-            info = tarfile.TarInfo(dpath)
-            info.type = tarfile.DIRTYPE
-            tf.addfile(info)
-            for pname, value in props.items():
-                info = tarfile.TarInfo(f"{dpath}/{pname}")
-                info.size = len(value)
-                tf.addfile(info, io.BytesIO(value))
+def write_fixture_dump(nodes: dict, path: Path) -> None:
+    lines = []
+    for npath in sorted(nodes):
+        base = "/sys/firmware/devicetree/base" + \
+            ("" if npath == "/" else npath)
+        for pname in sorted(nodes[npath]):
+            lines.append(f"===FILE {base}/{pname}")
+            lines.append(base64.b64encode(nodes[npath][pname]).decode("ascii"))
+    path.write_text("\n".join(lines) + "\n")
 
 
 def mode_fixture_selfcheck(tmpdir: Path) -> None:
     rep = evidence_from_nodes(build_fixture_tree())
-    assert rep["memory"]["bank_count"] == 2, rep["memory"]
+    assert rep["memory"]["bank_count"] == 3, rep["memory"]
     assert rep["memory"]["banks"][0]["base"] == 0x80000000
-    assert rep["memory"]["banks"][0]["size"] == 0x10000000
-    assert rep["memory"]["banks"][1]["size"] == 0x08000000
-    assert rep["memory"]["total"] == 0x18000000
-    assert rep["memory"]["cell_count"] == 8 and rep["memory"]["reg_raw_size"] == 32
-    assert len(rep["reserved"]) == 1 and rep["reserved"][0]["no_map"] is True
+    assert rep["memory"]["banks"][0]["size"] == 0x39900000
+    assert rep["memory"]["banks"][1]["base"] == 0xC0000000
+    assert rep["memory"]["banks"][1]["size"] == 0x140000000
+    assert rep["memory"]["banks"][2]["base"] == 0x200000000
+    assert rep["memory"]["banks"][2]["size"] == 0x180000000
+    assert rep["memory"]["total"] == 0x2F9900000
+    assert rep["memory"]["cell_count"] == 12 and rep["memory"]["reg_raw_size"] == 48
+    assert len(rep["reserved"]) == 2
+    assert rep["reserved"][0]["no_map"] is True
+    assert rep["reserved"][1]["base"] is None
     assert "SECRET" not in rep["chosen"]["bootargs_sanitized"]
     assert "androidboot.serialno=<redacted>" in rep["chosen"]["bootargs_sanitized"]
+    assert "androidboot.slot_suffix=_a" in rep["chosen"]["bootargs_sanitized"]
     assert "kaslr-seed" in rep["chosen"]["sensitive_props_present"]
     assert rep["root"]["address_cells"] == 2 and rep["root"]["size_cells"] == 2
 
-    tar_path = tmpdir / "fixture.tar"
-    write_fixture_tar(build_fixture_tree(), tar_path)
-    tar_nodes = parse_livetree_tar(tar_path)
-    tar_rep = evidence_from_nodes(tar_nodes)
-    assert tar_rep["memory"]["total"] == rep["memory"]["total"]
-    assert tar_rep["reserved"][0]["no_map"] is True
+    dump_path = tmpdir / "fixture-devicetree-dump.txt"
+    write_fixture_dump(build_fixture_tree(), dump_path)
+    dump_nodes, dump_meta = parse_livetree_dump(dump_path.read_bytes())
+    assert dump_meta["file_markers"] == sum(
+        len(p) for p in build_fixture_tree().values())
+    dump_rep = evidence_from_nodes(dump_nodes)
+    assert dump_rep["memory"]["total"] == rep["memory"]["total"]
+    assert dump_rep["reserved"][0]["no_map"] is True
+    assert dump_rep["reserved"][1]["base"] is None
 
     blob = build_fixture_fdt()
     header = parse_fdt_header(blob)
@@ -665,29 +697,31 @@ def mode_fixture_selfcheck(tmpdir: Path) -> None:
     assert walk["complete"] is True
     assert walk["nodes"]["/memory"]["reg"] == \
         build_fixture_tree()["/memory"]["reg"]
-    cross = fdt_walk_crosscheck(blob, header, tar_nodes)
+    cross = fdt_walk_crosscheck(blob, header, dump_nodes)
     assert cross["verdict"] == "MATCH" and cross["struct_walk_complete"]
 
     iomem = parse_iomem(
         "00000000-ffffffff : PCI Bus 0000:00\n"
-        "80000000-8fffffff : System RAM\n"
-        "\t80080000-802fffff : Kernel code\n"
-        "\t88000000-88ffffff : reserved\n"
-        "\t89000000-89ffffff : CMA\n"
-        "90000000-97ffffff : System RAM\n")
-    assert len(iomem["system_ram"]) == 2
-    assert iomem["system_ram"][0] == {"base": 0x80000000, "end": 0x8fffffff}
-    assert iomem["kernel"]["Kernel code"]["base"] == 0x80080000
+        "80894000-808fffff : System RAM\n"
+        "92700000-b03fffff : System RAM\n"
+        "\t9c000000-9e3fffff : reserved\n"
+        "\ta0080000-a29fffff : Kernel code\n"
+        "\t8a000000-8bffffff : CMA\n"
+        "c0000000-1ffffffff : System RAM\n"
+        "200000000-37fffffff : System RAM\n")
+    assert len(iomem["system_ram"]) == 4
+    assert iomem["kernel"]["Kernel code"]["base"] == 0xa0080000
     assert iomem["reserved_children"] == 1 and len(iomem["cma"]) == 1
-    matrix = build_matrix(rep, iomem, {"MemTotal": 0x18000000 // 1024 - 1000})
+    matrix = build_matrix(rep, iomem, {"MemTotal": 11875576})
     assert matrix["banks"][0]["status"] == "CONFIRMED"
     assert matrix["banks"][1]["status"] == "CONFIRMED"
+    assert matrix["banks"][2]["status"] == "CONFIRMED"
     assert matrix["iomem_status"] == "OK"
     assert matrix["meminfo_sanity"]["pass"] is True
     assert matrix["stock_kernel_alignment"]["mod_2m"] == 0x80000
     try:
         gate(rep, build_matrix(
-            rep, iomem, {"MemTotal": 0x18000000 // 1024 + 1}), None)
+            rep, iomem, {"MemTotal": 0x2F9900000 // 1024 + 1}), None)
     except SystemExit:
         pass
     else:
@@ -804,7 +838,7 @@ def main() -> None:
     p.add_argument("--mode",
                    choices=("parse", "fixture-selfcheck", "debug"), required=True)
     p.add_argument("--fdt")
-    p.add_argument("--devicetree-tar")
+    p.add_argument("--devicetree-dump")
     p.add_argument("--iomem")
     p.add_argument("--meminfo")
     p.add_argument("--mem-block-size")
