@@ -647,7 +647,8 @@ def mode_decoder_fixtures() -> None:
 
 
 def source_gate_tokens() -> None:
-    for path in (PROBE_SRC, PROBE_LD, NEG_ABSOLUTE, DOC, PUBLIC_WF, *NEG_MUTANTS):
+    for path in (PROBE_SRC, PROBE_LD, NEG_ABSOLUTE, DOC, PUBLIC_WF,
+                 *(HERE / name for name in NEG_MUTANTS)):
         if not path.is_file() or path.stat().st_size == 0:
             fail("ESP_SOURCE_GATE_FAILED", f"missing {path}")
     src = PROBE_SRC.read_text()
