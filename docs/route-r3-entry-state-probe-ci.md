@@ -318,12 +318,24 @@ Round gate logic:
 
 ## 19. Artifact
 
-Probe artifact (private GHA): `thyme-r3-entry-state-probe.img`, 35,110,912
-bytes; kernel payload 35,011,184 bytes; probe code < 4096 bytes +
-deterministic 0x00 padding. Run, boot SHA, kernel SHA, probe SHA recorded in
-`entry-state-probe-manifest.txt` (artifact) and in mem0; the mapping table
-and toolchain pin are embedded in the manifest. No multiple true-device
-variants exist; negative mutants are CI-only and never packed as boots.
+Private build (green): run 34678013953
+(`ChuenSan/thyme-mainline-private-ci` thyme-r3-entry-state-probe.yml,
+public source pin d91ead3149ee355fe0b047debfa853e0eff27b02); artifact
+`thyme-r3-entry-state-probe-d91ead3149ee355fe0b047debfa853e0eff27b02`.
+`thyme-r3-entry-state-probe.img` 35,110,912 bytes, SHA256
+`cb61889af66ec41b5a1cb61c1db84049c46d3e197446ab8bced11313adbee82c`;
+kernel payload 35,011,184 bytes, SHA256
+`d81649685153dd3f666a99b4ce9ef6fb89c223c51f46961c0f48256d8cdb7c10`;
+probe code < 4096 bytes, SHA256
+`071ef7f71af1dfba37d904d96c480541367921b9c256c10867ba39a52cb064c2` +
+deterministic 0x00 padding (35,100,948 bytes, SHA256
+`8fff44835e1159de3b42e145bd94b916007f89143474d901b38c1b83e4b923f2`).
+Build determinism cross-checked: an independent run reproduced the same
+boot/kernel/probe SHAs. `R3_ENTRY_STATE_PROBE_GATES=PASS` recorded in
+`p1-entry-state-probe-gates.txt` and `entry-state-probe-manifest.txt`
+(artifact) and in mem0; the mapping table and toolchain pin are embedded
+in the manifest. No multiple true-device variants exist; negative mutants
+are CI-only and never packed as boots.
 
 Device: NO OPERATION this round. Current B (M5D + M5H + M5M-B) UNCHANGED.
 Next if READY: MAINLINE_V2_R3_ENTRY_STATE_PROBE_TRUE_DEVICE — WAIT FOR USER
