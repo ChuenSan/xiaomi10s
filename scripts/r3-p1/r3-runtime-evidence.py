@@ -339,7 +339,10 @@ def parse_iomem(text: str) -> dict:
         if start == 0 and end == 0:
             redacted = True
         raw_indent = line[: len(line) - len(line.lstrip())]
-        depth = raw_indent.count("\t") or (1 if raw_indent.strip() else 0)
+        # /proc/iomem indents one level per tab; the su/toybox capture path
+        # on this device renders each level as two spaces instead.
+        tabs = raw_indent.count("\t")
+        depth = tabs if tabs else (len(raw_indent) + 1) // 2
         if label == "System RAM":
             system_ram.append({"base": start, "end": end})
             last_ram_depth = depth
@@ -724,9 +727,9 @@ def mode_fixture_selfcheck(tmpdir: Path) -> None:
         "00000000-ffffffff : PCI Bus 0000:00\n"
         "80894000-808fffff : System RAM\n"
         "92700000-b03fffff : System RAM\n"
-        "\t9c000000-9e3fffff : reserved\n"
+        "  9c000000-9e3fffff : reserved\n"
         "\ta0080000-a29fffff : Kernel code\n"
-        "\t8a000000-8bffffff : CMA\n"
+        "  8a000000-8bffffff : CMA\n"
         "c0000000-ffbfffff : System RAM\n"
         "ffc20000-37fffffff : System RAM\n")
     assert len(iomem["system_ram"]) == 4
