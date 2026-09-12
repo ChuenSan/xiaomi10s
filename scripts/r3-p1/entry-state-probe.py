@@ -306,7 +306,7 @@ def parse_ins(dump: str, min_addr: int) -> list[tuple[int, str, str]]:
         addr = int(m.group(1), 16)
         if addr < min_addr:
             continue
-        body.append((addr, m.group(2).lower(), m.group(3).strip()))
+        body.append((addr, m.group(2).lower(), m.group(3).split("//")[0].strip()))
     return body
 
 
@@ -320,17 +320,17 @@ SEQUENCE = [
     ("cmp", r"x1, #0x?4$"),
     ("b.eq", r"0x?(?P<t_el1>[0-9a-f]+)(?:\s*<[^>]*>)?$"),
     ("b", r"0x?(?P<t_unexp>[0-9a-f]+)(?:\s*<[^>]*>)?$"),
-    ("movz", r"x5, #0x?0$"),
+    ("mov(?:z)?", r"x5, #0x?0$"),
     ("mrs", r"x2, sctlr_el1$"),
     ("b", r"0x?(?P<t_dec1>[0-9a-f]+)(?:\s*<[^>]*>)?$"),
-    ("movz", r"x5, #0x?4$"),
+    ("mov(?:z)?", r"x5, #0x?4$"),
     ("mrs", r"x2, sctlr_el2$"),
     ("b", r"0x?(?P<t_dec2>[0-9a-f]+)(?:\s*<[^>]*>)?$"),
-    ("movz", r"x5, #0x?8$"),
+    ("mov(?:z)?", r"x5, #0x?8$"),
     ("b", r"0x?(?P<t_enc>[0-9a-f]+)(?:\s*<[^>]*>)?$"),
-    ("movz", r"x6, #0x?0$"),
+    ("mov(?:z)?", r"x6, #0x?0$"),
     ("tbz", r"x2, #0x?0, 0x?(?P<l1>[0-9a-f]+)(?:\s*<[^>]*>)?$"),
-    ("movz", r"x6, #0x?2$"),
+    ("mov(?:z)?", r"x6, #0x?2$"),
     ("tbz", r"x2, #0x?2, 0x?(?P<l2>[0-9a-f]+)(?:\s*<[^>]*>)?$"),
     ("add", r"x6, x6, #0x?1$"),
     ("add", r"x5, x5, x6$"),
@@ -348,7 +348,7 @@ SEQUENCE = [
     ("b.hs", r"0x?(?P<t_done>[0-9a-f]+)(?:\s*<[^>]*>)?$"),
     ("yield", r"$^"),
     ("b", r"0x?(?P<t_loop>[0-9a-f]+)(?:\s*<[^>]*>)?$"),
-    ("movz", r"w0, #0x?(?P<fid_lo>[0-9a-f]+)$"),
+    ("mov(?:z)?", r"w0, #0x?(?P<fid_lo>[0-9a-f]+)$"),
     ("movk", r"w0, #0x?8400, lsl #0x?16$"),
     ("mov", r"x1, (xzr|#0x?0)$"),
     ("mov", r"x2, (xzr|#0x?0)$"),
