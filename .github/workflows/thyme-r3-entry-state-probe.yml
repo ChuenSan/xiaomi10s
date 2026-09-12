@@ -1,0 +1,205 @@
+name: thyme-r3-entry-state-probe
+
+# Public CI for the R3 P1 entry-state probe.
+# Assembles the probe for disassembly gates but does not splice M5D and does
+# not emit a boot image. Flashable packing runs in private GHA:
+#   ChuenSan/thyme-mainline-private-ci  thyme-r3-entry-state-probe.yml
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-r3-entry-state-probe.yml'
+      - 'docs/route-r3-entry-state-probe-ci.md'
+      - 'docs/route-r3-runtime-dtb-completion.md'
+      - 'scripts/r3-p1/**'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-entry-state-probe.yml'
+      - 'docs/route-r3-entry-state-probe-ci.md'
+      - 'docs/route-r3-runtime-dtb-completion.md'
+      - 'scripts/r3-p1/**'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-r3-entry-state-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  LINUX_DIR: linux-6.6
+  EXPECTED_LINUX_BASE_COMMIT: 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+jobs:
+  source-audit:
+    name: R3 ESP public source audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-r3-entry-state-probe.yml
+
+      - name: Parse probe script
+        run: python3 -m py_compile scripts/r3-p1/entry-state-probe.py
+
+      - name: ESP source-gate
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python3 scripts/r3-p1/entry-state-probe.py --mode source-gate
+
+      - name: Assert this workflow cannot emit a flashable boot
+        shell: bash
+        run: |
+          set -euo pipefail
+          wf=.github/workflows/thyme-r3-entry-state-probe.yml
+          grep -Fq 'Does not splice M5D and does not emit a boot image' "$wf"
+          if git ls-files | grep -Ei '(^|/)(p1-entry-state-probe|p1-esp).*\.(img|bin|elf)$'; then
+            echo 'tracked esp probe binary found' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_ESP_SOURCE_ONLY=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+  ram-reconciliation:
+    name: R3 RAM bank notation reconciliation (JSON vs DTS vs built DTB)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    needs: source-audit
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+
+      - name: Fetch pinned linux-6.6 and apply DTS patches
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 "$LINUX_DIR"
+          base=$(git -C "$LINUX_DIR" rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base"
+          test "$base" = "$EXPECTED_LINUX_BASE_COMMIT"
+          PATCH_DIR="$GITHUB_WORKSPACE/patches/linux-6.6"
+          mapfile -t PATCHES < <(find "$PATCH_DIR" -maxdepth 1 -type f -name '*.patch' -print | sort)
+          test "${#PATCHES[@]}" -eq 2
+          for patch in "${PATCHES[@]}"; do
+            git -C "$LINUX_DIR" apply --whitespace=nowarn "$patch"
+          done
+          test -s "$LINUX_DIR/arch/arm64/boot/dts/qcom/sm8250-xiaomi-thyme.dts"
+          echo "R3_DTS_PATCHES=PASS"
+
+      - name: Install dtc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y device-tree-compiler gcc
+          dtc --version | head -1
+
+      - name: Rebuild RT-D byte-identical and enforce evidence gates
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1/r3-runtime-dtb.py --mode fixture-selfcheck
+          python3 scripts/r3-p1/r3-runtime-dtb.py \
+            --mode validate \
+            --dts scripts/r3-p1/dts/sm8250-xiaomi-thyme-runtime.dts \
+            --evidence scripts/r3-p1/dts/thyme-runtime-memory-evidence.json \
+            --linux "$LINUX_DIR" \
+            --out-dir out-r3-rtd
+
+      - name: Pin probe bit positions to exact Linux 6.6 source
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python3 scripts/r3-p1/entry-state-probe.py --mode bit-position-pin --linux "$LINUX_DIR"
+
+      - name: Reconcile JSON vs DTS vs built DTB RAM banks
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1/entry-state-probe.py \
+            --mode ram-reconciliation \
+            --dts scripts/r3-p1/dts/sm8250-xiaomi-thyme-runtime.dts \
+            --evidence scripts/r3-p1/dts/thyme-runtime-memory-evidence.json \
+            --dtb out-r3-rtd/rt-d.dtb \
+            | tee out-r3-rtd/ram-reconciliation-report.txt
+          grep -Fxq 'RAM_RECONCILIATION_JSON_DTS_DTB_EQUAL=YES' out-r3-rtd/ram-reconciliation-report.txt
+          grep -Fxq 'RT_D_DTB_SHA256_MATCH=YES' out-r3-rtd/ram-reconciliation-report.txt
+          grep -Fxq 'RAM_BANK_SEMANTIC_ERROR=NO' out-r3-rtd/ram-reconciliation-report.txt
+
+      - name: Upload reconciliation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-esp-ram-reconciliation
+          path: |
+            out-r3-rtd/ram-reconciliation-report.txt
+            out-r3-rtd/r3-runtime-dtb-report.txt
+          if-no-files-found: error
+
+  probe-gates:
+    name: R3 ESP decoder fixtures + assemble gates (no boot image)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: source-audit
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+
+      - name: Install pinned LLVM 18.1.3
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            "clang-18=${LLVM_PKG}" \
+            "lld-18=${LLVM_PKG}" \
+            "llvm-18=${LLVM_PKG}"
+          clang-18 --version | head -1
+          ld.lld-18 --version | head -1
+          echo "TOOLCHAIN_PINNED=clang-18=${LLVM_PKG}"
+
+      - name: Decoder fixtures
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python3 scripts/r3-p1/entry-state-probe.py --mode decoder-fixtures
+
+      - name: Assemble and gate the probe (no M5D, no boot image)
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -euo pipefail
+          python3 scripts/r3-p1/entry-state-probe.py \
+            --mode assemble-gates \
+            --out out-r3-esp \
+            --clang clang-18 \
+            --lld ld.lld-18 \
+            --objcopy llvm-objcopy-18 \
+            --objdump llvm-objdump-18 \
+            --readelf llvm-readelf-18 \
+            | tee out-r3-esp-run.txt
+          grep -Fxq 'ESP_DISASM_GATES=PASS' out-r3-esp/p1-entry-state-probe-gates.txt
+          grep -Fxq 'ESP_EL_SAFE_SCTLR_ACCESS=PASS' out-r3-esp/p1-entry-state-probe-gates.txt
+          grep -Fxq 'FAIL_CLOSED=PASS' out-r3-esp/p1-entry-state-probe-gates.txt
+          grep -Fxq 'NEGATIVE_TESTS_PASS=YES' out-r3-esp/p1-entry-state-probe-gates.txt
+
+      - name: Assert no flashable output exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'flashable image emitted' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_ESP_NO_BOOT_IMAGE=PASS'
+          echo 'DEVICE_OPERATION=NO'
+
+      - name: Upload probe gate reports (text only)
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-esp-probe-gates
+          path: |
+            out-r3-esp/p1-entry-state-probe-gates.txt
+            out-r3-esp/p1-entry-state-probe-disasm.txt
+            out-r3-esp/p1-esp-neg-*-disasm.txt
+          if-no-files-found: error
