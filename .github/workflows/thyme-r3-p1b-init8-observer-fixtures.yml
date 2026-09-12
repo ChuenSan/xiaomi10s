@@ -1,0 +1,40 @@
+name: thyme-r3-p1b-init8-observer-fixtures
+
+# Public CI gate for the R3 P1B INIT8 observer source changes.
+# Runs the INIT8 observer fixtures only (no device, no fastboot/adb, no
+# boot image). The INIT8 build/pack pipeline lives in the existing
+# thyme-r3-p1b-minimal-linux-entry workflows (public build + private pack).
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-r3-p1b-init8-observer-fixtures.yml'
+      - 'scripts/r3-p1b/observe-r3-p1b-init8.py'
+      - 'scripts/r3-p1b/observer-init8-fixtures.py'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-p1b-init8-observer-fixtures.yml'
+      - 'scripts/r3-p1b/observe-r3-p1b-init8.py'
+      - 'scripts/r3-p1b/observer-init8-fixtures.py'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-r3-p1b-init8-observer-fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  observer-fixtures:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile observer and fixtures
+        run: |
+          python3 -m py_compile scripts/r3-p1b/observe-r3-p1b-init8.py
+          python3 -m py_compile scripts/r3-p1b/observer-init8-fixtures.py
+
+      - name: INIT8 observer fixtures
+        run: python3 scripts/r3-p1b/observer-init8-fixtures.py
