@@ -72,8 +72,9 @@ The second ascending RAM bank:
 - Built DTB: same cells, gate-enforced equal to JSON
 
 RAM_BANK_REPORT_NOTATION_ERROR=YES — the previous round's final report table
-(`route-r3-runtime-dtb-completion.md` §6) wrote bank 1 base as `0x1_C0000000`,
-which is mathematically inconsistent with its own size and end columns. The
+(`route-r3-runtime-dtb-completion.md` §6) wrote bank 1 base with a spurious
+`1_` high-word prefix (as if the base were 0x1C0000000), inconsistent with
+its own size and end columns. The
 corrected notation is 0x0_C0000000 (base 0xC0000000; last byte 0x1FFFFFFFF).
 RAM_BANK_SEMANTIC_ERROR=NO — all three real sources always agreed; only the
 report text was wrong, so only docs (this file + the completion report) and
