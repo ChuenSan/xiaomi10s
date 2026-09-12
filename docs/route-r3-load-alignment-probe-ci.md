@@ -216,6 +216,28 @@ Slot A written:                    NO
 SET_ACTIVE:                        NO
 ```
 
+## Private build record
+
+Public CI run 34683220593 (commit 7068f0d, all gates green,
+`OBSERVER_SUMMARY_FIXTURE=PASS`). Private packing run 34683393244 in
+`ChuenSan/thyme-mainline-private-ci` (workflow commit
+3083fefd1be1606642c3ac9535cc33d7cff6a1c4, the run's GITHUB_SHA), public
+source pin 7068f0db9a8eb67d86482ab5edd604928a6ed7ea, toolchain LLVM 18.1.3
+on ubuntu-24.04:
+
+- artifact `thyme-r3-load-alignment-probe.img`: size 35110912, SHA256
+  6403ad5258a768a3ed91acc23f219b2cb55fbbf04358d25d9e8c1afab515a4ba
+- kernel payload `Image-r3-load-alignment-probe`: SHA256
+  f1b9fe9fa4dd455502a035a876d10f5bcdf92937214a4268f11c5af0f18e9682
+- probe binary `r3-lap-probe.bin`: SHA256
+  c6675eac04ec79538d3ede96209980ef4bb5aff5340f0a677832c27008f5e7b8
+- disassembly anchor: `adr x0, 0x0 <image_base>` at offset 0x44; objdump
+  prints the ADR in target-address form; gate accepts target and
+  PC-relative print forms.
+- Future device round identity env:
+  `R3_PROBE_SHA256=6403ad5258a768a3ed91acc23f219b2cb55fbbf04358d25d9e8c1afab515a4ba`
+  with `R3_PROBE_BOOT_IMG` pointing at this exact artifact.
+
 ## Final gate
 
 `READY_FOR_R3_LOAD_ALIGNMENT_PROBE_DEVICE_CONTROL` if every CI gate is green
