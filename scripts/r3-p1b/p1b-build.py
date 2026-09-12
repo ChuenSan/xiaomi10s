@@ -396,9 +396,9 @@ def trampoline_disasm_gates(out: Path, tools: dict, elf: Path,
                             offs: dict, dtb_rel: int, entry_rel: int) -> str:
     dump = run([tools["objdump"], "-d", str(elf)])
     (out / "p1b-trampoline-disasm.txt").write_text(dump)
-    # normalize whitespace: llvm-objdump and GNU objdump differ in tab/space use
+    # normalize whitespace + case: llvm-objdump prints DAIFSet, GNU prints daifset
     ops = "\n".join(
-        re.sub(r"\s+", " ", line.split(":", 1)[-1]).strip()
+        re.sub(r"\s+", " ", line.split(":", 1)[-1]).strip().lower()
         for line in dump.splitlines() if re.match(r"^\s*[0-9a-f]+:", line))
     for token in ("msr daifset, #0xf", "isb", "adr x0", "ldr x9",
                   "add x0, x0, x9", "mov x1, xzr", "mov x2, xzr",
@@ -411,7 +411,7 @@ def trampoline_disasm_gates(out: Path, tools: dict, elf: Path,
                 r"\btlbi\b"):
         if re.search(bad, ops):
             fail("P1B_TRAMPOLINE_FAILED", f"forbidden {bad!r}")
-    branch_pc = offs["b_primary"]
+    branch_pc = TRAMP_OFFSET + offs["b_primary"]
     target = branch_pc + entry_rel
     if dtb_rel < 0 or dtb_rel >= (1 << 63):
         fail("P1B_TRAMPOLINE_FAILED", f"dtb_rel {dtb_rel:#x}")
@@ -419,7 +419,7 @@ def trampoline_disasm_gates(out: Path, tools: dict, elf: Path,
     if struct.pack("<Q", dtb_rel).hex() not in dump_s.lower():
         fail("P1B_TRAMPOLINE_FAILED", "dtb_rel quad value not in .text")
     print(f"P1B_TRAMPOLINE_DISASM_GATES=PASS branch {branch_pc:#x} -> "
-          f"{target:#x} dtb_rel={dtb_rel:#x}")
+          f"{target:#x} x0={TRAMP_OFFSET + offs['dtb_rel'] + dtb_rel:#x}")
     return dump
 
 
@@ -432,19 +432,30 @@ def build_pass(out: Path, delay: int, cpio: Path, rt_d: bytes, tools: dict,
     dtb_offset, gap = calc_dtb_offset(image_size)
 
     _, elf0, offs = assemble_trampoline(out, tools, None, 0)
-    entry_rel = kg["off_primary"] - offs["b_primary"]
+    # The trampoline runs at payload offset TRAMP_OFFSET, so every PC-relative
+    # distance must be computed from payload-resident addresses, not ELF ones.
+    entry_rel = kg["off_primary"] - (TRAMP_OFFSET + offs["b_primary"])
     if entry_rel <= 0 or entry_rel % 4:
         fail("P1B_TRAMPOLINE_FAILED", f"entry_rel {entry_rel:#x}")
     binp, elf, offs2 = assemble_trampoline(out, tools, None, entry_rel)
     if offs2 != offs:
         fail("P1B_TRAMPOLINE_FAILED", "layout shifted with entry_rel")
-    dtb_rel = dtb_offset - offs2["dtb_rel"]
+    dtb_rel = dtb_offset - (TRAMP_OFFSET + offs2["dtb_rel"])
     binp, elf, offs3 = assemble_trampoline(out, tools, dtb_rel, entry_rel)
     if offs3 != offs:
         fail("P1B_TRAMPOLINE_FAILED", "layout shifted with dtb_rel")
     tbin = binp.read_bytes()
     if not (0x30 <= len(tbin) <= 0x40):
         fail("P1B_TRAMPOLINE_FAILED", f"trampoline size {len(tbin)}")
+    x0_static = TRAMP_OFFSET + offs3["dtb_rel"] + dtb_rel
+    branch_target = TRAMP_OFFSET + offs3["b_primary"] + entry_rel
+    if x0_static != dtb_offset:
+        fail("P1B_TRAMPOLINE_FAILED",
+             f"x0 algebra {x0_static:#x} != dtb_offset {dtb_offset:#x}")
+    if branch_target != kg["off_primary"]:
+        fail("P1B_TRAMPOLINE_FAILED",
+             f"branch target {branch_target:#x} != off_primary "
+             f"{kg['off_primary']:#x}")
     tramp_sha = sha(tbin)
     print(f"P1B_TRAMPOLINE sha256={tramp_sha} size={len(tbin)} "
           f"dtb_rel={dtb_rel:#x} entry_rel={entry_rel:#x}")

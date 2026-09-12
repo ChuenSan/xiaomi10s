@@ -157,10 +157,13 @@ dtb_rel: .quad P1B_DTB_REL
 ```
 
 - Injection (two-pass): PASS1 builds kernel+initramfs → image_size → DTB_OFFSET;
-  PASS2 assembles trampoline with P1B_DTB_REL = DTB_OFFSET − off(dtb_rel) and
-  P1B_ENTRY_REL = off(primary_entry) − off(b_primary), then patches code1,
-  zero-pads to DTB_OFFSET, appends RT-D. PASS1==PASS2 image_size asserted
-  (single kernel build; PASS2 adds no kernel bytes — padding only).
+  PASS2 assembles trampoline with P1B_DTB_REL = DTB_OFFSET − (TRAMP_OFFSET +
+  off(dtb_rel)) and P1B_ENTRY_REL = off(primary_entry) − (TRAMP_OFFSET +
+  off(b_primary)) — all distances are payload-resident because the trampoline
+  runs at payload offset 0x40 (hard gates assert x0 algebra == DTB_OFFSET and
+  branch target == off_primary), then patches code1, zero-pads to DTB_OFFSET,
+  appends RT-D. PASS1==PASS2 image_size asserted (single kernel build; PASS2
+  adds no kernel bytes — padding only).
 - Properties: PC-relative only (adr), no absolute S/GOT references, runtime
   relocations = 0 (readelf gate), no store/stack/MMU/cache/EL changes, no
   `ic iallu` (D-cache off ⇒ I-cache coherence for writes N/A; we write nothing),
@@ -258,6 +261,9 @@ guesswork.
   little-endian bytes present in objdump -s, ELF relocations 0.
 - DTB placement: payload len == DTB_OFFSET + 144593, FDT magic 0xd00dfeed at
   DTB_OFFSET, residue congruence, DTB_OFFSET ≥ image_size, gap < 2 MiB.
+- Handoff algebra: TRAMP_OFFSET + off(dtb_rel) + P1B_DTB_REL == DTB_OFFSET
+  (x0 lands on the FDT) and TRAMP_OFFSET + off(b_primary) + P1B_ENTRY_REL ==
+  off_primary (branch lands on primary_entry); both are hard gates.
 - RT-D trailer: exact SHA after extraction, chosen bootargs frozen.
 - Pair: P1B_INIT_PAIR_SEMANTIC_DELTA=DELAY_CONSTANT_ONLY (equal geometry,
   differing /init + cpio SHAs).
