@@ -742,15 +742,15 @@ def build_fixture_fdt() -> bytes:
     struct_block += struct.pack(">I", FDT_END)
     while len(strings) % 4:
         strings += b"\x00"
-    off_struct = 40
-    off_strings = off_struct + len(struct_block)
-    off_rsv = off_strings + len(strings)
+    off_rsv = 40
     rsv = struct.pack(">QQ", 0xB0000000, 0x100000) + struct.pack(">QQ", 0, 0)
-    totalsize = off_rsv + len(rsv)
+    off_struct = off_rsv + len(rsv)
+    off_strings = off_struct + len(struct_block)
+    totalsize = off_strings + len(strings)
     header = struct.pack(">10I", FDT_MAGIC, totalsize, off_struct,
                          off_strings, off_rsv, 17, 0, 0,
                          len(strings), len(struct_block))
-    return header + struct_block + strings + rsv
+    return header + rsv + struct_block + strings
 
 
 def mode_debug(path: Path) -> None:
