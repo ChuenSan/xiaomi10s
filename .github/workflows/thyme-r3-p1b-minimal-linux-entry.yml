@@ -5,6 +5,7 @@ name: thyme-r3-p1b-minimal-linux-entry
 # RT-D trailer and the PC-relative handoff trampoline. Boot v3 packing runs in
 # private GHA: ChuenSan/thyme-mainline-private-ci thyme-r3-p1b-minimal-linux-entry.yml
 # Does not splice M5D and does not emit a flashable boot image.
+# Does not emit a flashable boot image from the public repo.
 on:
   push:
     branches: [route-b-v3]
