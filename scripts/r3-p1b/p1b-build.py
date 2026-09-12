@@ -247,8 +247,12 @@ def compile_init(out: Path, delay: int, gcc: str, strip: str) -> Path:
 def make_kernel(out_dir: Path, delay: int | None, cpio: Path | None,
                 jobs: int) -> dict:
     tag = "base" if delay is None else f"{delay}s"
-    odir = out_dir / f"out-kernel-{tag}"
+    # O= is resolved against the kernel tree (cwd=LINUX), so the build dir
+    # must be absolute; a relative path would land .config under linux-6.6/.
+    odir = (out_dir / f"out-kernel-{tag}").resolve()
     odir.mkdir(parents=True, exist_ok=True)
+    if cpio is not None:
+        cpio = cpio.resolve()
     env = dict(os.environ)
     makeargs = ["O=" + str(odir), "ARCH=arm64", "LLVM=1"]
     run(["make", *makeargs, "defconfig"], cwd=LINUX, env=env)
