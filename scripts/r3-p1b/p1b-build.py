@@ -775,7 +775,8 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
     ):
         if token not in doc:
             fail("P1B_SOURCE_GATE_FAILED", f"doc missing {token}")
-    if "READY_FOR_DEVICE=YES" in doc or "READY_FOR_DEVICE=YES" in script:
+    needle = "READY_FOR_DEVICE=" + "YES"
+    if needle in doc or needle in script:
         fail("P1B_SOURCE_GATE_FAILED", "must not claim device-ready")
     if re.search(r"^\s+run:.*\b(fastboot|adb|flash)\b", wf, re.M):
         fail("P1B_SOURCE_GATE_FAILED", "public workflow has device verbs")
