@@ -61,9 +61,9 @@ def fail(label: str, detail: str = "") -> None:
 
 
 def run(cmd: list[str], *, cwd: Path | None = None, check: bool = True,
-        timeout: int | None = None) -> subprocess.CompletedProcess:
+        timeout: int | None = None, env: dict | None = None) -> subprocess.CompletedProcess:
     proc = subprocess.run(cmd, cwd=cwd, check=False, capture_output=True,
-                          text=True, timeout=timeout)
+                          text=True, timeout=timeout, env=env)
     if check and proc.returncode != 0:
         fail("P1B_FI_CMD_FAILED",
              f"{' '.join(cmd)}\n{proc.stderr}\n{proc.stdout[-4000:]}")
