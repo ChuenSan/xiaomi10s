@@ -76,8 +76,8 @@ verified against the pinned tree UAPI: `__NR_clock_nanosleep 115`,
 
 ## 6. Exact fixed binary disassembly
 
-Recorded from GHA run: PENDING_PUBLIC_RUN
-(disasm artifacts `fix8-disasm.txt` / `fix24-disasm.txt` in the
+Recorded from GHA run: 34741153230 (job `fixed-init-proof`, gates PASS;
+disasm artifacts `fix8-disasm.txt` / `fix24-disasm.txt` in the
 `thyme-r3-p1b-init-control-fix-proof` artifact).
 
 Gate results:
@@ -90,8 +90,8 @@ Gate results:
   `exit_group(112)` (reboot returned) materialized as immediates.
 - Reboot ABI unchanged: 0xfee1dead / 0x28121969 / 0x01234567 / x3=0.
 
-FIX8 init SHA256: PENDING_PUBLIC_RUN
-FIX24 init SHA256: PENDING_PUBLIC_RUN
+FIX8 init SHA256: f1bc88496f7c5766a417b3e2a52eadf23bad30efd6cada7ec42fecf0e6e1266d
+FIX24 init SHA256: cd3290faa184f4fa951566d25c0a3bfcc811b7c3c4b5217a2feb1cb8cb34ebd0
 
 ## 7. QEMU strace FIX8 (exact binary, pinned qemu-aarch64 8.x)
 
@@ -104,12 +104,15 @@ exit_group(112)
 ```
 
 flags slot must be `0` (never `&req`), rqtp must be `tv_sec = 8` (never the
-zeroed rem). Recorded: PENDING_PUBLIC_RUN.
+zeroed rem). Recorded (run 34741153230, exact binary `p1b-init-fix8`):
+strace line matched verbatim, `reboot = -1 errno=1 (Operation not permitted)`,
+`exit_group(112)`, runtime 8.003s rc=112, all five-way gates PASS.
 
 ## 8. QEMU strace FIX24
 
 Same shape with `tv_sec = 24`, return 0, reboot EPERM, `exit_group(112)`.
-Recorded: PENDING_PUBLIC_RUN.
+Recorded (run 34741153230, exact binary `p1b-init-fix24`): strace line matched
+verbatim, runtime 24.004s rc=112, all five-way gates PASS.
 
 ## 9. QEMU timing pair (preregistered)
 
@@ -118,10 +121,10 @@ Pair delta bands (preregistered in the failure-isolation stage and reused):
 STRONG 15.5-16.5s, SUPPORTED 15.0-17.0s, else FAIL
 (`R3_P1B_INIT_CONTROL_FIX_FAILED`, no further packaging).
 
-QEMU_FIX8_RUNTIME: PENDING_PUBLIC_RUN
-QEMU_FIX24_RUNTIME: PENDING_PUBLIC_RUN
-QEMU_FIXED_PAIR_DELTA: PENDING_PUBLIC_RUN
-Verdict: PENDING_PUBLIC_RUN
+QEMU_FIX8_RUNTIME: 8.003s (rc=112)
+QEMU_FIX24_RUNTIME: 24.004s (rc=112)
+QEMU_FIXED_PAIR_DELTA: 16.000s
+Verdict: STRONG (inside preregistered 15.5-16.5s band)
 
 The gate is five-way (strace ABI + requested duration + syscall return +
 wallclock + pair delta); wallclock alone is never sufficient. An EINTR
@@ -136,8 +139,8 @@ Deterministic newc cpio per delay (dev/init/proc/sys, /init mode 0755 uid=0
 gid=0), built twice byte-identical, archive /init byte-exact to the compiled
 binary, each Image embeds exactly its own cpio uncompressed.
 
-initramfs-fix8.cpio SHA256: PENDING_PUBLIC_RUN
-initramfs-fix24.cpio SHA256: PENDING_PUBLIC_RUN
+initramfs-fix8.cpio SHA256: 02123e984cc618f333d8743ae4491af30ba4448373d987b84b7a2d4cda4ffff3
+initramfs-fix24.cpio SHA256: 2ae6fbf23601e6a04bd53a8651c1ccf52451cfa9530bef413ce7c882cc08f420
 
 ## 11. Rebuilt Image geometry
 
@@ -145,15 +148,17 @@ The fixed /init changes the kernel Image; geometry is recomputed from the
 FIXED final Image, never inherited
 (no reuse of image_size=0x2230000 / DTB_OFFSET=0x2380000 unless re-measured):
 
-FIXED_IMAGE_SIZE (header image_size): PENDING_PUBLIC_RUN
-FIX8/FIX24 Image file size: PENDING_PUBLIC_RUN (pair identical)
+FIXED_IMAGE_SIZE (header image_size): 0x2231000 (35848192, +0x1000 vs the old
+broken pair; pair identical)
+FIX8/FIX24 Image file size: 0x2187000 (35166720) (pair identical)
 
 ## 12. Recalculated DTB_OFFSET
 
 `D = align_up(I + 0x80000, 0x200000) - 0x80000` with the proven
 `S mod 2MiB = 0x80000`; verified `D >= I` and `(0x80000 + D) mod 0x200000 = 0`.
 
-FIXED_DTB_OFFSET: PENDING_PUBLIC_RUN
+FIXED_DTB_OFFSET: 0x2380000 (37224448; equals the old value by recomputation:
+align_up(0x2231000 + 0x80000, 0x200000) - 0x80000 = 0x2380000, not inherited)
 Placement proof: P1B_DTB_PLACEMENT_PROOF=PASS (GHA-gated)
 
 ## 13. Trampoline revalidation
@@ -162,7 +167,8 @@ Two-pass assembly with recomputed `entry_rel`/`dtb_rel`, DAIF mask, x0 =
 S + DTB_OFFSET, x1=x2=x3=0, branch to normal primary_entry, no copydown, no
 MMU/cache/EL writes, relocations 0, payload-address algebra gate re-run.
 
-Trampoline SHA (FIX8 == FIX24, must be identical): PENDING_PUBLIC_RUN
+Trampoline SHA (FIX8 == FIX24, must be identical):
+362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623
 Algebra gate: P1B_TRAMPOLINE_GATES=PASS (GHA-gated)
 
 ## 14. RT-D identity (frozen)
@@ -193,11 +199,28 @@ kernel-payload-and-kernel-size only, capacity < 201326592, RT-D trailer
 re-verified. The public artifact `thyme-r3-p1b-fix8-fix24` never contains a
 boot image. Old INIT8/INIT24 boot artifacts remain untouched.
 
-Private run: PENDING_PRIVATE_RUN
-FIX8 boot size/SHA256: PENDING_PRIVATE_RUN
-FIX24 boot size/SHA256: PENDING_PRIVATE_RUN
-FIX8 payload SHA256: PENDING_PUBLIC_RUN
-FIX24 payload SHA256: PENDING_PUBLIC_RUN
+Private run: 34744041027 (conclusion success; the first attempt 34743081369
+correctly failed its then-preregistered raw byte-count gate and is superseded
+by the attribution gate below)
+FIX8 boot size/SHA256: 37380096 /
+ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+FIX24 boot size/SHA256: 37380096 /
+20d5523361ac2c524bd72d8e16396e176374b9d48957a8b1501957db0aa573df
+FIX8 payload SHA256: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+FIX24 payload SHA256: 8d2e36e043bf891a680f879a045aab14d1decf80a897246584cc38d2d1d03439
+
+Payload-level pair diff provenance (private precheck): the raw pair diff is
+59767 bytes, fully attributed without weakening identity. CONFIG_IKCONFIG=y
+embeds the gzipped kernel config between the `IKCFG_ST`/`IKCFG_ED` markers;
+the two pair builds differ in exactly one config line
+(`CONFIG_INITRAMFS_SOURCE` path `initramfs-8s.cpio` vs `initramfs-24s.cpio`),
+so the deflate stream avalanches (spans 62075/62078 bytes, end marker shifts
++3). All remaining diffs are 76 bytes of build-stamp scatter (kernel banner /
+UTS_VERSION) plus the 3-byte cpio delay delta. Gates:
+`FIXED_PAIR_INIT_IDENT_ANCHOR=PASS`,
+`FIXED_PAIR_IKCONFIG_SINGLE_LINE_DIFF=PASS`,
+`FIXED_PAIR_GEOMETRY_IDENTICAL=YES`,
+`P1B_FIXED_INIT_PAIR_SEMANTIC_DELTA=DELAY_CONSTANT_ONLY`.
 
 ## 17. Future device plan
 
@@ -231,3 +254,11 @@ pair delta, delay constant live, initramfs identity, normal Image,
 primary_entry normal, fixed pair geometry, DTB offset, trampoline algebra,
 RT-D identity, private boot packaging, capacity. Otherwise
 `R3_P1B_INIT_CONTROL_FIX_FAILED` or `R3_P1B_FIXED_PAIR_CI_NOT_READY`.
+
+Recorded final gate (public run 34741153230 + private run 34744041027, both
+conclusion success): all listed gates PASS, verdict
+`READY_FOR_R3_P1B_FIXED_INIT8_DEVICE_CONTROL=YES`. Device operation remains NO
+until the user approves
+`MAINLINE_V2_R3_P1B_FIXED_INIT8_TRUE_DEVICE_CONTROL` (FIXED INIT8 only).
+E1-E4 remain NOT_PROVEN until the true-device pair proof; PANIC30 FROZEN;
+M5N FROZEN; Current B (M5D+M5H+M5M-B) UNCHANGED; Slot A untouched.
