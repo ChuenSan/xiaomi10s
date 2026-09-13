@@ -214,10 +214,14 @@ def gate_terminal(dump: str, code_end: int) -> None:
     if term[1] != "b":
         fail("T0_DISASM_FAILED",
              f"instruction after wfe is {term[1]!r}, not b")
-    m = re.match(r"^(?:0x)?([0-9a-f]+)$", term[2].strip())
+    # llvm-objdump annotates branch targets ("0x5c" or "0x5c <.text+0x5c>");
+    # drop any <symbol> annotation before parsing.
+    m = re.match(r"^(?:0x)?([0-9a-f]+)",
+                 term[2].strip().split("<", 1)[0])
     if not m or int(m.group(1), 16) != nxt[0]:
         fail("T0_DISASM_FAILED",
-             f"terminal b does not target wfe at {nxt[0]:#x}")
+             f"terminal b does not target wfe at {nxt[0]:#x} "
+             f"(operand {term[2]!r})")
     for ins in instrs[smc + 3:]:
         if ins[1] not in PADDING_MNEMS:
             fail("T0_DISASM_FAILED",
