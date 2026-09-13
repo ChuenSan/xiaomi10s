@@ -154,11 +154,15 @@ kexec tooling runs before /init), so the timeout path is taken.
 - Assembly: `drivers/of/fdt.c` early_init_dt_scan_chosen copies bootargs into
   `boot_command_line`; the `CONFIG_CMDLINE` block keeps the DT value unless
   `CONFIG_CMDLINE_FORCE` (override) or extends with `CONFIG_CMDLINE_EXTEND`.
-- arm64 Kconfig defaults: `CONFIG_CMDLINE=""`,
-  `CONFIG_CMDLINE_FROM_BOOTLOADER=y`, FORCE/EXTEND unset; neither config
-  fragment (`thyme-route-b.config`, `thyme-r3-p1b.config`) sets any of them.
-  The merged `.config` is re-checked in CI (`CONFIG_CMDLINE=""`,
-  FORCE/EXTEND not set, `CONFIG_PANIC_TIMEOUT=0`).
+- arm64 Kconfig defaults: `CONFIG_CMDLINE=""`, choice default
+  `CMDLINE_FROM_BOOTLOADER` (arch/arm64/Kconfig:2342); FORCE/EXTEND unset and
+  neither config fragment (`thyme-route-b.config`, `thyme-r3-p1b.config`)
+  sets any of them. The merged `.config` is re-checked in CI by semantics:
+  `CONFIG_CMDLINE=""`, no `CONFIG_CMDLINE_FORCE=`/`CONFIG_CMDLINE_EXTEND=` =y
+  line (the literal "# ... is not set" lines are absent because the cmdline
+  choice prompt is hidden when `CMDLINE=""` — arch/arm64/Kconfig:2340 — so
+  the choice members are omitted from the written `.config`),
+  `CONFIG_PANIC_TIMEOUT=0`.
 - The trampoline forces `x0` to the RT-D address, overriding anything ABL
   would pass; the boot v3 header cmdline (M5D envelope, preserved verbatim by
   private pack gates) is not consumed by the kernel.

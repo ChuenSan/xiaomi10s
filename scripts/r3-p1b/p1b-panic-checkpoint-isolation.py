@@ -691,11 +691,17 @@ def apply_kernel_patches() -> None:
 
 def check_merged_config(config: Path) -> None:
     text = config.read_text()
-    for token in ('CONFIG_CMDLINE=""', "# CONFIG_CMDLINE_FORCE is not set",
-                  "# CONFIG_CMDLINE_EXTEND is not set",
-                  "CONFIG_CMDLINE_FROM_BOOTLOADER=y", "CONFIG_PANIC_TIMEOUT=0"):
-        if token not in text:
-            fail("P30_CONFIG_FAILED", f"merged .config missing {token}")
+    if 'CONFIG_CMDLINE=""' not in text:
+        fail("P30_CONFIG_FAILED", 'merged .config missing CONFIG_CMDLINE=""')
+    # With CMDLINE="" the arm64 cmdline choice prompt is hidden
+    # (arch/arm64/Kconfig "if CMDLINE != \"\""), so the choice members are
+    # omitted from the written .config entirely; the semantic requirement is
+    # that neither override symbol is enabled.
+    for sym in ("CONFIG_CMDLINE_FORCE=", "CONFIG_CMDLINE_EXTEND="):
+        if re.search(rf"^{sym}", text, re.M):
+            fail("P30_CONFIG_FAILED", f"cmdline override enabled: {sym}")
+    if "CONFIG_PANIC_TIMEOUT=0" not in text:
+        fail("P30_CONFIG_FAILED", "merged .config missing CONFIG_PANIC_TIMEOUT=0")
     for kexec_sym in ("CONFIG_KEXEC=y", "CONFIG_KEXEC_FILE=y",
                       "CONFIG_CRASH_DUMP=y"):
         if kexec_sym in text:
