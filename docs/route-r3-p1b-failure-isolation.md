@@ -234,6 +234,18 @@ bug is purely the caller's ABI misuse).
 
 ## 12. panic=5 competing path (modeling, not fact)
 
+> SUPERSEDED_BY_PANIC_AUDIT_CORRECTION (2026-09-13): the historical claim in
+> the fenced block below assumed panic=5 was already active for ANY early
+> kernel panic. That is wrong for pre-parse failures: panic= is a core_param
+> parsed in `parse_args` (after setup_arch); before that point panic_timeout
+> is 0 and the panic path performs no wait and no restart — the board would
+> sit in the terminal infinite panic loop (section 6a of
+> docs/route-r3-p1b-panic-checkpoint-isolation.md). Only a POST_PARSE_ARGS
+> panic obeys panic=5 (the +5 s class). PRE_INIT_PANIC_RESET_CLASS therefore
+> stays a HYPOTHESIS and can never be SUPPORTED solely by auto-return.
+> Verbatim history preserved:
+
+```wrong-assertion-history
 kernel/panic.c @ pin: `core_param(panic, panic_timeout, ...)` (line 781);
 `panic()`: `if (panic_timeout > 0) { pr_emerg("Rebooting in %d seconds..");
 mdelay loop timeout*1000 ms }` then `emergency_restart()` (lines 403-427).
@@ -241,10 +253,13 @@ RT-D bootargs carry `panic=5`, so **any** early kernel panic (including the
 no-root panic of §10 or a PID 1 death, which panics via
 "Attempted to kill init") produces a delay-independent automatic Android A
 return with a constant +5 s. EARLY_PANIC_CAN_AUTO_REBOOT_WITH_PANIC_5=**YES**.
+```
 
-Status: PRE_INIT_PANIC_RESET_CLASS is a HYPOTHESIS, not fact. Both candidate
-return paths (H-A zero-sleep-then-reboot, H-B early panic + 5 s) are
-delay-independent and consistent with 23.184 s / 24.570 s / delta 1.386 s.
+Status (predates the correction; the note above further weakens H-B for
+pre-parse stages): PRE_INIT_PANIC_RESET_CLASS is a HYPOTHESIS, not fact.
+Both candidate return paths (H-A zero-sleep-then-reboot, H-B early panic +
+5 s) are delay-independent and consistent with 23.184 s / 24.570 s /
+delta 1.386 s.
 
 ## 13. Failure isolation verdict
 

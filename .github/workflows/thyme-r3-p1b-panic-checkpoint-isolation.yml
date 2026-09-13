@@ -1,14 +1,26 @@
 name: thyme-r3-p1b-panic-checkpoint-isolation
 
-# CI / SOURCE AUDIT ONLY for MAINLINE_V2_R3_P1B_PANIC_OR_CHECKPOINT_ISOLATION_CI.
-# Three deliverables, no device operation anywhere:
-#   panic audit   exact-text gates over linux-6.6 panic=/cmdline/restart sources
-#   PANIC30       RT-D surgery (panic=5 -> panic=30) + semantic diff + identity
-#                 gates against the frozen FIXED INIT8 payload + geometry
-#   checkpoints   T0/T1 reach-and-reset CI prototypes + T2 source audit
+# CI / SOURCE AUDIT ONLY for MAINLINE_V2_R3_P1B_PANIC_OR_CHECKPOINT_ISOLATION_CI
+# + audit-correction round MAINLINE_V2_R3_P1B_PANIC30_PREDEVICE_AUDIT_CORRECTION_CI.
+# Deliverables, no device operation anywhere:
+#   panic audit        exact-text gates over linux-6.6 panic=/cmdline/restart
+#                      sources, corrected: timeout 0 -> no wait, no
+#                      emergency_restart(), terminal infinite loop,
+#                      panic() never returns
+#   panic fixtures     negative fixtures: wrong timeout-0 assertions FAIL CI
+#   PANIC30 identity   re-verify the authoritative PANIC30 artifacts from the
+#                      primary (34754072600) + confirmation (34755788727) runs
+#                      WITHOUT rebuilding any binary
+#   PANIC30 build      RT-D surgery (panic=5 -> panic=30) + semantic diff +
+#                      identity gates against the frozen FIX8 payload +
+#                      geometry (dispatch-only via run_build=true)
+#   checkpoints        T0/T1 reach-and-reset CI prototypes + T2 source audit
 # The PANIC30 payload base is the frozen FIX8 payload bytes (public run
 # 34741153230); only the RT-D trailer differs. FIX24 is forbidden. Boot v3
 # packing runs in private GHA only; this workflow never emits *.img.
+# Since the audit-correction round, push events run the AUDIT jobs only; the
+# kernel/payload build jobs run on explicit workflow_dispatch with
+# run_build=true (the PANIC30 binary is frozen; no rebuild unless asked).
 on:
   push:
     branches: [route-b-v3]
@@ -33,6 +45,10 @@ on:
       - 'configs/thyme-route-b.config'
   workflow_dispatch:
     inputs:
+      run_build:
+        description: Build PANIC30 payload (false = audits/identity only)
+        required: false
+        default: "true"
       rt_d_run_id:
         description: Public GHA run id carrying artifact thyme-r3-runtime-dtb
         required: false
@@ -41,6 +57,14 @@ on:
         description: Public GHA run id carrying artifact thyme-r3-p1b-fix8-fix24
         required: false
         default: "34741153230"
+      panic30_primary_run_id:
+        description: Authoritative public run carrying thyme-r3-p1b-panic30
+        required: false
+        default: "34754072600"
+      panic30_confirm_run_id:
+        description: Confirmation run carrying thyme-r3-p1b-panic30
+        required: false
+        default: "34755788727"
 
 concurrency:
   group: thyme-r3-p1b-panic-checkpoint-isolation-${{ github.ref }}
@@ -136,11 +160,123 @@ jobs:
           echo 'DEVICE_OPERATION=NO'
           echo 'READY_FOR_DEVICE=NO'
 
+  panic-audit-correction:
+    name: R3 P1B corrected panic audit + wrong-assertion fixtures + PANIC30 identity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = \
+            8b73de7da85fde281a385e0b26eda9bffd3ca477
+          echo 'LINUX_BASE_COMMIT=8b73de7da85fde281a385e0b26eda9bffd3ca477'
+
+      - name: Corrected panic= source audit
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1b/p1b-panic-checkpoint-isolation.py \
+            --mode panic-audit
+
+      - name: Wrong-assertion negative fixtures + live repo scan
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1b/p1b-panic-checkpoint-isolation.py \
+            --mode panic-audit-fixtures
+
+      - name: Download frozen RT-D + FIX8 payload from public GHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RT_D_RUN_ID: ${{ inputs.rt_d_run_id || '34678001413' }}
+          FIX8_RUN_ID: ${{ inputs.fix8_run_id || '34741153230' }}
+        run: |
+          set -euo pipefail
+          gh run download "$RT_D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-runtime-dtb --dir rt-d
+          printf '%s  rt-d/rt-d.dtb\n' \
+            4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 \
+            | sha256sum -c -
+          gh run download "$FIX8_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-fix8-fix24 --dir fix8
+          printf '%s  fix8/thyme-r3-p1b-fix8-kernel-payload.bin\n' \
+            4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 \
+            | sha256sum -c -
+
+      - name: Download authoritative PANIC30 artifacts (primary + confirmation)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIMARY_RUN_ID: ${{ inputs.panic30_primary_run_id || '34754072600' }}
+          CONFIRM_RUN_ID: ${{ inputs.panic30_confirm_run_id || '34755788727' }}
+        run: |
+          set -euo pipefail
+          gh run download "$PRIMARY_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-panic30 --dir p30-primary
+          gh run download "$CONFIRM_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-panic30 --dir p30-confirm
+          printf '%s  p30-primary/thyme-r3-p1b-panic30-kernel-payload.bin\n' \
+            cd3f75279b9b2335c4a16594452fb6b0ac68224eb720320c99f07da60ca3687e \
+            | sha256sum -c -
+          printf '%s  p30-primary/rt-d-panic30.dtb\n' \
+            dfbfca033662af4c7f01be46ad71efee16cf085ff4e136f9abada6faefcc3390 \
+            | sha256sum -c -
+          printf '%s  p30-confirm/thyme-r3-p1b-panic30-kernel-payload.bin\n' \
+            cd3f75279b9b2335c4a16594452fb6b0ac68224eb720320c99f07da60ca3687e \
+            | sha256sum -c -
+          printf '%s  p30-confirm/rt-d-panic30.dtb\n' \
+            dfbfca033662af4c7f01be46ad71efee16cf085ff4e136f9abada6faefcc3390 \
+            | sha256sum -c -
+          echo 'PANIC30_AUTH_ARTIFACT_DOWNLOAD=PASS'
+
+      - name: PANIC30 identity re-verification (no rebuild)
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1b/p1b-panic-checkpoint-isolation.py \
+            --mode panic30-identity \
+            --primary-dir p30-primary \
+            --confirm-dir p30-confirm \
+            --rt-d rt-d/rt-d.dtb \
+            --fix8-payload fix8/thyme-r3-p1b-fix8-kernel-payload.bin
+
+      - name: Assert no flashable output + assemble verdict
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'flashable image emitted' >&2
+            exit 1
+          fi
+          {
+            echo "MAINLINE_V2_R3_P1B_PANIC30_PREDEVICE_AUDIT_CORRECTION_CI (CI ONLY)"
+            echo "PANIC30_BINARY_REBUILT_THIS_ROUND=NO"
+            echo "PANIC30_ARTIFACT_REBUILD_REQUIRED=NO"
+            echo "PANIC30_ARTIFACT_IDENTITY_RECONFIRMED=YES"
+            echo "DEVICE_OPERATION=NO"
+            echo "ADB_DEVICE_OPERATION=NO"
+            echo "FASTBOOT_DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "READY_FOR_DEVICE=NO"
+            echo "READY_FOR_R3_P1B_PANIC30_DEVICE_CONTROL_RECONFIRMED=YES"
+          } | tee "$GITHUB_STEP_SUMMARY"
+
   panic30-build:
     name: R3 P1B PANIC30 build + identity/geometry gates + T0/T1 prototypes
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     needs: [source-audit, panic-cmdline-audit]
+    # The PANIC30 binary is frozen since run 34754072600; rebuilds are
+    # dispatch-only (run_build=true). Push events run audits/identity only.
+    if: inputs.run_build == 'true'
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
@@ -266,6 +402,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     needs: panic30-build
+    if: inputs.run_build == 'true'
     steps:
       - name: Checkout project
         uses: actions/checkout@v4

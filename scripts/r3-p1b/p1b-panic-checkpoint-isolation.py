@@ -1,13 +1,24 @@
 #!/usr/bin/env python3
-"""R3 P1B panic/checkpoint isolation (MAINLINE_V2_R3_P1B_PANIC_OR_CHECKPOINT_ISOLATION_CI).
+"""R3 P1B panic/checkpoint isolation (MAINLINE_V2_R3_P1B_PANIC_OR_CHECKPOINT_ISOLATION_CI,
+audit-correction round MAINLINE_V2_R3_P1B_PANIC30_PREDEVICE_AUDIT_CORRECTION_CI).
 
 GitHub Actions only. Modes:
-  source-gate         workflow/source boundary checks (no device, no splice)
-  panic-audit         exact-text gates over linux-6.6 panic/cmdline/restart sources
-  cmdline-audit       input-config + frozen RT-D bootargs provenance
-  panic30             RT-D surgery + semantic diff + FIX8 identity build +
-                      PANIC30 payload + geometry + T0/T1 prototypes + T2 audit
-  panic30-pack-gates  private: gates over a packed PANIC30 boot v3 image
+  source-gate           workflow/source boundary checks (no device, no splice)
+  panic-audit           exact-text gates over linux-6.6 panic/cmdline/restart
+                        sources, corrected: timeout 0 -> no wait, no
+                        emergency_restart(), terminal infinite loop,
+                        panic() never returns
+  panic-audit-fixtures  negative fixtures: historical wrong assertions
+                        (timeout 0 -> fall back to caller / auto-reboot
+                        claims) must be rejected; corrected statements must
+                        be accepted; live repo scan must be clean
+  cmdline-audit         input-config + frozen RT-D bootargs provenance
+  panic30-identity      re-verify the AUTHORITATIVE PANIC30 artifacts from the
+                        public runs (no rebuild): manifest cross-check, binary
+                        SHAs, RT-D semantic re-diff, geometry, doc record
+  panic30               RT-D surgery + semantic diff + FIX8 identity build +
+                        PANIC30 payload + geometry + T0/T1 prototypes + T2 audit
+  panic30-pack-gates    private: gates over a packed PANIC30 boot v3 image
 
 PANIC30 is a diagnostic control: the ONLY runtime-semantic change vs the frozen
 FIXED INIT8 (FIX8) payload is RT-D /chosen/bootargs panic=5 -> panic=30.
@@ -77,6 +88,22 @@ TRAMP_SHA = "362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623"
 PSCI_SYSTEM_RESET_FID = 0x84000009
 PROBE_DELAY = 8
 
+# Authoritative PANIC30 identity (audit-correction round): frozen full-SHA
+# values, re-verified from the GHA manifests of the authoritative runs —
+# never abbreviated. No binary is rebuilt this round.
+PANIC30_AUTH_PUBLIC_RUN = "34754072600"
+PANIC30_AUTH_CONFIRM_RUN = "34755788727"
+PANIC30_AUTH_PRIVATE_RUN = "34755701908"
+PANIC30_RT_D_SHA = (
+    "dfbfca033662af4c7f01be46ad71efee16cf085ff4e136f9abada6faefcc3390")
+PANIC30_RT_D_SIZE = 144597
+PANIC30_PAYLOAD_SHA = (
+    "cd3f75279b9b2335c4a16594452fb6b0ac68224eb720320c99f07da60ca3687e")
+PANIC30_PAYLOAD_SIZE = 37369045
+PANIC30_BOOT_SHA = (
+    "ea50e8b344219f39bde317503b9e238af88080ca7e55b9a14b5b0b825a8664b1")
+PANIC30_BOOT_SIZE = 37380096
+
 
 def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -110,6 +137,45 @@ def need(text: str, needle: str, *, label: str = "P30_AUDIT_FAILED") -> None:
 def forbid(text: str, needle: str, *, label: str = "P30_AUDIT_FAILED") -> None:
     if needle in text:
         fail(label, f"forbidden {needle!r}")
+
+
+# ------------------------------------------- wrong panic-assertion detection
+# PANIC AUDIT CORRECTION: claims that panic with timeout 0 would fall back to
+# the caller, or that a pre-parse panic would restart the board on its own,
+# are WRONG (kernel/panic.c @ pin: no wait, no emergency_restart(), terminal
+# infinite loop, never returns). Any live file re-asserting them must FAIL
+# CI. Historical verbatim wording is preserved only inside fenced
+# ```wrong-assertion-history blocks, which the scan strips.
+FORBIDDEN_PANIC_ASSERTIONS = (
+    r"panic\(\)`?\s+returns",
+    r"\bpanic\s+returns\s+to\s+(its\s+)?caller",
+    r"panic\(\)\s+can\s+return",
+    r"panic\(\)\s+may\s+return",
+    r"permits\s+panic(\(\))?\s+(to\s+)?return",
+    r"panic_timeout\s*==?\s*0[^\n]{0,120}\breturns\b",
+    r"panic_timeout\s*==?\s*0[^\n]{0,120}\breboots\b",
+    r"timeout[ -]?0[^\n]{0,80}\breturns\b",
+    r"pre.?parse[^\n]{0,100}\bpanic\b[^\n]{0,40}[ ]"
+    r"(automatically[ ]reboots?|auto[ -]?reboots?)\b",
+)
+WRONG_HISTORY_FENCE = "wrong-assertion-history"
+
+
+def strip_wrong_history(text: str) -> str:
+    return re.sub(rf"```{WRONG_HISTORY_FENCE}\n.*?\n```", "", text, flags=re.S)
+
+
+def forbidden_panic_hits(text: str) -> list[str]:
+    stripped = strip_wrong_history(text)
+    return [p for p in FORBIDDEN_PANIC_ASSERTIONS
+            if re.search(p, stripped, re.I)]
+
+
+def panic_assertion_scan_paths() -> list[Path]:
+    targets = [DOC, STATUS_DOC, WF,
+               *(REPO / "docs").glob("route-r3-*.md"),
+               *HERE.glob("*.py")]
+    return sorted({p for p in targets if p.is_file()})
 
 
 # ---------------------------------------------------------------- FDT surgery
@@ -550,6 +616,13 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
     doc = DOC.read_text()
     for token in ("PANIC_TIMEOUT_ONLY", "PANIC30_IMAGE_IDENTICAL_TO_FIXED_INIT8",
                   "PANIC30_NEGATIVE_RESULT_CAN_EXCLUDE_ALL_LINUX_PANIC=NO",
+                  "PANIC_ZERO_TIMEOUT_BEHAVIOR="
+                  "INFINITE_PANIC_LOOP_NO_AUTOMATIC_RESTART",
+                  "SUPERSEDED_BY_PANIC_AUDIT_CORRECTION",
+                  "PANIC_TIMEOUT_WALLCLOCK_EXACT_BEFORE_CALIBRATE_DELAY="
+                  "NOT_GUARANTEED",
+                  "PRE_PARSE_LINUX_PANIC_ALONE_EXPLAINS_23S_AUTORETURN=NO",
+                  "PANIC30_BEHAVIOR_CLASS_CHANGED_HANG",
                   "P30-A", "P30-F", "T0", "T1", "T2", FIX8_PAYLOAD_SHA,
                   RT_D_SHA, "panic=30", "READY_FOR_R3_P1B_PANIC30_DEVICE_CONTROL"):
         if token not in doc:
@@ -572,7 +645,13 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
         fail("P30_SOURCE_GATE_FAILED", "must not claim device-ready")
     if pb.calc_dtb_offset(FIX8_IMAGE_HEADER_IMAGE_SIZE)[0] != DTB_OFFSET:
         fail("P30_SOURCE_GATE_FAILED", "dtb_offset algebra for FIX8 image_size")
+    for path in panic_assertion_scan_paths():
+        hits = forbidden_panic_hits(path.read_text())
+        if hits:
+            fail("P30_SOURCE_GATE_FAILED",
+                 f"wrong panic assertion live in {path}: {hits}")
     print("P30_SOURCE_GATE=PASS")
+    print("PANIC_AUDIT_ASSERTION_SCAN=CLEAN")
     print("DEVICE_OPERATION=NO")
     print("READY_FOR_DEVICE=NO")
 
@@ -604,6 +683,7 @@ def cmd_panic_audit(_args: argparse.Namespace) -> None:
     need(mph, '__used __section("__param")')
     need(kdebug, "config PANIC_TIMEOUT")
     need(kdebug, "default 0")
+    need(kdebug, "If n = 0, then we wait forever.")
     need(reboot, "void emergency_restart(void)")
     need(reboot, "kmsg_dump(KMSG_DUMP_EMERG);")
     need(reboot, "machine_emergency_restart();")
@@ -618,6 +698,25 @@ def cmd_panic_audit(_args: argparse.Namespace) -> None:
     need(psci, "register_restart_handler(&psci_sys_reset_nb);")
     need(delay, "return (xloops * loops_per_jiffy * HZ) >> 32;")
     need(delay, "__arch_counter_get_cntvct_stable();")
+
+    # PANIC AUDIT CORRECTION — terminal semantics, exact text @ pin: with
+    # panic_timeout == 0 the wait loop AND emergency_restart() are skipped and
+    # control falls into the terminal infinite loop; panic() never returns.
+    need(panic_c, "This function never returns.")
+    need(panic_c, r'pr_emerg("Rebooting in %d seconds..\n", panic_timeout);')
+    need(panic_c,
+         "for (i = 0; i < panic_timeout * 1000; i += PANIC_TIMER_STEP) {")
+    need(panic_c,
+         r'pr_emerg("---[ end Kernel panic - not syncing: %s ]---\n", buf);')
+    need(panic_c, "local_irq_enable();")
+    need(panic_c, "for (i = 0; ; i += PANIC_TIMER_STEP) {")
+    body = panic_c[panic_c.index("void panic(const char *fmt, ...)"):
+                   panic_c.index("for (i = 0; ; i += PANIC_TIMER_STEP) {")]
+    if re.search(r"\n\t+return\b", body):
+        fail("P30_AUDIT_FAILED", "panic() body contains a return statement")
+    if panic_c.index("for (i = 0; ; i += PANIC_TIMER_STEP) {") \
+            < panic_c.index("if (panic_timeout != 0) {"):
+        fail("P30_AUDIT_FAILED", "terminal loop must follow the restart block")
 
     # start_kernel ordering: setup_arch -> setup_command_line -> notice ->
     # parse_early_param -> parse_args(__start___param) -> calibrate_delay
@@ -654,15 +753,25 @@ def cmd_panic_audit(_args: argparse.Namespace) -> None:
     need(arm64k, "config CMDLINE_FROM_BOOTLOADER")
 
     print("PANIC_PARAM_REGISTRATION=core_param(panic,panic_timeout) -> __section(__param) NOT early_param")
+    print("PANIC_PARAMETER_KIND=CORE_PARAM")
+    print("PANIC_PARAMETER_PARSED_AFTER_SETUP_ARCH=YES")
+    print("PANIC_PARAMETER_PARSED_BY_BOOTING_KERNEL_PARSE_ARGS=YES")
     print("PANIC_CMDLINE_PARSE_STAGE=START_KERNEL_PARSE_ARGS_BOOTING_KERNEL_AFTER_SETUP_ARCH_AND_PARSE_EARLY_PARAM")
     print("PANIC_TIMEOUT_ACTIVATION_STAGE=PARSE_ARGS_BOOTING_KERNEL_PARAM_SET_INT panic_timeout")
     print("PANIC_SETUP_ARCH_ORDERING=setup_arch BEFORE parse_args; arch early params cannot see panic=")
+    print("P1B_PRE_CMDLINE_PANIC_TIMEOUT=0 (CONFIG_PANIC_TIMEOUT default 0; Kconfig: 'If n = 0, then we wait forever.')")
     print("PANIC_PRE_PARSE_DEFAULT=CONFIG_PANIC_TIMEOUT_DEFAULT_0")
-    print("PANIC_PRE_PARSE_PANIC_OBEYS_CMDLINE=NO (panic_timeout==0 skips wait and emergency_restart; panic() returns)")
+    print("PANIC_ZERO_TIMEOUT_BEHAVIOR=INFINITE_PANIC_LOOP_NO_AUTOMATIC_RESTART")
+    print("PANIC_NEVER_RETURNS=YES (kernel-doc 'This function never returns.'; panic() body has no return statement; terminal loop has no exit)")
+    print("PANIC_PRE_PARSE_PANIC_OBEYS_CMDLINE=NO (panic_timeout==0 skips wait and emergency_restart; control falls into the terminal infinite panic loop)")
+    print("PANIC_PRE_PARSE_PANIC_ALONE_AUTO_REBOOTS=NO (an independent reset mechanism would be required to explain any automatic return)")
+    print("PRE_PARSE_LINUX_PANIC_ALONE_EXPLAINS_23S_AUTORETURN=NO")
     print("PANIC_TIMEOUT_WAIT_PATH=PANIC_TIMER_STEP=100ms mdelay loop; mdelay depends on loops_per_jiffy")
     print("PANIC_PRE_CALIBRATE_DELAY_WAIT_ACCURATE=NO (calibrate_delay runs AFTER parse_args; lpj preset 1<<12)")
+    print("PANIC_TIMEOUT_WALLCLOCK_EXACT_BEFORE_CALIBRATE_DELAY=NOT_GUARANTEED")
     print("PANIC_RESTART_PATH=panic->emergency_restart->machine_emergency_restart(asm-generic)->machine_restart->do_kernel_restart->psci_sys_reset->PSCI_0_2_FN_SYSTEM_RESET(0x84000009) smc")
     print("PANIC30_NEGATIVE_RESULT_CAN_EXCLUDE_ALL_LINUX_PANIC=NO")
+    print("PANIC30_POSITIVE_CONTROL_REMAINS_VALID=YES (post-parse panic: timeout wait + emergency_restart path)")
     print("PANIC_SOURCE_AUDIT_GATES=PASS")
     print("DEVICE_OPERATION=NO")
 
@@ -690,6 +799,152 @@ def cmd_cmdline_audit(args: argparse.Namespace) -> None:
     print("DUPLICATE_PANIC_PARAMETER=NO")
     print("P30_CMDLINE_AUDIT_GATES=PASS")
     print("DEVICE_OPERATION=NO")
+
+
+def cmd_panic_audit_fixtures(_args: argparse.Namespace) -> None:
+    """Negative fixtures for the panic-audit correction.
+
+    The historical wrong assertions must be REJECTED by the forbidden-scan;
+    the corrected exact statements must be ACCEPTED; the live repo scan must
+    be clean. Fixture strings are assembled so that no single source line of
+    this file carries a live forbidden assertion (the repo scan includes this
+    file itself).
+    """
+    wrong = [
+        # OLD isolation-doc claim (verbatim historical wording, rebuilt here)
+        ("so the wait loop and emergency_restart() are skipped and `panic()`"
+         " returns (it is not `__noreturn`, `kernel/panic.c:276`)."),
+        # OLD audit-output claim
+        ("PANIC_PRE_PARSE_PANIC_OBEYS_CMDLINE=NO (panic_timeout==0 skips"
+         " wait and emergency_restart; panic()" " returns)"),
+        # task-listed assertion forms
+        ("CONFIG_PANIC_TIMEOUT=0 permits "
+         "panic return to the caller"),
+        ("with timeout 0 the kernel "
+         "returns to its caller instead of looping"),
+        ("a pre-parse panic "
+         "automatically reboots the board"),
+        ("panic_timeout=0 "
+         "auto-reboots the machine"),
+    ]
+    for w in wrong:
+        if not forbidden_panic_hits(w):
+            fail("P30_PANIC_FIXTURE_FAILED", f"not rejected: {w[:60]}...")
+    right = [
+        "This function never returns.",
+        ("panic() never returns; with panic_timeout == 0 it falls into the"
+         " terminal infinite loop"),
+        "PANIC_ZERO_TIMEOUT_BEHAVIOR=INFINITE_PANIC_LOOP_NO_AUTOMATIC_RESTART",
+        "timeout 0 -> no emergency_restart() -> final panic loop",
+        "pre-parse panic cannot produce a panic-path controlled restart",
+        "PANIC_PRE_PARSE_PANIC_ALONE_AUTO_REBOOTS=NO",
+        "PANIC_TIMEOUT_WALLCLOCK_EXACT_BEFORE_CALIBRATE_DELAY=NOT_GUARANTEED",
+    ]
+    for r in right:
+        if forbidden_panic_hits(r):
+            fail("P30_PANIC_FIXTURE_FAILED", f"false reject: {r[:60]}...")
+    live = {}
+    for path in panic_assertion_scan_paths():
+        hits = forbidden_panic_hits(path.read_text())
+        if hits:
+            live[str(path)] = hits
+    if live:
+        fail("P30_PANIC_FIXTURE_FAILED", f"forbidden assertions live: {live}")
+    print("PANIC_AUDIT_NEGATIVE_FIXTURES=PASS "
+          f"({len(wrong)} wrong rejected, {len(right)} corrected accepted)")
+    print("PANIC_OLD_ASSERTIONS=FAIL_OLD_ASSERTION")
+    print("PANIC_ZERO_TIMEOUT_BEHAVIOR=INFINITE_PANIC_LOOP_NO_AUTOMATIC_RESTART")
+    print("PANIC_ASSERTION_REPO_SCAN=CLEAN")
+    print("DEVICE_OPERATION=NO")
+
+
+def cmd_panic30_identity(args: argparse.Namespace) -> None:
+    """Re-verify authoritative PANIC30 identity from GHA manifests (no rebuild).
+
+    Downloads happen in the workflow; this mode cross-checks the primary run
+    and the confirmation run manifests, re-hashes the artifact binaries,
+    re-diffs the RT-D semantics, re-checks geometry, and requires the full-SHA
+    record (never abbreviated) in the round doc.
+    """
+    primary = Path(args.primary_dir)
+    confirm = Path(args.confirm_dir)
+    frozen_rt_d = Path(args.rt_d).read_bytes()
+    if sha(frozen_rt_d) != RT_D_SHA or len(frozen_rt_d) != RT_D_SIZE:
+        fail("P30_IDENTITY_FAILED", "frozen RT-D identity")
+
+    def props(blob: bytes) -> dict:
+        return {f"{p}::{n}": v for p, n, v, _ in fdt_walk(blob)}
+
+    man_a = json.loads((primary / "p1b-panic30-manifest.json").read_text())
+    man_b = json.loads((confirm / "p1b-panic30-manifest.json").read_text())
+    if man_a != man_b:
+        fail("P30_IDENTITY_FAILED", "authoritative manifests differ")
+    expect = {
+        "linux_base": LINUX_BASE,
+        "panic30_rt_d_sha256": PANIC30_RT_D_SHA,
+        "panic30_rt_d_size": PANIC30_RT_D_SIZE,
+        "panic30_payload_sha256": PANIC30_PAYLOAD_SHA,
+        "panic30_payload_size": PANIC30_PAYLOAD_SIZE,
+        "panic30_boot_size_est": PANIC30_BOOT_SIZE,
+        "dtb_offset": hex(DTB_OFFSET),
+        "image_size": hex(FIX8_IMAGE_HEADER_IMAGE_SIZE),
+    }
+    for key, val in expect.items():
+        if man_a.get(key) != val:
+            fail("P30_IDENTITY_FAILED",
+                 f"manifest {key}={man_a.get(key)!r} != {val!r}")
+    for run_dir in (primary, confirm):
+        payload = (run_dir / "thyme-r3-p1b-panic30-kernel-payload.bin")
+        rt_d = (run_dir / "rt-d-panic30.dtb")
+        if sha(payload.read_bytes()) != PANIC30_PAYLOAD_SHA \
+                or payload.stat().st_size != PANIC30_PAYLOAD_SIZE:
+            fail("P30_IDENTITY_FAILED", f"payload identity {run_dir}")
+        if sha(rt_d.read_bytes()) != PANIC30_RT_D_SHA \
+                or rt_d.stat().st_size != PANIC30_RT_D_SIZE:
+            fail("P30_IDENTITY_FAILED", f"rt-d identity {run_dir}")
+        old, new = props(frozen_rt_d), props(rt_d.read_bytes())
+        if set(old) != set(new):
+            fail("P30_IDENTITY_FAILED", f"{run_dir} prop keys differ")
+        diff = {k for k in old if old[k] != new[k]}
+        if diff != {"/chosen::bootargs"}:
+            fail("P30_IDENTITY_FAILED", f"{run_dir} diff={sorted(diff)}")
+        if new["/chosen::bootargs"] != \
+                old["/chosen::bootargs"].replace(b"panic=5", b"panic=30"):
+            fail("P30_IDENTITY_FAILED", f"{run_dir} bootargs token")
+    fix8 = Path(args.fix8_payload).read_bytes()
+    if sha(fix8) != FIX8_PAYLOAD_SHA:
+        fail("P30_IDENTITY_FAILED", "frozen FIX8 payload identity")
+    p30_payload = (primary / "thyme-r3-p1b-panic30-kernel-payload.bin")
+    data = p30_payload.read_bytes()
+    if data[:DTB_OFFSET] != fix8[:DTB_OFFSET]:
+        fail("P30_IDENTITY_FAILED", "payload prefix drifted from frozen FIX8")
+    if data[DTB_OFFSET:] != (primary / "rt-d-panic30.dtb").read_bytes():
+        fail("P30_IDENTITY_FAILED", "payload trailer != PANIC30 RT-D")
+    boot_est = (4096 + len(data) + 4095) & ~4095
+    boot_est += 4096
+    if boot_est != PANIC30_BOOT_SIZE:
+        fail("P30_IDENTITY_FAILED", f"boot_est {boot_est}")
+    doc = DOC.read_text()
+    for token in (PANIC30_RT_D_SHA, PANIC30_PAYLOAD_SHA, PANIC30_BOOT_SHA,
+                  PANIC30_AUTH_PUBLIC_RUN, PANIC30_AUTH_CONFIRM_RUN,
+                  PANIC30_AUTH_PRIVATE_RUN, str(PANIC30_BOOT_SIZE)):
+        if token not in doc:
+            fail("P30_IDENTITY_FAILED",
+                 f"doc missing full record {token[:24]}...")
+    print("PANIC30_AUTH_MANIFESTS_IDENTICAL=YES (primary == confirm)")
+    print(f"PANIC30_AUTH_PUBLIC_RUN={PANIC30_AUTH_PUBLIC_RUN}")
+    print(f"PANIC30_AUTH_CONFIRM_RUN={PANIC30_AUTH_CONFIRM_RUN}")
+    print(f"PANIC30_AUTH_PRIVATE_RUN={PANIC30_AUTH_PRIVATE_RUN}")
+    print(f"PANIC30_RT_D_SHA256={PANIC30_RT_D_SHA}")
+    print(f"PANIC30_PAYLOAD_SHA256={PANIC30_PAYLOAD_SHA}")
+    print(f"PANIC30_BOOT_SHA256={PANIC30_BOOT_SHA} (private pack record)")
+    print(f"PANIC30_BOOT_SIZE={PANIC30_BOOT_SIZE}")
+    print("PANIC30_BINARY_SEMANTICS_UNAFFECTED_BY_AUDIT_CORRECTION=YES")
+    print("PANIC30_ARTIFACT_REBUILD_REQUIRED=NO")
+    print("PANIC30_ARTIFACT_IDENTITY_RECONFIRMED=YES")
+    print("P30_IDENTITY_GATES=PASS")
+    print("DEVICE_OPERATION=NO")
+    print("READY_FOR_DEVICE=NO")
 
 
 def apply_kernel_patches() -> None:
@@ -960,11 +1215,13 @@ def cmd_panic30_pack_gates(args: argparse.Namespace) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=(
-        "source-gate", "panic-audit", "cmdline-audit", "panic30",
-        "panic30-pack-gates"), required=True)
+        "source-gate", "panic-audit", "panic-audit-fixtures", "cmdline-audit",
+        "panic30-identity", "panic30", "panic30-pack-gates"), required=True)
     parser.add_argument("--out", default="out-p30")
     parser.add_argument("--rt-d")
     parser.add_argument("--fix8-payload")
+    parser.add_argument("--primary-dir")
+    parser.add_argument("--confirm-dir")
     parser.add_argument("--clang", default="clang-18")
     parser.add_argument("--lld", default="ld.lld-18")
     parser.add_argument("--objcopy", default="llvm-objcopy-18")
@@ -986,10 +1243,18 @@ def main() -> None:
         cmd_source_gate(args)
     elif args.mode == "panic-audit":
         cmd_panic_audit(args)
+    elif args.mode == "panic-audit-fixtures":
+        cmd_panic_audit_fixtures(args)
     elif args.mode == "cmdline-audit":
         if not args.rt_d:
             fail("P30_CMDLINE_AUDIT_FAILED", "--rt-d required")
         cmd_cmdline_audit(args)
+    elif args.mode == "panic30-identity":
+        if not (args.primary_dir and args.confirm_dir and args.rt_d
+                and args.fix8_payload):
+            fail("P30_IDENTITY_FAILED",
+                 "--primary-dir --confirm-dir --rt-d --fix8-payload required")
+        cmd_panic30_identity(args)
     elif args.mode == "panic30":
         if not (args.rt_d and args.fix8_payload):
             fail("P30_BUILD_FAILED", "--rt-d and --fix8-payload required")

@@ -4,15 +4,21 @@ Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
 facts. Last updated: 2026-09-13
-(MAINLINE_V2_R3_P1B_PANIC_OR_CHECKPOINT_ISOLATION_CI, CI/source-audit round).
+(MAINLINE_V2_R3_P1B_PANIC30_PREDEVICE_AUDIT_CORRECTION_CI, CI /
+source-audit-correction round).
 
 ## Current Gate
 
-`MAINLINE_V2_R3_P1B_PANIC_OR_CHECKPOINT_ISOLATION_CI` — CI / source audit
-only, no device operation. Intended final gate:
-`READY_FOR_R3_P1B_PANIC30_DEVICE_CONTROL` (CI level; any future device round
-still needs separate user approval). Fallbacks:
-`R3_P1B_EARLY_CHECKPOINT_REQUIRED` / `R3_P1B_PANIC_OR_CHECKPOINT_ISOLATION_INCOMPLETE`.
+`MAINLINE_V2_R3_P1B_PANIC30_PREDEVICE_AUDIT_CORRECTION_CI` — CI / source
+audit correction only, no device operation, PANIC30 binary NOT rebuilt.
+Purpose: correct the wrong timeout-0 panic() claim of the previous round
+(`SUPERSEDED_BY_PANIC_AUDIT_CORRECTION`), re-freeze the PANIC30
+positive/negative interpretation boundaries, re-verify PANIC30 artifact
+identity from the authoritative runs. Intended final gate:
+`READY_FOR_R3_P1B_PANIC30_DEVICE_CONTROL_RECONFIRMED` (CI level; any future
+device round still needs separate user approval). Fallback:
+`R3_P1B_PANIC30_PREDEVICE_AUDIT_NOT_READY`. Checkpoints stay
+T0 CI_PASS / T1 CI_PASS / T2 DESIGNED.
 
 ## Evidence ladder (current, conservative)
 
@@ -51,7 +57,11 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
   PANIC_TIMEOUT_ONLY), payload `cd3f7527…687e` (37369045 = 37369041+4,
   prefix byte-identical to frozen FIX8), boot_size_est 37380096,
   primary_entry 0x1b1c0a0 (re-derived this round), __primary_switched
-  0x1b39534, T0/T1 CI PASS, T2 DESIGNED.
+  0x1b39534, T0/T1 CI PASS, T2 DESIGNED. Audit-correction round: identity
+  RE-CONFIRMED from the authoritative manifests (primary 34754072600 ==
+  confirmation 34755788727, manifests identical; full SHAs in the isolation
+  doc) with NO rebuild — `PANIC30_ARTIFACT_REBUILD_REQUIRED=NO`,
+  `PANIC30_BINARY_SEMANTICS_UNAFFECTED_BY_AUDIT_CORRECTION=YES`.
 - PANIC30 boot (PRIVATE repo only, private run 34755701908): boot v3
   `ea50e8b3…64b1`, size 37380096, spliced into the exact M5D envelope
   (4db8151b…); pack gates + size cross-check PASS; `READY_FOR_DEVICE=NO`.
@@ -68,18 +78,23 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
 - USB stage work: FROZEN.
 - UFS / rootfs / network: FROZEN.
 - PANIC30: diagnostic control only (panic=5 -> panic=30 on the RT-D
-  trailer); CI DEVICE-READY at most this round; no device run approved.
+  trailer); CI DEVICE-READY only after the corrected audit gate
+  (`READY_FOR_R3_P1B_PANIC30_DEVICE_CONTROL_RECONFIRMED`); no device run
+  approved; binary frozen, no rebuild.
 - Checkpoints T0/T1/T2: diagnostic reach-and-reset family; CI prototypes /
   design only this round; never mixed with normal boot candidates.
 
 ## Next approved candidate
 
 `P1B-PANIC30` (single future device boot against the FIXED INIT8 23.852 s
-baseline; pre-registered interpretation: shift [24.0, 26.0] s STRONG /
-[23.0, 27.0] s SUPPORTED for PANIC_TIMEOUT_CONTROLS_RETURN_TIMELINE; no
-shift -> `PANIC30_TIMEOUT_NOT_OBSERVED_TO_CONTROL_RETURN_TIMELINE=YES` and
-the checkpoint ladder starts at T0). Device execution requires explicit user
-approval.
+baseline; pre-registered interpretation re-frozen by the audit correction —
+shift [24.0, 26.0] s STRONG / [23.0, 27.0] s SUPPORTED for
+`PANIC30_TIMEOUT_VALUE_OBSERVED_TO_CONTROL_RETURN_TIMELINE`; no shift ->
+`PANIC30_TIMEOUT_NOT_OBSERVED_TO_CONTROL_RETURN_TIMELINE=YES` and the
+checkpoint ladder starts at T0; hang >120 s ->
+`PANIC30_BEHAVIOR_CLASS_CHANGED_HANG`, STOP, no automatic re-boot). Device
+execution requires explicit user approval
+(`MAINLINE_V2_R3_P1B_PANIC30_TRUE_DEVICE_CONTROL`).
 
 ## Not-ready candidates
 
@@ -89,17 +104,32 @@ approval.
 - Persistent logging (pstore/ramoops/UART/USB gadget/earlycon): deferred;
   would break single-variable isolation.
 
-## Panic-audit anchors (this round)
+## Panic-audit anchors (corrected 2026-09-13)
 
 panic= is a standard boot param (`core_param`, `__section("__param")`, not
 early); parsed in `parse_args("Booting kernel")` AFTER setup_arch and
-`parse_early_param`; `panic_timeout` default 0 (pre-parse panic cannot
-restart via the panic path); timeout wait = 100 ms mdelay loop depending on
-`loops_per_jiffy` (calibrated only AFTER parse_args -> pre-calibration panics
-have unreliable wait wall-clock); restart path = emergency_restart ->
-machine_restart -> do_kernel_restart -> PSCI SYSTEM_RESET (0x84000009) smc,
-closed under RT-D (`/psci method="smc"`). Cmdline provenance closed:
+`parse_early_param`. `panic_timeout` default 0 — with 0 the panic path
+performs NO wait and NO emergency_restart() and control falls into the
+terminal infinite panic loop; `PANIC_NEVER_RETURNS=YES`
+(`PANIC_ZERO_TIMEOUT_BEHAVIOR=INFINITE_PANIC_LOOP_NO_AUTOMATIC_RESTART`).
+A pre-parse panic therefore cannot restart via the panic path at all and
+needs an independent reset mechanism (watchdog/firmware/hardware) to
+auto-return: `PRE_PARSE_LINUX_PANIC_ALONE_EXPLAINS_23S_AUTORETURN=NO`. A
+post-parse panic obeys panic=30 (timeout wait + emergency_restart) —
+`PANIC30_POSITIVE_CONTROL_REMAINS_VALID=YES`. Timeout wait = 100 ms mdelay
+loop depending on `loops_per_jiffy` (calibrated only AFTER parse_args ->
+`PANIC_TIMEOUT_WALLCLOCK_EXACT_BEFORE_CALIBRATE_DELAY=NOT_GUARANTEED`);
+restart path = emergency_restart -> machine_restart -> do_kernel_restart ->
+PSCI SYSTEM_RESET (0x84000009) smc, closed under RT-D (`/psci
+method="smc"`). Cmdline provenance closed:
 `P1B_FINAL_CMDLINE_SOURCE=RT_D_CHOSEN_BOOTARGS_ONLY`,
 `DUPLICATE_PANIC_PARAMETER=NO`.
+
+Old timeout-0 reading ("panic() would return to its caller") of the
+previous round: `SUPERSEDED_BY_PANIC_AUDIT_CORRECTION`; verbatim history is
+preserved in git (96a2cc9..c001114c) and in the fenced history blocks of
+docs/route-r3-p1b-panic-checkpoint-isolation.md (section 6a) and
+docs/route-r3-p1b-failure-isolation.md (section 12). CI now carries
+negative fixtures that FAIL any live re-assertion of that claim.
 
 Round details: docs/route-r3-p1b-panic-checkpoint-isolation.md

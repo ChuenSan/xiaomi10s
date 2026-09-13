@@ -9,6 +9,14 @@ GitHub Actions only; nothing is built or validated locally. Current B
 FROZEN. PANIC30 and the checkpoint family may reach CI DEVICE-READY /
 CI-prototype status at most this round; no device run is approved by this doc.
 
+Audit-correction round (MAINLINE_V2_R3_P1B_PANIC30_PREDEVICE_AUDIT_CORRECTION_CI,
+2026-09-13): CI / SOURCE AUDIT CORRECTION ONLY, no device operation. The
+previous round's panic= source audit carried a wrong timeout-0 semantic claim
+(section 6a); this round corrects it, re-freezes the PANIC30
+positive/negative interpretation boundaries (sections 6, 12, 13, 14), and
+re-verifies the PANIC30 artifact identity WITHOUT rebuilding any binary
+(`PANIC30_ARTIFACT_REBUILD_REQUIRED=NO`).
+
 ## 1. Frozen FIXED INIT8 result
 
 | fact | value |
@@ -80,7 +88,16 @@ reachability directly.
   `__section("__param")`. panic= is a STANDARD boot parameter, NOT an
   early_param.
 - Initial value: `kernel/panic.c:66` `int panic_timeout = CONFIG_PANIC_TIMEOUT;`
-  with `lib/Kconfig.debug:1002` `config PANIC_TIMEOUT ... default 0`.
+  with `lib/Kconfig.debug:1002-1009` `config PANIC_TIMEOUT ... default 0`
+  (help: "If n = 0, then we wait forever.") ->
+  `P1B_PRE_CMDLINE_PANIC_TIMEOUT=0`.
+- Terminal semantics (corrected this round, section 6a): the kernel-doc of
+  `panic()` states "This function never returns." (`kernel/panic.c:274`) and
+  the body contains no return statement (CI exact-text gate). After the
+  `if (panic_timeout != 0)` block (panic.c:419-427) control always falls
+  through the `---[ end Kernel panic ]---` banner (panic.c:451) into the
+  terminal loop `for (i = 0; ; i += PANIC_TIMER_STEP) { …
+  mdelay(PANIC_TIMER_STEP); }` (panic.c:453-461), which has no exit.
 
 ## 5. Command-line parse stage
 
@@ -99,11 +116,25 @@ parse_args("Booting kernel", static_command_line, __start___param, …)  # main.
 ## 6. panic_timeout activation stage
 
 Activation happens inside `parse_args("Booting kernel")` via
-`param_set_int` writing `panic_timeout`. Any Linux panic BEFORE this point
-(including setup_arch and early params) still sees `panic_timeout = 0`; with
-0, `kernel/panic.c:419` `if (panic_timeout != 0)` is false, so the wait loop
-and `emergency_restart()` are skipped and `panic()` returns (it is not
-`__noreturn`, `kernel/panic.c:276`).
+`param_set_int` writing `panic_timeout`. The failure stage must be split:
+
+- `PRE_PARSE_ARGS`: any Linux panic before `parse_args` (setup_arch
+  neighborhood, early params) still sees `panic_timeout = 0`. With 0,
+  `kernel/panic.c:419` `if (panic_timeout != 0)` is false, so the wait loop
+  AND `emergency_restart()` are both skipped and control falls into the
+  terminal infinite panic loop (panic.c:451-461).
+  `PANIC_ZERO_TIMEOUT_BEHAVIOR=INFINITE_PANIC_LOOP_NO_AUTOMATIC_RESTART`,
+  `PANIC_NEVER_RETURNS=YES`,
+  `PANIC_PRE_PARSE_PANIC_ALONE_AUTO_REBOOTS=NO`: by the panic path alone the
+  board neither returns to Android nor reboots; an independent reset
+  mechanism (external watchdog, firmware reset, hardware reset, other reset
+  path) would be required to explain any automatic return.
+  `PRE_PARSE_LINUX_PANIC_ALONE_EXPLAINS_23S_AUTORETURN=NO`. This does NOT
+  prove the historical 23-25 s auto-returns were not early Linux failures;
+  it only means a pre-parse panic REQUIRES an additional reset mechanism.
+- `POST_PARSE_ARGS`: `panic=` has been consumed, `panic_timeout` = 30, and a
+  panic takes the timeout wait + `emergency_restart()` path — PANIC30 stays
+  a high-value positive control (`PANIC30_POSITIVE_CONTROL_REMAINS_VALID=YES`).
 
 `PANIC_PRE_PARSE_PANIC_OBEYS_CMDLINE=NO` — a pre-parse Linux panic under the
 current config cannot produce a panic-path controlled restart at all.
@@ -115,7 +146,72 @@ depends on `loops_per_jiffy` (`arch/arm64/lib/delay.c:21-24`); the preset is
 `calibrate_delay()` runs at `init/main.c:1011`, AFTER parse_args. Therefore
 `PANIC_PRE_CALIBRATE_DELAY_WAIT_ACCURATE=NO`: a panic between cmdline parse
 and calibration would NOT wait a wall-clock 30 s even if it reached the
-timeout loop.
+timeout loop. `PANIC_TIMEOUT_WALLCLOCK_EXACT_BEFORE_CALIBRATE_DELAY=NOT_GUARANTEED`
+— do NOT equate panic=30 mechanically to an exact +25.000 s wall-clock shift
+for post-parse pre-calibration stages.
+
+## 6a. PANIC AUDIT CORRECTION (exact Linux 6.6.156 semantics)
+
+Old statement — historical record only, kept verbatim as history (the CI
+forbidden-assertion scan strips this fenced block; the claim is
+`SUPERSEDED_BY_PANIC_AUDIT_CORRECTION` and is NOT a live assertion):
+
+```wrong-assertion-history
+with 0, `kernel/panic.c:419` `if (panic_timeout != 0)` is false, so the wait
+loop and `emergency_restart()` are skipped and `panic()` returns (it is not
+`__noreturn`, `kernel/panic.c:276`).
+```
+
+Why incorrect: "it is not `__noreturn`" confused the C declaration with the
+control-flow semantics. At pin `8b73de7da85fde281a385e0b26eda9bffd3ca477`
+(Linux 6.6.156) the kernel-doc of panic() states "This function never
+returns." (`kernel/panic.c:274`); the body contains no return statement
+(CI gate `PANIC_NEVER_RETURNS=YES`); after the restart block, control falls
+into the terminal infinite loop, which has no exit.
+
+Exact semantics (`kernel/panic.c` @ pin):
+
+| condition | behavior | lines |
+| --- | --- | --- |
+| `panic_timeout > 0` | `Rebooting in %d seconds..` + `PANIC_TIMER_STEP=100` ms mdelay loop (nominal `panic_timeout * 1000` ms) | 403-417 |
+| `panic_timeout != 0` | `emergency_restart()` (any non-zero timeout) | 419-427 |
+| `panic_timeout == 0` | NO wait, NO emergency_restart; falls through the end banner into the terminal loop | 451-461 |
+| terminal loop | `for (i = 0; ; i += PANIC_TIMER_STEP) { touch_softlockup_watchdog(); … mdelay(PANIC_TIMER_STEP); }` — no exit | 453-461 |
+
+`PANIC_ZERO_TIMEOUT_BEHAVIOR=INFINITE_PANIC_LOOP_NO_AUTOMATIC_RESTART`,
+`PANIC_PARAMETER_KIND=CORE_PARAM` (not early_param),
+`PANIC_PARAMETER_PARSED_AFTER_SETUP_ARCH=YES`,
+`PANIC_PARAMETER_PARSED_BY_BOOTING_KERNEL_PARSE_ARGS=YES`,
+`PANIC_TIMEOUT_ACTIVATION_STAGE=PARSE_ARGS_BOOTING_KERNEL_PARAM_SET_INT`.
+
+Correct pre-parse behavior (PRE_PARSE_ARGS panic with
+`CONFIG_PANIC_TIMEOUT=0`): the panic path alone cannot produce an automatic
+Android return — the board sits in the terminal panic loop (hang) unless an
+independent reset mechanism (external watchdog, firmware reset, hardware
+reset, other reset path) intervenes.
+
+Interpretation boundaries re-frozen by this correction:
+
+- Positive PANIC30 (POST_PARSE_ARGS): a ~ +25 s device shift records
+  `PANIC30_TIMEOUT_VALUE_OBSERVED_TO_CONTROL_RETURN_TIMELINE=YES` and
+  `LINUX_CMDLINE_AWARE_PANIC_PATH_REACHED=PROVEN|STRONGLY_SUPPORTED` (per the
+  source+timing gate); it proves running Linux consumed panic=30 and reached
+  the panic timeout wait/restart path — nothing beyond that (sections 12-13).
+- Negative PANIC30: only
+  `PANIC30_TIMEOUT_NOT_OBSERVED_TO_CONTROL_RETURN_TIMELINE=YES` is allowed;
+  a pre-parse failure, non-panic reset, or unreliable wait timing at that
+  stage all remain open (section 13).
+- Delay-calibration limitation: `PANIC_TIMEOUT_WALLCLOCK_EXACT_BEFORE_CALIBRATE_DELAY=NOT_GUARANTEED`
+  (see section 6).
+
+Artifact identity impact: the correction changes only the interpretation
+layer (docs + gates); the authoritative PANIC30 artifact carries exactly the
+panic=5 -> panic=30 RT-D delta and is byte-unaffected:
+`PANIC30_BINARY_SEMANTICS_UNAFFECTED_BY_AUDIT_CORRECTION=YES`,
+`PANIC30_ARTIFACT_REBUILD_REQUIRED=NO`; identity re-verified against the
+authoritative manifests (primary 34754072600, confirmation 34755788727,
+private pack 34755701908) — `PANIC30_ARTIFACT_IDENTITY_RECONFIRMED=YES`
+(section 25).
 
 ## 7. Panic restart path
 
@@ -264,6 +360,16 @@ accuracy boundary (section 6), a positive shift additionally implies
 `calibrate_delay()` had completed, i.e. the panic happened after the
 scheduler/clock calibration neighborhood of start_kernel.
 
+Audit-correction wording (2026-09-13): record
+`PANIC30_TIMEOUT_VALUE_OBSERVED_TO_CONTROL_RETURN_TIMELINE=YES` together with
+`LINUX_CMDLINE_AWARE_PANIC_PATH_REACHED=PROVEN` or `STRONGLY_SUPPORTED` per
+the source+timing gate — it proves running Linux consumed panic=30 and
+reached the panic timeout wait/restart path, and a shift close to a true
+25 s wall-clock delta additionally supports that the effective delay state
+was already stable. The mdelay boundary still applies: only a
+post-calibration panic gives a wall-clock-exact wait, and a positive shift
+must not be read as evidence for /init, initramfs, USB, or UFS.
+
 ## 13. PANIC30 negative-result boundary
 
 If PANIC30 still returns ~23-25 s without a meaningful shift, the ONLY
@@ -275,16 +381,31 @@ Never `NO_LINUX_PANIC`, never `LINUX_NOT_REACHED`: the panic may predate
 parameter parsing, the panic path may not reach the timeout wait, the reset
 may be non-panic, or the probe may not reach the expected path at all.
 `PANIC30_NEGATIVE_RESULT_CAN_EXCLUDE_ALL_LINUX_PANIC=NO`. A negative result
-moves the route to the checkpoint ladder (section 22).
+moves the route to the checkpoint ladder (section 22), starting at T0 —
+never a direct jump to T1/T2, and never the reading "Linux did not execute".
+
+Audit-correction addition (2026-09-13): a no-shift result is ALSO consistent
+with a `PRE_PARSE_ARGS` failure — a pre-parse panic (timeout 0) never
+restarts via the panic path (`PANIC_ZERO_TIMEOUT_BEHAVIOR=INFINITE_PANIC_LOOP_NO_AUTOMATIC_RESTART`),
+so the historical 23-25 s auto-returns cannot be attributed to panic=5 by
+auto-return alone: `EARLY_PANIC_RESET_CLASS=HYPOTHESIS` (never PROVEN, never
+SUPPORTED solely by auto-return; a pre-parse reading additionally requires
+an independent reset mechanism).
+
+New hang class: if PANIC30 does not auto-return and the board sits >120 s,
+record `PANIC30_BEHAVIOR_CLASS_CHANGED_HANG` and consider that the original
+path entered a terminal panic loop (timeout 0 semantics, section 6a) or that
+the panic timeout/restart behavior changed materially. Move to the
+checkpoint / observability isolation ladder; NO automatic re-boot.
 
 ## 14. PANIC30 future device classification table
 
 | class | observation | proves | does NOT prove | next |
 | --- | --- | --- | --- | --- |
-| P30-A | automatic Android return, shift ~ +25 s | panic timeout consumed by running Linux; Linux reached cmdline-aware panic path (E1 strong upgrade) | /init executed; initramfs reached | PANIC SOURCE LOCALIZATION or late checkpoint |
-| P30-B | automatic Android return, no meaningful shift | timeout not observed to control the return timeline | nothing about Linux absence | checkpoint ladder, start with T0 |
+| P30-A | automatic Android return, shift ~ +25 s | `PANIC30_TIMEOUT_VALUE_OBSERVED_TO_CONTROL_RETURN_TIMELINE=YES`; panic timeout consumed by running Linux; Linux reached cmdline-aware panic path (E1 strong upgrade) | /init executed; initramfs reached | PANIC SOURCE LOCALIZATION or late checkpoint |
+| P30-B | automatic Android return, no meaningful shift | timeout not observed to control the return timeline | nothing about Linux absence (pre-parse failure, non-panic reset, unreliable wait remain open) | checkpoint ladder, start with T0 |
 | P30-C | automatic stable Fastboot | the packed image changed the reset path class | cause | independent classification, STOP and analyze |
-| P30-D | no return >120 s | return path broken/changed | cause | STOP; recovery via normal procedure; independent classification |
+| P30-D | no return >120 s (hang) | `PANIC30_BEHAVIOR_CLASS_CHANGED_HANG`: terminal panic loop (timeout 0 semantics) or materially changed timeout/restart behavior | cause | STOP; checkpoint / observability isolation; NO automatic re-boot |
 | P30-E | behavior changed, neither timing class | undefined anomaly | — | STOP; independent classification |
 | P30-F | boot not accepted (fastboot reject) | packaging/ABL acceptance issue | — | STOP; packaging forensics |
 
@@ -423,16 +544,23 @@ PANIC30 (if device-approved later)
                           T1 - -> T1 instrumentation forensics (fail-closed)
                                  T2 + -> start_kernel / setup_arch / cmdline /
                                          initramfs / exec /init studies (T3+)
+  hang >120s    -> PANIC30_BEHAVIOR_CLASS_CHANGED_HANG
+                   -> checkpoint / observability isolation
+                      (STOP; NO automatic re-boot)
 ```
 
 ## 23. Current-state summary
 
 - Baseline FIXED INIT8: 23.852 s, delay not reflected (+0.668 s vs broken).
 - Evidence ladder: E0 PROVEN; E1/E2/E3/E4 NOT_PROVEN; E5 FROZEN.
-- panic audit: closed (registration/parse/activation/restart path above).
+- panic audit: CORRECTED (registration/parse/activation/terminal-loop
+  semantics; section 6a) — the timeout-0 reading of the previous round is
+  `SUPERSEDED_BY_PANIC_AUDIT_CORRECTION`.
 - cmdline provenance: closed; PANIC30 permitted to CI DEVICE-READY.
 - PANIC30: built on frozen FIX8 bytes; `PANIC30_RUNTIME_SEMANTIC_DELTA=
-  PANIC_TIMEOUT_ONLY`; identity + geometry gates this round.
+  PANIC_TIMEOUT_ONLY`; identity + geometry gates this round; identity
+  RE-CONFIRMED against the authoritative runs without a rebuild
+  (audit-correction round).
 - Checkpoints: T0/T1 CI prototypes PASS; T2 DESIGNED.
 - CopyMem priority LOWERED. Current B UNCHANGED (M5D+M5H+M5M-B). FIX24, M5N,
   USB frozen. No device operation.
@@ -496,3 +624,17 @@ payload/RT-D SHAs re-verified identical to the public run, boot size
 cross-check PASS. The boot.img exists ONLY as a private-repo artifact
 (`thyme-r3-p1b-panic30-boot`). No flash, no device operation,
 `READY_FOR_DEVICE=NO`.
+
+### 25.1 Audit-correction round record (MAINLINE_V2_R3_P1B_PANIC30_PREDEVICE_AUDIT_CORRECTION_CI)
+
+CI / SOURCE AUDIT CORRECTION ONLY. No binary was rebuilt this round
+(`PANIC30_BINARY_REBUILT_THIS_ROUND=NO`,
+`PANIC30_ARTIFACT_REBUILD_REQUIRED=NO`); the public build + verify jobs were
+deliberately not executed (dispatch-only via `run_build=true`). Jobs that
+did run: source-audit (source-gate incl. the forbidden-assertion scan),
+panic-cmdline-audit (corrected panic-audit + cmdline-audit),
+panic-audit-correction (corrected panic-audit, wrong-assertion negative
+fixtures, PANIC30 identity re-verification against the authoritative
+artifacts of runs 34754072600 + 34755788727, frozen RT-D + FIX8 payload
+re-download), and a private identity-reverify job (private run 34755701908
+boot re-hashed, never re-packed). Round run ids recorded after completion.
