@@ -1,0 +1,409 @@
+name: thyme-r3-p1b-panic-checkpoint-isolation
+
+# CI / SOURCE AUDIT ONLY for MAINLINE_V2_R3_P1B_PANIC_OR_CHECKPOINT_ISOLATION_CI.
+# Three deliverables, no device operation anywhere:
+#   panic audit   exact-text gates over linux-6.6 panic=/cmdline/restart sources
+#   PANIC30       RT-D surgery (panic=5 -> panic=30) + semantic diff + identity
+#                 gates against the frozen FIXED INIT8 payload + geometry
+#   checkpoints   T0/T1 reach-and-reset CI prototypes + T2 source audit
+# The PANIC30 payload base is the frozen FIX8 payload bytes (public run
+# 34741153230); only the RT-D trailer differs. FIX24 is forbidden. Boot v3
+# packing runs in private GHA only; this workflow never emits *.img.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-r3-p1b-panic-checkpoint-isolation.yml'
+      - 'scripts/r3-p1b/p1b-panic-checkpoint-isolation.py'
+      - 'scripts/r3-p1b/p1b-t0-trampoline.S'
+      - 'scripts/r3-p1b/p1b-t1-gap-probe.S'
+      - 'scripts/r3-p1b/p1b-t1-gap.ld'
+      - 'scripts/r3-p1b/p1b-build.py'
+      - 'scripts/r3-p1b/p1b-trampoline.S'
+      - 'scripts/r3-p1b/p1b-trampoline.ld'
+      - 'scripts/r3-p1b/p1b-init.c'
+      - 'scripts/r3-p1b/p1b-init.ld'
+      - 'configs/thyme-r3-p1b.config'
+      - 'configs/thyme-route-b.config'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-p1b-panic-checkpoint-isolation.yml'
+      - 'scripts/r3-p1b/**'
+      - 'configs/thyme-r3-p1b.config'
+      - 'configs/thyme-route-b.config'
+  workflow_dispatch:
+    inputs:
+      rt_d_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-runtime-dtb
+        required: false
+        default: "34678001413"
+      fix8_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-p1b-fix8-fix24
+        required: false
+        default: "34741153230"
+
+concurrency:
+  group: thyme-r3-p1b-panic-checkpoint-isolation-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: R3 P1B panic/checkpoint source gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-r3-p1b-panic-checkpoint-isolation.yml
+
+      - name: Parse builders
+        run: |
+          python3 -m py_compile scripts/r3-p1b/p1b-build.py
+          python3 -m py_compile scripts/r3-p1b/p1b-panic-checkpoint-isolation.py
+
+      - name: Panic-checkpoint source-gate
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1b/p1b-panic-checkpoint-isolation.py --mode source-gate
+
+      - name: Assert constraints
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -Ei '(^|/)(r3-p1b|p1b).*\.(img)$'; then
+            echo 'tracked p1b flashable binary found' >&2
+            exit 1
+          fi
+          echo 'LOCAL_BUILD=NO'
+          echo 'GHA_ONLY=YES'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'ADB_DEVICE_OPERATION=NO'
+          echo 'FASTBOOT_DEVICE_OPERATION=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+  panic-cmdline-audit:
+    name: R3 P1B panic= + cmdline provenance audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = \
+            8b73de7da85fde281a385e0b26eda9bffd3ca477
+          echo 'LINUX_BASE_COMMIT=8b73de7da85fde281a385e0b26eda9bffd3ca477'
+
+      - name: Panic= source audit
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1b/p1b-panic-checkpoint-isolation.py \
+            --mode panic-audit
+
+      - name: Download frozen RT-D from public GHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RT_D_RUN_ID: ${{ inputs.rt_d_run_id || '34678001413' }}
+        run: |
+          set -euo pipefail
+          gh run download "$RT_D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-runtime-dtb --dir rt-d
+          test -s rt-d/rt-d.dtb
+          printf '%s  rt-d/rt-d.dtb\n' \
+            4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 \
+            | sha256sum -c -
+
+      - name: Final cmdline provenance audit
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1b/p1b-panic-checkpoint-isolation.py \
+            --mode cmdline-audit --rt-d rt-d/rt-d.dtb
+          echo 'DEVICE_OPERATION=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+  panic30-build:
+    name: R3 P1B PANIC30 build + identity/geometry gates + T0/T1 prototypes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    needs: [source-audit, panic-cmdline-audit]
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install pinned LLVM 18.1.3 toolchain + dtc
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang lld llvm make gcc bc bison flex libssl-dev libelf-dev \
+            cpio file python3 gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu device-tree-compiler
+          clang --version | head -1 | tee clang-version.txt
+          grep -F '18.1.3' clang-version.txt
+          dtc --version
+          echo "TOOLCHAIN_PINNED=$(clang --version | head -1)"
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = \
+            8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+      - name: Download frozen RT-D from public GHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RT_D_RUN_ID: ${{ inputs.rt_d_run_id || '34678001413' }}
+        run: |
+          set -euo pipefail
+          gh run download "$RT_D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-runtime-dtb --dir rt-d
+          printf '%s  rt-d/rt-d.dtb\n' \
+            4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 \
+            | sha256sum -c -
+          echo 'RT_D_SOURCE=PUBLIC_GHA_RUN'
+
+      - name: Download frozen FIXED INIT8 payload from public GHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FIX8_RUN_ID: ${{ inputs.fix8_run_id || '34741153230' }}
+        run: |
+          set -euo pipefail
+          gh run download "$FIX8_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-fix8-fix24 --dir fix8
+          test -s fix8/thyme-r3-p1b-fix8-kernel-payload.bin
+          printf '%s  fix8/thyme-r3-p1b-fix8-kernel-payload.bin\n' \
+            4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 \
+            | sha256sum -c -
+          echo 'FIX8_PAYLOAD_BASE=PUBLIC_GHA_RUN_34741153230'
+
+      - name: Build PANIC30 + run all gates
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          mkdir -p out-p30
+          python3 scripts/r3-p1b/p1b-panic-checkpoint-isolation.py \
+            --mode panic30 --out out-p30 \
+            --rt-d rt-d/rt-d.dtb \
+            --fix8-payload fix8/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --jobs "$(nproc)" | tee out-p30-run.txt
+          grep -Fxq 'P30_BUILD_GATES=PASS' out-p30/p1b-panic30-gates.txt
+          grep -Fxq 'PANIC30_RTD_SEMANTIC_DELTA=PANIC_TIMEOUT_ONLY' \
+            out-p30/p1b-panic30-gates.txt
+          grep -Fxq 'PANIC30_IMAGE_IDENTICAL_TO_FIXED_INIT8=YES' \
+            out-p30/p1b-panic30-gates.txt
+          grep -Fxq 'PANIC30_INIT_IDENTICAL=YES' out-p30/p1b-panic30-gates.txt
+          grep -Fxq 'PANIC30_INITRAMFS_IDENTICAL=YES' out-p30/p1b-panic30-gates.txt
+          grep -Fxq 'PANIC30_TRAMPOLINE_IDENTICAL=YES' out-p30/p1b-panic30-gates.txt
+          grep -Fxq 'PANIC30_GEOMETRY_GATES=PASS' out-p30/p1b-panic30-gates.txt
+          grep -Fxq 'CHECKPOINT_T0_CI=PASS' out-p30/p1b-panic30-gates.txt
+          grep -Fxq 'CHECKPOINT_T1_CI=PASS' out-p30/p1b-panic30-gates.txt
+          grep -Fxq 'CHECKPOINT_T2_STATUS=DESIGNED' out-p30/p1b-panic30-gates.txt
+          grep -Fxq 'READY_FOR_DEVICE=NO' out-p30/p1b-panic30-gates.txt
+
+      - name: Stage PANIC30 release inputs
+        run: |
+          mkdir -p out-p30-release
+          cp out-p30/thyme-r3-p1b-panic30-kernel-payload.bin out-p30-release/
+          cp out-p30/rt-d-panic30.dtb out-p30-release/
+          cp rt-d/rt-d.dtb out-p30-release/rt-d-frozen.dtb
+          cp out-p30/rt-d-old.dts out-p30/rt-d-new.dts out-p30-release/
+          cp out-p30/rt-d-dtc-diff.txt out-p30-release/
+          cp out-p30/p1b-t0-trampoline.bin out-p30/p1b-t0-trampoline.elf \
+            out-p30/p1b-t0-trampoline-disasm.txt out-p30/p1b-t0-report.txt \
+            out-p30-release/
+          cp out-p30/p1b-t1-gap-probe.bin out-p30/p1b-t1-gap-probe.elf \
+            out-p30/p1b-t1-gap-probe-disasm.txt out-p30/p1b-t1-report.txt \
+            out-p30-release/
+          cp out-p30/p1b-t2-audit.txt out-p30-release/
+          cp out-p30/p1b-panic30-manifest.json out-p30-release/
+          cp out-p30/p1b-panic30-gates.txt out-p30-release/
+          cp out-p30-run.txt out-p30-release/
+          ( cd out-p30-release && sha256sum \
+              thyme-r3-p1b-panic30-kernel-payload.bin \
+              rt-d-panic30.dtb rt-d-frozen.dtb \
+              p1b-t0-trampoline.bin p1b-t1-gap-probe.bin > SHA256SUMS )
+          cat out-p30-release/SHA256SUMS
+
+      - name: Assert no flashable output exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'flashable image emitted' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_P1B_PANIC30_NO_BOOT_IMAGE=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+
+      - name: Upload PANIC30 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-panic30
+          if-no-files-found: error
+          path: out-p30-release/**
+
+  verify:
+    name: R3 P1B PANIC30 independent re-verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: panic30-build
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Download this run artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh run download "$RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-panic30 --dir art
+          ( cd art && sha256sum -c SHA256SUMS )
+          echo 'ARTIFACT_SHA_RECHECK=PASS'
+
+      - name: Download frozen FIX8 payload + RT-D again
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FIX8_RUN_ID: ${{ inputs.fix8_run_id || '34741153230' }}
+          RT_D_RUN_ID: ${{ inputs.rt_d_run_id || '34678001413' }}
+        run: |
+          set -euo pipefail
+          gh run download "$FIX8_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-fix8-fix24 --dir fix8
+          printf '%s  fix8/thyme-r3-p1b-fix8-kernel-payload.bin\n' \
+            4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 \
+            | sha256sum -c -
+          gh run download "$RT_D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-runtime-dtb --dir rt-d
+          printf '%s  rt-d/rt-d.dtb\n' \
+            4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 \
+            | sha256sum -c -
+
+      - name: Independent structured re-verification
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, struct, sys
+          from pathlib import Path
+
+          def sha(b): return hashlib.sha256(b).hexdigest()
+          def u32(b, o): return struct.unpack_from(">I", b, o)[0]
+          def a4(n): return (n + 3) & ~3
+
+          def props(blob):
+              magic, totalsize = struct.unpack_from(">II", blob, 0)
+              assert magic == 0xD00DFEED and totalsize == len(blob)
+              off_s, off_str = u32(blob, 8), u32(blob, 12)
+              strings = blob[off_str:off_str + u32(blob, 32)]
+              out, path, i = {}, [], off_s
+              while True:
+                  tok = u32(blob, i); i += 4
+                  if tok == 1:
+                      e = blob.index(b"\x00", i)
+                      path.append(blob[i:e].decode() or "/"); i = a4(e + 1)
+                  elif tok == 2:
+                      path.pop()
+                  elif tok == 3:
+                      plen, nameoff = struct.unpack_from(">II", blob, i); i += 8
+                      name = strings[nameoff:strings.index(b"\x00", nameoff)]
+                      key = "/".join(path) + "::" + name.decode()
+                      out[key] = blob[i:i + plen]; i = a4(i + plen)
+                  elif tok == 4:
+                      continue
+                  elif tok == 9:
+                      break
+                  else:
+                      raise SystemExit(f"P30_VERIFY_FAILED token={tok}")
+              return out
+
+          old = Path("rt-d/rt-d.dtb").read_bytes()
+          new = Path("art/rt-d-panic30.dtb").read_bytes()
+          if sha(old) != ("4849743205af9d00f4b5bcd01070aac68be7dc60954"
+                          "975069356d29fe33df327"):
+              raise SystemExit("P30_VERIFY_FAILED rt-d sha")
+          po, pn = props(old), props(new)
+          if set(po) != set(pn):
+              raise SystemExit("P30_VERIFY_FAILED prop keys differ")
+          diff = {k for k in po if po[k] != pn[k]}
+          if diff != {"/chosen::bootargs"}:
+              raise SystemExit(f"P30_VERIFY_FAILED diff={sorted(diff)}")
+          if pn["/chosen::bootargs"] != \
+                  po["/chosen::bootargs"].replace(b"panic=5", b"panic=30"):
+              raise SystemExit("P30_VERIFY_FAILED bootargs token")
+          print("P30_VERIFY_RTD_SEMANTIC_DELTA=PANIC_TIMEOUT_ONLY")
+
+          frozen = Path("fix8/thyme-r3-p1b-fix8-kernel-payload.bin")
+          fp = frozen.read_bytes()
+          if sha(fp) != ("4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0"
+                         "843cf4ac96cceb41"):
+              raise SystemExit("P30_VERIFY_FAILED fix8 payload sha")
+          p30 = Path("art/thyme-r3-p1b-panic30-kernel-payload.bin")
+          pp = p30.read_bytes()
+          image_size = struct.unpack_from("<Q", pp, 16)[0]
+          dtb_off = (image_size + 0x80000 + 0x1FFFFF) & ~0x1FFFFF
+          dtb_off -= 0x80000
+          if dtb_off != 0x2380000:
+              raise SystemExit(f"P30_VERIFY_FAILED dtb_offset {dtb_off:#x}")
+          if pp[:dtb_off] != fp[:dtb_off]:
+              raise SystemExit("P30_VERIFY_FAILED payload prefix drifted")
+          if pp[dtb_off:] != new:
+              raise SystemExit("P30_VERIFY_FAILED trailer != PANIC30 RT-D")
+          if struct.unpack_from("<I", pp, 4)[0] != 0x1400000F:
+              raise SystemExit("P30_VERIFY_FAILED code1")
+          boot_est = (4096 + len(pp) + 4095) & ~4095
+          boot_est += 4096
+          if 201326592 - boot_est < 0x1000000:
+              raise SystemExit("P30_VERIFY_FAILED capacity")
+          print("P30_VERIFY_PAYLOAD_PREFIX=BYTE_IDENTICAL_TO_FROZEN_FIX8")
+          print(f"P30_VERIFY_TRAILER=PANIC30_RT_D dtb_offset={dtb_off:#x}")
+          print(f"P30_VERIFY_PAYLOAD_SIZE={len(pp)} boot_size_est={boot_est}")
+          print("P30_VERIFY_GATES=PASS")
+          print("DEVICE_OPERATION=NO")
+          print("READY_FOR_DEVICE=NO")
+          PY
+
+      - name: Assert constraints + assemble verdict
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'flashable image emitted' >&2
+            exit 1
+          fi
+          {
+            echo "MAINLINE_V2_R3_P1B_PANIC_OR_CHECKPOINT_ISOLATION_CI (CI ONLY)"
+            echo "DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "--- gates ---"
+            cat art/p1b-panic30-gates.txt
+            echo "--- manifest ---"
+            cat art/p1b-panic30-manifest.json
+          } > verdict.txt
+          cat verdict.txt >> "$GITHUB_STEP_SUMMARY"
+          echo 'PANIC_OR_CHECKPOINT_ISOLATION_CI_VERDICT=CI_PASS'
