@@ -17,7 +17,12 @@ on:
     paths:
       - '.github/workflows/thyme-r3-p1b-failure-isolation.yml'
       - 'scripts/r3-p1b/p1b-failure-isolation.py'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      auth_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-p1b-init8-init24
+        required: false
+        default: "34696279424"
 
 concurrency:
   group: thyme-r3-p1b-failure-isolation-${{ github.ref }}
