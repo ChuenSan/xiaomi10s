@@ -260,8 +260,11 @@ def semantic_diff_gates(out: Path, old_rt_d: bytes, new_rt_d: bytes,
 # --------------------------------------------------------- identity fixtures
 
 def scatter_attribution(a: bytes, b: bytes, *, label: str) -> None:
-    """Rebuilt-vs-frozen image diff must be IKCONFIG gz avalanche (single
-    CONFIG_INITRAMFS_SOURCE path line) plus <=4KiB build-stamp scatter."""
+    """Rebuilt-vs-frozen image diff must be the IKCONFIG gz avalanche (the
+    CONFIG_INITRAMFS_SOURCE path length differs between runs, so the gz body
+    and everything it shifts downstream differ wholesale) plus <=4KiB
+    build-stamp scatter outside that window. PANIC30 payload image identity
+    itself is frozen-bytes-by-construction and gated separately."""
     import zlib
     diffs = [i for i in range(min(len(a), len(b))) if a[i] != b[i]]
     if len(a) != len(b):
@@ -279,10 +282,14 @@ def scatter_attribution(a: bytes, b: bytes, *, label: str) -> None:
     ike = a.find(b"IKCFG_ED", ik) + 8
     if ik <= 0 or ike <= ik:
         fail("P30_IDENTITY_FAILED", "IKCONFIG markers missing")
-    stray = [(s, e) for s, e in ranges if not (ik <= s and e < ike)]
+    # The gz stream and the region it shifts downstream (until the next
+    # section alignment absorbs the size delta) are one avalanche window.
+    WINDOW = 0x10000
+    stray = [(s, e) for s, e in ranges if not (e >= ik and s <= ike + WINDOW)]
     stray_bytes = sum(e - s + 1 for s, e in stray)
     if stray_bytes > 4096 or any(e - s + 1 > 64 for s, e in stray):
         fail("P30_IDENTITY_FAILED", f"{label} unexplained ranges={stray[:8]}")
+    avalanche = [(s, e) for s, e in ranges if (s, e) not in stray]
     do = zlib.decompressobj(16 + zlib.MAX_WBITS)
     try:
         cfg = do.decompress(a[ik + 8:ike]).decode("utf-8", "replace")
@@ -291,8 +298,9 @@ def scatter_attribution(a: bytes, b: bytes, *, label: str) -> None:
     line = [l for l in cfg.splitlines() if l.startswith("CONFIG_INITRAMFS_SOURCE=")]
     if len(line) != 1 or "initramfs-8s.cpio" not in line[0]:
         fail("P30_IDENTITY_FAILED", "IKCONFIG source line unexpected")
-    print(f"PANIC30_REBUILT_VS_FROZEN_{label}=BUILD_STAMP_SCATTER_ONLY "
-          f"ranges={len(ranges)} stray_bytes={stray_bytes} "
+    print(f"PANIC30_REBUILT_VS_FROZEN_{label}=IKCONFIG_AVALANCHE_PLUS_SCATTER "
+          f"ranges={len(ranges)} avalanche_ranges={len(avalanche)} "
+          f"stray_ranges={len(stray)} stray_bytes={stray_bytes} "
           f"ikconfig_span={ik:#x}..{ike:#x}")
 
 

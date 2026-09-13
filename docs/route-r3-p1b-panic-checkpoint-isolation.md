@@ -232,11 +232,13 @@ layout and the embedded 48-byte trampoline against `TRAMP_SHA`),
 `PANIC30_INIT_IDENTICAL=YES`,
 `PANIC30_INITRAMFS_IDENTICAL=YES`, `PANIC30_TRAMPOLINE_IDENTICAL=YES` — the
 latter three re-proven by rebuilding /init, the cpio, and the trampoline this
-round and requiring byte-identity with the frozen FIX8 hashes. The rebuilt
-kernel Image is compared to the frozen prefix with a scatter-attribution gate
-(IKCONFIG gz avalanche from the INITRAMFS_SOURCE path + <=4 KiB build-stamp
-scatter; anything wider FAILS — kernel builds are not fully byte-stable, see
-the private pair-diff precedent). Only RT-D trailer, payload SHA, and boot
+round and requiring byte-identity with the frozen FIX8 hashes. The rebuilt kernel Image is compared to the frozen prefix with a
+scatter-attribution gate (the IKCONFIG gz avalanche window — the
+`CONFIG_INITRAMFS_SOURCE` path length differs between runs, so the ~62 KiB
+compressed config body and the region it shifts downstream differ wholesale —
+plus <=64 B per range / <=4 KiB total build-stamp scatter outside that window;
+anything wider FAILS — kernel builds are not fully byte-stable, see the
+private pair-diff precedent). Only RT-D trailer, payload SHA, and boot
 kernel_size/boot SHA change as a consequence of length.
 `PANIC30_RUNTIME_SEMANTIC_DELTA=PANIC_TIMEOUT_ONLY` (never
 "BYTE_DELTA_ONLY"; all extra byte diffs are attributed).
