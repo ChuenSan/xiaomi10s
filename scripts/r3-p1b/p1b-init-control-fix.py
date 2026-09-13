@@ -225,8 +225,8 @@ def containment(b: dict[str, bytes], out: Path) -> None:
         emit(f"FIXED_{tag.upper()}_CPIO_PAYLOAD_RT_D_CONTAINMENT=PASS "
              f"(payload {len(pay)} B, DTB_OFFSET {dtb_offset:#x})")
     other = {"fix8": "cpio24", "fix24": "cpio8"}
-    for tag, ckey in (("fix8", "cpio8"), ("fix24", "cpio24")):
-        pkey = f"pay{tag[-1]}"
+    for tag, ckey, pkey in (("fix8", "cpio8", "pay8"),
+                            ("fix24", "cpio24", "pay24")):
         if b[other[tag]] in b[pkey]:
             fail("P1B_FIX_EMBED_FAILED", f"{tag}: wrong-delay cpio embedded")
     if len(b["pay8"]) != len(b["pay24"]):
@@ -241,12 +241,13 @@ def containment(b: dict[str, bytes], out: Path) -> None:
 
 def audit(auth: Path, out: Path, objdump: str) -> None:
     b = pair_identity(auth, out)
-    containment(b, out)
 
     dis = {"fix8": disasm_lines(objdump, auth / "p1b-init-fix8"),
            "fix24": disasm_lines(objdump, auth / "p1b-init-fix24")}
     write_disasm(out, "fix8", dis["fix8"])
     write_disasm(out, "fix24", dis["fix24"])
+
+    containment(b, out)
 
     for tag, delay in (("fix8", 8), ("fix24", 24)):
         v = init_abi_violations(dis[tag], delay)
