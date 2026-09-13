@@ -178,8 +178,10 @@ def audit(auth: Path, out: Path, objdump: str) -> None:
     if len(d8) != len(d24) or not 1 <= len(diffs) <= 4:
         fail("P1B_FI_SEMANTIC_DELTA", f"{len(d8)} vs {len(d24)}, diffs={len(diffs)}")
     for a, b in diffs:
-        norm = lambda s: re.sub(r"#-?(0x[0-9a-f]+|\d+)", "#",
-                                re.sub(r"^[0-9a-f]+\s+", "", s))
+        norm = lambda s: re.sub(
+            r"\s+", " ",
+            re.sub(r"#-?(0x[0-9a-f]+|\d+)", "#",
+                   re.sub(r"^[0-9a-f]+\s+", "", s)))
         if norm(a) != norm(b):
             fail("P1B_FI_SEMANTIC_DELTA", f"{a!r} vs {b!r}")
     (out / "init-pair-diff.txt").write_text(
