@@ -1,0 +1,6 @@
+== ANDROID A BASELINE 2026-09-13T14:04:29Z ==
+slot_suffix=_a
+boot_completed=1
+root=uid=0(root) gid=0(root) groups=0(root) context=u:r:magisk:s0
+uname=Linux localhost 4.19.157-perf-g9d90dd04aa7c #1 SMP PREEMPT Mon Sep 4 10:51:57 UTC 2023 aarch64 Toybox
+proc_uptime=23632.18 186393.42

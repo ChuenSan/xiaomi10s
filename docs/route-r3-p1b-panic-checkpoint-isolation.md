@@ -664,3 +664,75 @@ P30_PACK_GATES=PASS) all matched; pack job skipped
 (`PANIC30_ARTIFACT_REBUILD_REQUIRED=NO (boot re-hashed, never re-packed)`).
 
 No flash, no device operation, `READY_FOR_DEVICE=NO`.
+
+### 26. TRUE DEVICE PANIC30 RESULT (MAINLINE_V2_R3_P1B_PANIC30_TRUE_DEVICE_CONTROL)
+
+ONE experimental `fastboot boot` of P1B-PANIC30, UTC 2026-09-13. Observer
+reused verbatim (`scripts/r3-p1b/observe-r3-p1b-init8.py`, env-only: boot img
++ expected SHA; no source change; identity gate re-checked inside the
+observer). `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`, `SET_ACTIVE=NO`,
+`EXPERIMENTAL_BOOTS=1`, `SECOND_BOOT_FORBIDDEN=YES`; T0/T1/T2/FIX24/M5N not
+executed.
+
+Artifact identity (downloaded from private run 34755701908 artifact
+`thyme-r3-p1b-panic30-boot`, re-hashed locally, never re-packed): boot v3
+`ea50e8b3…64b1` size 37380096; payload `cd3f7527…687e` (37369045); RT-D
+`dfbfca03…3390` (144597 at DTB_OFFSET `0x2380000`). Independent local
+re-verification this round: boot/payload/RT-D full SHAs all MATCH; FIX8
+payload prefix up to DTB_OFFSET byte-identical (Image/initramfs/trampoline
+identity transitively holds); FDT semantic diff of the two RT-Ds = exactly
+`/chosen#bootargs` `panic=5` -> `panic=30` (4311 properties, same key set,
+both `rdinit=/init loglevel=7` preserved), payload length delta +4 = FDT
+totalsize 144593 -> 144597. `PANIC30_RUNTIME_SEMANTIC_DELTA=PANIC_TIMEOUT_ONLY`.
+
+Preflight (observer getvar, all gates green): product=thyme, unlocked=yes,
+current-slot=a, snapshot-update-status=none, battery-soc-ok=yes (voltage
+4334), slot a retry=6/unbootable=no/successful=yes, slot b
+retry=7/unbootable=no/successful=no. Android A pre-test: `_a`,
+boot_completed=1, root (magisk), Stock 4.19.157-perf. Current B pre-test
+MATCH: boot_b[0,35110912) `4db8151b…5e63`, vendor_boot_b[0,548864)
+`2d58ef94…64d9`, vendor_boot_b[548864,EOF) `5d98f207…4e52`, dtbo_b
+`c5a355b9…aba8`.
+
+Timeline (UTC, observer log `artifacts/r3-p1b-panic30-34755701908/device-round/observe-r3-p1b-panic30.log`):
+`T_COMMAND_START` 14:06:48.530, `T_SENDING_OKAY` 14:06:49.475 (Sending OKAY
+0.917 s), `T_BOOTING_OKAY` 14:06:49.695 (Booting OKAY 0.220 s),
+`T_FASTBOOT_DISAPPEAR` 14:06:49.695, `T_USB_NONE` 14:06:50.960,
+`T_USB_FIRST_REENUM` 14:07:24.808 (18d1:4ee7), `T_ADB_FIRST_SEEN`
+14:07:25.673, `RETURNED_ANDROID_KERNEL_START` 14:07:15.983 (host_before
+14:07:25.673 − /proc/uptime 9.69; identical algorithm to FIX8 baseline),
+`T_BOOT_COMPLETED` 14:07:34.187.
+
+Timing (primary metric `BOOTING_OKAY -> RETURNED_ANDROID_KERNEL_START`, no
+overhead model):
+- `PANIC30_TOTAL = 26.289 s` (first ADB snapshot; BOOT_COMPLETED-snapshot
+  cross-check 26.277 s, kernel_start 14:07:15.972).
+- `FIX8_TOTAL = 23.852 s` (frozen baseline).
+- `P30_DELTA = +2.437 s` vs expected `+25.000 s`; `P30_ERROR = −22.563 s`.
+- Preregistered windows: STRONG [24.000, 26.000] NO; SUPPORTED [23.000,
+  27.000] NO. Verdict `NO_SUPPORTED_SHIFT`.
+
+Classification: **Case P30-C**. `PANIC30_TIMEOUT_NOT_OBSERVED_TO_CONTROL_RETURN_TIMELINE=YES`.
+Per the frozen boundary, this does NOT license `NO_LINUX_PANIC`,
+`NO_LINUX_ENTRY`, or `LINUX_NOT_REACHED` (pre-parse failure, pre-calibration
+timing ambiguity, external/non-panic reset, or other early failure remain
+possible). Behavior: `AUTOMATIC_ANDROID_RETURN=YES` (Stock 4.19.157-perf,
+bootreason=bootloader), stable Fastboot NO, 4.7 s path NO, hang >120 s NO,
+behavior class changed NO, manual recovery NO.
+
+Persistent evidence (read-only post-test): pstore empty (absence is NOT
+evidence of Linux absence — no persistent sink exists); rawdump `254bcc3f…`
+and logdump `3b6a07d0…` byte-identical to prior rounds (UNCHANGED);
+minidump `97d8fd0a…` / logfs `43813eef…` / oops `a9875c63…` boot-time
+rewrites; token search of logfs+oops found no `Linux version 6.6.156`,
+`Kernel panic`, `THYME-R3`, `RT-D`, `rdinit` strings.
+`NO_PANIC30_PERSISTENT_DUMP_EVIDENCE=YES`.
+
+Evidence ladder after this round: E0 PROVEN; E1/E2 NOT_PROVEN (no upgrade —
+Case P30-C discipline forbids upgrading on "looks more like Linux"); E3/E4
+NOT_PROVEN; E5 FROZEN. Current B post-test MATCH (same four hashes as
+pre-test): `CURRENT_B_UNCHANGED_AFTER_PANIC30=YES`. `ANDROID_A_RESTORED=YES`.
+
+**Final Gate: `R3_P1B_PANIC30_TIMEOUT_NOT_OBSERVED`.** Next stage:
+`MAINLINE_V2_R3_P1B_T0_TRUE_DEVICE_CONTROL` (T0 is CI_PASS; NOT executed
+this round; requires separate user approval).

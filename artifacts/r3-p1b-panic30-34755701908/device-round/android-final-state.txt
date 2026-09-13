@@ -1,0 +1,17 @@
+== ANDROID A FINAL STATE 2026-09-13T14:08:38Z ==
+slot_suffix=_a
+boot_completed=1
+root=uid=0(root) gid=0(root) groups=0(root) context=u:r:magisk:s0
+uname=Linux localhost 4.19.157-perf-g9d90dd04aa7c #1 SMP PREEMPT Mon Sep 4 10:51:57 UTC 2023 aarch64 Toybox
+bootreason=bootloader
+proc_uptime=82.90 481.27
+== PSTORE 2026-09-13T14:08:38Z ==
+total 0
+dr-xr-x---  2 system log  0 1974-07-20 17:17 .
+drwxr-xr-x 11 root   root 0 1974-07-20 17:17 ..
+== DUMP HASHES ==
+minidump=97d8fd0a7fbd44a873071c3f4c10f333e72ee1f7678aae7aa892a6ffd46ad201
+rawdump=254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917
+logdump=3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351
+logfs=43813eef9c59f8fdc08337e917d4afac77b9cae75b091de3d0a307bd3e39e3df
+oops=a9875c636c01a98e2f301a86b4e23fffcba613a007b9d1ff4df953bbf58272a3

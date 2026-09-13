@@ -4,21 +4,26 @@ Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
 facts. Last updated: 2026-09-13
-(MAINLINE_V2_R3_P1B_PANIC30_PREDEVICE_AUDIT_CORRECTION_CI, CI /
-source-audit-correction round).
+(MAINLINE_V2_R3_P1B_PANIC30_TRUE_DEVICE_CONTROL, one-boot device round).
 
 ## Current Gate
 
-`MAINLINE_V2_R3_P1B_PANIC30_PREDEVICE_AUDIT_CORRECTION_CI` — CI / source
-audit correction only, no device operation, PANIC30 binary NOT rebuilt.
-Purpose: correct the wrong timeout-0 panic() claim of the previous round
-(`SUPERSEDED_BY_PANIC_AUDIT_CORRECTION`), re-freeze the PANIC30
-positive/negative interpretation boundaries, re-verify PANIC30 artifact
-identity from the authoritative runs. Intended final gate:
-`READY_FOR_R3_P1B_PANIC30_DEVICE_CONTROL_RECONFIRMED` (CI level; any future
-device round still needs separate user approval). Fallback:
-`R3_P1B_PANIC30_PREDEVICE_AUDIT_NOT_READY`. Checkpoints stay
-T0 CI_PASS / T1 CI_PASS / T2 DESIGNED.
+`R3_P1B_PANIC30_TIMEOUT_NOT_OBSERVED` — the single authorized P1B-PANIC30
+device boot (UTC 2026-09-13, run record in the isolation doc section 26)
+returned automatically to Android A with `PANIC30_TOTAL = 26.289 s` vs the
+frozen `FIX8_TOTAL = 23.852 s` baseline: `P30_DELTA = +2.437 s`, far outside
+the preregistered SUPPORTED window [23.0, 27.0] (expected +25.000 s,
+`P30_ERROR = −22.563 s`). Case P30-C:
+`PANIC30_TIMEOUT_NOT_OBSERVED_TO_CONTROL_RETURN_TIMELINE=YES`. This does NOT
+license `NO_LINUX_PANIC` / `NO_LINUX_ENTRY` / `LINUX_NOT_REACHED`. Behavior:
+automatic Android return, no stable Fastboot, no 4.7 s path, no hang, no
+manual recovery. Artifact identity fully re-verified before boot (boot
+`ea50e8b3…64b1`/37380096, payload `cd3f7527…687e`, RT-D `dfbfca03…3390`,
+RT-D semantic delta = bootargs `panic=5` -> `panic=30` only). Constraints
+held: `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`, `SET_ACTIVE=NO`,
+`EXPERIMENTAL_BOOTS=1`, `SECOND_BOOT_FORBIDDEN=YES`, T0/T1/T2/FIX24/M5N not
+executed. `CURRENT_B_UNCHANGED_AFTER_PANIC30=YES`, `ANDROID_A_RESTORED=YES`.
+Checkpoints stay T0 CI_PASS / T1 CI_PASS / T2 DESIGNED.
 
 ## Evidence ladder (current, conservative)
 
@@ -64,7 +69,13 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
   `PANIC30_BINARY_SEMANTICS_UNAFFECTED_BY_AUDIT_CORRECTION=YES`.
 - PANIC30 boot (PRIVATE repo only, private run 34755701908): boot v3
   `ea50e8b3…64b1`, size 37380096, spliced into the exact M5D envelope
-  (4db8151b…); pack gates + size cross-check PASS; `READY_FOR_DEVICE=NO`.
+  (4db8151b…); pack gates + size cross-check PASS. Device round EXECUTED
+  2026-09-13 (identity re-hashed locally before boot, never re-packed):
+  `PANIC30_TOTAL = 26.289 s`, `P30_DELTA = +2.437 s` vs FIX8 23.852 s,
+  `P30_ERROR = −22.563 s` vs expected +25.000 s, Case P30-C,
+  `PANIC30_TIMEOUT_NOT_OBSERVED_TO_CONTROL_RETURN_TIMELINE=YES`,
+  `AUTOMATIC_ANDROID_RETURN=YES`, no persistent dump evidence; no upgrade of
+  E1–E4 (full record: isolation doc section 26).
 
 ## Current B
 
@@ -77,24 +88,21 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
 - FIX24 (24s-delay /init): FROZEN and FORBIDDEN this round.
 - USB stage work: FROZEN.
 - UFS / rootfs / network: FROZEN.
-- PANIC30: diagnostic control only (panic=5 -> panic=30 on the RT-D
-  trailer); CI DEVICE-READY only after the corrected audit gate
-  (`READY_FOR_R3_P1B_PANIC30_DEVICE_CONTROL_RECONFIRMED`); no device run
-  approved; binary frozen, no rebuild.
-- Checkpoints T0/T1/T2: diagnostic reach-and-reset family; CI prototypes /
-  design only this round; never mixed with normal boot candidates.
+- PANIC30: diagnostic control EXECUTED as the one authorized device boot
+  (panic=5 -> panic=30 on the RT-D trailer); result gate
+  `R3_P1B_PANIC30_TIMEOUT_NOT_OBSERVED`; binary frozen, no rebuild; second
+  boot forbidden.
+- Checkpoints T0/T1/T2: T0/T1 CI PASS, T2 DESIGNED; no checkpoint device run
+  executed.
 
 ## Next approved candidate
 
-`P1B-PANIC30` (single future device boot against the FIXED INIT8 23.852 s
-baseline; pre-registered interpretation re-frozen by the audit correction —
-shift [24.0, 26.0] s STRONG / [23.0, 27.0] s SUPPORTED for
-`PANIC30_TIMEOUT_VALUE_OBSERVED_TO_CONTROL_RETURN_TIMELINE`; no shift ->
-`PANIC30_TIMEOUT_NOT_OBSERVED_TO_CONTROL_RETURN_TIMELINE=YES` and the
-checkpoint ladder starts at T0; hang >120 s ->
-`PANIC30_BEHAVIOR_CLASS_CHANGED_HANG`, STOP, no automatic re-boot). Device
-execution requires explicit user approval
-(`MAINLINE_V2_R3_P1B_PANIC30_TRUE_DEVICE_CONTROL`).
+`MAINLINE_V2_R3_P1B_T0_TRUE_DEVICE_CONTROL` — T0 checkpoint (CI_PASS) as the
+next single device boot per the preregistered Case P30-C recommendation;
+NOT executed this round; requires separate user approval. Per the frozen
+interpretation, a T0 positive would prove only that the large P1B artifact
+was loaded by ABL to an executed location (checkpoint evidence); it does not
+by itself upgrade E3/E4.
 
 ## Not-ready candidates
 
