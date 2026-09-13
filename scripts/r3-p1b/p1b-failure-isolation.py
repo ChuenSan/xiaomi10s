@@ -150,7 +150,7 @@ def audit(auth: Path, out: Path, objdump: str) -> None:
         start = next(i for i, l in enumerate(lines)
                      if re.search(r"\b(movz|mov)\s+[wx]8, #(0x73|115)\b", l))
         svc = next(i for i, l in enumerate(lines[start:], start)
-                   if l.startswith("svc"))
+                   if re.search(r"\bsvc\b", l))
         block = lines[max(0, start - 6):svc]
         (out / f"{name}-clock-nanosleep-block.txt").write_text(
             "\n".join(block) + "\n")
