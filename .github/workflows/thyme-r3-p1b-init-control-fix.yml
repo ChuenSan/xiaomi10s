@@ -31,7 +31,12 @@ on:
       - '.github/workflows/thyme-r3-p1b-init-control-fix.yml'
       - 'scripts/r3-p1b/**'
       - 'configs/thyme-r3-p1b.config'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      rt_d_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-runtime-dtb
+        required: false
+        default: "34678001413"
 
 concurrency:
   group: thyme-r3-p1b-init-control-fix-${{ github.ref }}
