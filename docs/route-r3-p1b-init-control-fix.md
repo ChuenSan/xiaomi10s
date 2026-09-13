@@ -262,3 +262,115 @@ until the user approves
 `MAINLINE_V2_R3_P1B_FIXED_INIT8_TRUE_DEVICE_CONTROL` (FIXED INIT8 only).
 E1-E4 remain NOT_PROVEN until the true-device pair proof; PANIC30 FROZEN;
 M5N FROZEN; Current B (M5D+M5H+M5M-B) UNCHANGED; Slot A untouched.
+
+## 20. TRUE DEVICE FIXED INIT8 RESULT (2026-09-13)
+
+Round `MAINLINE_V2_R3_P1B_FIXED_INIT8_TRUE_DEVICE_CONTROL`. mem0 read twice
+(round start + before `adb reboot bootloader`). LOCAL_BUILD/VALIDATION/
+SOURCE_GATE/ACTIONLINT/BINARY_VALIDATION all NO; GHA-only artifact; no local
+compile/link/splice/mkbootimg/regeneration. PARTITION_WRITES=0,
+SLOT_A_WRITTEN=NO, SET_ACTIVE=NO, EXPERIMENTAL_BOOTS=1,
+SECOND_BOOT_FORBIDDEN=YES, FIX24 NOT EXECUTED, PANIC30 FROZEN, M5N FROZEN.
+
+### Artifact identity (full SHA256, no truncation, all MATCH)
+
+| Component | SHA256 | Size |
+|---|---|---|
+| FIX8 boot.img | ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5 | 37380096 |
+| FIX8 kernel payload | 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | 37369041 |
+| FIX8 final Image | dffce20ec44de65fc7d271b01f6c1b4c39716923aafd4c24fae165e8e8424944 | 35166720 (image_size 0x2231000) |
+| FIX8 trampoline | 362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623 | pair identical |
+| FIX8 /init | f1bc88496f7c5766a417b3e2a52eadf23bad30efd6cada7ec42fecf0e6e1266d | ABI4 DELAY=08 |
+| FIX8 initramfs cpio | 02123e984cc618f333d8743ae4491af30ba4448373d987b84b7a2d4cda4ffff3 | 66588 |
+| RT-D | 4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 | trailer exact |
+
+Linux base 8b73de7da85fde281a385e0b26eda9bffd3ca477; DTB_OFFSET 0x2380000
+(recomputed); CurrentEL EL1, MMU OFF, D-cache OFF, S mod 2MiB 0x80000;
+primary_entry NORMAL; M5D clean baseline Image reference 005d5aba192005b0a45c78
+9acac8568bbee0c9c84c527984301afff52fdcbc85 (frozen prior round). Sources:
+private run 34744041027 (`thyme-r3-p1b-fix8-fix24-boot` + private log, boot
+SHA recomputed locally and MATCHed) and public run 34741153230
+(`thyme-r3-p1b-fix8-fix24` SHA256SUMS + p1b-manifest.json, component SHAs
+recomputed locally and MATCHed). No full-SHA mismatch: STOP condition never
+triggered. Observer script reused verbatim via env (no source change; no new
+GHA fixture required), banner printed pre-boot.
+
+### Preflight
+
+product=thyme, unlocked=yes, current-slot=a,
+snapshot-update-status=none, battery-soc-ok=yes (4413 mV),
+slot-retry-count:a=6 unbootable:no successful:yes; slot b retry 7 unbootable
+no successful:no. Android A baseline before test: slot_suffix=_a,
+boot_completed=1, magisk root, Stock 4.19.157-perf.
+
+### Timeline (UTC, host)
+
+T_COMMAND_START 07:30:12.554; T_SENDING_OKAY 07:30:13.491 (Sending OKAY
+0.907s); T_BOOTING_OKAY 07:30:13.710 (Booting OKAY 0.220s);
+T_FASTBOOT_DISAPPEAR 07:30:15.077; T_USB_NONE 07:30:15.235;
+T_USB_FIRST_REENUM 07:30:46.308 (18d1:4ee7); T_ADB_FIRST_SEEN 07:30:46.682;
+RETURNED_ANDROID_KERNEL_START 07:30:37.562 (host_before 07:30:46.682 minus
+/proc/uptime 9.12, same algorithm as the old broken pair); T_BOOT_COMPLETED
+07:30:55.912.
+
+### Timing
+
+OLD_BROKEN_INIT8_TOTAL: 23.184s
+FIXED_INIT8_TOTAL: 23.852s (first ADB snapshot; boot-completed snapshot
+cross-check 23.841s)
+FIX8_VS_OLD_BROKEN_DELTA: +0.668s
+Classification band [-2,+3]s: NOT_CONSISTENT_WITH_8S_DELAY
+
+Secondary diagnostic only (fixed Image rebuild changes IKCONFIG/build
+metadata); the controlled FIX8/FIX24 pair remains the real proof instrument
+and was NOT executed this round.
+
+### Behavior
+
+automatic reset: YES; Android A auto-return: YES; stable Fastboot: NO;
+4.7s path: NO; transient Fastboot: NO; manual recovery: NO
+(RECOVERY_KIND=AUTOMATIC_ANDROID_RETURN). Returned kernel is Stock
+4.19.157-perf, bootreason=bootloader: the auto-return path is the same
+signature the old broken pair produced (23.184s -> 23.852s across an artifact
+rebuild).
+
+### Persistent fixed-Mainline evidence
+
+pstore empty; rawdump 254bcc3f... and logdump 3b6a07d0... UNCHANGED vs prior
+rounds; minidump/logfs/oops boot-time deltas only. Bounded scans of oops
+(16 MiB) and logfs (8 MiB) full dumps: zero hits for 6.6.156,
+THYME-R3-P1B-INIT, ABI4, DELAY=08, "Run /init as init process", Mainline,
+RT-D; the only THYME hits are bootloader "Product name is thyme" lines; no
+"Linux version" banner at all in these partitions. All Linux-version history
+remains Stock 4.19.157-perf. EXPLICIT_MAINLINE_EVIDENCE=NO,
+INIT_EXECUTION_DIRECT_EVIDENCE=NO.
+
+### Evidence ladder
+
+E0 PROVEN; E1 SUPPORTED (automatic reset + Android A auto-return behavior
+signature observed on the FIXED artifact; carries no /init-execution reading
+because the old broken pair shows the identical behavior); E2 SUPPORTED; E3
+NOT_PROVEN (the +8s shift is absent from the device timeline); E4 NOT_PROVEN
+(no provisional upgrade; pair not executed); E5 FROZEN.
+
+### Current B / device end state
+
+Current B pre-test and post-test identical:
+boot_b[0,35110912)=4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff
+85e63, vendor_boot_b[0,548864)=2d58ef94802e3aaac3115a9ee1c3d69199b054e04f181e3
+9a55a7e75b60564d9, vendor_boot_b[548864,EOF)=5d98f207def3af98517cb4c74dc5befa
+ee5a2b62209e32cd13b4c181bb374e52, dtbo_b=c5a355b942bf287d13a9c02e1fe96c13ebf4
+3f20b61be7e05763b8d23872aba8 -> M5D+M5H+M5M-B MATCH,
+CURRENT_B_UNCHANGED_AFTER_FIXED_INIT8=YES. Device final: Android A restored
+(slot_suffix=_a, boot_completed=1, magisk root).
+
+### Final gate
+
+`R3_P1B_FIXED_INIT8_DELAY_NOT_REFLECTED` (Case B: automatic Android return
+observed, but the ~8s fixed delay is not reflected in the device timeline;
+23.852s vs old broken 23.184s, delta +0.668s). This strongly raises the
+pre-init panic/reset explanation weight for the ~23-25s constant total.
+Recommended next: `MAINLINE_V2_R3_P1B_PANIC_OR_CHECKPOINT_ISOLATION_CI`
+(CI/source-audit only; re-evaluate panic=5 semantics and add T0/T1/T2 early
+checkpoints; no automatic device run). FIX24 executed: NO; PANIC30: FROZEN;
+M5N: FROZEN. WAIT FOR USER APPROVAL.
