@@ -219,8 +219,13 @@ Re-proven, not assumed (`DTB_OFFSET` expected `0x2380000`):
 Identity gates:
 
 `PANIC30_IMAGE_IDENTICAL_TO_FIXED_INIT8=YES` (payload prefix
-`[0, DTB_OFFSET)` copied verbatim from the frozen FIX8 payload whose Image
-prefix is hash-anchored), `PANIC30_INIT_IDENTICAL=YES`,
+`[0, DTB_OFFSET)` copied verbatim from the frozen FIX8 payload whose kernel
+region is hash-anchored compositionally: `sha(payload) == FIX8_PAYLOAD_SHA`
+plus `sha(RT-D) == RT_D_SHA` pin `payload[:DTB_OFFSET]` exactly — the region
+is the PATCHED Image (code1 -> `b 0x40`, trampoline at 0x40), never the raw
+Image file behind `dffce20e…44944`; CI additionally spot-checks the payload
+layout and the embedded 48-byte trampoline against `TRAMP_SHA`),
+`PANIC30_INIT_IDENTICAL=YES`,
 `PANIC30_INITRAMFS_IDENTICAL=YES`, `PANIC30_TRAMPOLINE_IDENTICAL=YES` — the
 latter three re-proven by rebuilding /init, the cpio, and the trampoline this
 round and requiring byte-identity with the frozen FIX8 hashes. The rebuilt

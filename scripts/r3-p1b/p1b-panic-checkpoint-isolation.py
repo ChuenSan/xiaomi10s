@@ -51,6 +51,9 @@ RT_D_SIZE = pb.RT_D_SIZE
 S_RESIDUE = pb.S_RESIDUE
 ALIGN_2M = pb.ALIGN_2M
 TRAMP_OFFSET = pb.TRAMP_OFFSET
+# Trampoline binary length, from the frozen FIX8 layout: off_dtb_rel 40
+# (verified in the FIX8 manifest) plus the 8-byte dtb_rel quad = 48.
+TRAMP_SIZE = 48
 BOOT_CAP = pb.BOOT_CAP
 PAGE = pb.PAGE
 FDT_MAGIC = pb.FDT_MAGIC
@@ -317,11 +320,17 @@ def assemble_probe(src_path: Path, ld_path: Path | None, defines: list[str],
 
 
 def check_probe_common(ops: str, elf: Path, out: Path, tools: dict) -> None:
-    for token in ("mrs x9, cntfrq_el0", "mrs x11, cntpct_el0",
-                  "smc #0", "movz w0, #0x0009",
-                  "movk w0, #0x8400, lsl #16", "yield"):
+    for token in ("mrs x9, cntfrq_el0", "mrs x11, cntpct_el0", "yield"):
         if token not in ops:
             fail("P30_PROBE_FAILED", f"{elf.name} missing {token!r}")
+    # llvm-objdump may print movz through the mov alias and immediates in
+    # decimal or hex; accept both printings (CI-proven token style).
+    for pat, label in ((r"smc #(0x)?0\b", "smc #0"),
+                       (r"(movz|mov) w0, #(0x9|9)\b", "psci fid low"),
+                       (r"movk w0, #(0x8400|33792), lsl #16\b",
+                        "psci fid high")):
+        if not re.search(pat, ops):
+            fail("P30_PROBE_FAILED", f"{elf.name} missing {label}")
     if pb.STORE_RE.search(ops):
         fail("P30_PROBE_FAILED", f"{elf.name} has store/adrp")
     for bad in (r"\bbl\b", r"\beret\b", r"\bsctlr\b", r"\bmsr\b\s+daifclr"):
@@ -416,17 +425,21 @@ def build_t1(out: Path, tools: dict, image: bytes, off_primary: int,
         if token not in ops:
             fail("P30_T1_FAILED", f"missing {token!r}")
     # register discipline: no writes to x1/x2/x3; x0 written only by the
-    # movz/movk FID pair right before smc.
+    # movz/movk FID pair right before smc. ops lines are
+    # "<hex encoding> <mnemonic> <operands>" after assemble_probe
+    # normalization, so field 2 is the written destination when a register.
     for line in ops.splitlines():
-        m = re.match(r"^[a-z0-9.]+ (x[0-9]+|w[0-9]+|xzr|wzr)[ ,]", line)
-        if not m:
+        fields = line.split(" ")
+        if len(fields) < 3:
             continue
-        dst = m.group(1)
+        dst = fields[2].rstrip(",")
+        if not re.fullmatch(r"(x[0-9]+|w[0-9]+|xzr|wzr)", dst):
+            continue
         if dst in ("x1", "x2", "x3", "w1", "w2", "w3"):
             fail("P30_T1_FAILED", f"probe clobbers {dst}: {line}")
         if dst in ("x0", "w0") and not (
-                line.startswith("movz w0, #0x0009")
-                or line.startswith("movk w0, #0x8400, lsl #16")):
+                re.search(r"(movz|mov) w0, #(0x9|9)\b", line)
+                or re.search(r"movk w0, #(0x8400|33792), lsl #16\b", line)):
             fail("P30_T1_FAILED", f"probe clobbers {dst} off-FID: {line}")
     binp = out / "p1b-t1-gap-probe.bin"
     run([tools["objcopy"], "-O", "binary", str(probe_elf), str(binp)])
@@ -703,11 +716,21 @@ def cmd_panic30(args: argparse.Namespace) -> None:
     dtb_offset, gap = pb.calc_dtb_offset(image_size)
     if dtb_offset != DTB_OFFSET:
         fail("P30_BUILD_FAILED", f"dtb_offset {dtb_offset:#x} != {DTB_OFFSET:#x}")
-    frozen_image = frozen_payload[:FIX8_IMAGE_FILE_SIZE]
-    if sha(frozen_image) != FIX8_IMAGE_SHA:
-        fail("P30_BUILD_FAILED", f"frozen Image prefix sha={sha(frozen_image)}")
+    # The payload kernel region [0, dtb_offset) is the PATCHED Image
+    # (code1 -> b 0x40 at offset 4, 48-byte trampoline at 0x40), so it can
+    # never equal the raw Image file behind FIX8_IMAGE_SHA. The region is
+    # frozen compositionally: sha(payload) == FIX8_PAYLOAD_SHA plus
+    # sha(frozen_rt_d) == RT_D_SHA pins payload[:dtb_offset] exactly.
+    # Direct spot checks: payload layout and the embedded trampoline.
+    if len(frozen_payload) - RT_D_SIZE != dtb_offset:
+        fail("P30_BUILD_FAILED", "payload layout: len - RT_D_SIZE != dtb_offset")
+    embedded_tramp = frozen_payload[TRAMP_OFFSET:TRAMP_OFFSET + TRAMP_SIZE]
+    if sha(embedded_tramp) != TRAMP_SHA:
+        fail("P30_BUILD_FAILED", f"embedded trampoline sha={sha(embedded_tramp)}")
     print("PANIC30_FROZEN_FIX8_BASE=PASS")
-    print(f"FIX8_IMAGE_SHA256={FIX8_IMAGE_SHA} file_size={FIX8_IMAGE_FILE_SIZE}")
+    print("PANIC30_FROZEN_KERNEL_REGION=COMPOSITIONAL_HASH_ANCHORED")
+    print(f"FIX8_IMAGE_SHA256={FIX8_IMAGE_SHA} file_size={FIX8_IMAGE_FILE_SIZE} "
+          "(raw Image provenance; payload region is the patched form)")
 
     # 1. PANIC30 RT-D via structured surgery + dual gates.
     panic30_rt_d = build_panic30_rt_d(frozen_rt_d)
