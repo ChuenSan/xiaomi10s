@@ -308,12 +308,16 @@ def config(out: Path, cpio: Path) -> None:
     run(["make", *makeargs, "olddefconfig"], cwd=LINUX, env=env)
     cfg = (odir / ".config").read_text()
     (out / "reconstructed-config.txt").write_text(cfg)
-    values = {}
-    for sym in CONFIG_SYMBOLS:
+
+    def cfg_val(sym: str) -> str:
         m = re.search(rf"^{re.escape(sym)}=(.*)$", cfg, re.M)
-        if not m:
-            fail("P1B_FI_CONFIG_FAILED", f"missing {sym}")
-        values[sym] = m.group(1)
+        if m:
+            return m.group(1)
+        if re.search(rf"^# {re.escape(sym)} is not set$", cfg, re.M):
+            return "n"
+        return "unset"
+
+    values = {sym: cfg_val(sym) for sym in CONFIG_SYMBOLS}
     for sym in ("CONFIG_ARM64", "CONFIG_MMU", "CONFIG_BINFMT_ELF",
                 "CONFIG_BLK_DEV_INITRD", "CONFIG_INITRAMFS_COMPRESSION_NONE",
                 "CONFIG_POSIX_TIMERS", "CONFIG_HIGH_RES_TIMERS",
@@ -322,11 +326,12 @@ def config(out: Path, cpio: Path) -> None:
             fail("P1B_FI_CONFIG_FAILED", f"{sym}={values[sym]}")
     if values["CONFIG_INITRAMFS_SOURCE"] != str(cpio.resolve()):
         fail("P1B_FI_CONFIG_FAILED", "INITRAMFS_SOURCE not applied")
-    if values["CONFIG_PANIC_ON_OOPS_VALUE"] != "0":
-        fail("P1B_FI_CONFIG_FAILED", "PANIC_ON_OOPS_VALUE")
-    if values["CONFIG_PANIC_ON_WARN"] != "n":
+    if values["CONFIG_PANIC_ON_OOPS"] not in ("n", "unset") or \
+            values["CONFIG_PANIC_ON_OOPS_VALUE"] not in ("0", "unset"):
+        fail("P1B_FI_CONFIG_FAILED", "PANIC_ON_OOPS")
+    if values["CONFIG_PANIC_ON_WARN"] not in ("n", "unset"):
         fail("P1B_FI_CONFIG_FAILED", "PANIC_ON_WARN")
-    if values["CONFIG_PANIC_TIMEOUT"] not in ("", "0", "n"):
+    if values["CONFIG_PANIC_TIMEOUT"] not in ("", "0", "n", "unset"):
         fail("P1B_FI_CONFIG_FAILED", "PANIC_TIMEOUT set in config")
     emit("P1B_FI_CONFIG_RECONSTRUCTED=YES (defconfig + route-b + r3-p1b + "
          "initramfs fragment; symbol-level authoritative, path string differs "
