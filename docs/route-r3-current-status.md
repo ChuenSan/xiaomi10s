@@ -3,18 +3,42 @@
 Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
-facts. Last updated: 2026-09-13
-(MAINLINE_V2_R3_P1B_T0_PREDEVICE_READINESS_CI, CI/source-audit-only round;
-the last EXECUTED device round remains the one-boot PANIC30 control).
+facts. Last updated: 2026-09-14
+(MAINLINE_V2_R3_P1B_T0_TRUE_DEVICE_CONTROL EXECUTED — the last device round
+is the one-boot T0-8 checkpoint reach-and-reset, Case T0-A STRONG).
 
 ## Current Round
 
-`MAINLINE_V2_R3_P1B_T0_PREDEVICE_READINESS_CI` — CI / SOURCE AUDIT /
-ARTIFACT PREPARATION ONLY, `DEVICE_OPERATION=NO`, `PARTITION_WRITES=0`,
-`SLOT_A_WRITTEN=NO`, `EXPERIMENTAL_BOOTS=0`. EXECUTED 2026-09-13 and
-COMPLETE. Final gate: **`READY_FOR_R3_P1B_T0_DEVICE_CONTROL`** (prep
-complete; the actual single T0 device boot remains forbidden until separate
-user approval of `MAINLINE_V2_R3_P1B_T0_TRUE_DEVICE_CONTROL`).
+`MAINLINE_V2_R3_P1B_T0_TRUE_DEVICE_CONTROL` — EXECUTED 2026-09-13
+23:09 UTC with explicit user approval. `PARTITION_WRITES=0`,
+`SLOT_A_WRITTEN=NO`, `SET_ACTIVE=NO`, `EXPERIMENTAL_BOOTS=1`,
+`SECOND_BOOT_FORBIDDEN=YES` (no flash/erase/format; T1/T2/FIX24/M5N not
+executed). Final gate: **`MAINLINE_V2_R3_P1B_T0_REACHABILITY_PROVEN`**
+(Case T0-A STRONG: `T0_REACHABILITY_SIGNATURE=STRONG`,
+`T0_CHECKPOINT_REACHED=PROVEN`,
+`P1B_LARGE_PAYLOAD_TRAMPOLINE_REACHED=PROVEN`,
+`TRAMPOLINE_X0_X3_SETUP_PATH_EXECUTED=YES`).
+
+The single authorized boot was the frozen fail-closed T0-8 candidate (boot
+v3 `8d7648e4…fdc1`/37380096 from private pack run 34769675932, identity
+reconfirm 34769764343) after FULL-SHA re-verification of boot/payload/
+trampoline/RT-D and the checkpoint-region-only diff vs frozen FIX8
+(73 bytes in `[0x49,0xab] ⊂ [0x40,0xB0)`). Observer identity gate fired
+before any fastboot interaction; fastboot `Sending OKAY [ 1.010s]` /
+`Booting OKAY [ 0.220s]`.
+
+Timing: `T0_TOTAL = 14.252 s` (BOOTING_OKAY 23:09:33.741Z → returned
+Android kernel start 23:09:47.994Z); supporting decoder
+`T0_PROGRAMMED_ESTIMATE = 8.108 s` vs programmed 8.000 s → error **+0.108 s**
+→ `T0_WINDOW=STRONG`; `T0_EARLY_RETURN_CLASS_MATCH=YES` (< 20 s);
+`RECOVERY_KIND=AUTOMATIC_ANDROID_RETURN` (bootreason=bootloader, Stock
+4.19.157-perf, slot `_a`). Triple condition met. The timing signature
+directly shows the trampoline checkpoint executed (8 s CNTPCT delay then
+PSCI SYSTEM_RESET); it does NOT prove RT-D parse, primary_entry, head.S,
+MMU switch, start_kernel, initramfs or /init. Post-test:
+`ANDROID_A_RESTORED=YES`, `CURRENT_B_UNCHANGED_AFTER_T0=YES`, pstore empty
+(auxiliary only, not negative evidence).
+Details: docs/route-r3-p1b-t0-predevice-readiness.md section 23.
 
 The previous round's CHECKPOINT_T0 prototype (failsafe fall-through:
 smc return -> restore x0/x1/x2/x3 -> primary_entry) is audited as NOT
@@ -62,24 +86,23 @@ Details: docs/route-r3-p1b-t0-predevice-readiness.md.
 
 ## Current Gate (last executed device round)
 
-`R3_P1B_PANIC30_TIMEOUT_NOT_OBSERVED` — the single authorized P1B-PANIC30
-device boot (UTC 2026-09-13, run record in the isolation doc section 26)
-returned automatically to Android A with `PANIC30_TOTAL = 26.289 s` vs the
-frozen `FIX8_TOTAL = 23.852 s` baseline: `P30_DELTA = +2.437 s`, far outside
-the preregistered SUPPORTED window [23.0, 27.0] (expected +25.000 s,
-`P30_ERROR = −22.563 s`) — `NO_SUPPORTED_SHIFT` of the control-return
-timeline (Case P30-C:
-`PANIC30_TIMEOUT_NOT_OBSERVED_TO_CONTROL_RETURN_TIMELINE=YES`). This does NOT
-license `NO_LINUX_PANIC` / `NO_LINUX_ENTRY` / `LINUX_NOT_REACHED`. Behavior:
-automatic Android return, no stable Fastboot, no 4.7 s path, no hang, no
-manual recovery. Artifact identity fully re-verified before boot (boot
-`ea50e8b3…64b1`/37380096, payload `cd3f7527…687e`, RT-D `dfbfca03…3390`,
-RT-D semantic delta = bootargs `panic=5` -> `panic=30` only). Constraints
-held: `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`, `SET_ACTIVE=NO`,
-`EXPERIMENTAL_BOOTS=1`, `SECOND_BOOT_FORBIDDEN=YES`, T0/T1/T2/FIX24/M5N not
-executed. `CURRENT_B_UNCHANGED_AFTER_PANIC30=YES`, `ANDROID_A_RESTORED=YES`.
-Checkpoints stay T0 CI_PASS (prototype, superseded by the fail-closed T0-8
-candidate this round) / T1 CI_PASS / T2 DESIGNED.
+`MAINLINE_V2_R3_P1B_T0_REACHABILITY_PROVEN` — the one authorized T0-8
+device boot (UTC 2026-09-13 23:09, full record in the T0 predevice doc
+section 23) met the preregistered triple condition: timer window STRONG
+(`T0_PROGRAMMED_ESTIMATE` error +0.108 s vs 8.000 s programmed), early
+return class (`T0_TOTAL = 14.252 s < 20 s`), automatic Android return.
+This upgrades the CHECKPOINT dimension only: ABL loaded the large P1B
+payload to an executed location and the trampoline ran through x0-x3 setup
+to its fail-closed checkpoint. It does NOT upgrade E1-E4 (no evidence that
+RT-D was parsed or that normal boot continued — the T0 image can never
+continue normal boot by construction).
+
+Previous executed device round: `R3_P1B_PANIC30_TIMEOUT_NOT_OBSERVED`
+(one P1B-PANIC30 boot UTC 2026-09-13, `PANIC30_TOTAL = 26.289 s` vs FIX8
+`23.852 s`, `P30_DELTA = +2.437 s`, outside SUPPORTED [23.0, 27.0], Case
+P30-C `NO_SUPPORTED_SHIFT`; behavior automatic Android return, no stable
+Fastboot, no manual recovery; `CURRENT_B_UNCHANGED_AFTER_PANIC30=YES`,
+`ANDROID_A_RESTORED=YES`). Full record: isolation doc section 26.
 
 ## Evidence ladder (current, conservative)
 
@@ -91,6 +114,19 @@ candidate this round) / T1 CI_PASS / T2 DESIGNED.
 | E3 | built-in initramfs reached | NOT_PROVEN |
 | E4 | /init executed | NOT_PROVEN |
 | E5 | USB | FROZEN |
+
+Independent reachability ladder (introduced at the T0 positive; a
+diagnostic checkpoint never reads as normal boot success):
+
+| rung | statement | status |
+| --- | --- | --- |
+| R0 | ABL controlled payload entry | PROVEN |
+| R1 | P1B large-payload trampoline T0 checkpoint (after x0-x3 setup) | PROVEN |
+| R2 | normal primary_entry | NOT_PROVEN |
+| R3 | post-head.S / __primary_switched | NOT_PROVEN |
+| R4 | start_kernel+ | NOT_PROVEN |
+| R5 | initramfs | NOT_PROVEN |
+| R6 | /init | NOT_PROVEN |
 
 Side evidence kept behavioral-only (never upgrades E1/E2):
 `M5_STYLE_4P7S_PATH_NOT_OBSERVED=YES`,
@@ -133,6 +169,17 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
   `AUTOMATIC_ANDROID_RETURN=YES`, no persistent dump evidence; no upgrade of
   E1–E4 (full record: isolation doc section 26).
 
+- T0 device round (EXECUTED 2026-09-13 23:09 UTC, private pack run
+  34769675932 artifact, boot `8d7648e4…fdc1`/37380096, payload
+  `072c59e9…8fbe` = frozen FIX8 payload `4f34eabf…cceb41` with ONLY
+  `[0x40,0xB0)` replaced, trampoline `92fcb46e…0e72`, RT-D `48497432…f327`
+  at DTB_OFFSET `0x2380000`): `T0_TOTAL = 14.252 s`,
+  `T0_PROGRAMMED_ESTIMATE = 8.108 s` (error +0.108 s, STRONG),
+  `AUTOMATIC_ANDROID_RETURN=YES`, Case T0-A →
+  `MAINLINE_V2_R3_P1B_T0_REACHABILITY_PROVEN`; checkpoint reached PROVEN,
+  E1-E4 unchanged. Identity re-verified locally before boot (never
+  re-packed); no persistent dump evidence; constraints held.
+
 ## Current B
 
 `M5D + M5H + M5M-B` — UNCHANGED. Active slot A (stock Android) untouched;
@@ -148,28 +195,27 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
   (panic=5 -> panic=30 on the RT-D trailer); result gate
   `R3_P1B_PANIC30_TIMEOUT_NOT_OBSERVED`; binary frozen, no rebuild; second
   boot forbidden.
-- Checkpoints T0/T1/T2: T0/T1 CI PASS, T2 DESIGNED; no checkpoint device run
-  executed.
+- Checkpoints T0/T1/T2: T0 device run EXECUTED (Case T0-A STRONG,
+  `MAINLINE_V2_R3_P1B_T0_REACHABILITY_PROVEN`); T1 CI_PASS prototype
+  (device run blocked until its own predevice readiness CI); T2 DESIGNED.
 
 ## Next approved candidate
 
-`MAINLINE_V2_R3_P1B_T0_TRUE_DEVICE_CONTROL` — the T0-8 FAIL-CLOSED candidate
-frozen this round (boot v3 `8d7648e4…fdc1`/37380096, private run
-34769675932; observer refuses every known wrong boot) as the next single
-device boot per the preregistered Case P30-C recommendation. Predevice gate
-`READY_FOR_R3_P1B_T0_DEVICE_CONTROL` is MET — the boot itself still requires
-separate user approval. Per the frozen interpretation, a T0 positive (triple
-condition: timer window + early-return class + automatic Android return)
-would prove only that the large P1B artifact was loaded by ABL to an
-executed location (checkpoint evidence); it does not by itself upgrade
-E3/E4. A negative NEVER licenses T0_NOT_REACHED; it routes to
-T0_FAILURE_ISOLATION_CI.
+`MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI` — the T0 STRONG positive
+routes here per the preregistered rule. T1 already has a CI_PASS prototype,
+but before any T1 device run it needs the same readiness treatment as T0:
+fail-closed semantics, frozen artifact, full-SHA identity gate, observer,
+negative fixtures, preregistered timing window. `T1 true-device` is NOT
+authorized by the T0 result. If instead a T0-class negative had occurred,
+the route would have been `T0_FAILURE_ISOLATION_CI` (not taken).
 
 ## Not-ready candidates
 
-- Any checkpoint (T0/T1/T2) device run: CI prototype/design only.
+- T1/T2 device runs: T1 needs predevice readiness CI first; T2 still
+  DESIGNED.
 - FIX24, M5N, USB bring-up, UFS rootfs, network, drivers: frozen.
-- CopyMem forensics: priority LOWERED (re-raises only on T0 failure).
+- CopyMem forensics: priority LOWERED (T0 positive removes the transport
+  suspicion that would have re-raised it).
 - Persistent logging (pstore/ramoops/UART/USB gadget/earlycon): deferred;
   would break single-variable isolation.
 

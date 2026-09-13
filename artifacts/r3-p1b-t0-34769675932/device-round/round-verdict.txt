@@ -1,0 +1,38 @@
+MAINLINE_V2_R3_P1B_T0_TRUE_DEVICE_CONTROL — ROUND VERDICT (2026-09-13 23:09 UTC boot)
+=====================================================================================
+Constraints: mem0 read x2 (round start + pre-bootloader); LOCAL_BUILD=NO (GHA-only
+artifact, private pack run 34769675932, reverify 34769764343); PARTITION_WRITES=0;
+SLOT_A_WRITTEN=NO; SET_ACTIVE=NO; EXPERIMENTAL_BOOTS=1; SECOND_BOOT_FORBIDDEN=YES;
+T1/T2/FIX24/M5N NOT EXECUTED.
+Artifact identity (FULL SHA, verified from downloaded authoritative artifact before
+any fastboot interaction):
+  boot      8d7648e4c2713aab8bf27b9f53ffad861b21ff593a23c684631598f62e2cfdc1 (37380096)
+  payload   072c59e9d65f3c8a7ff83b50254774275d3e94479c80213afbf8eb38ac328fbe (37369041)
+  tramp     92fcb46ebae2c8985d5b55b136a544b288ae7d23805d86934c92097b005d0e72 (112 @ [0x40,0xB0))
+  RT-D      4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 (144593 @ 0x2380000)
+  vs FIX8   4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41:
+            size identical, RT-D identical, diff 73 bytes all in [0x49,0xab]
+            => T0_PAYLOAD_DIFF_ATTRIBUTED=CHECKPOINT_REGION_ONLY
+Checkpoint semantics re-verified from embedded words: DAIF mask -> x0=S+0x2380000 ->
+x1=x2=x3=0 -> CNTPCT 8s -> PSCI SYSTEM_RESET 0x84000009 smc -> wfe fail-closed;
+no primary_entry branch; T0_AFTER_X0_X3_SETUP=YES; T0_BEFORE_PRIMARY_ENTRY=YES.
+Observer: observe-r3-p1b-t0.py (unchanged since READY gate b5d854b); ARTIFACT_IDENTITY
+MATCH before any fastboot interaction; forbidden boots refused by construction.
+Fastboot: Sending 'boot.img' (36504 KB) OKAY [ 1.010s]; Booting OKAY [ 0.220s].
+Timeline UTC: T_COMMAND_START 23:09:32.484Z | T_SENDING_OKAY 23:09:33.521Z |
+T_BOOTING_OKAY 23:09:33.741Z | T_FASTBOOT_DISAPPEAR 23:09:35.172Z | T_USB_NONE
+23:09:35.295Z | T_USB_FIRST_REENUM 23:09:55.173Z | T_ADB_FIRST_SEEN 23:09:55.474Z |
+RETURNED_ANDROID_KERNEL_START 23:09:47.994Z (uptime 7.48; cross-check 23:09:48.007Z) |
+T_BOOT_COMPLETED 23:10:06.056Z.
+Timing: T0_TOTAL = 14.252 s (cross-check 14.266 s); supporting ref overhead 6.1445 s;
+T0_PROGRAMMED_ESTIMATE = 8.108 s vs expected 8.000 s => error +0.108 s => T0_WINDOW=STRONG;
+T0_EARLY_RETURN_CLASS_MATCH=YES (<20s); RECOVERY_KIND=AUTOMATIC_ANDROID_RETURN.
+VERDICT: T0_REACHABILITY_SIGNATURE=STRONG (Case T0-A); T0_CHECKPOINT_REACHED=PROVEN;
+P1B_LARGE_PAYLOAD_TRAMPOLINE_REACHED=PROVEN; TRAMPOLINE_X0_X3_SETUP_PATH_EXECUTED=YES;
+T0: PROVEN; E1/E2/E3/E4: NOT_PROVEN (unchanged).
+Post-test: ANDROID_A_RESTORED=YES (slot _a, boot_completed=1, root, Stock 4.19.157-perf);
+pstore empty (auxiliary only, NOT negative evidence); CURRENT_B_UNCHANGED_AFTER_T0=YES.
+FINAL GATE: MAINLINE_V2_R3_P1B_T0_REACHABILITY_PROVEN
+Reachability ladder: R0 PROVEN | R1 T0 checkpoint PROVEN | R2-R6 NOT_PROVEN.
+Recommended next: MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI (CI only; T1 device run
+NOT authorized). T1 executed: NO. T2 executed: NO. FIX24: FROZEN. M5N: FROZEN.

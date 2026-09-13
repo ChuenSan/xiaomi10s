@@ -261,3 +261,89 @@ DEVICE_PROTOTYPE_NOT_READY_FAIL_CLOSED_REGENERATED`, `READY_FOR_DEVICE=NO`.
   E5 USB FROZEN. A future T0 positive (STRONG/SUPPORTED) would upgrade the
   checkpoint dimension only (ABL loaded and executed the large P1B payload
   at its entry point) and would NOT by itself upgrade E3/E4.
+
+## 23. TRUE DEVICE T0 RESULT (EXECUTED 2026-09-13 UTC)
+
+`MAINLINE_V2_R3_P1B_T0_TRUE_DEVICE_CONTROL` EXECUTED with explicit user
+approval (the one authorized `fastboot boot`, `EXPERIMENTAL_BOOTS=1`,
+`SECOND_BOOT_FORBIDDEN=YES`). mem0 read at round start and again before
+`adb reboot bootloader`. Final gate: **`MAINLINE_V2_R3_P1B_T0_REACHABILITY_PROVEN`**
+(Case T0-A STRONG).
+
+Artifact identity re-verified from the authoritative private pack run
+34769675932 (`thyme-r3-p1b-t0-boot`, identity reconfirm 34769764343;
+public commit `943519bab0a985a3e667d0971d0c35109256bb49`, round record
+`b5d854b`) BEFORE any device interaction. Full-SHA table all MATCH:
+
+| item | value |
+| --- | --- |
+| T0 boot v3 | `8d7648e4c2713aab8bf27b9f53ffad861b21ff593a23c684631598f62e2cfdc1`, 37380096 |
+| T0 payload | `072c59e9d65f3c8a7ff83b50254774275d3e94479c80213afbf8eb38ac328fbe`, 37369041 |
+| T0 trampoline (embedded `[0x40,0xB0)`) | `92fcb46ebae2c8985d5b55b136a544b288ae7d23805d86934c92097b005d0e72`, 112 |
+| RT-D trailer at DTB_OFFSET | `4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327`, 144593, FDT magic `d00dfeed` |
+| DTB_OFFSET | `0x2380000` |
+| vs frozen FIX8 payload `4f34eabf…cceb41` | size identical, RT-D byte-identical, diff = 73 bytes all inside `[0x49,0xab] ⊂ [0x40,0xB0)` → `T0_PAYLOAD_DIFF_ATTRIBUTED=CHECKPOINT_REGION_ONLY` |
+
+Checkpoint semantics re-confirmed from the embedded words before boot:
+w0 `msr daifset,#0xf`, w1 `isb`, w2/w3 `adr x0,dtb_rel` / `ldr x9,dtb_rel`
+(PC-relative, quad `0x237ff58`), w4 `add x0,x0,x9` (x0 = S + `0x2380000`),
+w5-w7 `mov x1/x2/x3,xzr` — then w8+ checkpoint (`mrs cntfrq_el0`,
+`movz x10,#8`, CNTPCT poll, `movz w0,#9` + `movk w0,#0x8400,lsl#16` =
+PSCI `0x84000009`, `smc #0`, `wfe; b wfe` fail-closed, `dtb_rel` quad
+`0x237ff58:00000000`). `T0_AFTER_X0_X3_SETUP=YES`,
+`T0_BEFORE_PRIMARY_ENTRY=YES`, no primary_entry branch exists
+(FIX8 word8 `b 0x1b1c0a0` slot replaced), `T0_FAIL_CLOSED=YES`,
+relocations 0.
+
+Preflight: Android A (`slot_suffix=_a`, `boot_completed=1`, root magisk
+uid=0, Stock 4.19.157-perf); Current B read-only hashes M5D `4db8151b…85e63`
+/ M5H `2d58ef94…` + `5d98f207…` / M5M-B dtbo `c5a355b9…aba8` ALL MATCH.
+Bootloader: product=thyme, unlocked=yes, current-slot=a,
+snapshot-update-status=none, battery-soc-ok=yes (4360 mV); slot a
+retry=6/unbootable=no/successful=yes. Observer identity gate
+`ARTIFACT_IDENTITY MATCH` fired before any fastboot interaction.
+
+Fastboot acceptance: `Sending 'boot.img' (36504 KB) OKAY [ 1.010s]`,
+`Booting OKAY [ 0.220s]`. Timeline (UTC):
+
+| event | time |
+| --- | --- |
+| T_COMMAND_START | 2026-09-13T23:09:32.484Z |
+| T_SENDING_OKAY | 2026-09-13T23:09:33.521Z |
+| T_BOOTING_OKAY | 2026-09-13T23:09:33.741Z |
+| T_FASTBOOT_DISAPPEAR | 2026-09-13T23:09:35.172Z |
+| T_USB_NONE | 2026-09-13T23:09:35.295Z |
+| T_USB_FIRST_REENUM | 2026-09-13T23:09:55.173Z |
+| T_ADB_FIRST_SEEN | 2026-09-13T23:09:55.474Z |
+| RETURNED_ANDROID_KERNEL_START | 2026-09-13T23:09:47.994Z (uptime 7.48; cross-check 23:09:48.007) |
+| T_BOOT_COMPLETED | 2026-09-13T23:10:06.056Z |
+
+Timing: primary `T0_TOTAL` = `T0_BOOTING_TO_RETURNED_KERNEL_START` =
+**14.252 s** (cross-check 14.266 s). Supporting decoder:
+`T0_PROGRAMMED_ESTIMATE = 14.252 − 6.1445 = 8.108 s` vs programmed 8.000 s
+→ error **+0.108 s** → `T0_WINDOW=STRONG` (≤ ±1.5 s);
+`T0_EARLY_RETURN_CLASS_MATCH=YES` (14.252 < 20);
+`RECOVERY_KIND=AUTOMATIC_ANDROID_RETURN` (bootreason=bootloader, slot `_a`,
+Stock 4.19.157-perf, no stable Fastboot, no transient, no manual recovery).
+Triple condition met → **Case T0-A STRONG**:
+`T0_REACHABILITY_SIGNATURE=STRONG`, `T0_CHECKPOINT_REACHED=PROVEN`,
+`P1B_LARGE_PAYLOAD_TRAMPOLINE_REACHED=PROVEN`,
+`TRAMPOLINE_X0_X3_SETUP_PATH_EXECUTED=YES`. This proves the instruction
+path executed; it does NOT prove RT-D parse, primary_entry, head.S
+completion, MMU switch, start_kernel, initramfs or /init — E1-E4 remain
+NOT_PROVEN. Elapsed: BOOTING→ADB 21.732 s, BOOTING→boot_completed 32.315 s.
+
+Post-test: `ANDROID_A_RESTORED=YES`; pstore empty (auxiliary only, NOT
+negative evidence — the T0 proof is the timing signature);
+`CURRENT_B_UNCHANGED_AFTER_T0=YES` (post-test hashes identical to pre-test).
+Constraints held: `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`, `SET_ACTIVE=NO`,
+no flash/erase/format, T1/T2/FIX24/M5N not executed.
+
+Reachability ladder after this round: R0 ABL controlled payload entry
+PROVEN; R1 P1B large-payload trampoline T0 checkpoint PROVEN; R2 normal
+primary_entry NOT_PROVEN; R3 post-head.S/__primary_switched NOT_PROVEN;
+R4 start_kernel+ NOT_PROVEN; R5 initramfs NOT_PROVEN; R6 /init NOT_PROVEN.
+Original evidence ladder unchanged: E0 PROVEN, E1-E4 NOT_PROVEN, E5 FROZEN.
+
+Recommended next: `MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI` (predevice
+readiness CI only — a T1 device run is NOT authorized by this result).
