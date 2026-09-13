@@ -324,7 +324,7 @@ def config(out: Path, cpio: Path) -> None:
                 "CONFIG_GENERIC_CLOCKEVENTS"):
         if values[sym] != "y":
             fail("P1B_FI_CONFIG_FAILED", f"{sym}={values[sym]}")
-    src = values["CONFIG_INITRAMFS_SOURCE"]
+    src = values["CONFIG_INITRAMFS_SOURCE"].strip('"')
     if not src.endswith("initramfs-8s.cpio"):
         fail("P1B_FI_CONFIG_FAILED", f"INITRAMFS_SOURCE={src!r}")
     if values["CONFIG_PANIC_ON_OOPS"] not in ("n", "unset") or \
