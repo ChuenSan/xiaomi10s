@@ -452,3 +452,47 @@ PANIC30 (if device-approved later)
 round when all CI gates pass; `R3_P1B_EARLY_CHECKPOINT_REQUIRED` if PANIC30
 loses discriminating power statically; `R3_P1B_PANIC_OR_CHECKPOINT_ISOLATION_INCOMPLETE`
 if the checkpoint architecture stays incomplete.
+
+## 25. Round CI record
+
+Public CI (ChuenSan/xiaomi10s, run 34754072600, commit c001114c, all 4 jobs
+green — audit / source-gate / panic30-build+gates / independent
+re-verification):
+
+- `PANIC30_RT_D_SHA256 = dfbfca033662af4c7f01be46ad71efee16cf085ff4e136f9abada6faefcc3390`
+  (144597 = frozen 144593 + 4);
+- `PANIC30_PAYLOAD_SHA256 = cd3f75279b9b2335c4a16594452fb6b0ac68224eb720320c99f07da60ca3687e`
+  (37369045 = frozen 37369041 + 4); `panic30_boot_size_est = 37380096`;
+- header image_size of the frozen payload AND the fresh rebuild:
+  `0x2230000` (file size 0x2189a00 both). Note: the FIX8 manifest json
+  records `image_size: 35848192` (0x2231000) which disagrees with both
+  measured headers; both values land on the same `DTB_OFFSET = 0x2380000`,
+  so geometry is unaffected. The header-measured value is authoritative;
+- `primary_entry = 0x1b1c0a0` re-derived this round from vmlinux (matches
+  the historical value — re-derived, not inherited); `__primary_switched =
+  0x1b39534`; rebuilt-vs-frozen Image diff attributed to the IKCONFIG gz
+  avalanche window (path-length shift) + 71 bytes of legitimate build-stamp
+  scatter in 7 ranges (each <= 20 B);
+- dtc cross-decompile diff: exactly the bootargs line pair;
+- T0: 128-byte trampoline, branch 0xb0 -> 0x1b1c0a0, `X0_STATIC=0x2380000`,
+  `PSCI_FID=0x84000009`, `CHECKPOINT_T0_CI=PASS`;
+- T1: gap probe at 0x2189a00, replaces exactly `bl record_mmu_state`
+  (0x1b1c0a0) with `b 0x2189a00`, register discipline x9-x15 only,
+  `CHECKPOINT_T1_CI=PASS`;
+- T2: `CHECKPOINT_T2_STATUS=DESIGNED`, `T2_TIMER_RESET_SAFE=YES` (MMU-on
+  conditional audit, section 17).
+
+Private CI (ChuenSan/thyme-mainline-private-ci, PANIC30 pack): inputs
+`public_source_commit=c001114cf6854ecc41fc15f670b337f6c26475a7`,
+`public_run_id=34754072600`, payload/RT-D SHAs as above. First dispatch
+(run 34755574064) passed every pack gate but was tripped by the final
+no-`*.img` assertion counting the DOWNLOADED M5D input; after exempting
+`./m5d-artifact/*` the re-dispatch run 34755701908 is fully green:
+`PRIVATE_REPO_VISIBILITY=PRIVATE`, `M5D_BOOT_SHA_EXACT=PASS` (envelope
+4db8151b…), `P30_PACK_GATES=PASS`, `PANIC30_BOOT_SIZE=37380096` (matches the
+public manifest estimate), `PANIC30_BOOT_SHA256 =
+ea50e8b344219f39bde317503b9e238af88080ca7e55b9a14b5b0b825a8664b1`,
+payload/RT-D SHAs re-verified identical to the public run, boot size
+cross-check PASS. The boot.img exists ONLY as a private-repo artifact
+(`thyme-r3-p1b-panic30-boot`). No flash, no device operation,
+`READY_FOR_DEVICE=NO`.

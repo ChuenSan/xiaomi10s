@@ -58,7 +58,10 @@ BOOT_CAP = pb.BOOT_CAP
 PAGE = pb.PAGE
 FDT_MAGIC = pb.FDT_MAGIC
 DTB_OFFSET = 0x2380000
-FIX8_IMAGE_HEADER_IMAGE_SIZE = 0x2231000
+# Header-measured image_size of the frozen FIX8 payload (both the frozen
+# payload header and the fresh rebuild read 0x2230000; the FIX8 manifest json
+# field 35848192 disagrees with both but lands on the same DTB_OFFSET).
+FIX8_IMAGE_HEADER_IMAGE_SIZE = 0x2230000
 BOOTARGS_OLD = b"rdinit=/init panic=5 loglevel=7"
 BOOTARGS_NEW = b"rdinit=/init panic=30 loglevel=7"
 FIX8_PAYLOAD_SHA = (

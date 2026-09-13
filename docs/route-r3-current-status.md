@@ -41,10 +41,20 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
   rawdump/logdump unchanged); absence is not proof of Linux absence (no
   persistent sink exists).
 - Frozen hashes: FIX8 payload `4f34eabf…cceb41`, Image `dffce20e…44944`
-  (image_size 0x2231000, file 35166720), /init `f1bc8849…66d`,
+  (header image_size 0x2230000 as measured on both the frozen payload and a
+  fresh rebuild; file 35166720), /init `f1bc8849…66d`,
   initramfs `02123e98…fff3`, trampoline `362d9c6e…c623`,
   RT-D `48497432…f327` (144593), DTB_OFFSET `0x2380000`,
   Linux base `8b73de7da85fde281a385e0b26eda9bffd3ca477` (6.6.156).
+- PANIC30 artifacts (public run 34754072600, commit c001114c, all jobs green):
+  RT-D `dfbfca03…3390` (144597 = 144593+4, semantic delta
+  PANIC_TIMEOUT_ONLY), payload `cd3f7527…687e` (37369045 = 37369041+4,
+  prefix byte-identical to frozen FIX8), boot_size_est 37380096,
+  primary_entry 0x1b1c0a0 (re-derived this round), __primary_switched
+  0x1b39534, T0/T1 CI PASS, T2 DESIGNED.
+- PANIC30 boot (PRIVATE repo only, private run 34755701908): boot v3
+  `ea50e8b3…64b1`, size 37380096, spliced into the exact M5D envelope
+  (4db8151b…); pack gates + size cross-check PASS; `READY_FOR_DEVICE=NO`.
 
 ## Current B
 
