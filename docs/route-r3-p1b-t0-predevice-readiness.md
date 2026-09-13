@@ -78,8 +78,9 @@ RT-D, `x1=x2=x3=0`) and replaces the frozen handoff's final `branch
 primary_entry` slot; no branch to primary_entry exists in the T0 device
 source. Evidence: the frozen `b_primary` word at payload `0x60` is decoded
 by algebra (word[8] of the frozen trampoline, target `0x60 + sx(imm26,26)*4
-== 0x1b1c0a0`) from the frozen payload bytes themselves, plus an incbin-ELF
-disassembly record; the T0 device trampoline contains no branch leaving
+== 0x1b1c0a0`) from the frozen payload bytes themselves, plus a literal-.inst-word
+ELF disassembly record (frozen 48 bytes reassembled as .inst words,
+byte-identical, disassembled by the pinned llvm-objdump); the T0 device trampoline contains no branch leaving
 `[0x40, 0xB0)`.
 
 ## 7. Timer primitive: CNTPCT register-only

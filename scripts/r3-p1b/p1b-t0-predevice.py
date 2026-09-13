@@ -572,32 +572,34 @@ def build_t0_device(out: Path, tools: dict,
 
 def frozen_tramp_record(out: Path, tools: dict, frozen: bytes) -> dict:
     """Authoritative frozen FIX8 trampoline: extract, disassemble via an
-    incbin ELF, re-derive the primary_entry branch by algebra."""
+    literal-.inst-word ELF, re-derive the primary_entry branch by algebra."""
     tramp = frozen[TRAMP_OFFSET:TRAMP_OFFSET + TRAMP_SIZE]
     if sha(tramp) != TRAMP_SHA:
         fail("T0_IDENTITY_FAILED", f"embedded trampoline sha={sha(tramp)}")
     binp = out / "frozen-fix8-trampoline.bin"
     binp.write_bytes(tramp)
+    # Reassemble the frozen 48 bytes as literal .inst words (the proven
+    # encoding path in this repo) and disassemble that ELF — byte-identical
+    # to the embedded trampoline, no file-include dependency.
+    words = struct.unpack_from(f"<{TRAMP_SIZE // 4}I", frozen, TRAMP_OFFSET)
     wrap = out / "frozen-fix8-trampoline-wrap.S"
     wrap.write_text(
         ".section .text, \"ax\", @progbits\n"
         ".globl r3_handoff_entry\n"
         "r3_handoff_entry:\n"
-        "frozen_tramp_start:\n"
-        f".incbin \"{binp.resolve()}\"\n")
+        + "".join(f".inst\t{w:#010x}\n" for w in words))
     elf = out / "frozen-fix8-trampoline.elf"
-    iso.assemble_probe(wrap, HERE / "p1b-trampoline.ld", [], elf, tools)
+    ops = iso.assemble_probe(wrap, HERE / "p1b-trampoline.ld", [], elf, tools)
     dump = pb.run([tools["objdump"], "-d", str(elf)])
     (out / "frozen-fix8-trampoline-disasm.txt").write_text(dump)
-    ops = ops_from_dump(dump)
-    for tok in ("msr daifset, #0xf", "isb", "adr x0", "ldr x9",
-                "add x0, x0, x9", "mov x1, xzr", "mov x2, xzr",
-                "mov x3, xzr"):
-        if tok not in ops:
-            fail("T0_IDENTITY_FAILED", f"frozen trampoline missing {tok!r}")
-    if not re.search(r"\bb\b", ops):
-        fail("T0_IDENTITY_FAILED", "frozen trampoline b missing")
-    words = struct.unpack_from(f"<{TRAMP_SIZE // 4}I", frozen, TRAMP_OFFSET)
+    missing = [t for t in ("msr daifset, #0xf", "isb", "adr x0", "ldr x9",
+                           "add x0, x0, x9", "mov x1, xzr", "mov x2, xzr",
+                           "mov x3, xzr") if t not in ops]
+    has_b = re.search(r"\bb\b", ops)
+    if missing or not has_b:
+        fail("T0_IDENTITY_FAILED",
+             f"frozen trampoline disasm tokens missing={missing} "
+             f"b={'yes' if has_b else 'no'}; dump:\n{dump}")
     w_b = words[8]  # b_primary at trampoline offset 0x20
     if (w_b >> 26) != 0b000101:
         fail("T0_IDENTITY_FAILED", f"trampoline word[8] not B: {w_b:#010x}")
