@@ -148,7 +148,7 @@ def init_abi_violations(lines: list[str], delay: int) -> list[str]:
             (r"\bmovk\s+[wx]1, #(0x2812|10258), lsl #16\b", "reboot_magic2_high"),
             (r"\b(movz|mov)\s+[wx]2, #(0x4567|17767)\b", "reboot_cmd_low"),
             (r"\bmovk\s+[wx]2, #(0x123|291), lsl #16\b", "reboot_cmd_high"),
-            (r"\bmov\s+x3, [wx]zr\b", "reboot_arg3_not_zero"),
+            (r"\bmov\s+x3, ([wx]zr|#(0x0|0))\b", "reboot_arg3_not_zero"),
         ):
             if not re.search(bad, rj):
                 v.append(label)
