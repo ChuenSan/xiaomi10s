@@ -325,7 +325,7 @@ jobs:
                   tok = u32(blob, i); i += 4
                   if tok == 1:
                       e = blob.index(b"\x00", i)
-                      path.append(blob[i:e].decode() or "/"); i = a4(e + 1)
+                      path.append(blob[i:e].decode() or ""); i = a4(e + 1)
                   elif tok == 2:
                       path.pop()
                   elif tok == 3:
