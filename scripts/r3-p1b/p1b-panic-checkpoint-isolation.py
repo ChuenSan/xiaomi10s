@@ -83,10 +83,11 @@ def fail(label: str, detail: str = "") -> None:
     raise SystemExit(label if not detail else f"{label}: {detail}")
 
 
-def run(cmd: list[str], *, cwd: Path | None = None) -> str:
+def run(cmd: list[str], *, cwd: Path | None = None,
+        ok: tuple[int, ...] = (0,)) -> str:
     proc = subprocess.run(cmd, cwd=cwd, check=False, capture_output=True,
                           text=True)
-    if proc.returncode != 0:
+    if proc.returncode not in ok:
         fail("P30_CMD_FAILED", f"{' '.join(cmd)}\n{proc.stderr}\n{proc.stdout[-4000:]}")
     return proc.stdout
 
@@ -243,7 +244,8 @@ def semantic_diff_gates(out: Path, old_rt_d: bytes, new_rt_d: bytes,
         tmp.write_bytes(blob)
         run([tools["dtc"], "-I", "dtb", "-O", "dts", "-q", "-o",
              str(out / f"rt-d-{label}.dts"), str(tmp)])
-    dts_diff = [l for l in run(["diff", "-u", str(old_dts), str(new_dts)])
+    dts_diff = [l for l in run(["diff", "-u", str(old_dts), str(new_dts)],
+                               ok=(0, 1))
                 .splitlines() if l.startswith(("+", "-"))
                 and not l.startswith(("+++", "---"))]
     changed = [l for l in dts_diff if "panic=" in l]
