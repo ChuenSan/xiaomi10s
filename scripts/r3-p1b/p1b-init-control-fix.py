@@ -769,7 +769,7 @@ def main() -> None:
     parser.add_argument("--mode", choices=(
         "source-gate", "audit", "negative", "qemu"), required=True)
     parser.add_argument("--auth")
-    parser.add_argument("--out", required=True)
+    parser.add_argument("--out", default="out-r3-p1b-fix")
     parser.add_argument("--objdump", default="aarch64-linux-gnu-objdump")
     parser.add_argument("--gcc", default="aarch64-linux-gnu-gcc")
     parser.add_argument("--qemu", default="qemu-aarch64-static")
