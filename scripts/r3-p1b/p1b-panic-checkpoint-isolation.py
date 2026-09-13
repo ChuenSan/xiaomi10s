@@ -142,7 +142,9 @@ def fdt_walk(blob: bytes) -> list[tuple[str, str, bytes, int]]:
         i += 4
         if token == FDT_BEGIN_NODE:
             end = blob.index(b"\x00", i)
-            name = blob[i:end].decode("ascii", "replace") or "/"
+            # Root node name is "" (not "/") so that "/".join yields
+            # "/chosen", not "//chosen".
+            name = blob[i:end].decode("ascii", "replace") or ""
             path.append(name)
             i = (end + 1 + 3) & ~3
         elif token == FDT_END_NODE:
@@ -186,9 +188,13 @@ def build_panic30_rt_d(rt_d: bytes) -> bytes:
     next_tok = (val_end + 3) & ~3
     new_next = (val_off + len(new_value) + 3) & ~3
     delta = new_next - next_tok
-    new_struct = (rt_d[hdr["off_struct"]:val_off] + new_value
-                  + b"\x00" * (new_next - val_off - len(new_value))
-                  + rt_d[val_end:hdr["off_strings"]])
+    new_struct = bytearray(rt_d[hdr["off_struct"]:val_off] + new_value
+                           + b"\x00" * (new_next - val_off - len(new_value))
+                           + rt_d[val_end:hdr["off_strings"]])
+    # The prop header prefix is copied verbatim, so its plen still reads the
+    # old length; patch it (plen word sits 8 bytes before the value).
+    struct.pack_into(">I", new_struct, val_off - 8 - hdr["off_struct"],
+                     len(new_value))
     if len(new_struct) != hdr["sz_struct"] + delta:
         fail("P30_FDT_FAILED", "struct size algebra")
     out = bytearray(rt_d[:hdr["off_struct"]] + new_struct
