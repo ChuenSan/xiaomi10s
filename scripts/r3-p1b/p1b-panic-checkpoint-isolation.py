@@ -522,9 +522,14 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
                   RT_D_SHA, "panic=30", "READY_FOR_R3_P1B_PANIC30_DEVICE_CONTROL"):
         if token not in doc:
             fail("P30_SOURCE_GATE_FAILED", f"doc missing {token}")
-    for token in ("smc", "cntpct_el0", "cntfrq_el0", "P1B_ENTRY_REL"):
+    for token in ("smc", "cntpct_el0", "cntfrq_el0", "yield"):
         if token not in t0 or token not in t1:
             fail("P30_SOURCE_GATE_FAILED", f"probe missing {token}")
+    for token in ("P1B_ENTRY_REL", "P1B_DTB_REL", "P1B_PROBE_DELAY"):
+        if token not in t0:
+            fail("P30_SOURCE_GATE_FAILED", f"t0 missing {token}")
+    if "P1B_PROBE_DELAY" not in t1:
+        fail("P30_SOURCE_GATE_FAILED", "t1 missing P1B_PROBE_DELAY")
     if re.search(r"fix2[4]|FIX2[4]", script):
         fail("P30_SOURCE_GATE_FAILED", "the 24s-delay variant is forbidden")
     if re.search(r"\b(fastboot|adb|flash|erase|set_active)\b", wf):
