@@ -11,6 +11,9 @@ splices M5D and never emits a flashable boot image.
 
 ## 1. Old root cause (frozen)
 
+CLOCK_NANOSLEEP_ABI: BROKEN_3_ARG (source-audit + pinned-kernel UAPI +
+authoritative-binary disassembly + QEMU strace, GHA run 34729573603).
+
 The old P1B /init (public run 34696279424) called `clock_nanosleep` through a
 3-arg raw-syscall wrapper. The Linux arm64 ABI for
 `sys_clock_nanosleep(which_clock, flags, rqtp, rmtp)` needs four arguments:
