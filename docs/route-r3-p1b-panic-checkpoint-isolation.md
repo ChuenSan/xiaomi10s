@@ -630,11 +630,37 @@ cross-check PASS. The boot.img exists ONLY as a private-repo artifact
 CI / SOURCE AUDIT CORRECTION ONLY. No binary was rebuilt this round
 (`PANIC30_BINARY_REBUILT_THIS_ROUND=NO`,
 `PANIC30_ARTIFACT_REBUILD_REQUIRED=NO`); the public build + verify jobs were
-deliberately not executed (dispatch-only via `run_build=true`). Jobs that
-did run: source-audit (source-gate incl. the forbidden-assertion scan),
-panic-cmdline-audit (corrected panic-audit + cmdline-audit),
-panic-audit-correction (corrected panic-audit, wrong-assertion negative
-fixtures, PANIC30 identity re-verification against the authoritative
-artifacts of runs 34754072600 + 34755788727, frozen RT-D + FIX8 payload
-re-download), and a private identity-reverify job (private run 34755701908
-boot re-hashed, never re-packed). Round run ids recorded after completion.
+deliberately not executed (dispatch-only via `run_build=true`).
+
+Public CI (ChuenSan/xiaomi10s, run 34760217553, commit 69b906c, all 3 jobs
+green; build + verify jobs skipped by design): source-audit (source-gate incl.
+the forbidden-assertion live scan, `PANIC_AUDIT_ASSERTION_SCAN=CLEAN`),
+panic-cmdline-audit (corrected panic-audit + cmdline-audit on the frozen
+RT-D), panic-audit-correction: corrected panic-audit exact-text gates over
+the pinned source (`PANIC_ZERO_TIMEOUT_BEHAVIOR=
+INFINITE_PANIC_LOOP_NO_AUTOMATIC_RESTART`, `PANIC_NEVER_RETURNS=YES`,
+`P1B_PRE_CMDLINE_PANIC_TIMEOUT=0`,
+`PANIC_TIMEOUT_WALLCLOCK_EXACT_BEFORE_CALIBRATE_DELAY=NOT_GUARANTEED`);
+wrong-assertion negative fixtures `PANIC_AUDIT_NEGATIVE_FIXTURES=PASS`
+(6 wrong rejected, 7 corrected accepted, `PANIC_OLD_ASSERTIONS=
+FAIL_OLD_ASSERTION`); PANIC30 identity re-verification
+(`P30_IDENTITY_GATES=PASS`): primary 34754072600 == confirmation 34755788727
+manifests identical, payload/RT-D re-hashed
+`cd3f7527…687e` / `dfbfca03…3390` (full values in the section 25 record
+above), RT-D semantic re-diff = bootargs panic=5 -> panic=30 only, payload
+prefix byte-identity vs frozen FIX8, boot size est 37380096, doc full-SHA
+record check PASS; verdict
+`READY_FOR_R3_P1B_PANIC30_DEVICE_CONTROL_RECONFIRMED=YES`.
+
+Private CI (ChuenSan/thyme-mainline-private-ci, identity-reverify-only
+dispatch, run 34760318874, green; private workflow commit
+64780085996cc1b6df3d96d98844fad9f346f3d5): the authoritative boot artifact
+of private run 34755701908 was DOWNLOADED and RE-HASHED — never re-packed,
+no binary generated:
+`PANIC30_PRIVATE_BOOT_IDENTITY_RECONFIRMED=YES`,
+boot SHA `ea50e8b3…64b1` (full value above), size 37380096,
+pack-gates report tokens (payload/RT-D SHAs, semantic delta,
+P30_PACK_GATES=PASS) all matched; pack job skipped
+(`PANIC30_ARTIFACT_REBUILD_REQUIRED=NO (boot re-hashed, never re-packed)`).
+
+No flash, no device operation, `READY_FOR_DEVICE=NO`.
