@@ -1,0 +1,150 @@
+name: thyme-r3-p1b-failure-isolation
+
+# CI/SOURCE AUDIT ONLY. Explains why INIT8_TOTAL=23.184s and INIT24_TOTAL=24.570s
+# (PAIR_DELTA +1.386s) instead of +16.000s by auditing the exact authoritative
+# /init binaries from public run 34696279424: pinned qemu-aarch64 user-mode
+# execution with -strace and wallclock pair, disassembly ABI audit, cpio and
+# embedded-initramfs containment, reconstructed config symbol audit.
+# No fastboot, no adb, no device operation, no flashable image.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-r3-p1b-failure-isolation.yml'
+      - 'scripts/r3-p1b/p1b-failure-isolation.py'
+      - 'docs/route-r3-p1b-failure-isolation.md'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-p1b-failure-isolation.yml'
+      - 'scripts/r3-p1b/p1b-failure-isolation.py'
+  workflow_dispatch: {}
+
+concurrency:
+  group: thyme-r3-p1b-failure-isolation-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  failure-isolation:
+    name: R3 P1B failure isolation (source audit + authoritative QEMU pair)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-r3-p1b-failure-isolation.yml
+
+      - name: Install pinned toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang lld llvm make gcc bc bison flex libssl-dev libelf-dev \
+            cpio file python3 gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu qemu-user-static
+          python3 -m py_compile scripts/r3-p1b/p1b-failure-isolation.py
+          aarch64-linux-gnu-objdump --version | head -1
+          qemu-aarch64-static --version | head -1
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          git submodule update --init --depth 1 linux-6.6
+          base=$(git -C linux-6.6 rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base"
+          test "$base" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+      - name: Download authoritative INIT8/INIT24 artifacts (public run 34696279424)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUTH_RUN_ID: ${{ inputs.auth_run_id || '34696279424' }}
+        run: |
+          set -euo pipefail
+          mkdir -p out-fi
+          gh run download "$AUTH_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-init8-init24 --dir auth
+          ls -la auth/
+
+      - name: Identity + disassembly + cpio + embedded-initramfs audit
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          python3 scripts/r3-p1b/p1b-failure-isolation.py \
+            --mode audit --auth auth --out out-fi | tee out-fi/audit-run.txt
+          grep -Fxq 'P1B_FI_AUDIT_GATES=PASS' out-fi/audit-gates.txt
+          grep -Fq 'INIT_SYSCALL_NUMBER_AUDIT=PASS' out-fi/audit-run.txt
+          grep -Fq 'INIT_CLOCK_NANOSLEEP_ABI=FAIL_3ARG_CALL' out-fi/audit-run.txt
+          grep -Fq 'INIT_SLEEP_RETURN_CHECKED=NO' out-fi/audit-run.txt
+          grep -Fq 'P1B_INIT_CONTROL_HAS_UNCHECKED_SLEEP_FAILURE_PATH=YES' out-fi/audit-run.txt
+          grep -Fq 'INIT_REBOOT_ABI=PASS' out-fi/audit-run.txt
+          grep -Fq 'INIT_BINARY_SEMANTIC_DELTA=DELAY_CONSTANT_ONLY' out-fi/audit-run.txt
+          grep -Fq 'BUILTIN_INITRAMFS_CPIO_FIELDS=PASS' out-fi/audit-run.txt
+          grep -Fq 'BUILTIN_INITRAMFS_EMBED=PASS' out-fi/audit-run.txt
+          grep -Fq 'PAIR_GEOMETRY_IDENTICAL=YES' out-fi/audit-run.txt
+
+      - name: Reconstruct P1B merged config and audit timer/panic symbols
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          python3 scripts/r3-p1b/p1b-failure-isolation.py \
+            --mode config --auth auth --out out-fi | tee out-fi/config-run.txt
+          grep -Fxq 'P1B_FI_CONFIG_GATES=PASS' out-fi/config-gates.txt
+          grep -Fq 'P1B_CLOCK_NANOSLEEP_KERNEL_SUPPORT=YES' out-fi/config-run.txt
+          grep -Fq 'P1B_CONFIG_CONFIG_POSIX_TIMERS=y' out-fi/config-run.txt
+
+      - name: Authoritative QEMU user-mode pair with -strace
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          python3 scripts/r3-p1b/p1b-failure-isolation.py \
+            --mode qemu --auth auth --out out-fi | tee out-fi/qemu-run.txt
+          grep -Fxq 'P1B_FI_QEMU_GATES=PASS' out-fi/qemu-gates.txt
+          grep -Fq 'QEMU_HARNESS_POSITIVE_CONTROL=PASS' out-fi/qemu-run.txt
+          grep -Fq 'QEMU_PAIR_VERDICT=' out-fi/qemu-run.txt
+
+      - name: Assemble failure-isolation verdict
+        run: |
+          set -euo pipefail
+          {
+            echo "MAINLINE_V2_R3_P1B_FAILURE_ISOLATION_CI (CI/SOURCE AUDIT ONLY)"
+            echo "AUTH_SOURCE=PUBLIC_GHA_RUN_34696279424"
+            echo "DEVICE_OPERATION=NO"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "READY_FOR_DEVICE=NO"
+            echo "--- audit ---"
+            cat out-fi/audit-gates.txt
+            echo "--- config ---"
+            cat out-fi/config-gates.txt
+            echo "--- qemu ---"
+            cat out-fi/qemu-gates.txt
+          } > out-fi/failure-isolation-gates.txt
+          cat out-fi/failure-isolation-gates.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Assert no flashable output exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'flashable image emitted' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_P1B_FI_NO_BOOT_IMAGE=PASS'
+          echo 'DEVICE_OPERATION=NO'
+
+      - name: Upload failure-isolation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-failure-isolation
+          if-no-files-found: error
+          path: |
+            out-fi/**
+            !out-fi/out-config-audit/**
