@@ -236,7 +236,7 @@ def compile_init(out: Path, delay: int, gcc: str, strip: str) -> Path:
     if "NEEDED" in dyn.stdout:
         fail("P1B_INIT_FAILED", "dynamic NEEDED")
     ident = run(["strings", str(elf)])
-    if f"THYME-R3-P1B-INIT DELAY={delay:02d}" not in ident:
+    if f"THYME-R3-P1B-INIT ABI4 DELAY={delay:02d}" not in ident:
         fail("P1B_INIT_FAILED", "ident string")
     elf.chmod(0o755)
     print(f"P1B_INIT delay={delay} sha256={sha(elf.read_bytes())} "
@@ -488,7 +488,7 @@ def build_pass(out: Path, delay: int, cpio: Path, rt_d: bytes, tools: dict,
     if struct.unpack_from("<I", payload, CODE1_OFFSET)[0] != 0x1400000F:
         fail("P1B_PAYLOAD_FAILED", "code1 not b 0x40")
 
-    payload_path = out / f"thyme-r3-p1b-init{delay}-kernel-payload.bin"
+    payload_path = out / f"thyme-r3-p1b-fix{delay}-kernel-payload.bin"
     payload_path.write_bytes(payload)
     head = payload[:0x80]
     hexdump = "\n".join(
@@ -571,7 +571,7 @@ def cmd_build(args: argparse.Namespace) -> None:
     print("P1B_INIT_PAIR_SEMANTIC_DELTA=DELAY_CONSTANT_ONLY")
 
     manifest = {
-        "stage": "MAINLINE_V2_R3_P1B_MINIMAL_LINUX_ENTRY_CI",
+        "stage": "MAINLINE_V2_R3_P1B_INIT_CONTROL_FIX_CI",
         "linux_base": LINUX_BASE, "patch_queue_sha256": qsha,
         "s_residue": hex(S_RESIDUE),
         "results": {
@@ -593,6 +593,7 @@ def cmd_build(args: argparse.Namespace) -> None:
         f"P1B_PATCH_QUEUE_SHA256={qsha}",
         "P1B_DTB_PLACEMENT_PROOF=PASS",
         "P1B_TRAMPOLINE_GATES=PASS",
+        "P1B_INIT_SOURCE_ABI4=FIXED_4ARG",
         "P1B_INIT_PAIR_SEMANTIC_DELTA=DELAY_CONSTANT_ONLY",
         "P1B_INITRAMFS_REBUILD_IDENTICAL=YES",
         "P1B_RT_D_SHA_EXACT=PASS",
@@ -777,9 +778,13 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
             fail("P1B_SOURCE_GATE_FAILED", f"trampoline missing {token}")
     for token in ("SYS_clock_nanosleep", "SYS_reboot", "SYS_exit_group",
                   "LINUX_REBOOT_CMD_RESTART", "CLOCK_MONOTONIC",
-                  "THYME-R3-P1B-INIT"):
+                  "THYME-R3-P1B-INIT", "EXIT_SLEEP_FAILED",
+                  "EXIT_REBOOT_RETURNED", "sys4(SYS_clock_nanosleep, "
+                  "CLOCK_MONOTONIC, 0,"):
         if token not in init_c:
             fail("P1B_SOURCE_GATE_FAILED", f"init missing {token}")
+    if re.search(r"\bsys3\b", init_c):
+        fail("P1B_SOURCE_GATE_FAILED", "init must not use 3-arg wrapper")
     if "busybox" in init_c.lower():
         fail("P1B_SOURCE_GATE_FAILED", "init must not pull busybox")
     for token in (

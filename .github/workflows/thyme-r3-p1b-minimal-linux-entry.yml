@@ -1,5 +1,12 @@
 name: thyme-r3-p1b-minimal-linux-entry
 
+# RETIRED for routine use: the P1B pair build moved to
+# thyme-r3-p1b-init-control-fix.yml after the failure-isolation stage proved
+# the original /init clock_nanosleep ABI broken (3-arg call, zero sleep).
+# This workflow is kept frozen for provenance and is workflow_dispatch only;
+# any manual dispatch would rebuild the pair from the CURRENT (fixed) source,
+# so its outputs are no longer identity-guaranteed to the frozen runs
+# 34696279424/34698327535. The frozen OLD_BROKEN artifacts live only there.
 # Public CI for the R3 P1B first real mainline Linux candidate.
 # Builds the clean M0-config-line baseline and the INIT8/INIT24 pair with the
 # RT-D trailer and the PC-relative handoff trampoline. Boot v3 packing runs in
@@ -7,19 +14,6 @@ name: thyme-r3-p1b-minimal-linux-entry
 # Does not splice M5D and does not emit a flashable boot image.
 # Does not emit a flashable boot image from the public repo.
 on:
-  push:
-    branches: [route-b-v3]
-    paths:
-      - '.github/workflows/thyme-r3-p1b-minimal-linux-entry.yml'
-      - 'docs/route-r3-p1b-minimal-linux-entry-ci.md'
-      - 'scripts/r3-p1b/**'
-      - 'configs/thyme-r3-p1b.config'
-  pull_request:
-    paths:
-      - '.github/workflows/thyme-r3-p1b-minimal-linux-entry.yml'
-      - 'docs/route-r3-p1b-minimal-linux-entry-ci.md'
-      - 'scripts/r3-p1b/**'
-      - 'configs/thyme-r3-p1b.config'
   workflow_dispatch:
     inputs:
       rt_d_run_id:

@@ -1,0 +1,302 @@
+name: thyme-r3-p1b-init-control-fix
+
+# CI proof for the FIXED P1B /init (MAINLINE_V2_R3_P1B_INIT_CONTROL_FIX_CI).
+# Freezes the failure-isolation root cause (3-arg clock_nanosleep, zero sleep)
+# and proves the corrected ABI4 /init end to end, CI only:
+#   build     FIX8/FIX24 pair (p1b-build.py), RT-D trailer, trampoline algebra
+#   audit     exact-binary disassembly ABI gates + pair semantic delta
+#   negative  four broken fixtures must be REJECTED by the same checkers
+#   qemu      pinned qemu-aarch64 user-mode -strace execution of the exact
+#             FIX8/FIX24 binaries, EINTR interruption fixture, preregistered
+#             pair delta (STRONG 15.5-16.5s / SUPPORTED 15.0-17.0s)
+# Boot v3 packing runs in private GHA (thyme-r3-p1b-init-control-fix.yml).
+# Does not splice M5D and does not emit a flashable boot image.
+# No fastboot, no adb, no device operation. The doc is excluded from push
+# paths so results-only doc updates do not rebuild the pair.
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-r3-p1b-init-control-fix.yml'
+      - 'scripts/r3-p1b/p1b-init.c'
+      - 'scripts/r3-p1b/p1b-build.py'
+      - 'scripts/r3-p1b/p1b-init.ld'
+      - 'scripts/r3-p1b/p1b-trampoline.S'
+      - 'scripts/r3-p1b/p1b-trampoline.ld'
+      - 'scripts/r3-p1b/p1b-init-control-fix.py'
+      - 'configs/thyme-route-b.config'
+      - 'configs/thyme-r3-p1b.config'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-p1b-init-control-fix.yml'
+      - 'scripts/r3-p1b/**'
+      - 'configs/thyme-r3-p1b.config'
+  workflow_dispatch: {}
+
+concurrency:
+  group: thyme-r3-p1b-init-control-fix-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: R3 P1B fixed-init source ABI audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-r3-p1b-init-control-fix.yml
+
+      - name: Parse builders
+        run: |
+          python3 -m py_compile scripts/r3-p1b/p1b-build.py
+          python3 -m py_compile scripts/r3-p1b/p1b-init-control-fix.py
+
+      - name: P1B build source-gate
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python3 scripts/r3-p1b/p1b-build.py --mode source-gate
+
+      - name: Fixed init source-gate
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python3 scripts/r3-p1b/p1b-init-control-fix.py --mode source-gate
+
+      - name: Assert this workflow cannot emit a flashable boot
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -Ei '(^|/)(r3-p1b|p1b).*\.(img)$'; then
+            echo 'tracked p1b flashable binary found' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_P1B_FIX_SOURCE_ONLY=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+  build-fixed-pair:
+    name: R3 P1B FIX8/FIX24 two-pass build + gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    needs: source-audit
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install pinned LLVM 18.1.3 toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang lld llvm make gcc bc bison flex libssl-dev libelf-dev \
+            cpio file python3 gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu
+          clang --version | head -1 | tee clang-version.txt
+          grep -F '18.1.3' clang-version.txt
+          echo "TOOLCHAIN_PINNED=$(clang --version | head -1)"
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          git submodule update --init --depth 1 linux-6.6
+          base=$(git -C linux-6.6 rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base"
+          test "$base" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+      - name: Download frozen RT-D from public GHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RT_D_RUN_ID: ${{ inputs.rt_d_run_id || '34678001413' }}
+        run: |
+          set -euo pipefail
+          gh run download "$RT_D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-runtime-dtb --dir rt-d
+          test -s rt-d/rt-d.dtb
+          printf '%s  rt-d/rt-d.dtb\n' \
+            4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 \
+            | sha256sum -c -
+          echo 'RT_D_SOURCE=PUBLIC_GHA_RUN'
+
+      - name: Build FIX8/FIX24 pair and run all P1B gates
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          mkdir -p out-p1bfix
+          python3 scripts/r3-p1b/p1b-build.py \
+            --mode build-pair --out out-p1bfix --rt-d rt-d/rt-d.dtb \
+            --jobs "$(nproc)" | tee out-p1bfix-run.txt
+          grep -Fxq 'P1B_BUILD_PAIR_GATES=PASS' out-p1bfix/p1b-gates.txt
+          grep -Fxq 'P1B_INIT_SOURCE_ABI4=FIXED_4ARG' out-p1bfix/p1b-gates.txt
+          grep -Fxq 'P1B_DTB_PLACEMENT_PROOF=PASS' out-p1bfix/p1b-gates.txt
+          grep -Fxq 'P1B_TRAMPOLINE_GATES=PASS' out-p1bfix/p1b-gates.txt
+          grep -Fxq 'P1B_INIT_PAIR_SEMANTIC_DELTA=DELAY_CONSTANT_ONLY' out-p1bfix/p1b-gates.txt
+          grep -Fxq 'P1B_INITRAMFS_REBUILD_IDENTICAL=YES' out-p1bfix/p1b-gates.txt
+          grep -Fxq 'P1B_RT_D_SHA_EXACT=PASS' out-p1bfix/p1b-gates.txt
+          grep -Fxq 'READY_FOR_DEVICE=NO' out-p1bfix/p1b-gates.txt
+
+      - name: Stage FIX pair release inputs
+        run: |
+          mkdir -p out-fix-release
+          cp out-p1bfix/thyme-r3-p1b-fix8-kernel-payload.bin out-fix-release/
+          cp out-p1bfix/thyme-r3-p1b-fix24-kernel-payload.bin out-fix-release/
+          cp out-p1bfix/p1b-init-8s out-fix-release/p1b-init-fix8
+          cp out-p1bfix/p1b-init-24s out-fix-release/p1b-init-fix24
+          cp out-p1bfix/initramfs-8s.cpio out-fix-release/initramfs-fix8.cpio
+          cp out-p1bfix/initramfs-24s.cpio out-fix-release/initramfs-fix24.cpio
+          cp out-p1bfix/p1b-trampoline-final.bin out-fix-release/p1b-trampoline-fix.bin
+          cp out-p1bfix/p1b-trampoline-final.elf out-fix-release/p1b-trampoline-fix.elf
+          cp out-p1bfix/p1b-trampoline-disasm.txt out-fix-release/
+          cp out-p1bfix/p1b-payload-8s-head-hex.txt out-fix-release/p1b-payload-fix8-head-hex.txt
+          cp out-p1bfix/p1b-payload-24s-head-hex.txt out-fix-release/p1b-payload-fix24-head-hex.txt
+          cp out-p1bfix/p1b-manifest.json out-fix-release/
+          cp out-p1bfix/p1b-gates.txt out-fix-release/
+          cp out-p1bfix-run.txt out-fix-release/
+          ( cd out-fix-release && sha256sum \
+              thyme-r3-p1b-fix8-kernel-payload.bin \
+              thyme-r3-p1b-fix24-kernel-payload.bin \
+              p1b-init-fix8 p1b-init-fix24 \
+              initramfs-fix8.cpio initramfs-fix24.cpio \
+              p1b-trampoline-fix.bin p1b-trampoline-fix.elf \
+              > SHA256SUMS )
+          cat out-fix-release/SHA256SUMS
+
+      - name: Assert no flashable output exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'flashable image emitted' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_P1B_FIX_NO_BOOT_IMAGE=PASS'
+          echo 'DEVICE_OPERATION=NO'
+
+      - name: Upload FIX pair artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-fix8-fix24
+          if-no-files-found: error
+          path: out-fix-release/**
+
+  fixed-init-proof:
+    name: R3 P1B fixed-init disasm + negative fixtures + QEMU pair
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    needs: build-fixed-pair
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install pinned audit toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y python3 gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu qemu-user-static
+          aarch64-linux-gnu-objdump --version | head -1
+          qemu-aarch64-static --version | head -1
+
+      - name: Download the exact FIX pair built this round
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLIC_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p fix auth
+          gh run download "$PUBLIC_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-fix8-fix24 --dir auth
+          ls -la auth/
+
+      - name: Fixed init disassembly ABI audit
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          python3 scripts/r3-p1b/p1b-init-control-fix.py \
+            --mode audit --auth auth --out fix | tee fix/audit-run.txt
+          grep -Fxq 'P1B_FIX_AUDIT_GATES=PASS' fix/audit-gates.txt
+          grep -Eq '^FIXED_FIX8_CLOCK_NANOSLEEP_ABI=PASS' fix/audit-run.txt
+          grep -Eq '^FIXED_FIX24_CLOCK_NANOSLEEP_ABI=PASS' fix/audit-run.txt
+          grep -Eq '^DELAY_CONSTANT_IS_LIVE=YES' fix/audit-run.txt
+          grep -Eq '^P1B_FIXED_INIT_PAIR_SEMANTIC_DELTA=DELAY_CONSTANT_ONLY' fix/audit-run.txt
+          grep -Eq '^FIXED_PAIR_GEOMETRY_IDENTICAL=YES' fix/audit-run.txt
+
+      - name: Negative fixtures must be rejected
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          python3 scripts/r3-p1b/p1b-init-control-fix.py \
+            --mode negative --out fix | tee fix/negative-run.txt
+          grep -Fxq 'P1B_FIX_NEGATIVE_GATES=PASS' fix/negative-gates.txt
+          grep -Fq 'NEGATIVE_SYS3_OLD_ABI=REJECT' fix/negative-gates.txt
+          grep -Fq 'NEGATIVE_FLAGS_SLOT_POINTER=REJECT' fix/negative-gates.txt
+          grep -Fq 'NEGATIVE_DEAD_RQTP=REJECT_RUNTIME_ONLY' fix/negative-gates.txt
+          grep -Fq 'NEGATIVE_UNCHECKED_RETURN=REJECT' fix/negative-gates.txt
+
+      - name: Exact-binary QEMU user-mode pair with -strace
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          python3 scripts/r3-p1b/p1b-init-control-fix.py \
+            --mode qemu --auth auth --out fix | tee fix/qemu-run.txt
+          grep -Fxq 'P1B_FIX_QEMU_GATES=PASS' fix/qemu-gates.txt
+          grep -Fxq 'QEMU_HARNESS_POSITIVE_CONTROL=PASS' fix/qemu-gates.txt
+          grep -Fxq 'QEMU_EINTR_FIXTURE=PASS' fix/qemu-gates.txt
+          grep -Fxq 'QEMU_EXACT_BINARY_IDENTITY=PASS' fix/qemu-gates.txt
+          grep -Fxq 'QEMU_FIX8_STRACE_ABI=PASS' fix/qemu-run.txt
+          grep -Fxq 'QEMU_FIX24_STRACE_ABI=PASS' fix/qemu-run.txt
+          grep -Fxq 'QEMU_FIX8_SYSCALL_RETURN=PASS' fix/qemu-run.txt
+          grep -Fxq 'QEMU_FIX24_SYSCALL_RETURN=PASS' fix/qemu-run.txt
+          grep -Fxq 'QEMU_FIX8_WALLCLOCK=PASS' fix/qemu-run.txt
+          grep -Fxq 'QEMU_FIX24_WALLCLOCK=PASS' fix/qemu-run.txt
+          grep -Fq 'QEMU_FIXED_PAIR_VERDICT=' fix/qemu-run.txt
+
+      - name: Assemble init-control-fix verdict
+        run: |
+          set -euo pipefail
+          {
+            echo "MAINLINE_V2_R3_P1B_INIT_CONTROL_FIX_CI (CI ONLY)"
+            echo "OLD_ROOT_CAUSE=CLOCK_NANOSLEEP_BROKEN_3_ARG (frozen)"
+            echo "DEVICE_OPERATION=NO"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "READY_FOR_DEVICE=NO"
+            echo "--- audit ---"
+            cat fix/audit-gates.txt
+            echo "--- negative ---"
+            cat fix/negative-gates.txt
+            echo "--- qemu ---"
+            cat fix/qemu-gates.txt
+          } > fix/init-control-fix-gates.txt
+          cat fix/init-control-fix-gates.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Assert no flashable output exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'flashable image emitted' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_P1B_FIX_PROOF_NO_BOOT_IMAGE=PASS'
+          echo 'DEVICE_OPERATION=NO'
+
+      - name: Upload fixed-init proof artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-init-control-fix-proof
+          if-no-files-found: warn
+          path: |
+            fix/**
+            auth/SHA256SUMS
