@@ -183,6 +183,8 @@ jobs:
             out-t1/p1b-t1-gates.txt
           grep -Fxq 'T1_PRIMARY_ENTRY_ORIGINAL_INSN_SOURCES_AGREE=YES' \
             out-t1/p1b-t1-gates.txt
+          grep -Fxq 'T1_REBUILT_IMAGE_CODE_IDENTITY_AT_PRIMARY_ENTRY=YES' \
+            out-t1/p1b-t1-gates.txt
           grep -Fxq 'IMAGE_HEADER_IMAGE_SIZE_REDERIVED=YES' \
             out-t1/p1b-t1-gates.txt
           grep -Fxq 'T1_CHECKPOINT_OUTSIDE_IMAGE_FILE=YES' \

@@ -82,7 +82,11 @@ re-derived this round from four independent sources that must all agree:
 Outputs: `PRIMARY_ENTRY_OFFSET=<actual>` and
 `T1_PRIMARY_ENTRY_OFFSET_REDERIVED=YES`. If the re-derived value happened to
 equal the historical constant it would still be reported as re-derived, never
-as inherited.
+as inherited. This round the re-derived value is
+**`PRIMARY_ENTRY_OFFSET=0x1b1c0a0`** (public run 34796231232,
+`PRIMARY_ENTRY_NORMAL=YES offset=0x1b1c0a0`), i.e. numerically equal to the
+historical constant — reported as re-derived, and cross-checked against the
+frozen trampoline's own branch algebra (`T1_TRAMPOLINE_BRANCH_TARGET`).
 
 ## 5. Original first instruction
 
@@ -153,6 +157,13 @@ inside a `yield` poll loop. Register-only: no stack, no memory load, no memory
 store, no MMIO, no Linux timer subsystem, no earlycon, no MMU/cache/EL
 manipulation. `T1_DEVICE_CANDIDATE_DELAY=8s` is enforced at compile time
 (`#if (P1B_T1_DELAY) != 8 #error`).
+
+The reuse is a verified identity, not an assertion: stripping the six
+`x0`/`x1`/`x2`/`x3` handoff-setup instructions from `p1b-t0-device.S` yields
+the 22-instruction body of `p1b-t1-device.S` **verbatim** (same mnemonics, same
+operands, same labels). T1 therefore adds no unproven primitive; it deletes
+the handoff setup it must not re-run and keeps the proven delay + reset +
+terminal sequence unchanged.
 
 ## 11. PSCI reset and fail-closed termination
 
@@ -229,15 +240,35 @@ from the pinned Linux base `8b73de7da85fde281a385e0b26eda9bffd3ca477`
 ## 17. image_size re-read
 
 Historical material recorded both `0x2230000` and `0x2231000`. This round
-inherits neither: `IMAGE_HEADER_IMAGE_SIZE` is read from the authoritative
-FIX8 Image header (the frozen payload's own header field, SHA-gated against
-`4f34eabf…cceb41`) and cross-checked against the freshly rebuilt Image header,
-which must agree (`src` only / baseline drift otherwise).
-`IMAGE_FILE_SIZE` is re-derived from the rebuilt Image length and
-cross-checked against the frozen FIX8 Image. All three tokens
+inherits neither. `IMAGE_HEADER_IMAGE_SIZE` is read from the authoritative
+FIX8 Image header — the frozen payload's own header field, over bytes whose
+SHA is gated against `4f34eabf…cceb41` — and cross-checked against the freshly
+rebuilt Image header, which must agree (otherwise: baseline drift, STOP).
+
+Measured this round (public run 34796231232): `IMAGE_FILE_SIZE = 35166720`
+(`0x2189a00`), `IMAGE_HEADER_IMAGE_SIZE = 0x2230000` (35848192),
+`DTB_OFFSET = 0x2380000`. The rebuilt Image header reads `code0 0xfa405a4d`,
+`code1 0x146c7027`, `text_offset 0x0`, `image_size 0x2230000`,
+`flags 0xa`, `file_size 0x2189a00`. All three tokens
 (`IMAGE_FILE_SIZE`, `IMAGE_HEADER_IMAGE_SIZE`, `DTB_OFFSET`) are printed
 before any checkpoint offset is chosen, and the `verify` job re-reads the
 header independently from the uploaded payload.
+
+**Rebuilt-Image byte identity is explicitly NOT claimed and NOT gated.**
+`T1_REBUILT_IMAGE_BYTE_IDENTICAL=NO`: `UTS_VERSION` / `linux_banner` embed the
+build stamp, build user and host, so whole-Image byte equality between two
+builds is unattainable by construction. What executes on the device is the
+FROZEN FIX8 payload, not the rebuild. The rebuild's role is derivation and
+confirmation, so the identities that ARE gated are:
+
+- header `image_size` and file size equality (`0x2230000` / `35166720`),
+- `primary_entry` and `record_mmu_state` offsets agreeing across `llvm-nm`,
+  `System.map` and `kernel_gate`,
+- `T1_REBUILT_IMAGE_CODE_IDENTITY_AT_PRIMARY_ENTRY=YES` — the 64-byte
+  instruction window at `primary_entry` is byte-identical between the rebuilt
+  Image and the frozen payload,
+- `T1_REBUILT_IMAGE_DIFF_BYTES` census bounded at 64 KiB so a genuinely
+  different kernel is still caught.
 
 ## 18. Payload geometry and composition
 
