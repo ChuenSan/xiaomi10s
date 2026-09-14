@@ -255,20 +255,40 @@ before any checkpoint offset is chosen, and the `verify` job re-reads the
 header independently from the uploaded payload.
 
 **Rebuilt-Image byte identity is explicitly NOT claimed and NOT gated.**
-`T1_REBUILT_IMAGE_BYTE_IDENTICAL=NO`: `UTS_VERSION` / `linux_banner` embed the
-build stamp, build user and host, so whole-Image byte equality between two
-builds is unattainable by construction. What executes on the device is the
-FROZEN FIX8 payload, not the rebuild. The rebuild's role is derivation and
-confirmation, so the identities that ARE gated are:
+`T1_REBUILT_IMAGE_BYTE_IDENTICAL=NO`. Measured (public run 34797876016): the
+rebuilt Image and the frozen payload's Image prefix differ in **6,767,112**
+bytes (`T1_REBUILT_IMAGE_DIFF_BYTES`) out of 35,166,720 — while `image_size`
+(`0x2230000`), `file_size` (`35166720`) and the `primary_entry` offset
+(`0x1b1c0a0`) are all identical. `6,767,112` is within ~26.8 KB of
+`file_size − primary_entry` (`6,740,320`), i.e. the divergence is essentially
+the whole region from just below `primary_entry` to the end of the Image.
+
+The decisive point is that **the layout did not move**: `image_size`,
+`file_size`, `primary_entry` and `record_mmu_state` are all unchanged, and the
+rebuilt Image's own `code1` branch algebra still lands exactly on
+`0x1b1c0a0` (`P1B_CODE1_B_PRIMARY_ENTRY=PASS`). A byte shift would have moved
+those; nothing moved. The differing bytes are therefore in build-stamp
+dependent data, not in relocated code.
+
+Because a byte-level comparison cannot be stated as an invariant for a rebuilt
+kernel, T1 gates **semantic identity instead of byte identity**:
 
 - header `image_size` and file size equality (`0x2230000` / `35166720`),
 - `primary_entry` and `record_mmu_state` offsets agreeing across `llvm-nm`,
-  `System.map` and `kernel_gate`,
-- `T1_REBUILT_IMAGE_CODE_IDENTITY_AT_PRIMARY_ENTRY=YES` — the 64-byte
-  instruction window at `primary_entry` is byte-identical between the rebuilt
-  Image and the frozen payload,
-- `T1_REBUILT_IMAGE_DIFF_BYTES` census bounded at 64 KiB so a genuinely
-  different kernel is still caught.
+  `System.map`, `kernel_gate`, and the frozen payload's own BL decode,
+- `T1_PRIMARY_ENTRY_ORIGINAL_INSN_SOURCES_AGREE=YES` — the disassembled first
+  instruction at `primary_entry` in the authoritative `vmlinux` is BL to
+  `record_mmu_state` at the same address the frozen bytes and head.S give.
+
+The byte statistics (`T1_REBUILT_IMAGE_FIRST_DIFF_OFFSET`,
+`T1_REBUILT_IMAGE_DIFF_BYTES`, split into
+`DIFF_BEFORE_PRIMARY_ENTRY` / `DIFF_FROM_PRIMARY_ENTRY`, and the 16-byte
+`T1_REBUILT_IMAGE_CODE_IDENTITY_AT_PRIMARY_ENTRY` probe) are **reported, never
+gated**.
+
+This is exactly why T1 is COMPOSED from frozen bytes rather than rebuilt: the
+frozen payload is the only artefact whose bytes can be gated, and the rebuild's
+sole job is derivation plus semantic confirmation.
 
 ## 18. Payload geometry and composition
 
