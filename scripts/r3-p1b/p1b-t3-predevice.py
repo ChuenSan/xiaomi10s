@@ -225,6 +225,17 @@ T3_ENTRY_CONTRACT_REASONS = {
     "T3_ENTRY_X1_X3":
         "the BSS-clear sequence consumes x1/x2 (head.S 493-497) and "
         "early_fdt_map/init_feature_override use x0 only",
+    "T3_ENTRY_X1_MEANING":
+        "the BSS-clear sequence consumes x1 (head.S 493-497: mov x1, xzr "
+        "before __pi_memset), so at the start_kernel entry x1 is scratch and "
+        "NOT a boot-contract register",
+    "T3_ENTRY_X2_MEANING":
+        "the BSS-clear sequence consumes x2 (head.S 493-497: adr_l x2, "
+        "__bss_stop), so at the start_kernel entry x2 is scratch and NOT a "
+        "boot-contract register",
+    "T3_ENTRY_X3_MEANING":
+        "x3 has not been written since preserve_boot_args saved the ABL "
+        "registers; it is pre-T3 residue, NOT a boot-contract register",
     "T3_ENTRY_X30_MEANING":
         "head.S 523 bl start_kernel sets x30 to the following ASM_BUG() site",
     "T3_ENTRY_X19_X25":
