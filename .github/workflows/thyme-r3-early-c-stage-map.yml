@@ -1,0 +1,277 @@
+name: thyme-r3-early-c-stage-map
+
+# MAINLINE_V2_R3_EARLY_C_KERNEL_STAGE_MAP_CI — Agent B.
+# Independent of T3. No device operation. No T3 file modification.
+# No device-ready artifact. Addresses from THIS round's final P1B vmlinux only.
+on:
+  push:
+    branches: [route-b-r3-c-stage-map, route-b-v3]
+    paths:
+      - '.github/workflows/thyme-r3-early-c-stage-map.yml'
+      - 'scripts/r3-c-stage-audit/**'
+      - 'docs/route-r3-early-c-stage-map.md'
+      - 'configs/thyme-route-b.config'
+      - 'configs/thyme-r3-p1b.config'
+      - 'patches/linux-6.6/**'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-early-c-stage-map.yml'
+      - 'scripts/r3-c-stage-audit/**'
+      - 'docs/route-r3-early-c-stage-map.md'
+  workflow_dispatch:
+
+concurrency:
+  group: thyme-r3-early-c-stage-map-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  LINUX_BASE: 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+jobs:
+  source-identity:
+    name: source-identity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          echo "git rev-parse HEAD (linux-6.6) = $(git -C linux-6.6 rev-parse HEAD)"
+          test "$(git -C linux-6.6 rev-parse HEAD)" = "$LINUX_BASE"
+          echo "SOURCE_COMMIT_MATCH=YES"
+
+      - name: Source identity (python)
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python3 scripts/r3-c-stage-audit/c-stage-map.py --mode source-identity
+
+  source-audit:
+    name: source-audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: [source-identity]
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch isolation base
+        run: git fetch origin route-b-v3:refs/remotes/origin/route-b-v3 || true
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = "$LINUX_BASE"
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-r3-early-c-stage-map.yml
+
+      - name: Parse builder
+        run: python3 -m py_compile scripts/r3-c-stage-audit/c-stage-map.py
+
+      - name: Source audit + Agent A isolation
+        env:
+          GITHUB_ACTIONS: "true"
+          C_STAGE_ISOLATION_BASE: origin/route-b-v3
+          set -euo pipefail
+          mkdir -p out-c-stage
+          python3 scripts/r3-c-stage-audit/c-stage-map.py \
+            --mode source-audit --out out-c-stage | tee out-c-stage/source-audit-run.txt
+          grep -Fq 'SOURCE_AUDIT=PASS' out-c-stage/source-audit-run.txt
+          grep -Fq 'AGENT_A_FILE_ISOLATION=PASS' out-c-stage/source-audit-run.txt
+          grep -Fq 'FINAL_CMDLINE_STAGE_MAP=PASS' out-c-stage/source-audit-run.txt
+          grep -Fq 'PARSE_ARGS_AFTER_SETUP_ARCH=YES' out-c-stage/source-audit-run.txt
+          grep -Fq 'PANIC_IS_CORE_PARAM=YES' out-c-stage/source-audit-run.txt
+          grep -Fq 'CALIBRATE_DELAY_POST_PARSE_ARGS=YES' out-c-stage/source-audit-run.txt
+          grep -Fq 'C_STAGE_MAP_DEPENDS_ON_T3_RESULT=NO' out-c-stage/source-audit-run.txt
+          echo 'LOCAL_BUILD=NO'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+
+      - name: Upload source-audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-early-c-source-audit
+          if-no-files-found: error
+          path: out-c-stage/source-audit.json
+
+  negative-fixtures:
+    name: negative-fixtures
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: [source-identity]
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch isolation base
+        run: git fetch origin route-b-v3:refs/remotes/origin/route-b-v3 || true
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = "$LINUX_BASE"
+
+      - name: Negative fixtures + T3 independence
+        env:
+          GITHUB_ACTIONS: "true"
+          C_STAGE_ISOLATION_BASE: origin/route-b-v3
+        run: |
+          set -euo pipefail
+          mkdir -p out-c-stage
+          python3 scripts/r3-c-stage-audit/c-stage-map.py \
+            --mode negative-fixtures --out out-c-stage | tee out-c-stage/neg-run.txt
+          grep -Fxq 'NEGATIVE_FIXTURES=PASS' out-c-stage/negative-fixtures.txt
+          grep -Fxq 'T3_RESULT_INDEPENDENCE_FIXTURE=PASS' out-c-stage/negative-fixtures.txt
+          grep -Fxq 'AGENT_A_FILE_ISOLATION=PASS' out-c-stage/negative-fixtures.txt
+          echo 'T3_RESULT_INDEPENDENCE_FIXTURE=PASS'
+
+      - name: Upload negative fixtures
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-early-c-negative-fixtures
+          if-no-files-found: error
+          path: out-c-stage/negative-fixtures.txt
+
+  build-vmlinux:
+    name: build-vmlinux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    needs: [source-identity]
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install pinned LLVM 18.1.3 toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang lld llvm make gcc bc bison flex libssl-dev libelf-dev \
+            cpio file python3 gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu
+          clang --version | head -1 | tee clang-version.txt
+          grep -F '18.1.3' clang-version.txt
+          echo "TOOLCHAIN_PINNED=$(clang --version | head -1)"
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          echo "git rev-parse HEAD (linux-6.6) = $(git -C linux-6.6 rev-parse HEAD)"
+          test "$(git -C linux-6.6 rev-parse HEAD)" = "$LINUX_BASE"
+          echo "SOURCE_COMMIT_MATCH=YES"
+
+      - name: Build final P1B vmlinux + derive stage map
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          mkdir -p out-c-stage
+          python3 scripts/r3-c-stage-audit/c-stage-map.py \
+            --mode build-vmlinux --out out-c-stage --jobs "$(nproc)" \
+            | tee out-c-stage/build-run.txt
+          grep -Fq 'BUILD_VMLINUX=PASS' out-c-stage/build-run.txt
+          grep -Fq 'MAINLINE_V2_R3_EARLY_C_STAGE_MAP_COMPLETE' \
+            out-c-stage/c-stage-gates.txt
+          grep -Fq 'DEVICE_READY=NO' out-c-stage/c-stage-gates.txt
+          test -s out-c-stage/early-c-stage-map.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open("out-c-stage/early-c-stage-map.json"))
+          assert d["source_commit"]=="8b73de7da85fde281a385e0b26eda9bffd3ca477"
+          assert d["device_ready"] is False
+          assert d["c_stage_map_depends_on_t3_result"] is False
+          assert len(d["stages"])>=14
+          assert all(s.get("device_ready") is False for s in d["stages"])
+          print("JSON_STRUCT=PASS stages", len(d["stages"]))
+          PY
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          echo 'DEVICE_IMAGE_EMITTED=NO'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+
+      - name: Stage public artifacts
+        run: |
+          mkdir -p out-c-release
+          cp out-c-stage/early-c-stage-map.json out-c-release/
+          cp out-c-stage/c-stage-gates.txt out-c-release/
+          cp out-c-stage/vmlinux-identity.json out-c-release/
+          cp out-c-stage/start_kernel-entry-64.txt out-c-release/
+          cp out-c-stage/start_kernel-instrumentation.json out-c-release/
+          cp out-c-stage/vmlinux.sections.txt out-c-release/
+          cp out-c-stage/build-run.txt out-c-release/
+          ( cd out-c-release && sha256sum * > SHA256SUMS )
+          cat out-c-release/SHA256SUMS
+
+      - name: Upload stage map
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-early-c-stage-map
+          if-no-files-found: error
+          path: out-c-release/**
+
+  stage-map:
+    name: stage-map
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: [build-vmlinux, source-audit, negative-fixtures]
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Download artifacts and recheck
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh run download "$RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-early-c-stage-map --dir art
+          gh run download "$RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-early-c-negative-fixtures --dir neg
+          gh run download "$RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-early-c-source-audit --dir src
+          ( cd art && sha256sum -c SHA256SUMS )
+          grep -Fxq 'MAINLINE_V2_R3_EARLY_C_STAGE_MAP_COMPLETE' art/c-stage-gates.txt
+          grep -Fxq 'NEGATIVE_FIXTURES=PASS' neg/negative-fixtures.txt
+          grep -Fxq 'T3_RESULT_INDEPENDENCE_FIXTURE=PASS' neg/negative-fixtures.txt
+          test -s src/source-audit.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open("art/early-c-stage-map.json"))
+          assert d["device_ready"] is False
+          assert d["t4_t5_authorized"] is False
+          assert d["private_boot_created"] is False
+          ids=[s["id"] for s in d["stages"]]
+          for req in ("C0","C1","C2","C3","C4","C5","C6","C7","C_DELAY","C8","C9","C10","C11","C12","C13"):
+              assert req in ids, req
+          print("STAGE_MAP_RECHECK=PASS")
+          print("STAGE_COUNT=%d" % len(d["stages"]))
+          print("START_KERNEL_LINK_VA="+d["start_kernel_va"])
+          PY
+          echo 'DEVICE_OPERATION=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'T4_T5_AUTHORIZED=NO'
+          echo 'MAINLINE_V2_R3_EARLY_C_STAGE_MAP_COMPLETE'
