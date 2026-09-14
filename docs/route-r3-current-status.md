@@ -4,16 +4,73 @@ Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
 facts. Last updated: 2026-09-14
-(MAINLINE_V2_R3_P1B_T0_TRUE_DEVICE_CONTROL EXECUTED — the last device round
-is the one-boot T0-8 checkpoint reach-and-reset, Case T0-A STRONG).
+(MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI — CI / source audit / artifact
+preparation only, `DEVICE_OPERATION=NO`; the last executed device round is
+still the one-boot T0-8 checkpoint reach-and-reset, Case T0-A STRONG).
 
 ## Current Round
 
-`MAINLINE_V2_R3_P1B_T0_TRUE_DEVICE_CONTROL` — EXECUTED 2026-09-13
-23:09 UTC with explicit user approval. `PARTITION_WRITES=0`,
-`SLOT_A_WRITTEN=NO`, `SET_ACTIVE=NO`, `EXPERIMENTAL_BOOTS=1`,
-`SECOND_BOOT_FORBIDDEN=YES` (no flash/erase/format; T1/T2/FIX24/M5N not
-executed). Final gate: **`MAINLINE_V2_R3_P1B_T0_REACHABILITY_PROVEN`**
+`MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI` — CI / SOURCE AUDIT /
+ARTIFACT PREPARATION ONLY. `DEVICE_OPERATION=NO`, `PARTITION_WRITES=0`,
+`SLOT_A_WRITTEN=NO`; no T1/T2 device run, no T0 second boot, no PANIC30
+second boot, no FIX8 rerun, no FIX24, no M5N, no copydown, no USB, no UFS,
+no network. Local builds remain forbidden — every assembly, link, kernel
+build, disassembly and validation step runs in GitHub Actions only.
+
+Goal: elevate the previous round's `T1 CI_PASS` prototype into the unique,
+frozen, fail-closed, full-SHA identity-gated, explainable
+**T1-8 primary_entry address reachability true-device diagnostic candidate**.
+T1 answers exactly one question: after the unmodified frozen FIX8 trampoline
+executes its normal `branch primary_entry`, did the CPU actually arrive at the
+Linux `primary_entry` **address**? It answers nothing else — not MMU state,
+not `record_mmu_state`, not DTB parse, not `start_kernel`, not initramfs, not
+`/init`.
+
+Key properties of the frozen candidate:
+
+- base is the exact FIXED INIT8 payload (`4f34eabf…cceb41`, public run
+  34741153230); only two regions differ —
+  A. `primary_entry`'s first instruction `bl record_mmu_state` → `b
+  T1_CHECKPOINT`, B. the T1 diagnostic code written into the deterministic
+  zero padding **outside the Linux `image_size` runtime footprint** and before
+  the RT-D trailer. This placement is a correction of the earlier gap probe,
+  which sat at the Image file end and therefore inside the kernel's own
+  runtime footprint. There is no file_size-only fallback.
+- `primary_entry` offset is re-derived this round from `llvm-nm` +
+  `System.map` + `kernel_gate` + the frozen trampoline's own branch algebra —
+  never inherited as a constant. The original first instruction is confirmed
+  from head.S **and** the frozen payload bytes **and** the authoritative
+  vmlinux disassembly, all three agreeing.
+- `image_size` is re-read from the authoritative Image header rather than
+  inherited from any historical reading.
+- trampoline byte-identical to FIX8
+  (`362d9c6e…c623`), RT-D byte-identical to FIX8 (`48497432…f327`, `panic=5`,
+  NOT the PANIC30 trailer), `/init` and initramfs byte-identical,
+  payload/boot geometry identical (`T1_RUNTIME_SEMANTIC_DELTA=
+  PRIMARY_ENTRY_REACHABILITY_CHECKPOINT_ONLY`).
+- checkpoint: 8 s CNTPCT register-only delay (the T0 device-proven
+  instruction sequence) → PSCI `SYSTEM_RESET` `0x84000009` via `smc #0` →
+  permanent `wfe` loop on any `smc` return. No stack, no memory writes, no
+  `x0` dereference, no relocation, no path back into `primary_entry`.
+  `T1_DIAGNOSTIC_ONLY=YES`, `T1_NORMAL_KERNEL_BOOT_CANDIDATE=NO`.
+- 20 negative fixtures, matched-control decoder fixtures and the identity-gated
+  T1 observer fixtures all run green in CI.
+- proof boundary: a future T1 positive proves R2
+  (`PRIMARY_ENTRY_ADDRESS_REACHED`) only — never R3 and never E1.
+
+Final gate: `READY_FOR_R3_P1B_T1_DEVICE_CONTROL` (preparation only) or
+`R3_P1B_T1_PREDEVICE_NOT_READY`. Details:
+docs/route-r3-p1b-t1-predevice-readiness.md.
+
+## Previous executed device round — T0 TRUE DEVICE (frozen)
+
+`MAINLINE_V2_R3_P1B_T0_PREDEVICE_READINESS_CI` produced the T0 CI_PASS
+candidate (`T0 CI_PASS`); `MAINLINE_V2_R3_P1B_T0_TRUE_DEVICE_CONTROL` then
+executed the one authorized boot 2026-09-13 23:09 UTC with explicit user
+approval. `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`, `SET_ACTIVE=NO`,
+`EXPERIMENTAL_BOOTS=1`, `SECOND_BOOT_FORBIDDEN=YES` (no host device write of
+any kind; T1/T2/FIX24/M5N not executed). Final gate:
+**`MAINLINE_V2_R3_P1B_T0_REACHABILITY_PROVEN`**
 (Case T0-A STRONG: `T0_REACHABILITY_SIGNATURE=STRONG`,
 `T0_CHECKPOINT_REACHED=PROVEN`,
 `P1B_LARGE_PAYLOAD_TRAMPOLINE_REACHED=PROVEN`,
@@ -201,13 +258,16 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
 
 ## Next approved candidate
 
-`MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI` — the T0 STRONG positive
-routes here per the preregistered rule. T1 already has a CI_PASS prototype,
-but before any T1 device run it needs the same readiness treatment as T0:
-fail-closed semantics, frozen artifact, full-SHA identity gate, observer,
-negative fixtures, preregistered timing window. `T1 true-device` is NOT
-authorized by the T0 result. If instead a T0-class negative had occurred,
-the route would have been `T0_FAILURE_ISOLATION_CI` (not taken).
+`MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI` is COMPLETE (CI only). If its
+final gate is `READY_FOR_R3_P1B_T1_DEVICE_CONTROL`, the next candidate is
+**`MAINLINE_V2_R3_P1B_T1_TRUE_DEVICE_CONTROL`** — exactly one identity-gated
+boot of the frozen T1 boot v3 artifact, `SECOND_BOOT_FORBIDDEN`, Slot A write
+forbidden, requiring explicit user approval before execution. T1 PREDEVICE
+readiness does NOT authorise that boot by itself. If instead a gate is red,
+the route is `R3_P1B_T1_PREDEVICE_NOT_READY` and then
+`T1_FAILURE_ISOLATION_CI`. A future T1 STRONG result would route to
+`MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI` (never directly to a T2 device
+run).
 
 ## Not-ready candidates
 

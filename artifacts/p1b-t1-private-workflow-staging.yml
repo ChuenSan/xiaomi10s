@@ -1,0 +1,389 @@
+name: thyme-r3-p1b-t1-predevice
+
+# Private CI for the T1-8 fail-closed primary_entry reachability diagnostic
+# (MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI).
+# Takes the public T1 kernel payload (frozen FIXED INIT8 bytes with ONLY the
+# primary_entry first instruction patched to "b T1_CHECKPOINT" and the
+# diagnostic checkpoint written into the zero padding OUTSIDE the Linux
+# image_size runtime footprint), splices it into the exact M5D boot v3
+# envelope, packs and validates boot v3, records the boot SHA256. No device
+# operation; nothing is installed, booted, or written to any partition. The
+# FIX8 / T0 / PANIC30 boot artifacts stay frozen.
+on:
+  workflow_dispatch:
+    inputs:
+      reverify_only:
+        description: "true = identity re-verify only (no re-pack, no rebuild)"
+        required: false
+        default: "false"
+      reverify_run_id:
+        description: Authoritative private run carrying thyme-r3-p1b-t1-boot
+        required: false
+        default: ""
+      expected_boot_sha256:
+        description: Expected T1 boot SHA256 (reverify_only=true)
+        required: false
+        default: ""
+      public_source_commit:
+        description: ChuenSan/xiaomi10s commit SHA (pinned)
+        required: true
+      public_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-p1b-t1
+        required: true
+      t1_payload_sha:
+        description: Expected SHA256 of thyme-r3-p1b-t1-kernel-payload.bin
+        required: true
+      t1_tramp_sha:
+        description: Expected SHA256 of the embedded frozen FIX8 trampoline
+        required: true
+      t1_checkpoint_sha:
+        description: Expected SHA256 of p1b-t1-checkpoint.bin
+        required: true
+
+concurrency:
+  group: thyme-r3-p1b-t1-private
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PUBLIC_SOURCE_REPO: ChuenSan/xiaomi10s
+  PUBLIC_SOURCE_COMMIT: ${{ inputs.public_source_commit }}
+  PUBLIC_RUN_ID: ${{ inputs.public_run_id }}
+  M5D_RUN_ID: "34487382191"
+  M5D_ARTIFACT_NAME: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+  M5D_BOOT_NAME: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+  EXPECTED_M5D_BOOT_SHA256: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+
+jobs:
+  t1-pack:
+    name: R3 P1B T1 M5D splice + boot v3 pack + gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    if: inputs.reverify_only != 'true'
+    steps:
+      - name: Checkout private wrapper
+        uses: actions/checkout@v4
+        with:
+          path: private-repo
+
+      - name: Checkout pinned public source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.PUBLIC_SOURCE_REPO }}
+          ref: ${{ env.PUBLIC_SOURCE_COMMIT }}
+          path: source
+          fetch-depth: 1
+
+      - name: Assert immutable source and private execution
+        working-directory: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PUBLIC_SOURCE_COMMIT"
+          test "$(gh api repos/${{ github.repository }} --jq .private)" = true
+          echo 'PUBLIC_SOURCE_COMMIT_PINNED=PASS'
+          echo 'PRIVATE_REPO_VISIBILITY=PRIVATE'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'HOST_DEVICE_INTERFACE=UNUSED'
+
+      - name: Lint private workflow
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color private-repo/.github/workflows/thyme-r3-p1b-t1-predevice.yml
+
+      - name: Download exact M5D boot artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$M5D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name "$M5D_ARTIFACT_NAME" \
+            --dir m5d-artifact
+          test -s "m5d-artifact/$M5D_BOOT_NAME"
+          printf '%s  m5d-artifact/%s\n' "$EXPECTED_M5D_BOOT_SHA256" "$M5D_BOOT_NAME" \
+            | sha256sum -c -
+          echo 'M5D_BOOT_SHA_EXACT=PASS'
+
+      - name: Download public T1 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          T1_PAYLOAD_SHA: ${{ inputs.t1_payload_sha }}
+          T1_TRAMP_SHA: ${{ inputs.t1_tramp_sha }}
+          T1_CHECKPOINT_SHA: ${{ inputs.t1_checkpoint_sha }}
+        run: |
+          set -euo pipefail
+          gh run download "$PUBLIC_RUN_ID" \
+            --repo "$PUBLIC_SOURCE_REPO" \
+            --name thyme-r3-p1b-t1 --dir t1-artifact
+          test -s t1-artifact/thyme-r3-p1b-t1-kernel-payload.bin
+          test -s t1-artifact/p1b-t1-checkpoint.bin
+          test -s t1-artifact/p1b-t1-manifest.json
+          test -s t1-artifact/p1b-t1-gates.txt
+          ( cd t1-artifact && sha256sum -c SHA256SUMS )
+          printf '%s  t1-artifact/thyme-r3-p1b-t1-kernel-payload.bin\n' \
+            "$T1_PAYLOAD_SHA" | sha256sum -c -
+          printf '%s  t1-artifact/p1b-t1-checkpoint.bin\n' \
+            "$T1_CHECKPOINT_SHA" | sha256sum -c -
+          python3 - "$T1_PAYLOAD_SHA" "$T1_TRAMP_SHA" "$T1_CHECKPOINT_SHA" <<'PY'
+          import hashlib, json, sys
+          from pathlib import Path
+
+          def sha(b): return hashlib.sha256(b).hexdigest()
+
+          payload = Path("t1-artifact/thyme-r3-p1b-t1-kernel-payload.bin")
+          ckbin = Path("t1-artifact/p1b-t1-checkpoint.bin")
+          m = json.loads(Path("t1-artifact/p1b-t1-manifest.json").read_text())
+          data = payload.read_bytes()
+          if sha(data) != sys.argv[1]:
+              raise SystemExit("T1_PRIVATE_PAYLOAD_SHA_MISMATCH")
+          tramp = data[0x40:0x40 + 48]
+          if sha(tramp) != sys.argv[2]:
+              raise SystemExit("T1_PRIVATE_TRAMP_SHA_MISMATCH")
+          if sha(ckbin.read_bytes()) != sys.argv[3]:
+              raise SystemExit("T1_PRIVATE_CHECKPOINT_SHA_MISMATCH")
+          if m["t1_runtime_semantic_delta"] != \
+                  "PRIMARY_ENTRY_REACHABILITY_CHECKPOINT_ONLY":
+              raise SystemExit("T1_PRIVATE_SEMANTIC_DELTA_MISMATCH")
+          if m["t1_payload_diff_attribution"] != \
+                  "PRIMARY_ENTRY_PATCH_PLUS_CHECKPOINT_REGION_ONLY":
+              raise SystemExit("T1_PRIVATE_DIFF_ATTRIBUTION_MISMATCH")
+          if m["diff_bytes"] != m["diff_bytes_region_a"] + m["diff_bytes_region_b"]:
+              raise SystemExit("T1_PRIVATE_DIFF_BYTE_BUDGET_MISMATCH")
+          if m["t1_normal_kernel_boot_candidate"] is not False:
+              raise SystemExit("T1_PRIVATE_DIAGNOSTIC_ONLY")
+          if m["t1_checkpoint_outside_image_size"] is not True:
+              raise SystemExit("T1_PRIVATE_CHECKPOINT_INSIDE_IMAGE_SIZE")
+          off_primary = int(m["t1_primary_entry_offset"], 16)
+          ck = int(m["t1_checkpoint_offset"], 16)
+          file_size = int(m["image_file_size"])
+          image_size = int(m["image_header_image_size"], 16)
+          if ck < file_size or ck < image_size:
+              raise SystemExit("T1_PRIVATE_CHECKPOINT_NOT_OUTSIDE")
+          import struct
+          if struct.unpack_from("<I", data, off_primary)[0] >> 26 != 0b000101:
+              raise SystemExit("T1_PRIVATE_PRIMARY_ENTRY_PATCH_MISSING")
+          print('T1_PRIVATE_PAYLOAD_IDENTITY_EXACT=PASS')
+          print(f"T1_PRIVATE_IMAGE_HEADER_IMAGE_SIZE={image_size:#x}")
+          print(f"T1_PRIVATE_CHECKPOINT_OFFSET={ck:#x}")
+          PY
+
+      - name: Splice T1 payload into M5D envelope
+        working-directory: source
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/t1-out"
+          python3 scripts/r3-p1b/p1b-build.py --mode splice-boot \
+            --m5d-boot "$GITHUB_WORKSPACE/m5d-artifact/$M5D_BOOT_NAME" \
+            --payload "$GITHUB_WORKSPACE/t1-artifact/thyme-r3-p1b-t1-kernel-payload.bin" \
+            --boot "$GITHUB_WORKSPACE/t1-out/thyme-r3-p1b-t1-boot.img" \
+            | tee "$GITHUB_WORKSPACE/splice-t1.txt"
+
+      - name: Resolve T1 offsets from the public manifest
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          from pathlib import Path
+          m = json.loads(
+              Path("t1-artifact/p1b-t1-manifest.json").read_text())
+          print(f"T1_PRIMARY_ENTRY_OFFSET={m['t1_primary_entry_offset']}")
+          print(f"T1_CHECKPOINT_OFFSET={m['t1_checkpoint_offset']}")
+          print(f"T1_BOOT_SIZE_EST={m['t1_boot_size_est']}")
+          PY
+          cat "$GITHUB_ENV" | tail -3
+
+      - name: T1 pack gates
+        working-directory: source
+        env:
+          GITHUB_ACTIONS: "true"
+          T1_PAYLOAD_SHA: ${{ inputs.t1_payload_sha }}
+          T1_TRAMP_SHA: ${{ inputs.t1_tramp_sha }}
+          T1_CHECKPOINT_SHA: ${{ inputs.t1_checkpoint_sha }}
+        run: |
+          set -euo pipefail
+          python3 scripts/r3-p1b/p1b-t1-predevice.py \
+            --mode t1-pack-gates \
+            --m5d-boot "$GITHUB_WORKSPACE/m5d-artifact/$M5D_BOOT_NAME" \
+            --payload "$GITHUB_WORKSPACE/t1-artifact/thyme-r3-p1b-t1-kernel-payload.bin" \
+            --payload-sha "$T1_PAYLOAD_SHA" \
+            --checkpoint-bin "$GITHUB_WORKSPACE/t1-artifact/p1b-t1-checkpoint.bin" \
+            --checkpoint-sha "$T1_CHECKPOINT_SHA" \
+            --primary-entry-offset "$T1_PRIMARY_ENTRY_OFFSET" \
+            --checkpoint-offset "$T1_CHECKPOINT_OFFSET" \
+            --boot "$GITHUB_WORKSPACE/t1-out/thyme-r3-p1b-t1-boot.img" \
+            --out "$GITHUB_WORKSPACE/t1-out" \
+            | tee "$GITHUB_WORKSPACE/pack-gates-t1.txt"
+          grep -Fxq 'T1_PACK_GATES=PASS' \
+            "$GITHUB_WORKSPACE/t1-out/p1b-t1-pack-gates.txt"
+          grep -Fxq 'T1_RT_D_TRAILER_SHA_EXACT=PASS' \
+            "$GITHUB_WORKSPACE/t1-out/p1b-t1-pack-gates.txt"
+          grep -Fxq 'T1_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY' \
+            "$GITHUB_WORKSPACE/t1-out/p1b-t1-pack-gates.txt"
+          grep -Fxq 'T1_CHECKPOINT_OUTSIDE_IMAGE_SIZE=YES' \
+            "$GITHUB_WORKSPACE/t1-out/p1b-t1-pack-gates.txt"
+          grep -Fxq "T1_PAYLOAD_SHA256=$T1_PAYLOAD_SHA" \
+            "$GITHUB_WORKSPACE/t1-out/p1b-t1-pack-gates.txt"
+          grep -Fxq "T1_TRAMP_SHA256=$T1_TRAMP_SHA" \
+            "$GITHUB_WORKSPACE/t1-out/p1b-t1-pack-gates.txt"
+          grep -Fxq "T1_CHECKPOINT_SHA256=$T1_CHECKPOINT_SHA" \
+            "$GITHUB_WORKSPACE/t1-out/p1b-t1-pack-gates.txt"
+
+      - name: Boot size vs public manifest cross-check
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          m = json.loads(
+              Path("t1-artifact/p1b-t1-manifest.json").read_text())
+          boot = Path("t1-out/thyme-r3-p1b-t1-boot.img").stat().st_size
+          if boot != m["t1_boot_size_est"]:
+              raise SystemExit(
+                  f"T1_PRIVATE_SIZE_MISMATCH boot={boot} "
+                  f"manifest={m['t1_boot_size_est']}")
+          if boot != 37380096:
+              raise SystemExit(f"T1_PRIVATE_UNEXPECTED_BOOT_SIZE {boot}")
+          print(f"T1_BOOT_SIZE={boot}")
+          print('T1_PRIVATE_BOOT_SIZE_CROSS_CHECK=PASS')
+          PY
+
+      - name: Record T1 boot identity + verdict
+        run: |
+          set -euo pipefail
+          T1_BOOT_SHA=$(sha256sum t1-out/thyme-r3-p1b-t1-boot.img | cut -d' ' -f1)
+          {
+            echo "MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI (PRIVATE PACK)"
+            echo "T1_BOOT_SHA256=$T1_BOOT_SHA"
+            echo "T1_BOOT_SIZE=$(stat -c%s t1-out/thyme-r3-p1b-t1-boot.img)"
+            echo "T1_PAYLOAD_SHA256=${{ inputs.t1_payload_sha }}"
+            echo "T1_TRAMP_SHA256=${{ inputs.t1_tramp_sha }}"
+            echo "T1_CHECKPOINT_SHA256=${{ inputs.t1_checkpoint_sha }}"
+            echo "T1_DIAGNOSTIC_ONLY=YES"
+            echo "T1_NORMAL_KERNEL_BOOT_CANDIDATE=NO"
+            echo "DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "READY_FOR_DEVICE=NO (device round requires separate user approval)"
+          } | tee "$GITHUB_STEP_SUMMARY" | tee t1-identity.txt
+          cat t1-out/p1b-t1-pack-gates.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Assert no unexpected image output
+        shell: bash
+        run: |
+          set -euo pipefail
+          # ./m5d-artifact/*.img is the DOWNLOADED M5D input, not an output.
+          if find . -name '*.img' -not -path './t1-out/*' -not -path './m5d-artifact/*' -print -quit | grep -q .; then
+            echo 'unexpected image output outside t1-out' >&2
+            exit 1
+          fi
+          echo 'T1_PRIVATE_PACK_GATES=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+      - name: Upload private T1 boot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-t1-boot
+          if-no-files-found: error
+          path: |
+            t1-out/thyme-r3-p1b-t1-boot.img
+            t1-out/p1b-t1-pack-gates.txt
+            t1-identity.txt
+            splice-t1.txt
+            pack-gates-t1.txt
+
+  t1-identity-reverify:
+    name: R3 P1B T1 boot identity re-verification (no rebuild)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    if: inputs.reverify_only == 'true'
+    steps:
+      - name: Checkout private wrapper
+        uses: actions/checkout@v4
+        with:
+          path: private-repo
+
+      - name: Assert immutable private execution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/${{ github.repository }} --jq .private)" = true
+          echo 'PRIVATE_REPO_VISIBILITY=PRIVATE'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'HOST_DEVICE_INTERFACE=UNUSED'
+
+      - name: Download authoritative T1 boot artifact (no rebuild)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVERIFY_RUN_ID: ${{ inputs.reverify_run_id }}
+        run: |
+          set -euo pipefail
+          test -n "$REVERIFY_RUN_ID"
+          gh run download "$REVERIFY_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-t1-boot --dir auth-boot
+          test -s auth-boot/t1-out/thyme-r3-p1b-t1-boot.img
+          test -s auth-boot/t1-out/p1b-t1-pack-gates.txt
+          echo 'T1_BOOT_ARTIFACT_SOURCE=AUTHORITATIVE_PRIVATE_RUN'
+
+      - name: T1 boot identity gates (re-hash only)
+        env:
+          EXPECTED_BOOT_SHA256: ${{ inputs.expected_boot_sha256 }}
+          EXPECTED_PAYLOAD_SHA256: ${{ inputs.t1_payload_sha }}
+          EXPECTED_TRAMP_SHA256: ${{ inputs.t1_tramp_sha }}
+          EXPECTED_CHECKPOINT_SHA256: ${{ inputs.t1_checkpoint_sha }}
+        run: |
+          set -euo pipefail
+          test -n "$EXPECTED_BOOT_SHA256"
+          printf '%s  auth-boot/t1-out/thyme-r3-p1b-t1-boot.img\n' \
+            "$EXPECTED_BOOT_SHA256" | sha256sum -c -
+          boot_size=$(stat -c%s auth-boot/t1-out/thyme-r3-p1b-t1-boot.img)
+          test "$boot_size" = 37380096
+          grep -Fxq 'T1_PACK_GATES=PASS' \
+            auth-boot/t1-out/p1b-t1-pack-gates.txt
+          grep -Fxq "T1_BOOT_SHA256=$EXPECTED_BOOT_SHA256" \
+            auth-boot/t1-out/p1b-t1-pack-gates.txt
+          grep -Fxq "T1_PAYLOAD_SHA256=$EXPECTED_PAYLOAD_SHA256" \
+            auth-boot/t1-out/p1b-t1-pack-gates.txt
+          grep -Fxq "T1_TRAMP_SHA256=$EXPECTED_TRAMP_SHA256" \
+            auth-boot/t1-out/p1b-t1-pack-gates.txt
+          grep -Fxq "T1_CHECKPOINT_SHA256=$EXPECTED_CHECKPOINT_SHA256" \
+            auth-boot/t1-out/p1b-t1-pack-gates.txt
+          grep -Fxq 'T1_BOOT_SIZE=37380096' \
+            auth-boot/t1-out/p1b-t1-pack-gates.txt
+          grep -Fxq 'T1_CHECKPOINT_OUTSIDE_IMAGE_SIZE=YES' \
+            auth-boot/t1-out/p1b-t1-pack-gates.txt
+          grep -Fxq 'T1_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY' \
+            auth-boot/t1-out/p1b-t1-pack-gates.txt
+          echo 'T1_PRIVATE_BOOT_IDENTITY_RECONFIRMED=YES'
+          echo 'T1_ARTIFACT_REBUILD_REQUIRED=NO (boot re-hashed, never re-packed)'
+          echo 'T1_PRIVATE_IDENTITY_REVERIFY=PASS'
+
+      - name: Verdict
+        run: |
+          {
+            echo "MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI (PRIVATE IDENTITY REVERIFY)"
+            echo "AUTHORITATIVE_PRIVATE_RUN=${{ inputs.reverify_run_id }}"
+            echo "T1_BOOT_SHA256=${{ inputs.expected_boot_sha256 }}"
+            echo "T1_BOOT_SIZE=37380096"
+            echo "T1_DIAGNOSTIC_ONLY=YES"
+            echo "T1_NORMAL_KERNEL_BOOT_CANDIDATE=NO"
+            echo "DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "READY_FOR_DEVICE=NO"
+          } | tee "$GITHUB_STEP_SUMMARY"
