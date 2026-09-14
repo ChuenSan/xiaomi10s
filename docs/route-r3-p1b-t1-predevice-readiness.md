@@ -104,7 +104,7 @@ Reported as `PRIMARY_ENTRY_ORIGINAL_INSN`, `PRIMARY_ENTRY_ORIGINAL_BYTES`
 `T1_PRIMARY_ENTRY_ORIGINAL_INSN_SOURCES_AGREE=YES` fails the build on any
 disagreement. The instruction is never hardcoded as fact.
 
-Measured (public run 34800442025): `bl record_mmu_state`,
+Measured (public run 34803433243, all three jobs green): `bl record_mmu_state`,
 `PRIMARY_ENTRY_ORIGINAL_BYTES=65740094` (word `0x65740094`, top six bits
 `0b100101` = BL), `PRIMARY_ENTRY_ORIGINAL_TARGET=0x1b39234`
 (Image-relative `record_mmu_state`). All three sources agreed, and the
@@ -129,7 +129,7 @@ offset and the checkpoint size. This is a correction of the previous
 prototype, which placed its gap probe at the Image file end and therefore
 inside the kernel's own runtime memory footprint.
 
-Measured (public run 34800442025): `T1_CHECKPOINT_OFFSET=0x2230000`, size 76
+Measured (public run 34803433243, all three jobs green): `T1_CHECKPOINT_OFFSET=0x2230000`, size 76
 bytes, end `0x223004c`; `padding_base` `0x2230000` =
 `max(IMAGE_FILE_SIZE 0x2189a00, IMAGE_HEADER_IMAGE_SIZE 0x2230000)`.
 
@@ -418,9 +418,14 @@ header, checkpoint-outside-image_size, padding-zero in the frozen baseline,
 diff attribution, trampoline byte identity, branch target algebra, fail-closed
 terminal decode, RT-D identity, geometry). No `*.img` may exist anywhere in
 this repository.
-Private workflow (staged at `artifacts/p1b-t1-private-workflow-staging.yml`):
+Private workflow (staged at `artifacts/p1b-t1-private-workflow-staging.yml`,
+deployed byte-identical to `ChuenSan/thyme-mainline-private-ci`):
 `t1-pack` (M5D splice + pack gates + size cross-check + boot SHA record) and
-`t1-identity-reverify` (re-hash only, never re-pack).
+`t1-identity-reverify` (re-hash only, never re-pack). The source gate also
+checks that every manifest field the private workflow reads exists in this
+builder's manifest (`T1_MANIFEST_KEY_CONSISTENCY`), because a stale key name
+only surfaces as a private-run failure after the public round is already
+frozen.
 
 Gate set (all must be green): `T1_BUILD_GATES=PASS`,
 `T1_BASELINE=FROZEN_FIX8`, `T1_PRIMARY_ENTRY_OFFSET_REDERIVED=YES`,

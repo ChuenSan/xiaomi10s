@@ -151,7 +151,7 @@ jobs:
           if m["t1_runtime_semantic_delta"] != \
                   "PRIMARY_ENTRY_REACHABILITY_CHECKPOINT_ONLY":
               raise SystemExit("T1_PRIVATE_SEMANTIC_DELTA_MISMATCH")
-          if m["t1_payload_diff_attribution"] != \
+          if m["diff_attribution"] != \
                   "PRIMARY_ENTRY_PATCH_PLUS_CHECKPOINT_REGION_ONLY":
               raise SystemExit("T1_PRIVATE_DIFF_ATTRIBUTION_MISMATCH")
           if m["diff_bytes"] != m["diff_bytes_region_a"] + m["diff_bytes_region_b"]:

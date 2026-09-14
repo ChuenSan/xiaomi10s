@@ -55,6 +55,7 @@ T1_DEVICE_LD = HERE / "p1b-t1-device.ld"
 T1_PROTO_S = HERE / "p1b-t1-gap-probe.S"
 OBSERVER = HERE / "observe-r3-p1b-t1.py"
 OBSERVER_FIXTURES = HERE / "observer-t1-fixtures.py"
+PRIVATE_WF = REPO / "artifacts" / "p1b-t1-private-workflow-staging.yml"
 
 _spec = importlib.util.spec_from_file_location("p1b_build", HERE / "p1b-build.py")
 pb = importlib.util.module_from_spec(_spec)
@@ -1395,7 +1396,8 @@ def cmd_t1_pack_gates(args: argparse.Namespace) -> None:
         f"T1_BOOT_SIZE={len(boot)}\n"
         f"T1_BOOT_SHA256={sha(boot)}\n"
         f"T1_PAYLOAD_SHA256={sha(payload)}\n"
-        f"T1_TRAMP_SHA256={sha(tramp)} (frozen FIX8 trampoline, unmodified)\n"
+        f"T1_TRAMP_SHA256={sha(tramp)}\n"
+        "T1_TRAMP_SOURCE=FROZEN_FIX8_UNMODIFIED\n"
         f"T1_CHECKPOINT_SHA256={sha(probe)}\n"
         f"T1_KERNEL_SIZE={len(payload)}\n"
         f"T1_PRIMARY_ENTRY_OFFSET={off_primary:#x}\n"
@@ -1430,6 +1432,7 @@ def forbid(text: str, needle: str, label: str = "T1_SOURCE_GATE_FAILED") -> None
 def cmd_source_gate(_args: argparse.Namespace) -> None:
     required = [T1_DEVICE_S, T1_DEVICE_LD, T1_PROTO_S, OBSERVER,
                 OBSERVER_FIXTURES, Path(__file__), DOC, STATUS_DOC, WF,
+                PRIVATE_WF,
                 HERE / "p1b-build.py", HERE / "p1b-trampoline.S",
                 HERE / "p1b-trampoline.ld"]
     for path in required:
@@ -1504,6 +1507,20 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
             continue
         if "r3-p1b" in rel or "p1b" in rel:
             fail("T1_SOURCE_GATE_FAILED", f"tracked p1b flashable: {rel}")
+    # Manifest key consistency: every manifest field the private pack workflow
+    # reads must exist in this builder's manifest, else the private run dies
+    # with a KeyError after the public round is already frozen.
+    body = re.search(r"\n    manifest = \{(.*?)\n    \}\n",
+                     Path(__file__).read_text(), re.S)
+    if not body:
+        fail("T1_SOURCE_GATE_FAILED", "manifest literal not found")
+    keys = set(re.findall(r'^\s+"([a-z0-9_]+)":', body.group(1), re.M))
+    for key in sorted(set(re.findall(r'm\["([^"]+)"\]',
+                                     PRIVATE_WF.read_text()))):
+        if key not in keys:
+            fail("T1_SOURCE_GATE_FAILED",
+                 f"private workflow reads unknown manifest key {key!r}")
+    print(f"T1_MANIFEST_KEY_CONSISTENCY=PASS ({len(keys)} keys)")
     print("T1_SOURCE_GATE=PASS")
     print("LOCAL_BUILD=NO GHA_ONLY=YES DEVICE_OPERATION=NO "
           "ADB_DEVICE_OPERATION=NO FASTBOOT_DEVICE_OPERATION=NO "
