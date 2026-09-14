@@ -402,13 +402,19 @@ def gate_vmlinux_frozen_agreement(ps_va: int, off_ps: int, dump: str,
     return word
 
 
-def gate_ps_original_insn(word: int, head_insn: str) -> None:
-    """head.S line 473 is `adr_l x4, init_task`, which emits ADRP Rd=x4 then
-    ADD Rd=Rn=x4. Identity of the ORIGINAL first instruction is what makes the
-    overwrite auditable."""
-    if (word & 0x9F000000) != 0x90000000 or (word & 0x1F) != 4:
+def gate_ps_original_insn(word0: int, word1: int, head_insn: str) -> None:
+    """The ORIGINAL first instruction of __primary_switched is `bti c`,
+    emitted unconditionally by SYM_FUNC_START_LOCAL (arch/arm64/include/asm/
+    linkage.h lines 26-28); the second is `adr_l x4, init_task` (head.S line
+    473), which emits ADRP Rd=x4 then ADD Rd=Rn=x4. Identity of both is what
+    makes the overwrite auditable and what preserves the BTI landing pad."""
+    if word0 != T2_BTI_PAD_WORD:
         fail("T2_IDENTITY_FAILED",
-             f"frozen first word {word:#010x} is not `adrp x4, init_task`")
+             f"frozen first word {word0:#010x} is not `bti c` "
+             f"({T2_BTI_PAD_WORD:#010x})")
+    if (word1 & 0x9F000000) != 0x90000000 or (word1 & 0x1F) != 4:
+        fail("T2_IDENTITY_FAILED",
+             f"frozen second word {word1:#010x} is not `adrp x4, init_task`")
     if re.sub(r"\s+", " ", head_insn.strip()) != "adr_l x4, init_task":
         fail("T2_IDENTITY_FAILED",
              f"head.S first __primary_switched instruction is {head_insn!r}, "
@@ -417,13 +423,22 @@ def gate_ps_original_insn(word: int, head_insn: str) -> None:
 
 def gate_diagnostic_core_identity(t2_probe: bytes, t1_probe: bytes) -> None:
     """Prompt section 24: the T2 delay/reset core must be byte-identical to the
-    T0/T1 true-device proven diagnostic core."""
-    if t2_probe != t1_probe:
-        fail("T2_CORE_IDENTITY_FAILED",
-             f"T2 core sha={sha(t2_probe)} != T1 core sha={sha(t1_probe)}")
+    T0/T1 true-device proven diagnostic core. The only permitted difference is
+    the insertion mechanic: one leading `bti c` landing pad."""
     if len(t2_probe) != T2_PROBE_SIZE:
         fail("T2_CORE_IDENTITY_FAILED",
              f"probe size {len(t2_probe)} != {T2_PROBE_SIZE}")
+    pad = t2_probe[:T2_BTI_PAD]
+    if pad != struct.pack("<I", T2_BTI_PAD_WORD):
+        fail("T2_CORE_IDENTITY_FAILED",
+             f"probe does not start with `bti c`: {pad.hex()}")
+    core = t2_probe[T2_BTI_PAD:]
+    if core != t1_probe:
+        fail("T2_CORE_IDENTITY_FAILED",
+             f"T2 core sha={sha(core)} != T1 core sha={sha(t1_probe)}")
+    if len(core) != T2_CORE_SIZE:
+        fail("T2_CORE_IDENTITY_FAILED",
+             f"core size {len(core)} != {T2_CORE_SIZE}")
 
 
 def gate_no_relocations(rel_text: str, label: str) -> None:
@@ -844,18 +859,30 @@ def run_negative_fixtures(ctx: dict) -> list:
         "T2_INLINE_SAFETY_FAILED"))
     lines.append(expect_reject(
         "WRONG_ORIGINAL_INSTRUCTION",
-        lambda: gate_ps_original_insn(0xD503201F, "adr_l x4, init_task"),
+        lambda: gate_ps_original_insn(0xD503201F, ctx["orig_word2"],
+                                      "adr_l x4, init_task"),
+        "T2_IDENTITY_FAILED"))
+    lines.append(expect_reject(
+        "WRONG_SECOND_INSTRUCTION",
+        lambda: gate_ps_original_insn(T2_BTI_PAD_WORD, 0xD503201F,
+                                      "adr_l x4, init_task"),
         "T2_IDENTITY_FAILED"))
     lines.append(expect_reject(
         "WRONG_HEADS_INSTRUCTION",
-        lambda: gate_ps_original_insn(
-            struct.unpack_from("<I", frozen, off_ps)[0], "nop"),
+        lambda: gate_ps_original_insn(T2_BTI_PAD_WORD, ctx["orig_word2"],
+                                      "nop"),
         "T2_IDENTITY_FAILED"))
+    lines.append(expect_reject(
+        "BTI_LANDING_PAD_LOST",
+        lambda: gate_diagnostic_core_identity(
+            b"\x1f\x20\x03\xd5" + t1_probe, t1_probe),
+        "T2_CORE_IDENTITY_FAILED"))
     bad_core = bytearray(t1_probe)
     bad_core[3] ^= 0xFF
     lines.append(expect_reject(
         "DIAGNOSTIC_CORE_MISMATCH",
-        lambda: gate_diagnostic_core_identity(bytes(bad_core), t1_probe),
+        lambda: gate_diagnostic_core_identity(
+            struct.pack("<I", T2_BTI_PAD_WORD) + bytes(bad_core), t1_probe),
         "T2_CORE_IDENTITY_FAILED"))
     bad_pe = bytearray(cand)
     bad_pe[ctx["primary_entry_off"]] ^= 0xFF
@@ -1052,10 +1079,10 @@ def _readelf_sections(dump: str) -> list:
 def section_map(out: Path, tools: dict, vmlinux: Path) -> list:
     dumps = {}
     for tag, cmd in (
-            ("objdump-h", [tools["objdump"], "-h", str(vmlinux)]),
+            ("readelf-SW", [tools["readelf"], "-S", "--wide", str(vmlinux)]),
             ("objdump-section-headers",
              [tools["objdump"], "--section-headers", str(vmlinux)]),
-            ("readelf-SW", [tools["readelf"], "-SW", str(vmlinux)])):
+            ("objdump-h", [tools["objdump"], "-h", str(vmlinux)])):
         try:
             dumps[tag] = pb.run(cmd)
         except SystemExit as exc:
@@ -1072,7 +1099,7 @@ def section_map(out: Path, tools: dict, vmlinux: Path) -> list:
             return secs
     fail("T2_AUDIT_FAILED",
          "no sections parsed from any section-header dump; head="
-         + " | ".join(dumps["objdump-h"].splitlines()[:10]))
+         + " | ".join(dumps["readelf-SW"].splitlines()[:10]))
     return []
 
 
@@ -1482,9 +1509,13 @@ def cmd_t2(args: argparse.Namespace) -> None:
     plen = len(t2_probe)
     if (off_ps + plen) > image_file_size:
         fail("T2_BUILD_FAILED", "inline window exceeds the Image file")
-    print(f"T2_CHECKPOINT sha256={sha(t2_probe)} size={plen}")
+    print(f"T2_CHECKPOINT sha256={sha(t2_probe)} size={plen} "
+          f"core={sha(t2_probe[T2_BTI_PAD:])}")
     print("T2_DIAGNOSTIC_CORE_MATCHES_T1=YES "
-          f"(byte-identical to p1b-t1-device.S core, sha {sha(t1_probe)})")
+          f"(probe[4:80] byte-identical to the p1b-t1-device.S core, "
+          f"sha {sha(t1_probe)}; the only difference is the leading `bti c` "
+          "landing pad, an insertion mechanic)")
+    print("T2_DIAGNOSTIC_CORE_SLICE_MATCHES_T1=YES")
     print("T2_PROBE_ARCHITECTURE=INLINE")
     print("T2_PROBE_MAPPING_SOURCE=KERNEL_TEXT_VA_SELF_EVIDENT")
     print("T2_MAPPING_EXECUTABLE=YES")
@@ -1579,7 +1610,9 @@ def cmd_t2(args: argparse.Namespace) -> None:
         f"PRIMARY_SWITCHED_SECTION_FLAGS_SOURCE={flags_source}\n"
         "T2_PRIMARY_SWITCHED_REDERIVED=YES\n"
         "T2_PRIMARY_ENTRY_OFFSET_REDERIVED=YES\n"
-        "T2_PRIMARY_SWITCHED_ORIGINAL_FIRST_INSN=adrp x4, init_task\n"
+        "T2_PRIMARY_SWITCHED_ORIGINAL_INSN1=bti c\n"
+        "T2_PRIMARY_SWITCHED_ORIGINAL_INSN2=adrp x4, init_task\n"
+        "T2_BTI_LANDING_PAD_PRESERVED=YES\n"
         f"T2_PROBE_ARCHITECTURE=INLINE start={ps_va:#x} "
         f"end={ps_va + plen:#x}\n"
         "T2_MAPPING_SOURCE=KERNEL_TEXT_VA_SELF_EVIDENT "
@@ -1646,10 +1679,15 @@ def cmd_t2(args: argparse.Namespace) -> None:
         "primary_switched_section_flags_source": flags_source,
         "primary_switched_section_va": hex(sec["vma"]),
         "primary_switched_rederived": True,
-        "primary_switched_original_first_insn": "adrp x4, init_task",
+        "primary_switched_original_first_insn": T2_ORIGINAL_FIRST_INSN,
+        "primary_switched_original_second_insn": T2_ORIGINAL_SECOND_INSN,
         "primary_switched_original_first_bytes":
             struct.pack("<I", orig_word).hex(),
+        "primary_switched_original_second_bytes":
+            struct.pack("<I", orig_word2).hex(),
         "primary_switched_original_insn_sources_agree": True,
+        "t2_bti_landing_pad_preserved": True,
+        "t2_core_size": T2_CORE_SIZE,
         "primary_switched_recorded_insn_count": ps_n_insns,
         "primary_switched_overwritten_insn_count": T2_PROBE_SIZE // 4,
         "rebuilt_image_sha256": sha(image),
@@ -1744,7 +1782,9 @@ def cmd_t2(args: argparse.Namespace) -> None:
         "T2_BASELINE=FROZEN_FIX8",
         "T2_PRIMARY_SWITCHED_REDERIVED=YES",
         "T2_PRIMARY_ENTRY_OFFSET_REDERIVED=YES",
-        "T2_PRIMARY_SWITCHED_ORIGINAL_INSN=adrp x4, init_task",
+        "T2_PRIMARY_SWITCHED_ORIGINAL_INSN1=bti c",
+        "T2_PRIMARY_SWITCHED_ORIGINAL_INSN2=adrp x4, init_task",
+        "T2_BTI_LANDING_PAD_PRESERVED=YES",
         "T2_PRIMARY_SWITCHED_ORIGINAL_INSN_SOURCES_AGREE=YES",
         "T2_REBUILT_IMAGE_BYTE_IDENTICAL=NO",
         "IMAGE_HEADER_IMAGE_SIZE_REDERIVED=YES",
@@ -1780,6 +1820,7 @@ def cmd_t2(args: argparse.Namespace) -> None:
         "T2_NO_MEMORY_READS=YES",
         "T2_NO_MEMORY_WRITES=YES",
         "T2_DIAGNOSTIC_CORE_MATCHES_T1=YES",
+        "T2_DIAGNOSTIC_CORE_SLICE_MATCHES_T1=YES",
         "T2_POSITION_INDEPENDENT=YES",
         "T2_RUNTIME_RELOCATIONS=0",
         f"T2_RUNTIME_SEMANTIC_DELTA={T2_RUNTIME_SEMANTIC_DELTA}",
@@ -1998,7 +2039,11 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
                   "T2_CNTPCT_ACCESS_SAFE", "T2_PSCI_SYSTEM_RESET_SAFE",
                   "T2_FAIL_CLOSED", "T2_STACK_USAGE=NO",
                   "T2_RUNTIME_RELOCATIONS=0",
+                  "T2_PRIMARY_SWITCHED_ORIGINAL_INSN1=bti c",
+                  "T2_PRIMARY_SWITCHED_ORIGINAL_INSN2=adrp x4, init_task",
+                  "T2_BTI_LANDING_PAD_PRESERVED",
                   "T2_DIAGNOSTIC_CORE_MATCHES_T1",
+                  "T2_DIAGNOSTIC_CORE_SLICE_MATCHES_T1",
                   "T2_PRECHECKPOINT_HEADS_PATH_IDENTICAL_TO_FIX8",
                   "PRIMARY_SWITCHED_REACHABILITY_CHECKPOINT_ONLY",
                   "T2_PAYLOAD_DIFF_ATTRIBUTED="

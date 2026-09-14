@@ -185,8 +185,11 @@ jobs:
           grep -Fxq 'T2_PRIMARY_SWITCHED_REDERIVED=YES' out-t2/p1b-t2-gates.txt
           grep -Fxq 'T2_PRIMARY_ENTRY_OFFSET_REDERIVED=YES' \
             out-t2/p1b-t2-gates.txt
-          grep -Fxq 'T2_PRIMARY_SWITCHED_ORIGINAL_INSN=adrp x4, init_task' \
+          grep -Fxq 'T2_PRIMARY_SWITCHED_ORIGINAL_INSN1=bti c' \
             out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_PRIMARY_SWITCHED_ORIGINAL_INSN2=adrp x4, init_task' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_BTI_LANDING_PAD_PRESERVED=YES' out-t2/p1b-t2-gates.txt
           grep -Fxq 'T2_PRIMARY_SWITCHED_ORIGINAL_INSN_SOURCES_AGREE=YES' \
             out-t2/p1b-t2-gates.txt
           grep -Fxq 'IMAGE_HEADER_IMAGE_SIZE_REDERIVED=YES' \
@@ -223,6 +226,8 @@ jobs:
           grep -Fxq 'T2_NO_MEMORY_READS=YES' out-t2/p1b-t2-gates.txt
           grep -Fxq 'T2_NO_MEMORY_WRITES=YES' out-t2/p1b-t2-gates.txt
           grep -Fxq 'T2_DIAGNOSTIC_CORE_MATCHES_T1=YES' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_DIAGNOSTIC_CORE_SLICE_MATCHES_T1=YES' \
             out-t2/p1b-t2-gates.txt
           grep -Fxq 'T2_POSITION_INDEPENDENT=YES' out-t2/p1b-t2-gates.txt
           grep -Fxq 'T2_RUNTIME_RELOCATIONS=0' out-t2/p1b-t2-gates.txt

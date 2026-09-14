@@ -116,8 +116,9 @@ __primary_switch:
     adrp x0, KERNEL_START            x0 = __pa(KERNEL_START)
     br  x8                           ---> *** T2 probe sits HERE ***
 
-__primary_switched:
-    adr_l x4, init_task              <- the ORIGINAL covered first instruction
+__primary_switched:                  .init.text (measured output section, flags AX)
+    bti  c                           <- SYM_FUNC_START_LOCAL emits this unconditionally
+    adr_l x4, init_task             <- the ORIGINAL first real instruction (ADRP/ADD x4)
     init_cpu_task x4, x5, x6
     ...
 ```
@@ -131,6 +132,21 @@ Two facts drive the whole design:
    relocation whose target lies inside the overwritten window would overwrite
    the probe bytes in memory, so relocation targets must be excluded — this is
    the real hazard, and it is scanned explicitly.
+
+A third, non-obvious fact was discovered by this round's CI and changed the
+probe: the **first instruction of `__primary_switched` is `bti c`**
+(`0xd503245f`), because arm64's `SYM_FUNC_START_LOCAL` emits a BTI landing pad
+unconditionally (`arch/arm64/include/asm/linkage.h` lines 26-28):
+
+```
+#define SYM_FUNC_START_LOCAL(name)                     \
+        SYM_START(name, SYM_L_LOCAL, SYM_A_ALIGN)      \
+        bti c ;
+```
+
+The T2 probe therefore re-emits `bti c` as its own first instruction
+(`T2_BTI_LANDING_PAD_PRESERVED=YES`) and only repurposes the 19 instructions
+that follow it. See §7a.
 
 ---
 
@@ -154,18 +170,31 @@ Never taken from history. The CI re-derives, in this round, from the
 authoritative rebuilt `vmlinux` plus its `System.map`:
 
 ```
-PRIMARY_SWITCHED_VA=             (llvm-nm __primary_switched)
-PRIMARY_SWITCHED_IMAGE_OFFSET=   (VA - VA(_text); the Image is flat)
-PRIMARY_SWITCHED_FILE_OFFSET=    (vmlinux section file offset + delta in section)
-PRIMARY_SWITCHED_SECTION=
-PRIMARY_SWITCHED_SECTION_FLAGS=
-T2_PRIMARY_SWITCHED_REDERIVED=YES
+PRIMARY_SWITCHED_VA             = 0xffff800081b39534
+PRIMARY_SWITCHED_IMAGE_OFFSET   = 0x1b39534   (VA - VA(_text), Image is flat)
+PRIMARY_SWITCHED_FILE_OFFSET    = 0x1b39534   (vmlinux section offset + delta)
+PRIMARY_SWITCHED_SECTION        = .init.text
+PRIMARY_SWITCHED_SECTION_FLAGS  = AX          (SHF_ALLOC | SHF_EXECINSTR)
+PRIMARY_SWITCHED_SECTION_VA     = 0xffff800081b30000
+T2_PRIMARY_SWITCHED_REDERIVED   = YES
 ```
+
+(The numbers above are the deterministic CI measurements of this round; the
+section is the linker's merged output section that carries the head.S code at
+this layout. It is still mapped and executable at T2 entry and is only freed
+after `start_kernel` — which T2 never reaches.)
+
+Section headers are read with a multi-strategy parser (`llvm-readelf -S
+--wide` first, `llvm-objdump --section-headers` / `-h` as fallbacks, each with
+a tolerant field/flags layout parser and a diagnostic dump on failure); the
+LLVM 18 `llvm-objdump` section-header layout produced no parseable records in
+this environment, so the readelf source is the one this round reports as
+`PRIMARY_SWITCHED_SECTION_FLAGS_SOURCE=SECTION_HEADERS`.
 
 Cross-checks enforced: `llvm-nm` value == `System.map` value; `primary_entry`
 offset agrees across `llvm-nm`, `System.map` and the existing `kernel_gate`
 code-island check; the historical reference `0x1b39534` is used **only** as a
-sanity cross-check and gates nothing.
+sanity cross-check and gates nothing — it happened to reproduce exactly.
 
 `T2_PRIMARY_ENTRY_OFFSET_REDERIVED=YES` likewise (historical reference
 `0x1b1c0a0` is context only).
@@ -175,25 +204,52 @@ sanity cross-check and gates nothing.
 ## 7. Original instruction identity
 
 ```
-T2_PRIMARY_SWITCHED_ORIGINAL_FIRST_INSN=adrp x4, init_task
-T2_PRIMARY_SWITCHED_ORIGINAL_FIRST_BYTES=   (ADRP Rd=x4)
+T2_PRIMARY_SWITCHED_ORIGINAL_INSN1=bti c
+T2_PRIMARY_SWITCHED_ORIGINAL_INSN2=adrp x4, init_task
+T2_PRIMARY_SWITCHED_ORIGINAL_FIRST_BYTES=   (0xd503245f, `bti c`)
+T2_PRIMARY_SWITCHED_ORIGINAL_SECOND_BYTES=   (ADRP Rd=x4)
 T2_PRIMARY_SWITCHED_ORIGINAL_INSN_SOURCES_AGREE=YES
+T2_BTI_LANDING_PAD_PRESERVED=YES
 ```
 
-Three independent sources must agree:
+Four independent sources must agree:
 
-1. `arch/arm64/kernel/head.S` line 473 (`adr_l x4, init_task` after
+1. `arch/arm64/include/asm/linkage.h` lines 26-28 (`SYM_FUNC_START_LOCAL`
+   appends `bti c`),
+2. `arch/arm64/kernel/head.S` line 473 (`adr_l x4, init_task` after
    `SYM_FUNC_START_LOCAL(__primary_switched)`),
-2. the **frozen FIX8 payload bytes** at the re-derived Image offset,
-3. the **authoritative `vmlinux` disassembly** at `PRIMARY_SWITCHED_VA`.
+3. the **frozen FIX8 payload bytes** at the re-derived Image offset,
+4. the **authoritative `vmlinux` disassembly** at `PRIMARY_SWITCHED_VA`.
 
-The gate is not a symbol name: the first word must decode as `ADRP` with
-`Rd = x4`, and the frozen word must equal the disassembled word. At least
-**32** original instructions are disassembled and recorded
-(`p1b-t2-primary-switched-vmlinux-disasm.txt`), and all
-`T2_PROBE_SIZE/4 = 19` overwritten words are printed verbatim. A
+The gate is not a symbol name: word[0] must be exactly `bti c`, word[1] must
+decode as `ADRP` with `Rd = x4`, and the frozen words must equal the
+disassembled words. At least **32** original instructions are disassembled and
+recorded (`p1b-t2-primary-switched-vmlinux-disasm.txt`), and all
+`T2_PROBE_SIZE/4 = 20` overwritten words are printed verbatim. A
 literal-`.inst`-word re-assembly record of the overwritten words is kept as an
 independent encoding path.
+
+### 7a. BTI landing pad (why the probe re-emits `bti c`)
+
+`__primary_switched` is entered by `br x8`, an **indirect** branch, and arm64
+marks every `SYM_FUNC_START*` entry with a `bti c` landing pad. Overwriting
+that word with a non-BTI instruction would, **if** guarded control flow were
+ever enforced at that point, turn a working indirect entry into a BTI fault.
+Whether it is enforced today is debatable — `SCTLR_EL1.BT0/BT1` is programmed
+by `cpu_enable_bti()` well after `start_kernel`, and the normal FIX8 boot
+demonstrably passes through this exact `br x8 → bti c` edge — but T2 does not
+need to win that argument:
+
+* the probe's first instruction **is** `bti c`, byte-identical to the original;
+* the BTI landing-pad property of the entry is therefore preserved by
+  construction;
+* the runtime semantic change is confined to the 19 instructions **after** the
+  landing pad.
+
+This is the one permitted deviation from "byte-identical T1 core" allowed by
+the round brief ("branch/insertion mechanics"), and it is recorded explicitly
+(`T2_DIAGNOSTIC_CORE_SLICE_MATCHES_T1=YES` plus
+`T2_BTI_LANDING_PAD_PRESERVED=YES`).
 
 ---
 
@@ -260,13 +316,14 @@ address of `init_pg_dir`, and the CPU executes at the linked kernel VA that
 
 ```
 T2_PROBE_ARCHITECTURE=INLINE
-T2_INLINE_START = PRIMARY_SWITCHED_VA
-T2_INLINE_END   = PRIMARY_SWITCHED_VA + 76
+T2_INLINE_START = PRIMARY_SWITCHED_VA        (0xffff800081b39534)
+T2_INLINE_END   = PRIMARY_SWITCHED_VA + 80   (0xffff800081b39580)
 ```
 
-The 76-byte (19-instruction) fail-closed diagnostic core is written directly
-over the first 19 instruction slots of `__primary_switched` in kernel
-`.head.text`.
+The 80-byte (20-instruction) fail-closed diagnostic is written directly
+over the first 20 instruction slots of `__primary_switched` in kernel text
+(measured output section `.init.text`, flags `AX`): one `bti c` landing pad
+preserved verbatim, then the 76-byte (19-instruction) T1-proven core.
 
 Rationale, in order of weight:
 
@@ -300,7 +357,7 @@ Section 14 of the round brief is honoured strictly:
 
 ## 13. Inline overwrite safety (the central audit)
 
-Window = `[PRIMARY_SWITCHED_VA, PRIMARY_SWITCHED_VA + 76)`. Six scans run over
+Window = `[PRIMARY_SWITCHED_VA, PRIMARY_SWITCHED_VA + 80)`. Six scans run over
 the authoritative rebuild; any hit is a hard stop
 (`T2_INLINE_OVERWRITE_SAFE=YES` is required, otherwise the artifact is
 rejected):
@@ -314,9 +371,11 @@ rejected):
 | section boundary | the window must lie entirely inside exactly one `SHF_ALLOC|SHF_EXECINSTR` section and must not touch a section end | `T2_SECTION_BOUNDARY_SCAN=PASS` |
 | alternatives / exception tables | reported, not hazardous: `apply_alternatives` and exception-table consumption happen **after** `start_kernel`, which T2 never reaches | `T2_ALT_EX_TABLE_HAZARD=NO_POST_START_KERNEL_ONLY` |
 
-The expected shape of the original window content is pure straight-line code:
+The expected shape of the original window content is one BTI landing pad
+followed by pure straight-line code:
 
 ```
+bti c ;
 adrp/add x4, init_task ; msr sp_el0,x4 ; ldr x5,[x4,#TSK_STACK] ;
 add sp,x5,#THREAD_SIZE ; sub sp,sp,#PT_REGS_SIZE ; stp xzr,xzr,[sp,...] ;
 add x29,sp,... ; adrp/add x5,__per_cpu_offset ; ldr w6,[x4,#TSK_TI_CPU] ;
@@ -331,7 +390,7 @@ this rather than assume it.
 
 ## 14. Original overwritten instructions
 
-`T2_PRIMARY_SWITCHED_OVERWRITTEN_INSN_COUNT=19` and the full word list is
+`T2_PRIMARY_SWITCHED_OVERWRITTEN_INSN_COUNT=20` and the full word list is
 printed as `T2_PRIMARY_SWITCHED_OVERWRITTEN_INSN_WORDS=` plus saved as a
 literal-word re-assembly record. The first word identity is enforced as an
 ADRP-class check (see §7) — a symbol name alone is never accepted as evidence.
@@ -442,14 +501,17 @@ all. Registered negative fixture `PA_AS_VA_CONFUSION` → REJECT.
 
 ```
 T2_DIAGNOSTIC_CORE_MATCHES_T1=YES
+T2_DIAGNOSTIC_CORE_SLICE_MATCHES_T1=YES
 ```
 
 The CI assembles **both** `scripts/r3-p1b/p1b-t2-device.S` and the frozen
 `scripts/r3-p1b/p1b-t1-device.S` in the same job and requires the two output
-binaries to be **byte-identical** (76 bytes each). The delay/reset core is
-therefore literally the T0/T1 true-device proven instruction sequence; only the
-insertion mechanics differ (T1 branched in from `primary_entry`, T2 is fallen
-into at the natural `__primary_switched` entry).
+cores to be **byte-identical** (76 bytes each) after the T2 probe's leading
+`bti c` landing pad. The delay/reset core is therefore literally the T0/T1
+true-device proven instruction sequence. The only permitted differences are
+insertion mechanics: the T1 predecessor branched in from `primary_entry`,
+whereas T2 is entered at the natural `__primary_switched` entry and must keep
+the `bti c` landing pad (§7a).
 
 ---
 
@@ -463,7 +525,7 @@ T2_DIFF_RANGES=
 ```
 
 Exactly **one** contiguous diff region against the frozen FIX8 payload:
-`[PRIMARY_SWITCHED_IMAGE_OFFSET, +76)`. Zero bytes change anywhere else.
+`[PRIMARY_SWITCHED_IMAGE_OFFSET, +80)`. Zero bytes change anywhere else.
 Concretely enforced:
 
 * trampoline (48 B @ `0x40`) byte-identical → `T2_TRAMPOLINE_IDENTICAL_TO_FIX8`;
@@ -640,6 +702,9 @@ mapping) — never a jump to `start_kernel`.
 
 ```
 T2_PRIMARY_SWITCHED_REDERIVED=YES
+T2_PRIMARY_SWITCHED_ORIGINAL_INSN1=bti c
+T2_PRIMARY_SWITCHED_ORIGINAL_INSN2=adrp x4, init_task
+T2_BTI_LANDING_PAD_PRESERVED=YES
 T2_ENTRY_MMU=ON
 T2_ENTRY_PC_ADDRESS_SPACE=VA
 T2_PROBE_ARCHITECTURE=INLINE
@@ -649,6 +714,7 @@ T2_RELOCATION_SCAN=PASS   T2_LITERAL_SCAN=PASS
 T2_CNTPCT_ACCESS_SAFE=YES T2_PSCI_SYSTEM_RESET_SAFE=YES
 T2_FAIL_CLOSED=YES        T2_STACK_USAGE=NO
 T2_RUNTIME_RELOCATIONS=0  T2_DIAGNOSTIC_CORE_MATCHES_T1=YES
+T2_DIAGNOSTIC_CORE_SLICE_MATCHES_T1=YES
 T2_PRECHECKPOINT_HEADS_PATH_IDENTICAL_TO_FIX8=YES
 T2_PAYLOAD_DIFF_ATTRIBUTED=PRIMARY_SWITCHED_CHECKPOINT_ONLY
 T2_TRAMPOLINE_IDENTICAL_TO_FIX8=YES
