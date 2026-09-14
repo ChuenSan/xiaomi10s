@@ -14,14 +14,14 @@
  *   control: ABL -> code1 "b 0x40" -> UNMODIFIED frozen FIX8 trampoline
  *            -> primary_entry / head.S / __primary_switched (FIX8 bytes;
  *               T2 probe gone) -> bl start_kernel
- *            -> start_kernel ENTRY is ORIGINAL FIX8 paciasp + prologue
+ *            -> start_kernel ENTRY is ORIGINAL FIX8 word0 + prologue
  *               (T3 probe gone)
  *            -> normal start_kernel body through the selected call
  *            -> *** the first instruction after that call returns is THIS
  *               probe ***
  *
  * NO entry pad. This is not a function entry and is not an indirect
- * target: arrival is BL-return fallthrough. BTI is not checked on the
+ * target: arrival is BL-return fallthrough. landing-pad is not checked on the
  * return. The 76-byte diagnostic core is byte-identical to the T0/T1
  * true-device proven core and to T3 probe[4:80] / T2 probe[4:80].
  *
