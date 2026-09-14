@@ -462,3 +462,79 @@ Gate set (all must be green): `T1_BUILD_GATES=PASS`,
 
 T2 remains `DESIGNED` and is not device ready. `T1_TOTAL` / `T1_MINUS_T0`
 windows are preregistered above and must not be widened after observing data.
+
+## 25. CI record and gate verdicts
+
+Public (repo `ChuenSan/xiaomi10s`, branch `route-b-v3`,
+`thyme-r3-p1b-t1-predevice.yml`, three jobs each: source-audit, t1-build,
+independent verify):
+
+| run | head | result |
+| --- | --- | --- |
+| 34803433243 | `545a2508` | all three jobs green |
+| 34805344669 | `0895098` | all three jobs green |
+
+Both runs produced byte-identical frozen identities — T1 payload
+`3e654ee5…f0fb` (37369041), checkpoint `4d792df5…3611` (76),
+`T1_DIFF_BYTE_COUNT=75` (`A=4`, `B=71`), `T1_BRANCH_DISTANCE=0x713f60` — so
+the compose step is deterministic. Verdict line:
+`T1_PREDEVICE_READINESS_CI_VERDICT=CI_PASS`.
+
+Private (repo `ChuenSan/thyme-mainline-private-ci`,
+`thyme-r3-p1b-t1-predevice.yml`, staged byte-identically from
+`artifacts/p1b-t1-private-workflow-staging.yml`):
+
+| run | kind | result |
+| --- | --- | --- |
+| 34807172879 | `t1-pack` | green: `T1_PRIVATE_PACK_GATES=PASS`, `T1_BOOT_SIZE=37380096`, `T1_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY`, `T1_RT_D_TRAILER_SHA_EXACT=PASS`, `T1_BOOT_CAPACITY=PASS`, `ABL_LOADS_FULL_BOOT_KERNEL_SIZE=YES` |
+| 34807260192 | `t1-identity-reverify` | green: `T1_PRIVATE_BOOT_IDENTITY_RECONFIRMED=YES`, `T1_ARTIFACT_REBUILD_REQUIRED=NO (boot re-hashed, never re-packed)` |
+
+Frozen T1 boot identity (PRIVATE ONLY, spliced into the exact M5D boot v3
+envelope `4db8151b…85e63`):
+
+| item | value |
+| --- | --- |
+| T1 boot v3 | `a4fa083f289219facb0a69062749dd6a9d2f667c4aa044b25b78c36b0da7e3df`, 37380096 |
+| T1 payload | `3e654ee55c517b8a652b6441fcfd26a7b651ecfae6a3d673db248f667157f0fb`, 37369041 |
+| T1 checkpoint | `4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611`, 76 at `0x2230000` |
+| trampoline (embedded) | `362d9c6e…c623`, frozen FIX8, unmodified |
+| RT-D trailer at `0x2380000` | `48497432…f327`, 144593, `panic=5` |
+| header diff vs M5D | kernel payload + `kernel_size` field only |
+
+Final gate: **`READY_FOR_R3_P1B_T1_DEVICE_CONTROL`** (preparation only).
+
+### 25a. Defects found and corrected while making this round green
+
+Recorded because each was a *gate-design* or *name-level* defect that only
+surfaced when the corresponding path was first executed — none of them was a
+product defect in the T1 candidate itself:
+
+1. A whole-Image SHA equality gate on the rebuild (unattainable; withdrawn in
+   favour of semantic identity — see section 17).
+2. A 64 KiB bound on the rebuild/payload byte census (withdrawn; a byte-level
+   invariant cannot be stated for a rebuilt kernel).
+3. Absolute-vs-Image-relative comparison of the vmlinux BL target
+   (`0xffff800081b39234` vs `0x1b39234`); both are now compared in one
+   coordinate space.
+4. `run_negative_fixtures` signature arity (13 params) — the signature edit
+   had not landed while the body and call edits had.
+5. A latent list-format bug in `gate_payload_diff`
+   (`f"{bad[:8]:#x}"`) inherited from the previous round, never exercised
+   until this round reached the negative fixtures.
+6. Private-side manifest key `t1_payload_diff_attribution` vs the emitted
+   `diff_attribution`, and a `grep -Fxq` on `T1_TRAMP_SHA256=<sha>` that could
+   never match because the report line carried a trailing annotation.
+
+Items 4–6 motivated the static audit now run before every push: pyflakes, AST
+arity checking of every internal gate, a cross-module attribute check of the
+observer symbols the fixtures use, an f-string collection-format scan, and a
+manifest-key consistency check inside the source gate
+(`T1_MANIFEST_KEY_CONSISTENCY`) so name-level drift fails the public round
+instead of the private one.
+
+### 25b. Operational note
+
+The workflows use a per-workflow `concurrency` group with
+`cancel-in-progress: true`, so a concurrent push to the same branch cancels an
+in-flight round (this happened once: run 34803154113 was cancelled by a
+concurrent commit). Serialise pushes to `route-b-v3` while a round is running.

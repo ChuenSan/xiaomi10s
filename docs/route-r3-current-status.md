@@ -58,9 +58,26 @@ Key properties of the frozen candidate:
 - proof boundary: a future T1 positive proves R2
   (`PRIMARY_ENTRY_ADDRESS_REACHED`) only — never R3 and never E1.
 
-Final gate: `READY_FOR_R3_P1B_T1_DEVICE_CONTROL` (preparation only) or
-`R3_P1B_T1_PREDEVICE_NOT_READY`. Details:
+Final gate: **`READY_FOR_R3_P1B_T1_DEVICE_CONTROL`** — every gate green,
+private pack green, boot identity frozen, observer fixtures green. This
+authorises PREPARATION ONLY; the single T1 device run still requires separate
+explicit user approval. Details:
 docs/route-r3-p1b-t1-predevice-readiness.md.
+
+Frozen T1 identity (PRIVATE boot artifact, never emitted from this repo):
+
+| item | value |
+| --- | --- |
+| T1 boot v3 (M5D envelope) | `a4fa083f…e3df`, 37380096 |
+| T1 payload | `3e654ee5…f0fb`, 37369041 |
+| T1 checkpoint | `4d792df5…3611`, 76 at offset `0x2230000` |
+| primary_entry (re-derived) | `0x1b1c0a0`; original insn `bl record_mmu_state` → `0x1b39234` |
+| branch distance | `0x713f60`; diff 75 bytes `A=4 B=71` in `[0x1b1c0a0,0x1b1c0a4)` + `[0x2230000,0x223004c)` |
+| trampoline / RT-D | `362d9c6e…c623` (frozen FIX8) / `48497432…f327` at `0x2380000` |
+
+CI: public runs 34803433243 (`545a2508`) and 34805344669 (`0895098`) all three
+jobs green with byte-identical identities (compose determinism proven); private
+pack 34807172879 and identity reverify 34807260192 green.
 
 ## Previous executed device round — T0 TRUE DEVICE (frozen)
 
@@ -253,8 +270,11 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
   `R3_P1B_PANIC30_TIMEOUT_NOT_OBSERVED`; binary frozen, no rebuild; second
   boot forbidden.
 - Checkpoints T0/T1/T2: T0 device run EXECUTED (Case T0-A STRONG,
-  `MAINLINE_V2_R3_P1B_T0_REACHABILITY_PROVEN`); T1 CI_PASS prototype
-  (device run blocked until its own predevice readiness CI); T2 DESIGNED.
+  `MAINLINE_V2_R3_P1B_T0_REACHABILITY_PROVEN`, `T0_TOTAL = 14.252 s`); T1
+  PREDEVICE READY (`READY_FOR_R3_P1B_T1_DEVICE_CONTROL`; the earlier T1
+  CI_PASS prototype is superseded by the frozen fail-closed T1-8 candidate of
+  `MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI`; the T1 device run still
+  requires explicit user approval); T2 DESIGNED.
 
 ## Next approved candidate
 
