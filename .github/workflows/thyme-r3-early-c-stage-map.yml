@@ -219,7 +219,7 @@ jobs:
           cp out-c-stage/start_kernel-instrumentation.json out-c-release/
           cp out-c-stage/vmlinux.sections.txt out-c-release/
           cp out-c-stage/build-run.txt out-c-release/
-          ( cd out-c-release && sha256sum * > SHA256SUMS )
+          ( cd out-c-release && sha256sum ./* > SHA256SUMS )
           cat out-c-release/SHA256SUMS
 
       - name: Upload stage map
