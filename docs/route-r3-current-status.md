@@ -75,8 +75,9 @@ Frozen T1 identity (PRIVATE boot artifact, never emitted from this repo):
 | branch distance | `0x713f60`; diff 75 bytes `A=4 B=71` in `[0x1b1c0a0,0x1b1c0a4)` + `[0x2230000,0x223004c)` |
 | trampoline / RT-D | `362d9c6e…c623` (frozen FIX8) / `48497432…f327` at `0x2380000` |
 
-CI: public runs 34803433243 (`545a2508`) and 34805344669 (`0895098`) all three
-jobs green with byte-identical identities (compose determinism proven); private
+CI: public runs 34803433243 (`545a2508`), 34805344669 (`0895098`) and
+34807369790 (`0fd48ab`, round record) all three jobs green with
+byte-identical identities (compose determinism proven); private
 pack 34807172879 and identity reverify 34807260192 green.
 
 ## Previous executed device round — T0 TRUE DEVICE (frozen)

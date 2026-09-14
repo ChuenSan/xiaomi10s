@@ -473,6 +473,7 @@ independent verify):
 | --- | --- | --- |
 | 34803433243 | `545a2508` | all three jobs green |
 | 34805344669 | `0895098` | all three jobs green |
+| 34807369790 | `0fd48ab` | all three jobs green (round record) |
 
 Both runs produced byte-identical frozen identities — T1 payload
 `3e654ee5…f0fb` (37369041), checkpoint `4d792df5…3611` (76),
