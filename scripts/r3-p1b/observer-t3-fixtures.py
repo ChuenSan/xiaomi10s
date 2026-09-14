@@ -100,7 +100,7 @@ def ast_deadlock_gate() -> None:
                 "T3_MINUS_T2", "T3_MINUS_T1", "T3_MINUS_T0",
                 "T1_REFERENCE_TOTAL", "T0_REFERENCE_TOTAL",
                 "T3_PROGRAMMED_ESTIMATE",
-                "MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI",
+                "MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI",
                 "E2_EARLY_MAINLINE_BOOT=NOT_PROVEN",
                 "R3_START_KERNEL_ADDRESS_REACHABILITY",
                 "ENTRY_STATE_PROBE_BOOT", "T1_BOOT", "T2_BOOT",
@@ -301,7 +301,7 @@ def s2_strong_signature():
     assert cap.has(r"SUMMARY R5_NORMAL_START_KERNEL_BODY=NOT_PROVEN")
     assert cap.has(r"SUMMARY E2_EARLY_MAINLINE_BOOT=NOT_PROVEN")
     assert cap.has(r"SUMMARY T3_NEXT_STEP="
-                   r"MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI")
+                   r"MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI")
     assert cap.has(r"SUMMARY RECOVERY_KIND=AUTOMATIC_ANDROID_RETURN")
     assert cap.has(r"SUMMARY RETURNED_ANDROID_KERNEL_START=")
     assert cap.has(r"SUMMARY T3_DIAGNOSTIC_ONLY=YES")
