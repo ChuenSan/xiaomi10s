@@ -1421,20 +1421,30 @@ def cmd_t2(args: argparse.Namespace) -> None:
              f"only {ps_n_insns} instructions disassembled at "
              "__primary_switched; at least 32 are required")
     orig_word = gate_vmlinux_frozen_agreement(ps_va, off_ps, dump_ps, frozen)
+    orig_word2 = struct.unpack_from("<I", frozen, off_ps + 4)[0]
     head_text = (LINUX / "arch" / "arm64" / "kernel" / "head.S").read_text()
     head_insn = head_first_insn(head_text, "__primary_switched")
-    gate_ps_original_insn(orig_word, head_insn)
+    gate_ps_original_insn(orig_word, orig_word2, head_insn)
     covered = list(struct.unpack_from(f"<{T2_PROBE_SIZE // 4}I", frozen, off_ps))
     inst_record(out, tools, covered, "p1b-t2-original-covered-insns-record")
-    print("T2_PRIMARY_SWITCHED_ORIGINAL_FIRST_INSN=adrp x4, init_task")
+    print(f"T2_PRIMARY_SWITCHED_ORIGINAL_INSN1={T2_ORIGINAL_FIRST_INSN}")
+    print(f"T2_PRIMARY_SWITCHED_ORIGINAL_INSN2={T2_ORIGINAL_SECOND_INSN}")
     print("T2_PRIMARY_SWITCHED_ORIGINAL_FIRST_BYTES="
           f"{struct.pack('<I', orig_word).hex()}")
+    print("T2_PRIMARY_SWITCHED_ORIGINAL_SECOND_BYTES="
+          f"{struct.pack('<I', orig_word2).hex()}")
     print("T2_PRIMARY_SWITCHED_ORIGINAL_INSN_SOURCES_AGREE=YES "
-          f"(head.S + frozen payload + vmlinux disassembly; "
-          f"{ps_n_insns} instructions recorded)")
+          f"(linkage.h SYM_FUNC_START_LOCAL + head.S + frozen payload + "
+          f"vmlinux disassembly; {ps_n_insns} instructions recorded)")
     print(f"T2_PRIMARY_SWITCHED_OVERWRITTEN_INSN_COUNT={T2_PROBE_SIZE // 4}")
     print("T2_PRIMARY_SWITCHED_OVERWRITTEN_INSN_WORDS="
           + ",".join(f"{w:#010x}" for w in covered))
+    print("T2_BTI_LANDING_PAD_PRESERVED=YES "
+          "(the original first instruction of __primary_switched is `bti c`, "
+          "unconditionally emitted by SYM_FUNC_START_LOCAL in "
+          "arch/arm64/include/asm/linkage.h lines 26-28; the T2 probe re-emits "
+          "it as its first instruction, so the entry stays a valid BTI "
+          "landing pad and only the 19 instructions after it are repurposed)")
 
     # --- inline safety scans (prompt sections 12/14) ---
     symbol_vas = sorted({int(l.split()[0], 16) for l in nm_out.splitlines()
@@ -1585,8 +1595,8 @@ def cmd_t2(args: argparse.Namespace) -> None:
         "cand": cand, "off_ps": off_ps, "sections": sections,
         "symbol_vas": symbol_vas, "reloc_offsets": reloc,
         "t1_probe": t1_probe, "ps_va": ps_va,
-        "primary_entry_va": text_addr + off_primary,
         "record_mmu_state_va": text_addr + off_record_mm_nm,
+        "orig_word2": orig_word2,
         "primary_entry_off": off_primary})
     (out / "p1b-t2-negative-fixtures.txt").write_text(
         "\n".join(neg_lines) + "\n")
