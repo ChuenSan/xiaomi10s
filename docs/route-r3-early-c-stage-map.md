@@ -316,21 +316,52 @@ from `__primary_switched`; device proof remains T2-local.
 ## 25. machine-readable map
 
 CI artifact `early-c-stage-map.json` (public, source-derived symbols/addresses
-only; no OEM private binary).
+only; no OEM private binary). Authoritative VAs are **this round's** GHA
+vmlinux, never historical constants used as gate inputs.
 
-Required fields per stage include `id`, `name`, `symbol`, `link_va`,
-`image_offset`, `file_offset`, `section`, `source`, `line`, `cmdline_state`,
-`panic_parsed`, `checkpoint_value`, `device_ready=false`.
+This-round identity (public run `34842580640`, commit `84383c1`):
 
-Addresses are filled only after this round's vmlinux build. Until then treat
-VAs in discussion as `CI_DERIVED`.
+| item | value |
+|---|---|
+| Linux | 6.6.156 `8b73de7da85fde281a385e0b26eda9bffd3ca477` MATCH |
+| patch queue SHA | `d470701d58d62bf10b96adb4dbf0c639945afccd45d4d3f039e8051e7aaaf1b5` |
+| vmlinux SHA | `443aef37be69657e07752f5faca9905cc69ff95eddb83008f85717ea58219dcc` |
+| Image SHA | `2499c0aa3e1f8730cc5189dc1491e2a15c8fe9611a306989e4294c6f936b4a1c` |
+| `_text` | `0xffff800080000000` |
+| `__primary_switched` | `0xffff800081b39534` `.init.text` AX |
+| `start_kernel` insn0 | `paciasp` `0xd503233f` (BTI_KERNEL=y, not an indirect target) |
+| stage count | 15 |
+| `device_ready` | false |
+
+| id | name | link_va | image_off | section | panic_parsed |
+|---|---|---|---|---|---|
+| C0 | start_kernel ADDRESS | `0xffff800081b303c0` | `0x1b303c0` | `.init.text` AX | no |
+| C1 | start_kernel body | `0xffff800081b303c4` | `0x1b303c4` | `.init.text` AX | no |
+| C2 | setup_arch ENTER | `0xffff800081b30420` | `0x1b30420` | `.init.text` AX | no |
+| C5 | parse_early_param COMPLETE | `0xffff800081b34118` | `0x1b34118` | `.init.text` AX | no |
+| C3 | setup_arch RETURN | `0xffff800081b30424` | `0x1b30424` | `.init.text` AX | no |
+| C4 | command line constructed | `0xffff800081b30430` | `0x1b30430` | `.init.text` AX | no |
+| C6 | parse_args("Booting kernel") COMPLETE | `0xffff800081b304a8` | `0x1b304a8` | `.init.text` AX | **yes** |
+| C7 | sched_init callsite | `0xffff800081b3050c` | `0x1b3050c` | `.init.text` AX | yes |
+| C_DELAY | calibrate_delay COMPLETE | `0xffff800081b30628` | `0x1b30628` | `.init.text` AX | yes |
+| C8 | arch_call_rest_init ENTER | `0xffff800081b3067c` | `0x1b3067c` | `.init.text` AX | yes |
+| C9 | rest_init ENTER | `0xffff8000810c1f48` | `0x10c1f48` | `.text` AX | yes |
+| C10 | kernel_init ENTER | `0xffff8000810c2030` | `0x10c2030` | `.text` AX | yes |
+| C11 | wait_for_initramfs | `0xffff8000800146c8` | `0x146c8` | `.text` AX | yes |
+| C12 | run_init_process("/init") callsite | `0xffff8000810c2098` | `0x10c2098` | `.text` AX | yes |
+| C13 | kernel_execve (not EL0 e_entry) | `0xffff8000802e92ac` | `0x2e92ac` | `.text` AX | yes |
+
+Execution order is C0→C1→C2→C5→C3→C4→C6→C7→C_DELAY→C8→C9→C10→C11→C12→C13,
+not C-id numeric order.
 
 ## 26. conclusion
 
-If CI prints `MAINLINE_V2_R3_EARLY_C_STAGE_MAP_COMPLETE`, the source chain
-`start_kernel` → `/init` is mapped, `parse_args` / `panic=` / `calibrate_delay`
-ordering is source-proven, negative fixtures and T3-independence pass, and
-Agent A files are untouched.
+CI printed `MAINLINE_V2_R3_EARLY_C_STAGE_MAP_COMPLETE`.
+
+Source chain `start_kernel` → `/init` is mapped. `parse_args` / `panic=` /
+`calibrate_delay` ordering is source-proven. Negative fixtures,
+T3-independence, and Agent A file isolation passed. No device image, no
+private packaging, no T4/T5 authorization.
 
 This result may be consumed after T3 regardless of T3 STRONG / FAIL /
 NO_RETURN. It must **not** independently authorize T4/T5 device execution.
