@@ -108,11 +108,24 @@ PSCI_SYSTEM_RESET_FID = 0x84000009
 T3_TARGET_SYMBOL = "start_kernel"
 T3_DELAY_S = 8
 T3_CORE_SIZE = 0x4C  # 76 bytes = 19 instructions: the T0/T1/T2-proven core
-T3_BTI_PAD = 0x4  # leading `bti c` landing pad kept from start_kernel
-T3_PROBE_SIZE = T3_CORE_SIZE + T3_BTI_PAD  # 80 bytes = 20 instructions
-T3_BTI_PAD_WORD = 0xD503245F  # `bti c`
-T3_ENTRY_WORD0 = T3_BTI_PAD_WORD
-T3_ORIGINAL_FIRST_INSN = "bti c"
+T3_PAD_SIZE = 0x4  # preserved original entry instruction
+T3_PROBE_SIZE = T3_CORE_SIZE + T3_PAD_SIZE  # 80 bytes = 20 instructions
+# Entry pad. The probe re-emits the ORIGINAL first instruction of start_kernel
+# verbatim, so the instruction at the checkpoint address is bit-for-bit the
+# original one. It is not necessarily a BTI landing pad: the measured entry of
+# start_kernel in this build is `paciasp` (0xD503233F), not `bti c`. Both
+# words are accepted as pads; the authoritative value is read from the frozen
+# payload and the probe must encode exactly that word.
+T3_ENTRY_PAD_CANDIDATES = {0xD503245F: "bti c", 0xD503233F: "paciasp"}
+T3_BTI_LANDING_REQUIRED = False
+T3_BTI_LANDING_REQUIRED_REASON = (
+    "the only arrival at start_kernel is the direct `bl start_kernel` inside "
+    "__primary_switched; BTI is not checked on direct branches, and LLVM's "
+    "AArch64BranchTargets pass omits the landing pad precisely because the "
+    "function address is never taken (the authoritative disassembly shows "
+    "`paciasp` at the entry, with no bti). A preserved BTI landing pad is "
+    "therefore NOT required here; what IS preserved is the original entry "
+    "instruction itself, verified word-for-word against the frozen payload")
 T2_PROBE_SHA = (
     "c78c55fb2fa94b6e16a33e59d7973acc715c212a02a88bad1ed954ecb1ce412a")
 T2_CHECKPOINT_OFFSET_HISTORY = 0x1b39534
@@ -514,28 +527,64 @@ def gate_vmlinux_frozen_agreement(w_va: int, off_w: int, dump: str,
     return word
 
 
-def gate_sk_entry_insn(word0: int, word1: int) -> None:
-    """The ORIGINAL first instruction of start_kernel is `bti c`, emitted by
-    the C compiler because CONFIG_ARM64_BTI_KERNEL selects
-    -mbranch-protection=pac-ret+bti for C code (arch/arm64/Makefile:66-67).
-    The probe re-emits it, so the BTI landing pad of the function survives."""
-    if word0 != T3_ENTRY_WORD0:
+def gate_window_bytes_agree(w_va: int, off_w: int, dump: str, frozen: bytes,
+                            n_words: int) -> list:
+    """Every word of the overwrite window must agree between the authoritative
+    rebuilt vmlinux disassembly and the frozen payload that is actually
+    patched: the audit reads one binary and the payload patch touches
+    another."""
+    insns = [INSTR_RE.match(l) for l in dump.splitlines() if INSTR_RE.match(l)]
+    if len(insns) < n_words:
+        fail("T3_IDENTITY_FAILED",
+             f"only {len(insns)} instructions disassembled in the window; "
+             f"{n_words} required")
+    words: list = []
+    for i, m in enumerate(insns[:n_words]):
+        addr = int(m.group(1), 16)
+        if addr != w_va + 4 * i:
+            fail("T3_IDENTITY_FAILED",
+                 f"window disassembly gap at {addr:#x}")
+        word = int(m.group(2), 16)
+        fz = struct.unpack_from("<I", frozen, off_w + 4 * i)[0]
+        if word != fz:
+            fail("T3_IDENTITY_FAILED",
+                 f"window word {i} ({addr:#x}) vmlinux {word:#010x} != frozen "
+                 f"payload {fz:#010x}: the overwrite would be applied to bytes "
+                 "that were never audited")
+        words.append(word)
+    return words
+
+
+def gate_sk_entry_insn(word0: int, word1: int, pad_word: int) -> str:
+    """The entry instruction of start_kernel is preserved verbatim: the probe's
+    first word must be exactly the frozen payload's original first word, and
+    that word must be one of the two known C-entry prologue hints (`bti c`
+    when the function is an indirect-branch target, `paciasp` when it is not).
+    The audit returns the pad mnemonic."""
+    pad = T3_ENTRY_PAD_CANDIDATES.get(pad_word)
+    if pad is None:
         fail("T3_ENTRY_INSTRUMENTATION_FAILED",
-             f"frozen first word {word0:#010x} is not `bti c` "
-             f"({T3_ENTRY_WORD0:#010x})")
+             f"start_kernel instruction 0 is {pad_word:#010x}, which is "
+             "neither `bti c` nor `paciasp`: the probe layout and the entry "
+             "reasoning were derived for one of those two prologues")
+    if word0 != pad_word:
+        fail("T3_ENTRY_INSTRUMENTATION_FAILED",
+             f"probe pad {word0:#010x} does not reproduce the original "
+             f"start_kernel first word {pad_word:#010x}")
     if word1 in (0, 0xFFFFFFFF):
         fail("T3_ENTRY_INSTRUMENTATION_FAILED",
              f"frozen second word {word1:#010x} is not an instruction")
+    return pad
 
 
-def gate_instrumentation_audit(cfg: dict, insn0: str) -> None:
+def gate_instrumentation_audit(cfg: dict, insn0: str, pad_word: int) -> None:
     """Prompt section 12: a C function entry is not a plain assembly symbol.
     The audit rejects any configuration under which the measured entry bytes
-    and the claimed BTI/PAC/CFI/fentry story would disagree."""
+    and the claimed instrumentation story would disagree."""
     if cfg.get("CONFIG_ARM64_BTI_KERNEL") != "y":
         fail("T3_ENTRY_INSTRUMENTATION_FAILED",
-             "CONFIG_ARM64_BTI_KERNEL is not y but the entry is claimed to "
-             "carry a BTI landing pad")
+             "CONFIG_ARM64_BTI_KERNEL is not y: the branch-protection flags "
+             "and the entry prologue reasoning would not apply")
     for sym in ("CONFIG_CFI_CLANG", "CONFIG_SHADOW_CALL_STACK",
                 "CONFIG_KCOV", "CONFIG_KASAN", "CONFIG_KASAN_GENERIC",
                 "CONFIG_KASAN_SW_TAGS", "CONFIG_KASAN_HW_TAGS",
@@ -546,9 +595,15 @@ def gate_instrumentation_audit(cfg: dict, insn0: str) -> None:
             fail("T3_ENTRY_INSTRUMENTATION_FAILED",
                  f"{sym}=y changes the C entry semantics; the T3 probe bytes "
                  "and the entry reasoning were derived with it disabled")
-    if insn0 != "bti":
+    if insn0 not in ("bti", "paciasp"):
         fail("T3_ENTRY_INSTRUMENTATION_FAILED",
-             f"start_kernel instruction 0 is {insn0!r}, not a BTI landing pad")
+             f"start_kernel instruction 0 is {insn0!r}, which is neither a "
+             "BTI landing pad nor the PAC prologue")
+    expected = T3_ENTRY_PAD_CANDIDATES[pad_word]
+    if insn0 != expected.split()[0]:
+        fail("T3_ENTRY_INSTRUMENTATION_FAILED",
+             f"disassembled entry {insn0!r} disagrees with the frozen entry "
+             f"word {pad_word:#010x} ({expected})")
 
 
 def gate_callsite_unique(hits: list, sk_va: int) -> tuple:
@@ -623,18 +678,21 @@ def gate_window_inside_image_size(off_w: int, window_len: int,
              f"image_size {image_size:#x} into the unmapped padding")
 
 
-def gate_diagnostic_core_identity(probe: bytes, t1_core: bytes) -> None:
+def gate_diagnostic_core_identity(probe: bytes, t1_core: bytes,
+                                  pad_word: int) -> None:
     """The T3 delay/reset core must be byte-identical to the T0/T1
-    true-device proven core. The only permitted difference anywhere is the
-    checkpoint ADDRESS."""
+    true-device proven core, and the pad must be the original entry
+    instruction. The only permitted difference anywhere is the checkpoint
+    ADDRESS."""
     if len(probe) != T3_PROBE_SIZE:
         fail("T3_CORE_IDENTITY_FAILED",
              f"probe size {len(probe)} != {T3_PROBE_SIZE}")
-    pad = probe[:T3_BTI_PAD]
-    if pad != struct.pack("<I", T3_BTI_PAD_WORD):
+    pad = probe[:T3_PAD_SIZE]
+    if pad != struct.pack("<I", pad_word):
         fail("T3_CORE_IDENTITY_FAILED",
-             f"probe does not start with `bti c`: {pad.hex()}")
-    core = probe[T3_BTI_PAD:]
+             f"probe pad {pad.hex()} != original start_kernel entry word "
+             f"{struct.pack('<I', pad_word).hex()}")
+    core = probe[T3_PAD_SIZE:]
     if core != t1_core:
         fail("T3_CORE_IDENTITY_FAILED",
              f"T3 core sha={sha(core)} != T1 core sha={sha(t1_core)}")
@@ -643,11 +701,16 @@ def gate_diagnostic_core_identity(probe: bytes, t1_core: bytes) -> None:
              f"core size {len(core)} != {T3_CORE_SIZE}")
 
 
-def gate_probe_identical_to_t2(probe: bytes, t2_probe: bytes) -> None:
-    if probe != t2_probe:
+def gate_core_slice_matches_t2(probe: bytes, t2_probe: bytes) -> None:
+    """The diagnostic CORE (everything after the preserved entry pad) must be
+    byte-identical to the T2 probe core assembled in the same run: the T3
+    change is the checkpoint ADDRESS plus the entry pad word, never the
+    proven delay/reset sequence."""
+    if probe[T3_PAD_SIZE:] != t2_probe[T3_PAD_SIZE:]:
         fail("T3_CORE_IDENTITY_FAILED",
-             f"T3 probe sha={sha(probe)} != T2 probe sha={sha(t2_probe)}: "
-             "the T3 change must be the checkpoint ADDRESS only")
+             f"T3 core sha={sha(probe[T3_PAD_SIZE:])} != T2 core sha="
+             f"{sha(t2_probe[T3_PAD_SIZE:])}: the T3 change must be the "
+             "checkpoint ADDRESS and the preserved entry pad only")
 
 
 def gate_no_relocations(rel_text: str, label: str) -> None:
@@ -1042,6 +1105,7 @@ def run_negative_fixtures(ctx: dict) -> list:
     reloc_offsets = ctx["reloc_offsets"]
     t1_probe = ctx["t1_probe"]
     t2_probe = ctx["t2_probe"]
+    pad_word = ctx["pad_word"]
     ops_lines = ops.splitlines()
     region = (off_sk, off_sk + probe_len)
 
@@ -1103,28 +1167,45 @@ def run_negative_fixtures(ctx: dict) -> list:
         "TRAMPOLINE_MODIFIED",
         lambda: gate_tramp_identity(bytes(bad_tramp)), "T3_IDENTITY_FAILED"))
     lines.append(expect_reject(
-        "BTI_REQUIREMENT_BROKEN",
-        lambda: gate_sk_entry_insn(0xD503201F, ctx["orig_word1"]),
+        "ENTRY_PAD_NOT_ORIGINAL",
+        lambda: gate_sk_entry_insn(0xD503245F, ctx["orig_word1"], pad_word),
+        "T3_ENTRY_INSTRUMENTATION_FAILED"))
+    lines.append(expect_reject(
+        "UNKNOWN_ENTRY_PROLOGUE",
+        lambda: gate_sk_entry_insn(0xD503201F, ctx["orig_word1"], pad_word),
+        "T3_ENTRY_INSTRUMENTATION_FAILED"))
+    lines.append(expect_reject(
+        "ENTRY_INSTRUMENTATION_UNKNOWN",
+        lambda: gate_instrumentation_audit(
+            ctx["cfg"], "dmb", pad_word),
         "T3_ENTRY_INSTRUMENTATION_FAILED"))
     lines.append(expect_reject(
         "BTI_CONFIG_BROKEN",
         lambda: gate_instrumentation_audit(
-            dict(ctx["cfg"], CONFIG_ARM64_BTI_KERNEL="n"), "bti"),
+            dict(ctx["cfg"], CONFIG_ARM64_BTI_KERNEL="n"),
+            ctx["entry_mnemonic"], pad_word),
         "T3_ENTRY_INSTRUMENTATION_FAILED"))
     lines.append(expect_reject(
         "FTRACE_INSTRUMENTED_ENTRY",
         lambda: gate_instrumentation_audit(
-            dict(ctx["cfg"], CONFIG_FUNCTION_TRACER="y"), "bti"),
+            dict(ctx["cfg"], CONFIG_FUNCTION_TRACER="y"),
+            ctx["entry_mnemonic"], pad_word),
         "T3_ENTRY_INSTRUMENTATION_FAILED"))
     lines.append(expect_reject(
         "CFI_INSTRUMENTED_ENTRY",
         lambda: gate_instrumentation_audit(
-            dict(ctx["cfg"], CONFIG_CFI_CLANG="y"), "bti"),
+            dict(ctx["cfg"], CONFIG_CFI_CLANG="y"),
+            ctx["entry_mnemonic"], pad_word),
         "T3_ENTRY_INSTRUMENTATION_FAILED"))
     lines.append(expect_reject(
-        "ENTRY_WITHOUT_BTI_LANDING",
-        lambda: gate_instrumentation_audit(ctx["cfg"], "stp"),
+        "ENTRY_DISASM_DISAGREES_WITH_WORD",
+        lambda: gate_instrumentation_audit(ctx["cfg"], "bti", pad_word),
         "T3_ENTRY_INSTRUMENTATION_FAILED"))
+    lines.append(expect_reject(
+        "WINDOW_BYTES_DISAGREE",
+        lambda: gate_window_bytes_agree(
+            sk_va, off_sk + 4, dump, frozen, 4),
+        "T3_IDENTITY_FAILED"))
     lines.append(expect_reject(
         "UNSAFE_INLINE_OVERWRITE",
         lambda: gate_window_symbol_scan(
@@ -1220,21 +1301,22 @@ def run_negative_fixtures(ctx: dict) -> list:
         lambda: gate_no_early_counter_trap("msr cntkctl_el1, x0"),
         "T3_TIMER_FAILED"))
     lines.append(expect_reject(
-        "NO_BTI_LANDING_PAD",
+        "NO_ORIGINAL_ENTRY_PAD",
         lambda: gate_diagnostic_core_identity(
-            b"\x1f\x20\x03\xd5" + t1_probe, t1_probe),
+            b"\x1f\x20\x03\xd5" + t1_probe, t1_probe, pad_word),
         "T3_CORE_IDENTITY_FAILED"))
     bad_core = bytearray(t1_probe)
     bad_core[3] ^= 0xFF
     lines.append(expect_reject(
         "DIAGNOSTIC_CORE_MISMATCH",
         lambda: gate_diagnostic_core_identity(
-            struct.pack("<I", T3_BTI_PAD_WORD) + bytes(bad_core), t1_probe),
+            struct.pack("<I", pad_word) + bytes(bad_core), t1_probe,
+            pad_word),
         "T3_CORE_IDENTITY_FAILED"))
     lines.append(expect_reject(
-        "PROBE_NOT_IDENTICAL_TO_T2",
-        lambda: gate_probe_identical_to_t2(
-            struct.pack("<I", T3_BTI_PAD_WORD) + bytes(bad_core), t2_probe),
+        "CORE_SLICE_NOT_IDENTICAL_TO_T2",
+        lambda: gate_core_slice_matches_t2(
+            struct.pack("<I", pad_word) + bytes(bad_core), t2_probe),
         "T3_CORE_IDENTITY_FAILED"))
     v17 = re.sub(r"x10, #(?:0x)?8\b", "x10, #24", ops)
     lines.append(expect_reject(
@@ -1895,17 +1977,20 @@ def cmd_t3(args: argparse.Namespace) -> None:
         fail("T3_IDENTITY_FAILED",
              f"only {sk_n_insns} instructions disassembled at start_kernel; "
              "at least 32 are required")
+    window_words = gate_window_bytes_agree(sk_va, off_sk, dump_sk, frozen,
+                                           T3_PROBE_SIZE // 4)
     orig_word = gate_vmlinux_frozen_agreement(sk_va, off_sk, dump_sk, frozen)
     orig_word1 = struct.unpack_from("<I", frozen, off_sk + 4)[0]
-    gate_sk_entry_insn(orig_word, orig_word1)
     sk0 = INSTR_RE.match(sk_lines[0])
+    entry_mnemonic = gate_sk_entry_insn(orig_word, orig_word1, orig_word)
+    pad_word = orig_word
     covered = list(struct.unpack_from(f"<{T3_PROBE_SIZE // 4}I", frozen,
                                       off_sk))
     covered_dump = inst_record(out, tools, covered,
                                "p1b-t3-original-covered-insns-record")
     covered_ops = [l.split(":", 1)[-1].strip()
                    for l in covered_dump.splitlines() if INSTR_RE.match(l)]
-    print(f"T3_START_KERNEL_ORIGINAL_INSN0={T3_ORIGINAL_FIRST_INSN}")
+    print(f"T3_START_KERNEL_ENTRY_INSTRUCTION0={entry_mnemonic}")
     print("T3_START_KERNEL_ORIGINAL_BYTES0="
           f"{struct.pack('<I', orig_word).hex()}")
     print(f"T3_START_KERNEL_ORIGINAL_INSN1={sk0.group(3)} "
@@ -1913,16 +1998,24 @@ def cmd_t3(args: argparse.Namespace) -> None:
     print("T3_START_KERNEL_ORIGINAL_BYTES1="
           f"{struct.pack('<I', orig_word1).hex()}")
     print("T3_START_KERNEL_ENTRY_AUDITED=YES "
-          f"(bti c landing pad + {sk_n_insns} instructions recorded)")
+          f"(original entry instruction {entry_mnemonic!r} preserved + "
+          f"{sk_n_insns} instructions recorded + all "
+          f"{T3_PROBE_SIZE // 4} window words agreed between the rebuilt "
+          "vmlinux and the frozen payload)")
     print(f"T3_START_KERNEL_OVERWRITTEN_INSN_COUNT={T3_PROBE_SIZE // 4}")
     print("T3_START_KERNEL_OVERWRITTEN_INSN_WORDS="
           + ",".join(f"{w:#010x}" for w in covered))
     print("T3_WINDOW_ORIGINAL_CODE_DISASM=" + " | ".join(covered_ops))
-    print("T3_BTI_LANDING_PAD_PRESERVED=YES "
-          "(the original first instruction of start_kernel is `bti c`, "
-          "emitted by clang because CONFIG_ARM64_BTI_KERNEL selects "
-          "-mbranch-protection=pac-ret+bti; the T3 probe re-emits it, so the "
-          "entry stays a valid BTI landing pad)")
+    print("T3_ENTRY_PAD_PRESERVED=YES "
+          f"(the probe's first instruction is the original start_kernel "
+          f"instruction {entry_mnemonic!r} "
+          f"({struct.pack('<I', orig_word).hex()}), so the entry address "
+          "carries the same instruction as the unmodified function)")
+    print(f"T3_BTI_LANDING_REQUIRED=NO ({T3_BTI_LANDING_REQUIRED_REASON})")
+    prologue_class = ("BTI_LANDING_PAD" if entry_mnemonic == "bti"
+                      else "PAC_RET_PROLOGUE_NO_BTI_LANDING_PAD")
+    print(f"T3_START_KERNEL_ENTRY_PROLOGUE_CLASS={prologue_class}")
+    del window_words
 
     # --- __primary_switched -> start_kernel control-flow chain ---
     head_text = (LINUX / "arch" / "arm64" / "kernel" / "head.S").read_text()
@@ -2070,12 +2163,12 @@ def cmd_t3(args: argparse.Namespace) -> None:
         out, tools, T1_DEVICE_S, T1_DEVICE_LD, "P1B_T1_DELAY", 8,
         "r3_t1_checkpoint", "p1b-t1-core-reference")
     gate_t3_probe(ops, dump, len(t3_probe))
-    gate_diagnostic_core_identity(t3_probe, t1_probe)
-    gate_probe_identical_to_t2(t3_probe, t2_probe)
+    gate_diagnostic_core_identity(t3_probe, t1_probe, pad_word)
+    gate_core_slice_matches_t2(t3_probe, t2_probe)
     plen = len(t3_probe)
     if len(t2_probe) != T3_PROBE_SIZE:
         fail("T3_BUILD_FAILED", f"T2 reference probe size {len(t2_probe)}")
-    gate_instrumentation_audit(cfg, INSTR_RE.match(sk_lines[0]).group(3))
+    gate_instrumentation_audit(cfg, entry_mnemonic, pad_word)
     for sym in ("CONFIG_ARM64_BTI_KERNEL", "CONFIG_ARM64_PTR_AUTH_KERNEL",
                 "CONFIG_CFI_CLANG", "CONFIG_SHADOW_CALL_STACK",
                 "CONFIG_FUNCTION_TRACER", "CONFIG_DYNAMIC_FTRACE",
@@ -2088,18 +2181,23 @@ def cmd_t3(args: argparse.Namespace) -> None:
                 "CONFIG_HAVE_ARCH_JUMP_LABEL_RELATIVE"):
         print(f"T3_ENTRY_CFG_{sym}={cfg.get(sym, 'ABSENT')}")
     print("T3_START_KERNEL_ENTRY_INSTRUMENTATION_AUDITED=YES "
-          "(BTI enabled -> `bti c` landing pad; CFI/SHADOW_CALL_STACK/KASAN/"
-          "KCOV/FUNCTION_TRACER/DYNAMIC_FTRACE all disabled; start_kernel is "
+          "(BTI enabled at the compiler level but the entry is entered by a "
+          "direct bl only and the function address is not taken, so the "
+          "measured instruction 0 is the PAC prologue and no BTI landing pad "
+          "exists or is required; CFI/SHADOW_CALL_STACK/KASAN/KCOV/"
+          "FUNCTION_TRACER/DYNAMIC_FTRACE are all disabled; start_kernel is "
           "__no_stack_protector/__no_sanitize_address, so the entry carries "
-          "no canary and no fentry NOP; the measured instruction 0 is a BTI "
-          "landing pad, and the T3 probe keeps it)")
+          "no canary and no fentry NOP; measured instruction 0 and the frozen "
+          "entry word agree, and the T3 probe preserves that exact word)")
     print(f"T3_CHECKPOINT sha256={sha(t3_probe)} size={plen} "
-          f"core={sha(t3_probe[T3_BTI_PAD:])}")
+          f"core={sha(t3_probe[T3_PAD_SIZE:])} pad={entry_mnemonic}")
     print("T3_DIAGNOSTIC_CORE_MATCHES_T1=YES "
           f"(probe[4:80] byte-identical to the p1b-t1-device.S core, sha "
           f"{sha(t1_probe)})")
-    print("T3_DIAGNOSTIC_CORE_MATCHES_T2=YES "
-          "(probe byte-identical to the T2 probe assembled in this same run)")
+    print("T3_DIAGNOSTIC_CORE_SLICE_MATCHES_T2=YES "
+          "(probe[4:80] byte-identical to the T2 probe core assembled in this "
+          "same run: the T3 change is the checkpoint ADDRESS and the "
+          "preserved entry pad word only)")
     print("T3_PROBE_ARCHITECTURE=INLINE")
     print("T3_PROBE_MAPPING_SOURCE=KERNEL_TEXT_VA_SELF_EVIDENT")
     print("T3_INLINE_MAPPING_EXECUTABLE=YES")
@@ -2184,6 +2282,7 @@ def cmd_t3(args: argparse.Namespace) -> None:
         "sections": sections, "symbol_vas": symbol_vas,
         "reloc_offsets": reloc, "t1_probe": t1_probe, "t2_probe": t2_probe,
         "sk_va": sk_va, "cfg": cfg, "image_size": image_size,
+        "pad_word": pad_word, "entry_mnemonic": entry_mnemonic,
         "orig_word1": orig_word1, "primary_entry_off": off_primary})
     (out / "p1b-t3-negative-fixtures.txt").write_text(
         "\n".join(neg_lines) + "\n")
@@ -2212,8 +2311,10 @@ def cmd_t3(args: argparse.Namespace) -> None:
         f"{struct.pack('<I', callsite_word).hex()}\n"
         "T3_PRE_START_KERNEL_CONTROL_FLOW_AUDITED=YES\n"
         "T3_START_KERNEL_ENTRY_INSTRUMENTATION_AUDITED=YES\n"
-        "T3_START_KERNEL_ORIGINAL_INSN0=bti c\n"
-        "T3_BTI_LANDING_PAD_PRESERVED=YES\n"
+        f"T3_START_KERNEL_ENTRY_INSTRUCTION0={entry_mnemonic}\n"
+        "T3_ENTRY_PAD_PRESERVED=YES\n"
+        f"T3_START_KERNEL_ENTRY_PROLOGUE_CLASS={prologue_class}\n"
+        "T3_BTI_LANDING_REQUIRED=NO\n"
         "T3_PRE_CHECKPOINT_RUNTIME_REWRITE=NONE\n"
         f"T3_PROBE_ARCHITECTURE=INLINE start={sk_va:#x} "
         f"end={sk_va + plen:#x}\n"
@@ -2234,8 +2335,7 @@ def cmd_t3(args: argparse.Namespace) -> None:
         "T3_POSITION_INDEPENDENT=YES T3_RUNTIME_RELOCATIONS=0\n"
         f"T3_RUNTIME_SEMANTIC_DELTA={T3_RUNTIME_SEMANTIC_DELTA}\n"
         "T3_DIAGNOSTIC_CORE_MATCHES_T1=YES\n"
-        "T3_DIAGNOSTIC_CORE_MATCHES_T2=YES\n"
-        "T3_PROBE_IDENTICAL_TO_T2_PROBE=YES\n"
+        "T3_DIAGNOSTIC_CORE_SLICE_MATCHES_T2=YES\n"
         "T2_PROBE_REMOVED_FROM_T3=YES\n"
         "PRIMARY_SWITCHED_IDENTICAL_TO_FIX8=YES\n"
         f"T3_TRAMPOLINE_IDENTICAL=YES sha={TRAMP_SHA}\n"
@@ -2290,7 +2390,7 @@ def cmd_t3(args: argparse.Namespace) -> None:
         "start_kernel_section_va": hex(sec["vma"]),
         "start_kernel_size_if_known": hex(sk_extent - sk_va),
         "start_kernel_rederived": True,
-        "start_kernel_original_first_insn": T3_ORIGINAL_FIRST_INSN,
+        "start_kernel_original_first_insn": entry_mnemonic,
         "start_kernel_original_first_bytes": struct.pack("<I", orig_word).hex(),
         "start_kernel_original_second_insn":
             f"{sk0.group(3)} {sk0.group(4).strip()}".strip(),
@@ -2317,7 +2417,12 @@ def cmd_t3(args: argparse.Namespace) -> None:
             "kcov": cfg.get("CONFIG_KCOV", "ABSENT"),
             "alt_static_call_in_window": "NONE",
         },
-        "t3_bti_landing_pad_preserved": True,
+        "t3_entry_pad_preserved": True,
+        "t3_entry_pad_word": hex(pad_word),
+        "t3_entry_pad_mnemonic": entry_mnemonic,
+        "t3_entry_prologue_class": prologue_class,
+        "t3_bti_landing_required": False,
+        "t3_pad_size": T3_PAD_SIZE,
         "t3_core_size": T3_CORE_SIZE,
         "start_kernel_recorded_insn_count": sk_n_insns,
         "start_kernel_overwritten_insn_count": T3_PROBE_SIZE // 4,
@@ -2355,8 +2460,7 @@ def cmd_t3(args: argparse.Namespace) -> None:
         "t3_checkpoint_sha256": sha(t3_probe),
         "t3_checkpoint_size": plen,
         "t3_diagnostic_core_matches_t1": True,
-        "t3_diagnostic_core_matches_t2": True,
-        "t3_probe_identical_to_t2_probe": True,
+        "t3_diagnostic_core_slice_matches_t2": True,
         "t3_t1_core_sha256": sha(t1_probe),
         "t2_probe_sha256": sha(t2_probe),
         "t2_probe_removed_from_t3": True,
@@ -2422,8 +2526,12 @@ def cmd_t3(args: argparse.Namespace) -> None:
         "T3_START_KERNEL_REDERIVED=YES",
         "T3_PRIMARY_SWITCHED_REDERIVED=YES",
         "T3_PRIMARY_ENTRY_OFFSET_REDERIVED=YES",
-        "T3_START_KERNEL_ORIGINAL_INSN0=bti c",
-        "T3_BTI_LANDING_PAD_PRESERVED=YES",
+        "T3_START_KERNEL_ORIGINAL_INSN_0_MEASURED="
+        f"{entry_mnemonic}",
+        "T3_ENTRY_PAD_PRESERVED=YES",
+        f"T3_START_KERNEL_ENTRY_INSTRUCTION0={entry_mnemonic}",
+        f"T3_START_KERNEL_ENTRY_PROLOGUE_CLASS={prologue_class}",
+        "T3_BTI_LANDING_REQUIRED=NO",
         "T3_START_KERNEL_ENTRY_AUDITED=YES",
         "T3_START_KERNEL_CALLSITE_FOUND=YES",
         "T3_START_KERNEL_CALLSITE_INSTRUCTION=BL",
@@ -2474,8 +2582,7 @@ def cmd_t3(args: argparse.Namespace) -> None:
         "T3_NO_MEMORY_READS=YES",
         "T3_NO_MEMORY_WRITES=YES",
         "T3_DIAGNOSTIC_CORE_MATCHES_T1=YES",
-        "T3_DIAGNOSTIC_CORE_MATCHES_T2=YES",
-        "T3_PROBE_IDENTICAL_TO_T2_PROBE=YES",
+        "T3_DIAGNOSTIC_CORE_SLICE_MATCHES_T2=YES",
         "T3_POSITION_INDEPENDENT=YES",
         "T3_RUNTIME_RELOCATIONS=0",
         f"T3_RUNTIME_SEMANTIC_DELTA={T3_RUNTIME_SEMANTIC_DELTA}",
@@ -2657,7 +2764,7 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
                   "mrs\tx11, cntpct_el0", "mrs\tx12, cntpct_el0", "yield",
                   "smc\t#0", "wfe", "P1B_T3_DELAY",
                   "#if (P1B_T3_DELAY) != 8", "r3_t3_checkpoint",
-                  "bti\tc"):
+                  "paciasp", ".inst\t0xd503233f"):
         need(dev, token)
     for token in ("P1B_DTB_REL", "dtb_rel", "adr\t", "ldr\t", "stp\tx29",
                   "mov\tx1, xzr", "eret", "sctlr", "msr\tttbr", "b\tprimary",
@@ -2703,8 +2810,9 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
                   "T3_CNTPCT_ACCESS_SAFE", "T3_PSCI_SYSTEM_RESET_SAFE",
                   "T3_FAIL_CLOSED", "T3_STACK_USAGE=NO",
                   "T3_RUNTIME_RELOCATIONS=0",
-                  "T3_START_KERNEL_ORIGINAL_INSN0=bti c",
-                  "T3_BTI_LANDING_PAD_PRESERVED",
+                  "T3_START_KERNEL_ENTRY_INSTRUCTION0=paciasp",
+                  "T3_BTI_LANDING_REQUIRED=NO",
+                  "T3_ENTRY_PAD_PRESERVED",
                   "T3_START_KERNEL_CALLSITE_FOUND=YES",
                   "T3_START_KERNEL_CALL_TARGET_EXACT=YES",
                   "T3_PRE_START_KERNEL_CONTROL_FLOW_AUDITED=YES",
@@ -2712,7 +2820,7 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
                   "T3_PRE_CHECKPOINT_RUNTIME_REWRITE=NONE",
                   "T3_WINDOW_INSIDE_IMAGE_SIZE=YES",
                   "T3_DIAGNOSTIC_CORE_MATCHES_T1",
-                  "T3_DIAGNOSTIC_CORE_MATCHES_T2",
+                  "T3_DIAGNOSTIC_CORE_SLICE_MATCHES_T2",
                   "T2_PROBE_REMOVED_FROM_T3",
                   "PRIMARY_SWITCHED_IDENTICAL_TO_FIX8",
                   "START_KERNEL_ADDRESS_CHECKPOINT_ONLY",

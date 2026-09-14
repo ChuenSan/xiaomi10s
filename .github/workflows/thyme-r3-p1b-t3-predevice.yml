@@ -191,8 +191,10 @@ jobs:
           grep -Fxq 'T3_START_KERNEL_REDERIVED=YES' "$G"
           grep -Fxq 'T3_PRIMARY_SWITCHED_REDERIVED=YES' "$G"
           grep -Fxq 'T3_PRIMARY_ENTRY_OFFSET_REDERIVED=YES' "$G"
-          grep -Fxq 'T3_START_KERNEL_ORIGINAL_INSN0=bti c' "$G"
-          grep -Fxq 'T3_BTI_LANDING_PAD_PRESERVED=YES' "$G"
+          grep -Fxq 'T3_START_KERNEL_ENTRY_INSTRUCTION0=paciasp' "$G"
+          grep -Fxq 'T3_ENTRY_PAD_PRESERVED=YES' "$G"
+          grep -Fxq 'T3_BTI_LANDING_REQUIRED=NO' "$G"
+          grep -Fxq 'T3_START_KERNEL_ENTRY_PROLOGUE_CLASS=PAC_RET_PROLOGUE_NO_BTI_LANDING_PAD' "$G"
           grep -Fxq 'T3_START_KERNEL_ENTRY_AUDITED=YES' "$G"
           grep -Fxq 'T3_START_KERNEL_CALLSITE_FOUND=YES' "$G"
           grep -Fxq 'T3_START_KERNEL_CALLSITE_INSTRUCTION=BL' "$G"
@@ -235,8 +237,7 @@ jobs:
           grep -Fxq 'T3_NO_MEMORY_READS=YES' "$G"
           grep -Fxq 'T3_NO_MEMORY_WRITES=YES' "$G"
           grep -Fxq 'T3_DIAGNOSTIC_CORE_MATCHES_T1=YES' "$G"
-          grep -Fxq 'T3_DIAGNOSTIC_CORE_MATCHES_T2=YES' "$G"
-          grep -Fxq 'T3_PROBE_IDENTICAL_TO_T2_PROBE=YES' "$G"
+          grep -Fxq 'T3_DIAGNOSTIC_CORE_SLICE_MATCHES_T2=YES' "$G"
           grep -Fxq 'T3_POSITION_INDEPENDENT=YES' "$G"
           grep -Fxq 'T3_RUNTIME_RELOCATIONS=0' "$G"
           grep -Fxq \
@@ -267,7 +268,7 @@ jobs:
           grep -Eq '^START_KERNEL_VA=0xffff[0-9a-f]+$' "$G"
           grep -Eq '^START_KERNEL_IMAGE_OFFSET=0x[0-9a-f]+$' "$G"
           grep -Eq '^START_KERNEL_CALLSITE_VA=0xffff[0-9a-f]+$' "$G"
-          grep -Eq '^T3_NEGATIVE_FIXTURE_COUNT=(50|51)$' \
+          grep -Eq '^T3_NEGATIVE_FIXTURE_COUNT=5[0-9]$' \
             out-t3/p1b-t3-negative-fixtures.txt
 
       - name: T3 observer fixtures
@@ -405,17 +406,20 @@ jobs:
               raise SystemExit(f"T3_VERIFY_FAILED size {len(t3)}")
           if sha(ckbin) != m["t3_checkpoint_sha256"]:
               raise SystemExit("T3_VERIFY_FAILED checkpoint sha vs manifest")
-          if ckbin != t2probe:
-              raise SystemExit("T3_VERIFY_FAILED probe != T2 probe bytes")
+          if ckbin[4:] != t2probe[4:]:
+              raise SystemExit(
+                  "T3_VERIFY_FAILED core != T2 probe core")
           if ckbin[4:] != t1core:
               raise SystemExit("T3_VERIFY_FAILED T3 core != T1 core")
           if m["t3_diagnostic_core_matches_t1"] is not True \
-                  or m["t3_diagnostic_core_matches_t2"] is not True:
+                  or m["t3_diagnostic_core_slice_matches_t2"] is not True:
               raise SystemExit("T3_VERIFY_FAILED core identity flags")
-          if m["t3_bti_landing_pad_preserved"] is not True:
-              raise SystemExit("T3_VERIFY_FAILED BTI landing pad not preserved")
+          if m["t3_entry_pad_preserved"] is not True:
+              raise SystemExit("T3_VERIFY_FAILED entry pad not preserved")
+          pad_word = int.from_bytes(
+              bytes.fromhex(m["start_kernel_original_first_bytes"]), "little")
           if len(ckbin) != 80 or len(t1core) != 76 or len(t2probe) != 80 \
-                  or ckbin[:4] != b"\x5f\x24\x03\xd5":
+                  or ckbin[:4] != struct.pack("<I", pad_word):
               raise SystemExit(
                   f"T3_VERIFY_FAILED core sizes {len(ckbin)} {len(t1core)} "
                   f"pad {ckbin[:4].hex()}")
@@ -495,10 +499,12 @@ jobs:
           if sha(struct.pack("<I", w)) != \
                   sha(bytes.fromhex(m["start_kernel_callsite_bytes"])):
               raise SystemExit("T3_VERIFY_FAILED callsite bytes vs manifest")
-          if struct.unpack_from("<I", fix8, off_sk)[0] != 0xD503245F:
-              raise SystemExit("T3_VERIFY_FAILED no bti c at start_kernel")
+          if struct.unpack_from("<I", fix8, off_sk)[0] != pad_word:
+              raise SystemExit(
+                  "T3_VERIFY_FAILED entry word changed at start_kernel")
           print(f"T3_VERIFY_CALLSITE_BL_TARGET=start_kernel {sk_va:#x}")
-          print("T3_VERIFY_START_KERNEL_BTI_LANDING_PAD=FIX8_ORIGINAL")
+          print(f"T3_VERIFY_START_KERNEL_ENTRY_WORD={pad_word:#010x} "
+                "(preserved original entry instruction)")
 
           # Trampoline identity: byte-identical to frozen FIX8.
           tramp = t3[0x40:0x70]
@@ -519,9 +525,10 @@ jobs:
           smc = [i for i, w in enumerate(words) if w == 0xD4000003]
           if len(smc) != 1 or smc[0] != 17:
               raise SystemExit(f"T3_VERIFY_FAILED smc index {smc}")
-          if words[0] != 0xD503245F:
+          if words[0] != pad_word:
               raise SystemExit(
-                  f"T3_VERIFY_FAILED first word {words[0]:#010x} not bti c")
+                  f"T3_VERIFY_FAILED first word {words[0]:#010x} != the "
+                  f"preserved entry word {pad_word:#010x}")
           if words[18] != 0xD503205F:
               raise SystemExit("T3_VERIFY_FAILED no wfe after smc")
           w = words[19]

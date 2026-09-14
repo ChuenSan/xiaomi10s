@@ -184,33 +184,58 @@ automatically as simple as an assembly symbol. The round therefore reads the
 `CONFIG_JUMP_LABEL`, `CONFIG_RELOCATABLE`, `CONFIG_RANDOMIZE_BASE`,
 `CONFIG_HAVE_ARCH_JUMP_LABEL_RELATIVE`.
 
-`T3_ENTRY_INSTRUMENTATION_BTI=ENABLED` (the C compiler emits a `bti c`
-landing pad because `CONFIG_ARM64_BTI_KERNEL` selects
-`-mbranch-protection=pac-ret+bti`, `arch/arm64/Makefile:66-67`),
-`T3_ENTRY_INSTRUMENTATION_CFI=DISABLED`, `_FTRACE=DISABLED`,
-`_SHADOW_CALL_STACK=DISABLED`, `_KASAN=DISABLED`, `_KCOV=DISABLED`,
-`_STACK_PROTECTOR=NOT_AT_ENTRY` (`__no_stack_protector`, and no
-`-fpatchable-function-entry` is emitted while `CONFIG_FUNCTION_TRACER=n`).
-Any configuration that would put `__fentry__`/`mcount`/CFI/SCS/KASAN/KCOV
-bytes at the entry is a hard failure of `gate_instrumentation_audit`, so the
-probe bytes can never be derived under one instrumentation model and
-validated under another.
+`T3_ENTRY_INSTRUMENTATION_BTI=ENABLED` at the compiler-flag level
+(`CONFIG_ARM64_BTI_KERNEL` selects `-mbranch-protection=pac-ret+bti`,
+`arch/arm64/Makefile:66-67`), but the **measured** entry of `start_kernel`
+carries no BTI landing pad: `T3_START_KERNEL_ENTRY_INSTRUCTION0=paciasp`
+(`0xd503233f`), the PAC-return prologue. This is expected and auditable:
+LLVM omits the BTI landing pad for a function whose address is never taken,
+and `start_kernel` is reached only by the direct `bl start_kernel` inside
+`__primary_switched` (a direct branch is never BTI-checked), which the
+callsite gate of §5 proves. Therefore `T3_BTI_LANDING_REQUIRED=NO`,
+`T3_START_KERNEL_ENTRY_PROLOGUE_CLASS=PAC_RET_PROLOGUE_NO_BTI_LANDING_PAD`,
+and `T3_ENTRY_PAD_PRESERVED=YES`: the probe re-emits the original entry
+instruction verbatim, so the instruction at the checkpoint address is
+bit-for-bit the original one. `T3_ENTRY_INSTRUMENTATION_CFI=DISABLED`,
+`_FTRACE=DISABLED`, `_SHADOW_CALL_STACK=DISABLED`, `_KASAN=DISABLED`,
+`_KCOV=DISABLED`, `_STACK_PROTECTOR=NOT_AT_ENTRY`
+(`__no_stack_protector`, and no `-fpatchable-function-entry` is emitted while
+`CONFIG_FUNCTION_TRACER=n`, so there is no fentry NOP either). Any
+configuration that would put `__fentry__`/`mcount`/CFI/SCS/KASAN/KCOV bytes
+at the entry is a hard failure of `gate_instrumentation_audit`, and so is any
+entry word that is neither `bti c` nor `paciasp`, or any disagreement between
+the disassembled entry and the frozen entry word.
 
-## 9. BTI / PAC / CFI audit
+## 9. Entry pad: PAC / BTI / CFI audit
 
-- BTI: `T3_BTI_LANDING_PAD_PRESERVED=YES`. `T3_START_KERNEL_ORIGINAL_INSN0=bti c`,
-  `T3_START_KERNEL_ORIGINAL_BYTES0=5f2403d5`. The probe re-emits `bti c` as
-  its own first instruction, so the function's landing pad property survives
-  even though the arrival is a direct `bl`. A missing landing pad is rejected
-  (`ENTRY_WITHOUT_BTI_LANDING`, `BTI_REQUIREMENT_BROKEN`).
-- PAC: `pac-ret` is enabled for the C translation unit, so `paciasp` may
-  appear after the frame setup. It is *inside* the overwritten window and
-  therefore never executed; it is reported, not gated, and it cannot change
-  the entry bytes. `__no_stack_protector` means no canary load at the entry.
+- Measured entry: `T3_START_KERNEL_ENTRY_INSTRUCTION0=paciasp`,
+  `T3_START_KERNEL_ORIGINAL_BYTES0=3f2303d5`. The T3 probe re-emits exactly
+  this word as its first instruction (`T3_ENTRY_PAD_PRESERVED=YES`), so the
+  instruction at the `start_kernel` entry address is unchanged; the 76-byte
+  diagnostic core then occupies the remaining 19 instruction slots.
+- `T3_BTI_LANDING_REQUIRED=NO`: the arrival is the single direct
+  `bl start_kernel` (BTI is not checked on direct branches) and the compiler
+  itself omitted the landing pad because the function address is not taken.
+  A wrongly assumed `bti c` pad was in fact **rejected by the first CI run**
+  of this round (`T3_ENTRY_INSTRUMENTATION_FAILED: frozen first word
+  0xd503233f is not bti c`) — the gate did its job, and the pad is now
+  derived from the authoritative binary instead of assumed. The negative
+  fixtures keep rejecting an entry word that is neither `bti c` nor
+  `paciasp`, a pad that disagrees with the frozen original, and a pad that
+  disagrees with the disassembly.
+- PAC: `paciasp` signs x30 with SP as an architectural register and performs
+  no memory access, so it is consistent with `T3_STACK_USAGE=NO` (no loads,
+  no stores). It is preserved verbatim and never matters afterwards because
+  the probe never returns. `__no_stack_protector` means no canary load at the
+  entry.
 - CFI: `CONFIG_CFI_CLANG` is unset, so there is no `__cfi_start_kernel`
   prefix landing pad and no kCFI hash check on a direct `bl`.
 - `.kcfi_traps` is still scanned as a future guard
   (`T3_KCFI_TRAPS_SCAN=PASS`).
+- `T3_DIAGNOSTIC_CORE_SLICE_MATCHES_T2=YES`: the 76-byte core is
+  byte-identical to the T2 probe core assembled in the same CI run; the
+  difference from the T2 probe is exactly the preserved entry word plus the
+  checkpoint address.
 
 ## 10. Inline / external decision
 
@@ -356,7 +381,7 @@ future positive be upgraded to
 the frozen FIX8 payload is one contiguous region:
 `T3_DIFF_RANGES=[START_KERNEL_IMAGE_OFFSET, +80)`,
 `T3_DIFF_BYTE_COUNT` (76 expected: the window is 80 bytes and its first word
-`bti c` is unchanged), `T3_PAYLOAD_SIZE_IDENTICAL=YES` (37369041) and
+— the preserved original entry instruction `paciasp` — is unchanged), `T3_PAYLOAD_SIZE_IDENTICAL=YES` (37369041) and
 `T3_BOOT_SIZE_IDENTICAL=YES` (37380096). `T3_RUNTIME_SEMANTIC_DELTA=START_KERNEL_ADDRESS_CHECKPOINT_ONLY`.
 
 ## 20. RT-D / init / initramfs identity
@@ -473,6 +498,23 @@ choice is a **design note only** in this round: T4 is not device-ready and
 
 ## Round results (filled from the CI run)
 
+Design iteration record: the first CI run (public run `34829584767`, commit
+`2d11968`) passed the source gate on its first attempt and then failed
+**by design** at the entry-instrumentation gate with
+`T3_ENTRY_INSTRUMENTATION_FAILED: frozen first word 0xd503233f is not bti c`
+— the assumption that the C entry carries a `bti c` landing pad was wrong for
+this binary, and the fail-closed gate caught it before any payload was
+emitted. The same run already re-derived and printed, from its own rebuilt
+vmlinux: `START_KERNEL_VA=0xffff800081b303c0`,
+`START_KERNEL_IMAGE_OFFSET=0x1b303c0`, `START_KERNEL_SECTION=.init.text`
+(flags `AX`), `START_KERNEL_SIZE_IF_KNOWN=0x388`,
+`START_KERNEL_NEXT_SYMBOL_VA=0xffff800081b30748`,
+`__primary_switched=0x1b39534` (reproducing the frozen history exactly),
+`primary_entry=0x1b1c0a0`, and the entry word `3f2303d5` = `paciasp`. The
+corrected candidate (this document) preserves that word as the probe's first
+instruction and keeps the 76-byte proven core unchanged; everything else in
+the audit design is untouched.
+
 - Public run / commit: `T3_PUBLIC_RUN`, `T3_PUBLIC_COMMIT`.
 - `T3_BUILD_GATES=PASS`, `T3_NEGATIVE_FIXTURES=PASS`,
   `T3_DECODER_FIXTURES=PASS`, `T3_STATUS_GATE_STRUCTURED=YES`.
@@ -490,11 +532,12 @@ choice is a **design note only** in this round: T4 is not device-ready and
   `PRIMARY_SWITCHED_IDENTICAL_TO_FIX8=YES`,
   `T3_PAYLOAD_DIFF_ATTRIBUTED=START_KERNEL_CHECKPOINT_ONLY`,
   `T3_DIFF_BYTE_COUNT`, `T3_DIFF_RANGES`.
-- `T3_START_KERNEL_REDERIVED=YES`,
+-   `T3_START_KERNEL_REDERIVED=YES`,
   `T3_START_KERNEL_CALLSITE_FOUND=YES`,
   `T3_START_KERNEL_CALL_TARGET_EXACT=YES`,
-  `T3_START_KERNEL_ORIGINAL_INSN0=bti c`,
-  `T3_BTI_LANDING_PAD_PRESERVED=YES`,
+  `T3_START_KERNEL_ENTRY_INSTRUCTION0=paciasp`,
+  `T3_ENTRY_PAD_PRESERVED=YES`,
+  `T3_BTI_LANDING_REQUIRED=NO`,
   `T3_PRE_START_KERNEL_CONTROL_FLOW_AUDITED=YES`,
   `T3_START_KERNEL_ENTRY_INSTRUMENTATION_AUDITED=YES`,
   `T3_PRE_CHECKPOINT_RUNTIME_REWRITE=NONE`,

@@ -17,13 +17,20 @@
  *            -> "bl start_kernel"
  *            -> *** the first instruction of start_kernel is THIS probe ***
  *
- * The original first instruction of start_kernel is `bti c`, emitted by the
- * C compiler under CONFIG_ARM64_BTI_KERNEL (-mbranch-protection=pac-ret+bti,
- * arch/arm64/Makefile). The probe re-emits `bti c` first, so the function's
- * BTI landing pad survives and only the 19 instructions AFTER the landing pad
- * are repurposed. The 76-byte diagnostic core is byte-identical to the
- * T0/T1 true-device proven core and to the T2 probe core: the only change
- * from T2 to T3 is the checkpoint ADDRESS.
+ * ENTRY PAD. The original first instruction of start_kernel in this build is
+ * `paciasp` (0xd503233f), NOT `bti c`. CONFIG_ARM64_BTI_KERNEL does enable
+ * -mbranch-protection=pac-ret+bti for C code, but LLVM omits the BTI landing
+ * pad for a function whose address is never taken, and start_kernel is
+ * reached only by the direct `bl start_kernel` in __primary_switched (a
+ * direct branch is not BTI-checked). The T3 probe therefore re-emits
+ * `paciasp` verbatim as its first instruction, so the instruction at the
+ * start_kernel entry address is bit-for-bit the original one; there is no BTI
+ * landing-pad requirement to preserve at this entry
+ * (T3_BTI_LANDING_REQUIRED=NO). It is emitted as .inst so the pad cannot
+ * depend on any assembler feature flag. The 76-byte diagnostic core that
+ * follows is byte-identical to the T0/T1 true-device proven core and to the
+ * T2 probe core; the only difference from T2 is the checkpoint ADDRESS and
+ * the preserved entry instruction.
  *
  * Semantics: REACH -> DAIF mask -> 8s CNTPCT register-only delay ->
  * PSCI SYSTEM_RESET (smc #0) -> on ANY unexpected smc return, wfe forever.
@@ -32,7 +39,8 @@
  *
  * Register discipline: w0/x0 (PSCI FID), x9, x10, x11, x12, x13, NZCV only.
  * No stack, no loads, no stores, no MMIO, no MMU/EL/TTBR manipulation,
- * PC-relative only, zero runtime relocations.
+ * PC-relative only, zero runtime relocations. `paciasp` reads SP as an
+ * architectural register and performs no memory access.
  */
 #ifndef P1B_T3_DELAY
 #error "P1B_T3_DELAY required"
@@ -45,7 +53,7 @@
 .p2align 2
 .global r3_t3_checkpoint
 r3_t3_checkpoint:
-	bti	c
+	.inst	0xd503233f
 	msr	daifset, #0xf
 	isb
 	mrs	x9, cntfrq_el0

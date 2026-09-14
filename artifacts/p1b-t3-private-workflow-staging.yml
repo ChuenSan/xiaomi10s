@@ -153,12 +153,14 @@ jobs:
           probe = ckbin.read_bytes()
           if sha(probe) != sys.argv[3]:
               raise SystemExit("T3_PRIVATE_CHECKPOINT_SHA_MISMATCH")
-          if probe != t2probe.read_bytes():
-              raise SystemExit("T3_PRIVATE_PROBE_NOT_T2_IDENTICAL")
+          if probe[4:] != t2probe.read_bytes()[4:]:
+              raise SystemExit("T3_PRIVATE_CORE_NOT_T2_IDENTICAL")
           if probe[4:] != t1core.read_bytes():
               raise SystemExit("T3_PRIVATE_CORE_NOT_T1_IDENTICAL")
+          pad_word = int.from_bytes(
+              bytes.fromhex(m["start_kernel_original_first_bytes"]), "little")
           if len(probe) != 80 or len(t1core.read_bytes()) != 76 \
-                  or probe[:4] != b"\x5f\x24\x03\xd5":
+                  or probe[:4] != struct.pack("<I", pad_word):
               raise SystemExit("T3_PRIVATE_CORE_SIZE_OR_BTI_PAD")
           if m["t3_runtime_semantic_delta"] != \
                   "START_KERNEL_ADDRESS_CHECKPOINT_ONLY":
@@ -187,12 +189,13 @@ jobs:
               raise SystemExit("T3_PRIVATE_T2_PROBE_STILL_PRESENT")
           if struct.unpack_from("<I", data, off_primary)[0] >> 26 != 0b100101:
               raise SystemExit("T3_PRIVATE_PRIMARY_ENTRY_NOT_ORIGINAL_BL")
-          if struct.unpack_from("<I", data, off_sk)[0] != 0xD503245F:
-              raise SystemExit("T3_PRIVATE_START_KERNEL_BTI_MISSING")
+          if struct.unpack_from("<I", data, off_sk)[0] != pad_word:
+              raise SystemExit("T3_PRIVATE_START_KERNEL_ENTRY_MISMATCH")
           print('T3_PRIVATE_PAYLOAD_IDENTITY_EXACT=PASS')
           print(f"T3_PRIVATE_IMAGE_HEADER_IMAGE_SIZE={image_size:#x}")
           print(f"T3_PRIVATE_INLINE_WINDOW=[{off_sk:#x},{off_sk+plen:#x})")
           print("T3_PRIVATE_T2_PROBE_REMOVED=YES")
+          print(f"T3_PRIVATE_START_KERNEL_ENTRY_WORD={pad_word:#010x}")
           PY
 
       - name: Pack T3 payload into M5D envelope
