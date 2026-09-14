@@ -4,9 +4,65 @@ Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
 facts. Last updated: 2026-09-14
-(MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI — CI / source audit / artifact
-preparation only, `DEVICE_OPERATION=NO`; the last executed device round is
-still the one-boot T0-8 checkpoint reach-and-reset, Case T0-A STRONG).
+(MAINLINE_V2_R3_P1B_T1_TRUE_DEVICE_CONTROL — EXECUTED, Case T1-A STRONG;
+`MAINLINE_V2_R3_P1B_T1_REACHABILITY_PROVEN`; one identity-gated `fastboot
+boot` of the frozen T1-8 boot, `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`).
+
+## T1 TRUE DEVICE ROUND (EXECUTED 2026-09-14 05:30 UTC)
+
+`MAINLINE_V2_R3_P1B_T1_TRUE_DEVICE_CONTROL` was EXECUTED with explicit user
+approval: exactly ONE `fastboot boot` of the frozen T1-8 boot, `T1-8` only,
+`SECOND_BOOT_FORBIDDEN=YES`, `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`,
+`SET_ACTIVE=NO`. mem0 was read three times (round start, before
+`adb reboot bootloader`, and again inside the bootloader). No local build,
+link, splice or `mkbootimg`: the authoritative frozen GHA artifact only
+(private pack run 34807172879, identity reverify 34807260192).
+
+Artifact identity was re-verified FULL-SHA from the downloaded artifact before
+any fastboot interaction and independently re-derived locally
+(`work/t1-verify/verify-t1-boot.py` → `VERIFY_RESULT=PASS`): boot
+`a4fa083f…e3df` (37380096), payload `3e654ee5…f0fb` (37369041), checkpoint
+`4d792df5…3611` (76 @ `0x2230000`), trampoline
+`362d9c6e…c623` (48 @ `0x40`, byte-identical to FIX8), RT-D
+`48497432…f327` (144593 @ `0x2380000`), payload diff 75 B =
+4 @ `[0x1b1c0a0,0x1b1c0a4)` + 71 @ `[0x2230000,0x223004c)`
+(`PRIMARY_ENTRY_PATCH_PLUS_CHECKPOINT_REGION_ONLY`). The source baseline
+(`0895098..HEAD`) is docs-only, so no post-READY functional change; the
+concurrent docs-only public run 34808780315 was never used.
+
+Fastboot: `Sending 'boot.img' (36504 KB) OKAY [0.900s]`, `Booting OKAY
+[0.221s]`. Timeline UTC: `T_COMMAND_START` 05:30:18.796, `T_SENDING_OKAY`
+05:30:19.721, `T_BOOTING_OKAY` 05:30:19.941, `T_USB_NONE` 05:30:21.342,
+`T_FASTBOOT_DISAPPEAR` 05:30:21.345, `T_USB_FIRST_REENUM` 05:30:41.515
+(`18d1:4ee7`), `T_ADB_FIRST_SEEN` 05:30:42.549, `RETURNED_ANDROID_KERNEL_START`
+05:30:34.179 (uptime 8.37; cross-check 05:30:34.156 with uptime 18.67),
+`T_BOOT_COMPLETED` 05:30:52.785. The returned-kernel-start algorithm is the
+same as T0 (`host_before_uptime_read − /proc/uptime`).
+
+| metric | value |
+| --- | --- |
+| `T1_TOTAL` | **14.238 s** (cross-check 14.214 s) |
+| `T0_REFERENCE_TOTAL` | 14.252 s |
+| `T1_MINUS_T0` | **−0.014 s** → matched-control **STRONG** (≤ ±1.000 s) |
+| `T1_TOTAL < 20 s` | YES |
+| `AUTOMATIC_ANDROID_RETURN` | YES |
+| `T1_PROGRAMMED_ESTIMATE` | 8.093 s vs 8.000 s → error +0.093 s (SECONDARY, consistent) |
+
+VERDICT: `T1_REACHABILITY_SIGNATURE=STRONG` (Case T1-A),
+`PRIMARY_ENTRY_ADDRESS_REACHED=PROVEN`,
+`R2_PRIMARY_ENTRY_ADDRESS_REACHABILITY=PROVEN`, while
+`E1_NORMAL_PRIMARY_ENTRY_EXECUTION=NOT_PROVEN` — the original first
+instruction `bl record_mmu_state` is replaced by the T1 diagnostic branch, so
+a T1 positive can never be read as normal Mainline boot.
+
+Post-test: `ANDROID_A_RESTORED=YES` (`_a`, `boot_completed=1`, root, Stock
+4.19.157-perf-g9d90dd04aa7c, `bootreason=bootloader`); pstore empty (auxiliary
+only, NOT negative evidence); `logdump`/`rawdump` byte-identical to the frozen
+baseline (`NO_T1_PERSISTENT_DUMP_EVIDENCE=YES`, no Linux 6.6 trace);
+`CURRENT_B_UNCHANGED_AFTER_T1=YES`.
+
+Final gate: **`MAINLINE_V2_R3_P1B_T1_REACHABILITY_PROVEN`**. Full record:
+`docs/route-r3-p1b-t1-predevice-readiness.md` section 26.
 
 ## Current Round
 
@@ -272,28 +328,37 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
   boot forbidden.
 - Checkpoints T0/T1/T2: T0 device run EXECUTED (Case T0-A STRONG,
   `MAINLINE_V2_R3_P1B_T0_REACHABILITY_PROVEN`, `T0_TOTAL = 14.252 s`); T1
-  PREDEVICE READY (`READY_FOR_R3_P1B_T1_DEVICE_CONTROL`; the earlier T1
-  CI_PASS prototype is superseded by the frozen fail-closed T1-8 candidate of
-  `MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI`; the T1 device run still
-  requires explicit user approval); T2 DESIGNED.
+  device run EXECUTED (Case T1-A STRONG,
+  `MAINLINE_V2_R3_P1B_T1_REACHABILITY_PROVEN`, `T1_TOTAL = 14.238 s`,
+  `T1_MINUS_T0 = −0.014 s`, R2 PROVEN) — the earlier T1 CI_PASS prototype was
+  superseded by the frozen fail-closed T1-8 candidate of
+  `MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI`, and that candidate has now
+  been consumed by its single authorized boot; T2 DESIGNED and NOT device
+  ready.
+- Reachability ladder: R0 PROVEN | R1 PROVEN | R2 PROVEN (primary_entry
+  ADDRESS) | R3 `__primary_switched` NOT_PROVEN | R4 `start_kernel+`
+  NOT_PROVEN | R5 initramfs NOT_PROVEN | R6 `/init` NOT_PROVEN.
+- Original evidence: E0 PROVEN | E1 NOT_PROVEN | E2 NOT_PROVEN | E3
+  NOT_PROVEN | E4 NOT_PROVEN | E5 FROZEN. T1 does not move E1: its positive
+  proves ADDRESS REACHABILITY, not normal `primary_entry` execution.
 
 ## Next approved candidate
 
-`MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI` is COMPLETE (CI only). If its
-final gate is `READY_FOR_R3_P1B_T1_DEVICE_CONTROL`, the next candidate is
-**`MAINLINE_V2_R3_P1B_T1_TRUE_DEVICE_CONTROL`** — exactly one identity-gated
-boot of the frozen T1 boot v3 artifact, `SECOND_BOOT_FORBIDDEN`, Slot A write
-forbidden, requiring explicit user approval before execution. T1 PREDEVICE
-readiness does NOT authorise that boot by itself. If instead a gate is red,
-the route is `R3_P1B_T1_PREDEVICE_NOT_READY` and then
-`T1_FAILURE_ISOLATION_CI`. A future T1 STRONG result would route to
-`MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI` (never directly to a T2 device
-run).
+`MAINLINE_V2_R3_P1B_T1_TRUE_DEVICE_CONTROL` is COMPLETE with final gate
+`MAINLINE_V2_R3_P1B_T1_REACHABILITY_PROVEN`. The next candidate is
+**`MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI`** — CI / source-audit only,
+and it must separately resolve the dimensions a T1 positive deliberately
+leaves open: MMU-on environment, VA/PA, stack, checkpoint placement, CNTPCT
+availability under those conditions, PSCI reset and fail-closed semantics. It
+is NOT a T2 device run; a T2 device run would need its own readiness gate plus
+separate explicit user approval. Any T1 negative class (not observed, timing
+mismatch, stable fastboot, no return, boot not accepted) would instead route to
+`MAINLINE_V2_R3_P1B_T1_FAILURE_ISOLATION_CI`, never automatically to T2.
 
 ## Not-ready candidates
 
-- T1/T2 device runs: T1 needs predevice readiness CI first; T2 still
-  DESIGNED.
+- T2 device run: T2 still DESIGNED; needs `T2_PREDEVICE_READINESS_CI` first
+  plus separate user approval.
 - FIX24, M5N, USB bring-up, UFS rootfs, network, drivers: frozen.
 - CopyMem forensics: priority LOWERED (T0 positive removes the transport
   suspicion that would have re-raised it).

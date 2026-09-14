@@ -539,3 +539,116 @@ The workflows use a per-workflow `concurrency` group with
 `cancel-in-progress: true`, so a concurrent push to the same branch cancels an
 in-flight round (this happened once: run 34803154113 was cancelled by a
 concurrent commit). Serialise pushes to `route-b-v3` while a round is running.
+
+## 26. TRUE DEVICE T1 RESULT
+
+`MAINLINE_V2_R3_P1B_T1_TRUE_DEVICE_CONTROL` was EXECUTED 2026-09-14 05:30 UTC
+with explicit user approval. Round record:
+`artifacts/r3-p1b-t1-34807172879/device-round/` (`round-verdict.txt`,
+`observer.log`, `bootloader-preflight.txt`, `pretest-current-b.txt`,
+`posttest-current-b.txt`, `persistent-evidence.txt`).
+
+Constraints held: `LOCAL_BUILD=NO` (authoritative frozen GHA artifact only,
+private pack run 34807172879 + identity reverify 34807260192 — nothing was
+assembled, linked, spliced or `mkbootimg`-ed locally),
+`PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`, `SET_ACTIVE=NO`,
+`EXPERIMENTAL_BOOTS=1`, `SECOND_BOOT_FORBIDDEN=YES`. T2, T1-24, a T0 rerun, a
+PANIC30 rerun, FIX24 and M5N were all NOT executed. mem0 was read three times
+(round start, before `adb reboot bootloader`, and inside the bootloader).
+
+Identity: FULL-SHA re-verified from the downloaded artifact before any fastboot
+interaction, and independently re-derived locally by
+`work/t1-verify/verify-t1-boot.py` (`VERIFY_RESULT=PASS`). Decoded from the
+built bytes rather than asserted: `primary_entry` `0x1b1c0a0` holds
+`0x94007465` (`bl record_mmu_state` → `0x1b39234`) in the frozen FIX8 baseline
+and `0x141c4fd8` (`b 0x2230000`, opcode `0b000101`, distance `0x713f60`) in T1;
+the FIX8 trampoline word 8 at `0x60` is `0x146c7010` and still lands on
+`0x1b1c0a0`; the trampoline's `x0` setup still yields `0x2380000` with
+`x1=x2=x3=0`; the checkpoint is `msr daifset`/`isb` → `cntfrq_el0` × 8 →
+`cntpct_el0` poll → `movz`/`movk` `w0 = 0x84000009` → `smc #0` → `wfe` → `b`
+back to that `wfe`, with no `ret`, no fall-through and no branch back into
+`primary_entry`. Payload diff vs the frozen FIX8 payload is 75 bytes, exactly
+`4 @ [0x1b1c0a0,0x1b1c0a4)` plus `71 @ [0x2230000,0x223004c)`; the checkpoint
+region's other 4 bytes coincide with the zero baseline, which is why the gate's
+region-union report is `[0x2230000,0x223004c)` while the raw census splits
+family B.
+
+Source baseline: `0895098..HEAD` (`0fd191b`) is docs-only, so no functional
+change after the READY gate. The concurrent docs-only public run 34808780315
+was never used and no artifact substitution was made.
+
+Bootloader preflight (read-only `getvar`): `product=thyme`, `unlocked=yes`,
+`current-slot=a`, `snapshot-update-status=none`, `battery-soc-ok=yes`,
+`battery-voltage=4412`, `retry:a=6/unbootable:a=no/successful:a=yes`,
+`retry:b=7/unbootable:b=no/successful:b=no`.
+
+Fastboot acceptance: `Sending 'boot.img' (36504 KB) OKAY [0.900s]`, `Booting
+OKAY [0.221s]`, `rc=0`, `sending_ok=True`, `booting_ok=True`, `fail=False`.
+
+Timeline (UTC): `T_COMMAND_START` 05:30:18.796, `T_SENDING_OKAY` 05:30:19.721,
+`T_BOOTING_OKAY` 05:30:19.941, `T_USB_NONE` 05:30:21.342,
+`T_FASTBOOT_DISAPPEAR` 05:30:21.345, `T_USB_FIRST_REENUM` 05:30:41.515
+(`usb=18d1:4ee7`), `T_ADB_FIRST_SEEN` 05:30:42.549,
+`RETURNED_ANDROID_KERNEL_START` 05:30:34.179 (`proc_uptime=8.37`; cross-check
+05:30:34.156 with `proc_uptime=18.67`), `T_BOOT_COMPLETED` 05:30:52.785. The
+returned-kernel-start algorithm is the T0 algorithm verbatim
+(`host_before_uptime_read − /proc/uptime`).
+
+| metric | value |
+| --- | --- |
+| `T1_TOTAL` | **14.238 s** (cross-check 14.214 s) |
+| `T0_REFERENCE_TOTAL` | 14.252 s |
+| `T1_MINUS_T0` | **−0.014 s** |
+| matched-control verdict | **STRONG** (`<= ±1.000 s`) |
+| `T1_TOTAL < 20 s` | YES |
+| `AUTOMATIC_ANDROID_RETURN` | YES (`RECOVERY_KIND=AUTOMATIC_ANDROID_RETURN`) |
+| `T1_PROGRAMMED_ESTIMATE` | 8.093 s vs 8.000 s → error +0.093 s (SECONDARY) |
+| `T1_SECONDARY_TIMING_CROSSCHECK` | CONSISTENT |
+
+The −0.014 s matched-control result is the substantive finding: T1 and T0 share
+payload class, 8 s CNTPCT delay, PSCI reset and fail-closed terminal, and
+differ only in checkpoint position (trampoline end vs `primary_entry`
+address). A 14 ms difference is far inside the ±1 s STRONG window, so the extra
+control transfer from the trampoline's normal branch into `primary_entry`
+costs no observable time — consistent with the branch having actually been
+taken, and inconsistent with the 23–26 s automatic-return class that a
+non-arrival would have produced.
+
+VERDICT: `T1_REACHABILITY_SIGNATURE=STRONG` (Case T1-A),
+`PRIMARY_ENTRY_ADDRESS_REACHED=PROVEN`,
+`R2_PRIMARY_ENTRY_ADDRESS_REACHABILITY=PROVEN`, while
+`E1_NORMAL_PRIMARY_ENTRY_EXECUTION=NOT_PROVEN` — the proof boundary of section
+3 is honoured exactly: the original `bl record_mmu_state` was replaced, so the
+run proves ADDRESS REACHABILITY and nothing about `record_mmu_state`,
+`preserve_boot_args`, `create_idmap`, MMU enable, `__primary_switched`,
+`start_kernel`, RT-D parse, initramfs or `/init`.
+
+Post-test: `ANDROID_A_RESTORED=YES` (`_a`, `boot_completed=1`, root, Stock
+`4.19.157-perf-g9d90dd04aa7c`, `bootreason=bootloader`); pstore empty
+(auxiliary only, explicitly NOT negative evidence); `logdump` and `rawdump`
+byte-identical to the frozen baseline (`NO_T1_PERSISTENT_DUMP_EVIDENCE=YES`),
+`minidump`/`oops` rewritten as boot-time deltas only, no Linux 6.6 trace;
+`CURRENT_B_UNCHANGED_AFTER_T1=YES` (M5D `4db8151b…85e63` + M5H `2d58ef94…` /
+`5d98f207…` + M5M-B `c5a355b9…aba8`, all MATCH pre- and post-test).
+
+Reachability ladder after this round:
+
+| rung | statement | status |
+| --- | --- | --- |
+| R0 | ABL controlled payload entry | PROVEN |
+| R1 | P1B large-payload trampoline T0 checkpoint | PROVEN |
+| R2 | `primary_entry` ADDRESS reached | **PROVEN** |
+| R3 | `__primary_switched` | NOT_PROVEN |
+| R4 | `start_kernel+` | NOT_PROVEN |
+| R5 | built-in initramfs | NOT_PROVEN |
+| R6 | `/init` | NOT_PROVEN |
+
+Evidence ladder unchanged: E0 PROVEN, E1–E4 NOT_PROVEN, E5 FROZEN.
+
+Final gate: **`MAINLINE_V2_R3_P1B_T1_REACHABILITY_PROVEN`**.
+
+Recommended next: `MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI` (CI only — it
+must resolve MMU-on environment, VA/PA, stack, checkpoint placement, CNTPCT
+availability, PSCI reset and fail-closed semantics before any T2 device run is
+even considered). T2 device run NOT authorized; T2 executed: NO; FIX24: FROZEN;
+M5N: FROZEN. WAIT FOR USER APPROVAL.

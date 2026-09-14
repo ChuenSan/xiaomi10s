@@ -1,0 +1,9 @@
+== T1 PERSISTENT AUXILIARY EVIDENCE (read-only) 2026-09-14T05:31Z ==
+pstore entries = 0 (empty; auxiliary only, NOT negative evidence)
+logdump  67108864  3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351  UNCHANGED
+rawdump 134217728  254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917  UNCHANGED
+minidump 100663296 7c83047113d6738002000e5643a80b579afe7954dfb990be301e87f88c506564  boot-time delta
+oops     16777216  7bf42a3007e498867ef43baf67e280eeac8fd4b0fb013439d79deef71097c8da  boot-time delta
+logfs     8388608  7c60dbda1dc1e719b265226bb6c500b0728e5c36c2e7097ebe0149605415bedd  delta
+NO_T1_PERSISTENT_DUMP_EVIDENCE=YES (logdump/rawdump byte-identical to frozen baseline)
+LINUX_6_6_TRACE_PRESENT=NO

@@ -1,0 +1,14 @@
+product=thyme
+unlocked=yes
+current-slot=a
+snapshot-update-status=none
+battery-soc-ok=yes
+battery-voltage=4412
+max-download-size=805306368
+slot-retry-count:a=a: 6
+slot-unbootable:a=a: no
+slot-successful:a=a: yes
+slot-retry-count:b=b: 7
+slot-unbootable:b=b: no
+slot-successful:b=b: no
+SET_ACTIVE=NO  FLASH=NO  EXPERIMENTAL_BOOTS=1  SECOND_BOOT_FORBIDDEN=YES
