@@ -2153,7 +2153,7 @@ def cmd_t3(args: argparse.Namespace) -> None:
           f">= window {T3_PROBE_SIZE:#x})")
     for tag, canon in (("__ex_table", "T3_EXCEPTION_TABLE_SCAN"),
                        ("altinstructions", "T3_ALTINSTRUCTIONS_SCAN"),
-                       ("jump_table", "T3_JUMP_TABLE_SCAN"),
+                       ("__jump_table", "T3_JUMP_TABLE_SCAN"),
                        ("static_call_sites", "T3_STATIC_CALL_SITES_SCAN"),
                        ("kcfi_traps", "T3_KCFI_TRAPS_SCAN")):
         info = rw[tag]
