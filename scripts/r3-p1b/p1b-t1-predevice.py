@@ -322,7 +322,10 @@ def gate_vmlinux_original_insn(pe_dump: str, off_primary: int,
         fail("T1_IDENTITY_FAILED",
              f"vmlinux BL operand {int(op.group(1), 16):#x} != "
              f"record_mmu_state {want:#x}")
-    return want
+    # Return the Image-relative target, i.e. the same coordinate space the
+    # frozen payload decode and the derived offsets use. The absolute address
+    # is only meaningful against text_addr.
+    return off_record_mm
 
 
 def gate_branch_patch(word: int, off_primary: int,
@@ -979,8 +982,8 @@ def cmd_t1(args: argparse.Namespace) -> None:
         pe_dump, off_primary, off_record_mm_nm, text_addr)
     if disasm_target != insn_target:
         fail("T1_IDENTITY_FAILED",
-             f"vmlinux BL target {disasm_target:#x} != frozen payload BL target "
-             f"{insn_target:#x}")
+             f"vmlinux BL target {disasm_target:#x} (Image-relative) != "
+             f"frozen payload BL target {insn_target:#x} (Image-relative)")
     print("PRIMARY_ENTRY_ORIGINAL_INSN_SOURCES_AGREE=YES "
           "(head.S + frozen payload bytes + vmlinux disassembly)")
 
