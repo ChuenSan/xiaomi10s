@@ -426,7 +426,7 @@ def gate_payload_diff(frozen: bytes, cand: bytes,
            if not any(lo <= i < hi for lo, hi in regions)]
     if bad:
         fail("T1_PAYLOAD_DIFF_FAILED",
-             f"diff outside allowed regions at {bad[:8]:#x}")
+             f"diff outside allowed regions at {[hex(i) for i in bad[:8]]}")
     for lo, hi in regions:
         if not any(lo <= i < hi for i in diffs):
             fail("T1_PAYLOAD_DIFF_FAILED",
