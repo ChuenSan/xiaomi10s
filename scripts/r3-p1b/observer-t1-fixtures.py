@@ -220,7 +220,7 @@ def s2_strong_signature():
     assert cap.has(rf"SUMMARY T1_PROGRAMMED_ESTIMATE={est:.3f} "
                    r"\(SECONDARY cross-check")
     delta = mod.t1_minus_t0(total)
-    assert cap.has(rf"SUMMARY T1_MINUS_T0={delta:+.3f} ")
+    assert cap.has(rf"SUMMARY T1_MINUS_T0={re.escape(f'{delta:+.3f}')} ")
     assert cap.has(r"SUMMARY T0_REFERENCE_TOTAL=14\.252 "
                    r"\(PRIMARY matched-control reference\)")
     assert cap.has(r"SUMMARY T1_EARLY_RETURN_CLASS_MATCH=YES")
@@ -250,7 +250,7 @@ def s3_supported_signature():
                      final_adb=True, st=st)
     delta = mod.t1_minus_t0(15.3)
     assert abs(delta - 1.048) < 1e-9
-    assert cap.has(rf"SUMMARY T1_MINUS_T0={delta:+.3f}")
+    assert cap.has(rf"SUMMARY T1_MINUS_T0={re.escape(f'{delta:+.3f}')}")
     assert cap.has(r"SUMMARY T1_REACHABILITY_SIGNATURE=SUPPORTED "
                    r"case=T1_B_SUPPORTED")
     assert cap.has(r"SUMMARY R2_PRIMARY_ENTRY_ADDRESS_REACHABILITY="
