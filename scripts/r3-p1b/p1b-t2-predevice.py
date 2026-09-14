@@ -1134,7 +1134,7 @@ def relocation_offsets(out: Path, tools: dict, vmlinux: Path) -> list:
     __primary_switched is reached."""
     offs: list = []
     n_rela = 0
-    rel = pb.run([tools["readelf"], "-rW", str(vmlinux)])
+    rel = pb.run([tools["readelf"], "-r", "--wide", str(vmlinux)])
     for line in rel.splitlines():
         m = RELOC_OFF_RE.match(line.strip())
         if m:
