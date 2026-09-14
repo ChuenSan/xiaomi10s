@@ -31,6 +31,15 @@ E1_STATUS=NOT_PROVEN
 E2_STATUS=NOT_PROVEN
 T2_STATUS=PREDEVICE_READY
 T2_DEVICE_CONTROL=NOT_AUTHORIZED
+T2_READINESS=READY_FOR_R3_P1B_T2_DEVICE_CONTROL
+T2_PAYLOAD_SHA256=c48dc5ce5cc02ea0a51fc6003c4e9e822efca1c1a4e26d17260412f52b19090d
+T2_PAYLOAD_SIZE=37369041
+T2_DIFF_BYTES=72
+T2_PROBE_SIZE_BYTES=80
+T2_PRIMARY_SWITCHED_OFFSET=0x1b39534
+T2_BOOT_SHA256=d347cc1907563afd2c8faa0d07cafed5904985514c346434c8a774c14418e925
+T2_PUBLIC_RUN=34819753692
+T2_PRIVATE_PACK_RUN=34821104997
 T3_STATUS=NOT_DEVICE_READY
 PANIC30_STATUS=COMPLETED
 PANIC30_SHIFT=NO_SUPPORTED_SHIFT
@@ -50,16 +59,38 @@ to a **unique, frozen, fail-closed, full-SHA identity-gated, MMU-on
 execution-safe, explainable** `__primary_switched` address-reachability
 candidate. It performs: authoritative kernel rebuild in GitHub Actions,
 `__primary_switched` and `primary_entry` re-derivation (never a history
-constant), original-instruction identity from three sources, an INLINE
+constant), original-instruction identity from four sources, an INLINE
 overwrite-safety audit (symbol / control-flow / relocation / absolute-literal /
 section-boundary scans), the T2 entry-CPU-state contract, CNTPCT and PSCI
-safety audits, byte-identity of the delay/reset core against the T0/T1
-proven sequence, single-region payload diff attribution, geometry, negative
-fixtures and T1-matched-control decoder fixtures.
+safety audits, byte-identity of the delay/reset core against the T0/T1 proven
+sequence, single-region payload diff attribution, geometry, negative fixtures
+and T1-matched-control decoder fixtures.
 Full record: `docs/route-r3-p1b-t2-predevice-readiness.md`.
 No device was touched: `DEVICE_OPERATION=NO`, `PARTITION_WRITES=0`,
 `SLOT_A_WRITTEN=NO`. A T2 device round is a separate stage that requires its
 own explicit user approval.
+
+Architecture: **INLINE** at the `__primary_switched` entry (in kernel text, so
+the executable mapping is the arrival itself): the original `bti c` landing pad
+is preserved, followed by the byte-identical T1-proven 8 s CNTPCT +
+PSCI `SYSTEM_RESET` (`0x84000009`, `smc #0`) + `wfe`-forever core.
+`primary_entry` is **not** patched, so the whole pre-T2 head.s path and the
+frozen FIX8 trampoline stay byte-identical and the payload diff is a single
+80-byte region.
+
+Results: `PRIMARY_SWITCHED_VA = 0xffff800081b39534`, image/file offset
+`0x1b39534` (reproduces the historical cross-check exactly), section
+`.init.text` flags `AX`; payload
+`c48dc5ce5cc02ea0a51fc6003c4e9e822efca1c1a4e26d17260412f52b19090d`
+(37369041 B, diff 72 B at `[0x1b39534,0x1b39584)`); probe
+`c78c55fb2fa94b6e16a33e59d7973acc715c212a02a88bad1ed954ecb1ce412a` (80 B, core
+byte-identical to the T1 checkpoint `4d792df5…3611`); private T2 boot
+`d347cc1907563afd2c8faa0d07cafed5904985514c346434c8a774c14418e925` (37380096 B,
+packed into the unchanged M5D envelope). Public run 34819753692 (three jobs
+green), private pack run 34821104997, private identity reverify run 34821289820
+(`T2_ARTIFACT_REBUILD_REQUIRED=NO`). Final gate:
+**`READY_FOR_R3_P1B_T2_DEVICE_CONTROL`** — CI preparation only; the T2 device
+run is NOT authorized and needs separate approval.
 
 ## T1 TRUE DEVICE ROUND (EXECUTED 2026-09-14 05:30 UTC)
 

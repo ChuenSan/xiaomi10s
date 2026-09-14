@@ -9,6 +9,22 @@ Final gate (this round): either `READY_FOR_R3_P1B_T2_DEVICE_CONTROL` or
 approved stage (`MAINLINE_V2_R3_P1B_T2_TRUE_DEVICE_CONTROL`) and is NEVER
 implied by this document.
 
+## Verdict
+
+**`READY_FOR_R3_P1B_T2_DEVICE_CONTROL`** — CI / source audit / artifact
+preparation is complete and every gate of §31 passes. A T2 device run is still
+**NOT authorized**: it requires its own explicit user approval.
+
+| item | value |
+| --- | --- |
+| public workflow | `thyme-r3-p1b-t2-predevice` run **34819753692** (source-audit 9 s / t2-build 13 m 36 s / verify 13 s — all green) |
+| public commit pin | `a670a33d29575ecdaa3f4444f71695ed9ef3f01a` |
+| T2 payload | `c48dc5ce5cc02ea0a51fc6003c4e9e822efca1c1a4e26d17260412f52b19090d`, 37369041 B, diff **72 B** at `[0x1b39534,0x1b39584)` |
+| T2 probe | `c78c55fb2fa94b6e16a33e59d7973acc715c212a02a88bad1ed954ecb1ce412a`, 80 B (core `4d792df5…3611` = the T1 checkpoint, byte-identical) |
+| private pack | `ChuenSan/thyme-mainline-private-ci` run **34821104997** → T2 boot `d347cc1907563afd2c8faa0d07cafed5904985514c346434c8a774c14418e925`, 37380096 B, `T2_PACK_GATES=PASS`, envelope `KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY` |
+| private identity reverify | run **34821289820** → `T2_PRIVATE_IDENTITY_REVERIFY=PASS`, `T2_ARTIFACT_REBUILD_REQUIRED=NO` |
+
+
 ---
 
 ## 0. Permanent constraints (unchanged)
@@ -386,6 +402,17 @@ adrp/add x8, vectors ; msr vbar_el1,x8 ; isb ; stp x29,x30,[sp,#-16]!
 no branch instruction, no internal label, no literal pool. The scans confirm
 this rather than assume it.
 
+Measured coverage in this round (public run 34819753692):
+
+```
+T2_SYMBOL_SCAN      183010 symbols,  none inside the window
+T2_BRANCH_SCAN      0 raw candidates and 0 confirmed hits landing in the window
+T2_RELOCATION_SCAN  568280 runtime relocation locations (.rela.dyn + RELR),
+                    none inside the window
+T2_LITERAL_SCAN     4395840 8-byte slots, no absolute VA inside the window
+T2_INLINE_OVERWRITE_SAFE=YES
+```
+
 ---
 
 ## 14. Original overwritten instructions
@@ -520,8 +547,8 @@ the `bti c` landing pad (§7a).
 ```
 T2_PAYLOAD_DIFF_ATTRIBUTED=PRIMARY_SWITCHED_CHECKPOINT_ONLY
 T2_RUNTIME_SEMANTIC_DELTA=PRIMARY_SWITCHED_REACHABILITY_CHECKPOINT_ONLY
-T2_DIFF_BYTE_COUNT=
-T2_DIFF_RANGES=
+T2_DIFF_BYTE_COUNT=72
+T2_DIFF_RANGES=[0x1b39534,0x1b39584)
 ```
 
 Exactly **one** contiguous diff region against the frozen FIX8 payload:
@@ -599,6 +626,24 @@ replaced), packs boot v3 and re-validates:
 PUBLIC: source audit, ELF/mapping audit, T2 assembly, binary patch proof,
 `objdump`/`readelf` output, raw payload, diff report, fixtures, observer
 fixtures. PRIVATE ONLY: the OEM envelope and the T2 boot image.
+
+Measured this round (private pack run 34821104997):
+
+```
+T2_BOOT_SHA256          = d347cc1907563afd2c8faa0d07cafed5904985514c346434c8a774c14418e925
+T2_BOOT_SIZE            = 37380096
+T2_KERNEL_SIZE          = 37369041
+T2_ENVELOPE_VS_M5D      = KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY
+T2_RT_D_TRAILER_SHA_EXACT = PASS
+T2_BOOT_CAPACITY        = PASS
+T2_INLINE_REGION_IN_KERNEL_TEXT = YES
+T2_PRIVATE_INLINE_WINDOW = [0x1b39534,0x1b39584)
+T2_PACK_GATES           = PASS
+```
+
+Identity re-verified without any rebuild in run 34821289820
+(`T2_PRIVATE_IDENTITY_REVERIFY=PASS`, `T2_ARTIFACT_REBUILD_REQUIRED=NO`).
+`DEVICE_OPERATION=NO` in every step.
 
 ---
 
@@ -724,5 +769,8 @@ READY_FOR_R3_P1B_T2_DEVICE_CONTROL  /  R3_P1B_T2_PREDEVICE_NOT_READY
 ```
 
 `E1` stays `NOT_PROVEN`, `E2` stays `NOT_PROVEN`, `R3` stays `NOT_PROVEN`
-until a future STRONG device round under §29. `DEVICE_OPERATION=NO`.
-`WAIT FOR USER APPROVAL`.
+until a future STRONG device round under §29.
+
+Result of this round: **`READY_FOR_R3_P1B_T2_DEVICE_CONTROL`** (the
+alternative outcome token is `R3_P1B_T2_PREDEVICE_NOT_READY`).
+`DEVICE_OPERATION=NO`. `WAIT FOR USER APPROVAL`.

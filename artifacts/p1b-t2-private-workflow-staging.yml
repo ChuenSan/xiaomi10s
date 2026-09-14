@@ -147,8 +147,11 @@ jobs:
           tramp = data[0x40:0x40 + 48]
           if sha(tramp) != sys.argv[2]:
               raise SystemExit("T2_PRIVATE_TRAMP_SHA_MISMATCH")
-          if ckbin.read_bytes() != t1core.read_bytes():
+          if ckbin.read_bytes()[4:] != t1core.read_bytes():
               raise SystemExit("T2_PRIVATE_CORE_NOT_T1_IDENTICAL")
+          if len(ckbin.read_bytes()) != 80 or len(t1core.read_bytes()) != 76 \
+                  or ckbin.read_bytes()[:4] != b"\x5f\x24\x03\xd5":
+              raise SystemExit("T2_PRIVATE_CORE_SIZE_OR_BTI_PAD")
           if sha(ckbin.read_bytes()) != sys.argv[3]:
               raise SystemExit("T2_PRIVATE_CHECKPOINT_SHA_MISMATCH")
           if m["t2_runtime_semantic_delta"] != \
