@@ -4,10 +4,11 @@ Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
 Last updated: 2026-09-14
-(MAINLINE_V2_R3_P1B_T3_TRUE_DEVICE_CONTROL — ONE authorized T3-8
-`fastboot boot`; `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`, `SET_ACTIVE=NO`;
-Case T3-A STRONG; final gate
-`MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN`).
+(MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI — CI only, no device.
+T3 TRUE DEVICE remains frozen: T3_TOTAL=14.238s STRONG,
+`MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN`. Agent B map NO-FF merged
+from d47bf58 / 8393db6 / run 34842580640. `PARTITION_WRITES=0`,
+`SLOT_A_WRITTEN=NO`. `T4_DEVICE_OPERATION=NO`.)
 
 <!-- R3-STATUS-KV:BEGIN -->
 <!-- Machine-readable current state. The T3 CI source gate parses THIS block
@@ -75,6 +76,22 @@ T3_MINUS_T1_S=0.000
 T3_MINUS_T0_S=-0.014
 T3_VERDICT=STRONG
 T3_FINAL_GATE=MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN
+T3_TRUE_DEVICE_STATUS=PROVEN
+R4_START_KERNEL_ADDRESS=PROVEN
+NORMAL_START_KERNEL_BODY=NOT_PROVEN
+EARLY_C_STAGE_MAP_INTEGRATED=YES
+EARLY_C_STAGE_MAP_SOURCE_BRANCH=route-b-r3-c-stage-map
+EARLY_C_STAGE_MAP_SOURCE_HEAD=d47bf58
+EARLY_C_STAGE_MAP_SOURCE_BASE=8393db6
+EARLY_C_STAGE_MAP_SOURCE_RUN=34842580640
+EARLY_C_STAGE_MAP_INTEGRATION_METHOD=NO_FF_MERGE
+EARLY_C_STAGE_MAP_INTEGRATION_COMMIT=00df879
+EARLY_C_STAGE_MAP_REVERIFIED=NO
+T4_SELECTED_STAGE=NONE
+T4_PREDEVICE_STATUS=NOT_READY
+T4_DEVICE_OPERATION=NO
+T4_PROBE_ARCHITECTURE=INLINE
+T4_STATUS=NOT_DEVICE_READY
 PANIC30_STATUS=COMPLETED
 PANIC30_SHIFT=NO_SUPPORTED_SHIFT
 FIX24_STATUS=FROZEN
@@ -85,6 +102,30 @@ SLOT_A_WRITTEN=NO
 PARTITION_WRITES=0
 DEVICE_OPERATION=EXECUTED
 <!-- R3-STATUS-KV:END -->
+
+## T4 PREDEVICE (CI IN PROGRESS — NO DEVICE)
+
+`MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI`. `DEVICE_OPERATION=NO`.
+`LOCAL_BUILD=NO`. `SLOT_A_WRITTEN=NO`. `PARTITION_WRITES=0`.
+
+Agent B Early C-stage map absorbed by NO-FF merge `00df879` from
+`route-b-r3-c-stage-map` `d47bf58` (base `8393db6`, run `34842580640`).
+`PATH_OVERLAP` empty. Original Agent A dirty worktree on `5550dc2` was
+not modified. Integration worktree:
+`/Volumes/LinuxDev/thyme-mainline-t4-integration`.
+
+Preferred T4 stage: `C6_PARSE_ARGS_COMPLETE` (post `parse_args("Booting
+kernel")`). Fallback: `C3_SETUP_ARCH_RETURN`. `C_DELAY` FUTURE.
+`parse_early_param` effective inside `setup_arch` (C2→C5→C3).
+`panic=` / `rdinit=` ordinary at C6. `loglevel=` early at C5.
+
+T4 is composed from frozen FIX8 with the T3 start_kernel probe removed
+(`START_KERNEL_ENTRY_RESTORED_TO_FIX8`). One INLINE 76-byte T3-core-
+identical diagnostic. No T4 device run is authorized by this section.
+`T4_PREDEVICE_STATUS=NOT_READY` until public GHA + private pack +
+reverify + observer FULL-SHA fixtures close.
+
+Full record: `docs/route-r3-p1b-t4-predevice-readiness.md`.
 
 ## T3 TRUE DEVICE ROUND (EXECUTED 2026-09-14 15:03 UTC)
 
