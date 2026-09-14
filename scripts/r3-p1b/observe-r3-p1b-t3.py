@@ -258,7 +258,7 @@ def t3_reachability(t3_total_s, recovery_kind: str) -> dict:
         abs(d0) <= T3_CROSSCHECK_HALF_WINDOW_S
     if early and abs(d2) <= T3_STRONG_HALF_WINDOW_S and cross_ok:
         return {"verdict": "STRONG", "case": "T3_A_STRONG", "r4": "PROVEN",
-                "next": "MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI",
+                "next": "MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI",
                 "reason": "T2_MATCHED_CONTROL+EARLY_RETURN_CLASS+"
                           "AUTOMATIC_RESET+T1_T0_CROSSCHECK_OK"}
     if early and abs(d2) <= T3_STRONG_HALF_WINDOW_S:
@@ -271,7 +271,7 @@ def t3_reachability(t3_total_s, recovery_kind: str) -> dict:
     if early and abs(d2) <= T3_SUPPORTED_HALF_WINDOW_S:
         return {"verdict": "SUPPORTED", "case": "T3_B_SUPPORTED",
                 "r4": "STRONGLY_SUPPORTED",
-                "next": "MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI",
+                "next": "MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI",
                 "reason": "T2_MATCHED_CONTROL+EARLY_RETURN_CLASS+"
                           "AUTOMATIC_RESET"}
     if early:

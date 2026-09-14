@@ -177,32 +177,54 @@ def identity_fixtures(lines):
 
 def decoder_fixtures(lines):
     mod = OBS
+    t4ci = "MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI"
+    iso = "T3_FAILURE_ISOLATION_CI"
     v = mod.t3_reachability(14.240, "AUTOMATIC_ANDROID_RETURN")
     assert v["verdict"] == "STRONG" and v["r4"] == "PROVEN", v
-    assert v["next"] == \
-        "MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI", v
+    assert v["case"] == "T3_A_STRONG" and v["next"] == t4ci, v
+    v = mod.t3_reachability(13.300, "AUTOMATIC_ANDROID_RETURN")
+    assert v["verdict"] == "STRONG" and v["r4"] == "PROVEN", v
     v = mod.t3_reachability(15.740, "AUTOMATIC_ANDROID_RETURN")
     assert v["verdict"] == "SUPPORTED" and v["r4"] == "STRONGLY_SUPPORTED", v
-    assert v["next"] == \
-        "MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI", v
-    for t, case in ((16.4, "T3_EARLY_RETURN_TIMING_MISMATCH"),
-                    (11.0, "T3_EARLY_RETURN_TIMING_MISMATCH"),
-                    (20.0, "T3_SIGNATURE_NOT_OBSERVED"),
-                    (mod.FIX8_TOTAL_S, "T3_SIGNATURE_NOT_OBSERVED"),
-                    (mod.PANIC30_TOTAL_S, "T3_SIGNATURE_NOT_OBSERVED"),
-                    (28.0, "UNKNOWN")):
+    assert v["case"] == "T3_B_SUPPORTED" and v["next"] == t4ci, v
+    for t, case, next_ in (
+            (16.4, "T3_EARLY_RETURN_TIMING_MISMATCH", iso),
+            (11.0, "T3_EARLY_RETURN_TIMING_MISMATCH", iso),
+            (20.0, "T3_SIGNATURE_NOT_OBSERVED", iso),
+            (mod.FIX8_TOTAL_S, "T3_SIGNATURE_NOT_OBSERVED", iso),
+            (mod.PANIC30_TOTAL_S, "T3_SIGNATURE_NOT_OBSERVED", iso),
+            (28.0, "UNKNOWN", iso)):
         v = mod.t3_reachability(t, "AUTOMATIC_ANDROID_RETURN")
         assert v["verdict"] == "NOT_OBSERVED" and v["case"] == case, (t, v)
         assert v["r4"] == "NOT_PROVEN", v
-        assert v["next"] == "T3_FAILURE_ISOLATION_CI", v
+        assert v["next"] == next_, v
     v = mod.t3_reachability(None, "AUTOMATIC_STABLE_FASTBOOT_RETURN")
     assert v["case"] == "T3_STABLE_FASTBOOT" and \
         "SECOND_BOOT_AND_T3_FORBIDDEN" in v["reason"], v
     v = mod.t3_reachability(None, "MANUAL_RECOVERY_OR_NO_RETURN")
     assert v["case"] == "T3_NO_RETURN", v
     v = mod.t3_reachability(None, "UNKNOWN")
-    assert v["verdict"] == "NOT_OBSERVED" and \
-        v["next"] == "T3_FAILURE_ISOLATION_CI", v
+    assert v["verdict"] == "NOT_OBSERVED" and v["next"] == iso, v
+    # The window constants themselves are part of the preregistration.
+    assert mod.T2_REFERENCE_TOTAL_S == 14.240, mod.T2_REFERENCE_TOTAL_S
+    assert mod.T1_REFERENCE_TOTAL_S == 14.238, mod.T1_REFERENCE_TOTAL_S
+    assert mod.T0_REFERENCE_TOTAL_S == 14.252, mod.T0_REFERENCE_TOTAL_S
+    assert mod.T3_STRONG_HALF_WINDOW_S == 1.0, mod.T3_STRONG_HALF_WINDOW_S
+    assert mod.T3_SUPPORTED_HALF_WINDOW_S == 2.0, mod.T3_SUPPORTED_HALF_WINDOW_S
+    assert mod.T3_CROSSCHECK_HALF_WINDOW_S == 2.0, mod.T3_CROSSCHECK_HALF_WINDOW_S
+    assert mod.T3_EARLY_RETURN_CLASS_LIMIT_S == 20.0, \
+        mod.T3_EARLY_RETURN_CLASS_LIMIT_S
+    assert mod.T3_CASE_C_BAND_S == (20.0, 28.0), mod.T3_CASE_C_BAND_S
+    assert mod.T3_PROGRAMMED_S == 8.0, mod.T3_PROGRAMMED_S
+    assert mod.P0_REF_OVERHEAD_S == 6.1445, mod.P0_REF_OVERHEAD_S
+    for bad in ({"verdict": "STRONG", "r4": "NOT_PROVEN"},
+                {"verdict": "SUPPORTED", "r4": "PROVEN"}):
+        if mod.t3_reachability(bad["verdict"] == "STRONG" and 14.2 or 15.3,
+                               "AUTOMATIC_ANDROID_RETURN")["r4"] != \
+                bad["r4"]:
+            fail("DECODER",
+                 f"r4 grading lost for {bad['verdict']}")
+    lines.append("OBSERVER_T3_DECODER_CONSTANTS=PASS")
     lines.append("OBSERVER_T3_DECODER_CASES_A_TO_F=PASS")
 
 
