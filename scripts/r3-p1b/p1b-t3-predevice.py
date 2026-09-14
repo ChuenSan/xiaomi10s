@@ -2050,12 +2050,23 @@ def cmd_t3(args: argparse.Namespace) -> None:
                           int(op.group(1), 16)))
     callsite_va, callsite_mn, callsite_target = gate_callsite_unique(
         calls, sk_va)
-    gate_checkpoint_after_callsite(sk_va, callsite_va)
     off_callsite = callsite_va - text_addr
+    # The call site is hand-written assembly (head.S:523 bl start_kernel) and
+    # start_kernel is linked BEFORE __primary_switched, so the call site VA is
+    # higher than start_kernel's VA; an address-order "checkpoint after call"
+    # check would be wrong. The proof is instead: the probe sits at the
+    # start_kernel FUNCTION ENTRY (sk_va), and the frozen payload's call-site
+    # word decodes as a bl whose target is exactly sk_va.
     callsite_word = struct.unpack_from("<I", frozen, off_callsite)[0]
-    if struct.unpack_from("<I", image, off_callsite)[0] != callsite_word:
+    if (callsite_word >> 26) != 0b100101:
         fail("T3_CALLSITE_FAILED",
-             "rebuilt Image and frozen payload disagree at the call site")
+             f"frozen call-site word {callsite_word:#010x} is not a bl")
+    bl_target = text_addr + off_callsite + \
+        pb.sx(callsite_word & 0x03FFFFFF, 26) * 4
+    if bl_target != sk_va:
+        fail("T3_CALLSITE_FAILED",
+             f"frozen call-site bl target {bl_target:#x} != start_kernel "
+             f"{sk_va:#x}")
     print("T3_START_KERNEL_CALLSITE_FOUND=YES")
     print(f"START_KERNEL_CALLSITE_VA={callsite_va:#x}")
     print(f"START_KERNEL_CALLSITE_IMAGE_OFFSET={off_callsite:#x}")
@@ -2065,8 +2076,11 @@ def cmd_t3(args: argparse.Namespace) -> None:
     print(f"START_KERNEL_CALL_TARGET={callsite_target:#x}")
     print("T3_START_KERNEL_CALL_TARGET_EXACT=YES "
           f"(the unique {callsite_mn} in __primary_switched targets exactly "
-          f"start_kernel {sk_va:#x}; no PLT/veneer/BTI thunk/CFI trampoline/"
-          "indirect branch is involved)")
+          f"start_kernel {sk_va:#x}; the frozen payload's call-site word "
+          f"decodes to the same bl; start_kernel is linked before "
+          f"__primary_switched so the call is a backward branch, which the "
+          f"probe at the function entry proves was taken; no PLT/veneer/BTI "
+          f"thunk/CFI trampoline/indirect branch is involved)")
     pre_calls = [m.group(1) for m in
                  re.finditer(r"\tbl\t(\S+)", ps_body)]
     print("T3_PRE_PATH_CALLSITES=" + ",".join(pre_calls))
