@@ -1,0 +1,397 @@
+name: thyme-r3-p1b-t2-predevice
+
+# Private CI for the T2-8 fail-closed __primary_switched reachability
+# diagnostic (MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI).
+# Takes the public T2 kernel payload (frozen FIXED INIT8 bytes with ONLY the
+# INLINE __primary_switched overwrite region applied; primary_entry and the
+# whole pre-T2 head.S path byte-identical to FIX8), splices it into the exact
+# M5D boot v3 envelope, packs and validates boot v3, records the boot SHA256.
+# No device operation; nothing is installed, booted, or written to any
+# partition. The FIX8 / T0 / T1 / PANIC30 artifacts stay frozen.
+on:
+  workflow_dispatch:
+    inputs:
+      reverify_only:
+        description: "true = identity re-verify only (no re-pack, no rebuild)"
+        required: false
+        default: "false"
+      reverify_run_id:
+        description: Authoritative private run carrying thyme-r3-p1b-t2-boot
+        required: false
+        default: ""
+      expected_boot_sha256:
+        description: Expected T2 boot SHA256 (reverify_only=true)
+        required: false
+        default: ""
+      public_source_commit:
+        description: ChuenSan/xiaomi10s commit SHA (pinned)
+        required: true
+      public_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-p1b-t2
+        required: true
+      t2_payload_sha:
+        description: Expected SHA256 of thyme-r3-p1b-t2-kernel-payload.bin
+        required: true
+      t2_tramp_sha:
+        description: Expected SHA256 of the embedded frozen FIX8 trampoline
+        required: true
+      t2_checkpoint_sha:
+        description: Expected SHA256 of p1b-t2-checkpoint.bin
+        required: true
+
+concurrency:
+  group: thyme-r3-p1b-t2-private
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PUBLIC_SOURCE_REPO: ChuenSan/xiaomi10s
+  PUBLIC_SOURCE_COMMIT: ${{ inputs.public_source_commit }}
+  PUBLIC_RUN_ID: ${{ inputs.public_run_id }}
+  M5D_RUN_ID: "34487382191"
+  M5D_ARTIFACT_NAME: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+  M5D_BOOT_NAME: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+  EXPECTED_M5D_BOOT_SHA256: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+
+jobs:
+  t2-pack:
+    name: R3 P1B T2 M5D splice + boot v3 pack + gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    if: inputs.reverify_only != 'true'
+    steps:
+      - name: Checkout private wrapper
+        uses: actions/checkout@v4
+        with:
+          path: private-repo
+
+      - name: Checkout pinned public source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.PUBLIC_SOURCE_REPO }}
+          ref: ${{ env.PUBLIC_SOURCE_COMMIT }}
+          path: source
+          fetch-depth: 1
+
+      - name: Assert immutable source and private execution
+        working-directory: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PUBLIC_SOURCE_COMMIT"
+          test "$(gh api repos/${{ github.repository }} --jq .private)" = true
+          echo 'PUBLIC_SOURCE_COMMIT_PINNED=PASS'
+          echo 'PRIVATE_REPO_VISIBILITY=PRIVATE'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'HOST_DEVICE_INTERFACE=UNUSED'
+
+      - name: Lint private workflow
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color private-repo/.github/workflows/thyme-r3-p1b-t2-predevice.yml
+
+      - name: Download exact M5D boot artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$M5D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name "$M5D_ARTIFACT_NAME" \
+            --dir m5d-artifact
+          test -s "m5d-artifact/$M5D_BOOT_NAME"
+          printf '%s  m5d-artifact/%s\n' "$EXPECTED_M5D_BOOT_SHA256" "$M5D_BOOT_NAME" \
+            | sha256sum -c -
+          echo 'M5D_BOOT_SHA_EXACT=PASS'
+
+      - name: Download public T2 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          T2_PAYLOAD_SHA: ${{ inputs.t2_payload_sha }}
+          T2_TRAMP_SHA: ${{ inputs.t2_tramp_sha }}
+          T2_CHECKPOINT_SHA: ${{ inputs.t2_checkpoint_sha }}
+        run: |
+          set -euo pipefail
+          gh run download "$PUBLIC_RUN_ID" \
+            --repo "$PUBLIC_SOURCE_REPO" \
+            --name thyme-r3-p1b-t2 --dir t2-artifact
+          test -s t2-artifact/thyme-r3-p1b-t2-kernel-payload.bin
+          test -s t2-artifact/p1b-t2-checkpoint.bin
+          test -s t2-artifact/p1b-t1-core-reference.bin
+          test -s t2-artifact/p1b-t2-manifest.json
+          test -s t2-artifact/p1b-t2-gates.txt
+          ( cd t2-artifact && sha256sum -c SHA256SUMS )
+          printf '%s  t2-artifact/thyme-r3-p1b-t2-kernel-payload.bin\n' \
+            "$T2_PAYLOAD_SHA" | sha256sum -c -
+          printf '%s  t2-artifact/p1b-t2-checkpoint.bin\n' \
+            "$T2_CHECKPOINT_SHA" | sha256sum -c -
+          python3 - "$T2_PAYLOAD_SHA" "$T2_TRAMP_SHA" "$T2_CHECKPOINT_SHA" <<'PY'
+          import hashlib, json, struct, sys
+          from pathlib import Path
+
+          def sha(b): return hashlib.sha256(b).hexdigest()
+
+          payload = Path("t2-artifact/thyme-r3-p1b-t2-kernel-payload.bin")
+          ckbin = Path("t2-artifact/p1b-t2-checkpoint.bin")
+          t1core = Path("t2-artifact/p1b-t1-core-reference.bin")
+          m = json.loads(Path("t2-artifact/p1b-t2-manifest.json").read_text())
+          data = payload.read_bytes()
+          if sha(data) != sys.argv[1]:
+              raise SystemExit("T2_PRIVATE_PAYLOAD_SHA_MISMATCH")
+          tramp = data[0x40:0x40 + 48]
+          if sha(tramp) != sys.argv[2]:
+              raise SystemExit("T2_PRIVATE_TRAMP_SHA_MISMATCH")
+          if ckbin.read_bytes() != t1core.read_bytes():
+              raise SystemExit("T2_PRIVATE_CORE_NOT_T1_IDENTICAL")
+          if sha(ckbin.read_bytes()) != sys.argv[3]:
+              raise SystemExit("T2_PRIVATE_CHECKPOINT_SHA_MISMATCH")
+          if m["t2_runtime_semantic_delta"] != \
+                  "PRIMARY_SWITCHED_REACHABILITY_CHECKPOINT_ONLY":
+              raise SystemExit("T2_PRIVATE_SEMANTIC_DELTA_MISMATCH")
+          if m["diff_attribution"] != "PRIMARY_SWITCHED_CHECKPOINT_ONLY":
+              raise SystemExit("T2_PRIVATE_DIFF_ATTRIBUTION_MISMATCH")
+          if m["t2_probe_architecture"] != "INLINE":
+              raise SystemExit("T2_PRIVATE_NOT_INLINE")
+          if m["t2_normal_kernel_boot_candidate"] is not False:
+              raise SystemExit("T2_PRIVATE_DIAGNOSTIC_ONLY")
+          if m["primary_entry_patched"] is not False:
+              raise SystemExit("T2_PRIVATE_PRIMARY_ENTRY_PATCHED")
+          off_ps = int(m["primary_switched_image_offset"], 16)
+          plen = int(m["t2_checkpoint_size"])
+          off_primary = int(m["primary_entry_offset"], 16)
+          file_size = int(m["image_file_size"])
+          if off_ps <= off_primary or (off_ps + plen) > file_size:
+              raise SystemExit("T2_PRIVATE_INLINE_WINDOW_NOT_IN_TEXT")
+          if struct.unpack_from("<I", data, off_primary)[0] >> 26 != 0b100101:
+              raise SystemExit("T2_PRIVATE_PRIMARY_ENTRY_NOT_ORIGINAL_BL")
+          if data[off_ps:off_ps + plen] != ckbin.read_bytes():
+              raise SystemExit("T2_PRIVATE_INLINE_REGION_MISMATCH")
+          print('T2_PRIVATE_PAYLOAD_IDENTITY_EXACT=PASS')
+          print(f"T2_PRIVATE_IMAGE_HEADER_IMAGE_SIZE="
+                f"{int(m['image_header_image_size'], 16):#x}")
+          print(f"T2_PRIVATE_INLINE_WINDOW=[{off_ps:#x},{off_ps+plen:#x})")
+          PY
+
+      - name: Splice T2 payload into M5D envelope
+        working-directory: source
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/t2-out"
+          python3 scripts/r3-p1b/p1b-build.py --mode splice-boot \
+            --m5d-boot "$GITHUB_WORKSPACE/m5d-artifact/$M5D_BOOT_NAME" \
+            --payload "$GITHUB_WORKSPACE/t2-artifact/thyme-r3-p1b-t2-kernel-payload.bin" \
+            --boot "$GITHUB_WORKSPACE/t2-out/thyme-r3-p1b-t2-boot.img" \
+            | tee "$GITHUB_WORKSPACE/splice-t2.txt"
+
+      - name: Resolve T2 offsets from the public manifest
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          from pathlib import Path
+          m = json.loads(
+              Path("t2-artifact/p1b-t2-manifest.json").read_text())
+          print(f"T2_PRIMARY_SWITCHED_OFFSET={m['primary_switched_image_offset']}")
+          print(f"T2_BOOT_SIZE_EST={m['t2_boot_size_est']}")
+          PY
+          cat "$GITHUB_ENV" | tail -2
+
+      - name: T2 pack gates
+        working-directory: source
+        env:
+          GITHUB_ACTIONS: "true"
+          T2_PAYLOAD_SHA: ${{ inputs.t2_payload_sha }}
+          T2_TRAMP_SHA: ${{ inputs.t2_tramp_sha }}
+          T2_CHECKPOINT_SHA: ${{ inputs.t2_checkpoint_sha }}
+        run: |
+          set -euo pipefail
+          python3 scripts/r3-p1b/p1b-t2-predevice.py \
+            --mode t2-pack-gates \
+            --m5d-boot "$GITHUB_WORKSPACE/m5d-artifact/$M5D_BOOT_NAME" \
+            --payload "$GITHUB_WORKSPACE/t2-artifact/thyme-r3-p1b-t2-kernel-payload.bin" \
+            --payload-sha "$T2_PAYLOAD_SHA" \
+            --checkpoint-bin "$GITHUB_WORKSPACE/t2-artifact/p1b-t2-checkpoint.bin" \
+            --checkpoint-sha "$T2_CHECKPOINT_SHA" \
+            --primary-switched-offset "$T2_PRIMARY_SWITCHED_OFFSET" \
+            --boot "$GITHUB_WORKSPACE/t2-out/thyme-r3-p1b-t2-boot.img" \
+            --out "$GITHUB_WORKSPACE/t2-out" \
+            | tee "$GITHUB_WORKSPACE/pack-gates-t2.txt"
+          grep -Fxq 'T2_PACK_GATES=PASS' \
+            "$GITHUB_WORKSPACE/t2-out/p1b-t2-pack-gates.txt"
+          grep -Fxq 'T2_RT_D_TRAILER_SHA_EXACT=PASS' \
+            "$GITHUB_WORKSPACE/t2-out/p1b-t2-pack-gates.txt"
+          grep -Fxq 'T2_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY' \
+            "$GITHUB_WORKSPACE/t2-out/p1b-t2-pack-gates.txt"
+          grep -Fxq 'T2_PROBE_ARCHITECTURE=INLINE' \
+            "$GITHUB_WORKSPACE/t2-out/p1b-t2-pack-gates.txt"
+          grep -Fxq 'T2_INLINE_REGION_IN_KERNEL_TEXT=YES' \
+            "$GITHUB_WORKSPACE/t2-out/p1b-t2-pack-gates.txt"
+          grep -Fxq "T2_PAYLOAD_SHA256=$T2_PAYLOAD_SHA" \
+            "$GITHUB_WORKSPACE/t2-out/p1b-t2-pack-gates.txt"
+          grep -Fxq "T2_TRAMP_SHA256=$T2_TRAMP_SHA" \
+            "$GITHUB_WORKSPACE/t2-out/p1b-t2-pack-gates.txt"
+          grep -Fxq "T2_CHECKPOINT_SHA256=$T2_CHECKPOINT_SHA" \
+            "$GITHUB_WORKSPACE/t2-out/p1b-t2-pack-gates.txt"
+
+      - name: Boot size vs public manifest cross-check
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          m = json.loads(
+              Path("t2-artifact/p1b-t2-manifest.json").read_text())
+          boot = Path("t2-out/thyme-r3-p1b-t2-boot.img").stat().st_size
+          if boot != m["t2_boot_size_est"]:
+              raise SystemExit(
+                  f"T2_PRIVATE_SIZE_MISMATCH boot={boot} "
+                  f"manifest={m['t2_boot_size_est']}")
+          if boot != 37380096:
+              raise SystemExit(f"T2_PRIVATE_UNEXPECTED_BOOT_SIZE {boot}")
+          print(f"T2_BOOT_SIZE={boot}")
+          print('T2_PRIVATE_BOOT_SIZE_CROSS_CHECK=PASS')
+          PY
+
+      - name: Record T2 boot identity + verdict
+        run: |
+          set -euo pipefail
+          T2_BOOT_SHA=$(sha256sum t2-out/thyme-r3-p1b-t2-boot.img | cut -d' ' -f1)
+          {
+            echo "MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI (PRIVATE PACK)"
+            echo "T2_BOOT_SHA256=$T2_BOOT_SHA"
+            echo "T2_BOOT_SIZE=$(stat -c%s t2-out/thyme-r3-p1b-t2-boot.img)"
+            echo "T2_PAYLOAD_SHA256=${{ inputs.t2_payload_sha }}"
+            echo "T2_TRAMP_SHA256=${{ inputs.t2_tramp_sha }}"
+            echo "T2_CHECKPOINT_SHA256=${{ inputs.t2_checkpoint_sha }}"
+            echo "T2_PROBE_ARCHITECTURE=INLINE"
+            echo "T2_DIAGNOSTIC_ONLY=YES"
+            echo "T2_NORMAL_KERNEL_BOOT_CANDIDATE=NO"
+            echo "DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "READY_FOR_DEVICE=NO (device round requires separate user approval)"
+          } | tee "$GITHUB_STEP_SUMMARY" | tee t2-identity.txt
+          cat t2-out/p1b-t2-pack-gates.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Assert no unexpected image output
+        shell: bash
+        run: |
+          set -euo pipefail
+          # ./m5d-artifact/*.img is the DOWNLOADED M5D input, not an output.
+          if find . -name '*.img' -not -path './t2-out/*' -not -path './m5d-artifact/*' -print -quit | grep -q .; then
+            echo 'unexpected image output outside t2-out' >&2
+            exit 1
+          fi
+          echo 'T2_PRIVATE_PACK_GATES=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+      - name: Upload private T2 boot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-t2-boot
+          if-no-files-found: error
+          path: |
+            t2-out/thyme-r3-p1b-t2-boot.img
+            t2-out/p1b-t2-pack-gates.txt
+            t2-identity.txt
+            splice-t2.txt
+            pack-gates-t2.txt
+
+  t2-identity-reverify:
+    name: R3 P1B T2 boot identity re-verification (no rebuild)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    if: inputs.reverify_only == 'true'
+    steps:
+      - name: Checkout private wrapper
+        uses: actions/checkout@v4
+        with:
+          path: private-repo
+
+      - name: Assert immutable private execution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/${{ github.repository }} --jq .private)" = true
+          echo 'PRIVATE_REPO_VISIBILITY=PRIVATE'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'HOST_DEVICE_INTERFACE=UNUSED'
+
+      - name: Download authoritative T2 boot artifact (no rebuild)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVERIFY_RUN_ID: ${{ inputs.reverify_run_id }}
+        run: |
+          set -euo pipefail
+          test -n "$REVERIFY_RUN_ID"
+          gh run download "$REVERIFY_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-t2-boot --dir auth-boot
+          test -s auth-boot/t2-out/thyme-r3-p1b-t2-boot.img
+          test -s auth-boot/t2-out/p1b-t2-pack-gates.txt
+          echo 'T2_BOOT_ARTIFACT_SOURCE=AUTHORITATIVE_PRIVATE_RUN'
+
+      - name: T2 boot identity gates (re-hash only)
+        env:
+          EXPECTED_BOOT_SHA256: ${{ inputs.expected_boot_sha256 }}
+          EXPECTED_PAYLOAD_SHA256: ${{ inputs.t2_payload_sha }}
+          EXPECTED_TRAMP_SHA256: ${{ inputs.t2_tramp_sha }}
+          EXPECTED_CHECKPOINT_SHA256: ${{ inputs.t2_checkpoint_sha }}
+        run: |
+          set -euo pipefail
+          test -n "$EXPECTED_BOOT_SHA256"
+          printf '%s  auth-boot/t2-out/thyme-r3-p1b-t2-boot.img\n' \
+            "$EXPECTED_BOOT_SHA256" | sha256sum -c -
+          boot_size=$(stat -c%s auth-boot/t2-out/thyme-r3-p1b-t2-boot.img)
+          test "$boot_size" = 37380096
+          grep -Fxq 'T2_PACK_GATES=PASS' \
+            auth-boot/t2-out/p1b-t2-pack-gates.txt
+          grep -Fxq "T2_BOOT_SHA256=$EXPECTED_BOOT_SHA256" \
+            auth-boot/t2-out/p1b-t2-pack-gates.txt
+          grep -Fxq "T2_PAYLOAD_SHA256=$EXPECTED_PAYLOAD_SHA256" \
+            auth-boot/t2-out/p1b-t2-pack-gates.txt
+          grep -Fxq "T2_TRAMP_SHA256=$EXPECTED_TRAMP_SHA256" \
+            auth-boot/t2-out/p1b-t2-pack-gates.txt
+          grep -Fxq "T2_CHECKPOINT_SHA256=$EXPECTED_CHECKPOINT_SHA256" \
+            auth-boot/t2-out/p1b-t2-pack-gates.txt
+          grep -Fxq 'T2_BOOT_SIZE=37380096' \
+            auth-boot/t2-out/p1b-t2-pack-gates.txt
+          grep -Fxq 'T2_PROBE_ARCHITECTURE=INLINE' \
+            auth-boot/t2-out/p1b-t2-pack-gates.txt
+          grep -Fxq 'T2_INLINE_REGION_IN_KERNEL_TEXT=YES' \
+            auth-boot/t2-out/p1b-t2-pack-gates.txt
+          grep -Fxq 'T2_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY' \
+            auth-boot/t2-out/p1b-t2-pack-gates.txt
+          echo 'T2_PRIVATE_BOOT_IDENTITY_RECONFIRMED=YES'
+          echo 'T2_ARTIFACT_REBUILD_REQUIRED=NO (boot re-hashed, never re-packed)'
+          echo 'T2_PRIVATE_IDENTITY_REVERIFY=PASS'
+
+      - name: Verdict
+        run: |
+          {
+            echo "MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI (PRIVATE IDENTITY REVERIFY)"
+            echo "AUTHORITATIVE_PRIVATE_RUN=${{ inputs.reverify_run_id }}"
+            echo "T2_BOOT_SHA256=${{ inputs.expected_boot_sha256 }}"
+            echo "T2_BOOT_SIZE=37380096"
+            echo "T2_PROBE_ARCHITECTURE=INLINE"
+            echo "T2_DIAGNOSTIC_ONLY=YES"
+            echo "T2_NORMAL_KERNEL_BOOT_CANDIDATE=NO"
+            echo "DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "READY_FOR_DEVICE=NO"
+          } | tee "$GITHUB_STEP_SUMMARY"

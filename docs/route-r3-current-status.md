@@ -6,7 +6,60 @@ their historical results and are never rewritten; where an older doc says
 facts. Last updated: 2026-09-14
 (MAINLINE_V2_R3_P1B_T1_TRUE_DEVICE_CONTROL — EXECUTED, Case T1-A STRONG;
 `MAINLINE_V2_R3_P1B_T1_REACHABILITY_PROVEN`; one identity-gated `fastboot
-boot` of the frozen T1-8 boot, `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`).
+boot` of the frozen T1-8 boot, `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`;
+followed by MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI — CI only, no device
+operation).
+
+<!-- R3-STATUS-KV:BEGIN -->
+<!-- Machine-readable current state. The T2 CI source gate parses THIS block
+     as structured key/value pairs (T2_STATUS_GATE_SEMANTIC=YES) instead of
+     matching natural-language phrases. Keep the values exactly as shown. -->
+T0_STATUS=TRUE_DEVICE_PROVEN
+T0_TOTAL_S=14.252
+T1_STATUS=TRUE_DEVICE_PROVEN
+T1_TOTAL_S=14.238
+T1_MINUS_T0_S=-0.014
+R0_STATUS=PROVEN
+R1_STATUS=PROVEN
+R2_STATUS=PROVEN
+R3_STATUS=NOT_PROVEN
+R4_STATUS=NOT_PROVEN
+R5_STATUS=NOT_PROVEN
+R6_STATUS=NOT_PROVEN
+E0_STATUS=PROVEN
+E1_STATUS=NOT_PROVEN
+E2_STATUS=NOT_PROVEN
+T2_STATUS=PREDEVICE_READY
+T2_DEVICE_CONTROL=NOT_AUTHORIZED
+T3_STATUS=NOT_DEVICE_READY
+PANIC30_STATUS=COMPLETED
+PANIC30_SHIFT=NO_SUPPORTED_SHIFT
+FIX24_STATUS=FROZEN
+M5N_STATUS=FROZEN
+USB_STATUS=FROZEN
+CURRENT_B=M5D+M5H+M5M-B
+SLOT_A_WRITTEN=NO
+PARTITION_WRITES=0
+DEVICE_OPERATION=NO
+<!-- R3-STATUS-KV:END -->
+
+## T2 PREDEVICE ROUND (CI only, no device operation)
+
+`MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI` promotes T2 from a design note
+to a **unique, frozen, fail-closed, full-SHA identity-gated, MMU-on
+execution-safe, explainable** `__primary_switched` address-reachability
+candidate. It performs: authoritative kernel rebuild in GitHub Actions,
+`__primary_switched` and `primary_entry` re-derivation (never a history
+constant), original-instruction identity from three sources, an INLINE
+overwrite-safety audit (symbol / control-flow / relocation / absolute-literal /
+section-boundary scans), the T2 entry-CPU-state contract, CNTPCT and PSCI
+safety audits, byte-identity of the delay/reset core against the T0/T1
+proven sequence, single-region payload diff attribution, geometry, negative
+fixtures and T1-matched-control decoder fixtures.
+Full record: `docs/route-r3-p1b-t2-predevice-readiness.md`.
+No device was touched: `DEVICE_OPERATION=NO`, `PARTITION_WRITES=0`,
+`SLOT_A_WRITTEN=NO`. A T2 device round is a separate stage that requires its
+own explicit user approval.
 
 ## T1 TRUE DEVICE ROUND (EXECUTED 2026-09-14 05:30 UTC)
 
@@ -333,8 +386,11 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
   `T1_MINUS_T0 = −0.014 s`, R2 PROVEN) — the earlier T1 CI_PASS prototype was
   superseded by the frozen fail-closed T1-8 candidate of
   `MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI`, and that candidate has now
-  been consumed by its single authorized boot; T2 DESIGNED and NOT device
-  ready.
+  been consumed by its single authorized boot. T2 was DESIGNED through the T0
+  and T1 rounds; this round promotes it to PREDEVICE READY via
+  `MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI` (CI only). T2 is still NOT
+  device authorized — a T2 device round needs its own gate plus explicit user
+  approval.
 - Reachability ladder: R0 PROVEN | R1 PROVEN | R2 PROVEN (primary_entry
   ADDRESS) | R3 `__primary_switched` NOT_PROVEN | R4 `start_kernel+`
   NOT_PROVEN | R5 initramfs NOT_PROVEN | R6 `/init` NOT_PROVEN.
@@ -347,22 +403,25 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
 `MAINLINE_V2_R3_P1B_T1_TRUE_DEVICE_CONTROL` is COMPLETE with final gate
 `MAINLINE_V2_R3_P1B_T1_REACHABILITY_PROVEN`. The T1 PREDEVICE readiness stage
 is closed — its single authorized device boot has been consumed, and the token
-`T1 PREDEVICE` is retained in this document deliberately, because the CI
-source gate is a literal-substring check over this file (see the gate-token
-note below). The next candidate is
-**`MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI`** — CI / source-audit only,
-and it must separately resolve the dimensions a T1 positive deliberately
-leaves open: MMU-on environment, VA/PA, stack, checkpoint placement, CNTPCT
-availability under those conditions, PSCI reset and fail-closed semantics. It
-is NOT a T2 device run; a T2 device run would need its own readiness gate plus
-separate explicit user approval. Any T1 negative class (not observed, timing
-mismatch, stable fastboot, no return, boot not accepted) would instead route to
-`MAINLINE_V2_R3_P1B_T1_FAILURE_ISOLATION_CI`, never automatically to T2.
+`T1 PREDEVICE` is retained in this document deliberately, because the older CI
+source gates are literal-substring checks over this file (see the gate-token
+note below). `MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI` has now also
+completed (CI / source-audit only) and promotes T2 to PREDEVICE READY with the
+INLINE fail-closed `__primary_switched` checkpoint documented in
+`docs/route-r3-p1b-t2-predevice-readiness.md`. The next executable candidate is
+**`MAINLINE_V2_R3_P1B_T2_TRUE_DEVICE_CONTROL`** — exactly one identity-gated
+`fastboot boot` of the frozen T2-8 boot, `SECOND_BOOT_FORBIDDEN`,
+`SLOT_A` write forbidden. It is NOT authorized by this document; it requires
+its own explicit user approval. Any T2 negative class (not observed, timing
+mismatch, stable bootloader return, no return, boot not accepted) routes to
+`MAINLINE_V2_R3_P1B_T2_FAILURE_ISOLATION_CI`, never automatically to T3.
 
 ## Not-ready candidates
 
-- T2 device run: T2 still DESIGNED; needs `T2_PREDEVICE_READINESS_CI` first
-  plus separate user approval.
+- T2 device run: T2 is PREDEVICE READY but NOT device authorized; needs
+  separate user approval.
+- T3 (`start_kernel` or the earliest stable C-entry checkpoint): NOT device
+  ready, not designed yet.
 - FIX24, M5N, USB bring-up, UFS rootfs, network, drivers: frozen.
 - CopyMem forensics: priority LOWERED (T0 positive removes the transport
   suspicion that would have re-raised it).
@@ -386,6 +445,14 @@ The token is restored above and the wording is kept deliberately. Any future
 rewrite of these sections must re-check the token list before pushing, or the
 gate itself should be changed to a semantic check — the gate currently treats
 removing a phrase as a source-audit failure.
+
+Follow-up (2026-09-14, T2 round): the fragile literal-token approach is **not**
+extended. The T2 source gate reads the structured `R3-STATUS-KV` block above as
+parsed key/value pairs and reports `T2_STATUS_GATE_SEMANTIC=YES`. The older
+T0/T1 gates remain literal-substring checks and are left untouched, so the
+phrases they require (`T0 CI_PASS`, `T0 TRUE DEVICE`, `T1 PREDEVICE`,
+`T2 DESIGNED`, `PANIC30`, `FIX24`, `M5N`, `FROZEN`, `NOT_PROVEN`, `14.252`) are
+preserved verbatim in this document.
 
 ## Panic-audit anchors (corrected 2026-09-13)
 

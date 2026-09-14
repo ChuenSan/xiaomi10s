@@ -1,0 +1,528 @@
+name: thyme-r3-p1b-t2-predevice
+
+# MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI — CI / SOURCE AUDIT /
+# ARTIFACT PREPARATION ONLY. No device operation anywhere; this public
+# repository never emits a device-installable image (boot v3 packing is
+# private-GHA-only).
+# Deliverables:
+#   source-audit  boundary gate over the T2 INLINE diagnostic source
+#                 (fail-closed: any smc return -> wfe forever, no
+#                 __primary_switched continuation), the retained T1 CI
+#                 prototype, the T2 observer + fixtures, the docs and this
+#                 workflow, plus the STRUCTURED status-document gate
+#   t2-build      frozen-FIX8-anchored T2-8 candidate: authoritative kernel
+#                 rebuild (vmlinux + System.map), __primary_switched AND
+#                 primary_entry re-derivation (never a history constant),
+#                 original first-instruction confirmation from head.S +
+#                 payload bytes + vmlinux disassembly, image_size re-read from
+#                 the real header, inline-overwrite safety scan (symbol /
+#                 relocation / control-flow / section-boundary /
+#                 absolute-literal), entry-contract audit, T1-core byte
+#                 identity, frozen-byte payload patch, single-region diff
+#                 attribution, negative fixtures, T1-matched-control decoder
+#                 fixtures, observer fixtures; uploads artifact
+#                 thyme-r3-p1b-t2
+#   verify        independent structural re-verification of the uploaded T2
+#                 payload against the frozen FIX8 payload + RT-D trailer
+on:
+  push:
+    branches: [route-b-v3]
+    paths:
+      - '.github/workflows/thyme-r3-p1b-t2-predevice.yml'
+      - 'scripts/r3-p1b/p1b-t2-device.S'
+      - 'scripts/r3-p1b/p1b-t2-device.ld'
+      - 'scripts/r3-p1b/p1b-t2-predevice.py'
+      - 'scripts/r3-p1b/p1b-t1-device.S'
+      - 'scripts/r3-p1b/p1b-t1-device.ld'
+      - 'scripts/r3-p1b/p1b-t1-gap-probe.S'
+      - 'scripts/r3-p1b/observe-r3-p1b-t2.py'
+      - 'scripts/r3-p1b/observer-t2-fixtures.py'
+      - 'scripts/r3-p1b/p1b-panic-checkpoint-isolation.py'
+      - 'scripts/r3-p1b/p1b-build.py'
+      - 'scripts/r3-p1b/p1b-trampoline.S'
+      - 'scripts/r3-p1b/p1b-trampoline.ld'
+      - 'docs/route-r3-p1b-t2-predevice-readiness.md'
+      - 'docs/route-r3-current-status.md'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-p1b-t2-predevice.yml'
+      - 'scripts/r3-p1b/**'
+      - 'docs/route-r3-p1b-t2-predevice-readiness.md'
+  workflow_dispatch:
+    inputs:
+      rt_d_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-runtime-dtb
+        required: false
+        default: "34678001413"
+      fix8_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-p1b-fix8-fix24
+        required: false
+        default: "34741153230"
+
+concurrency:
+  group: thyme-r3-p1b-t2-predevice-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: R3 P1B T2 predevice source gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-r3-p1b-t2-predevice.yml
+
+      - name: Parse builders
+        run: |
+          python3 -m py_compile scripts/r3-p1b/p1b-build.py
+          python3 -m py_compile scripts/r3-p1b/p1b-panic-checkpoint-isolation.py
+          python3 -m py_compile scripts/r3-p1b/p1b-t2-predevice.py
+          python3 -m py_compile scripts/r3-p1b/observe-r3-p1b-t2.py
+          python3 -m py_compile scripts/r3-p1b/observer-t2-fixtures.py
+
+      - name: T2 predevice source-gate
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1b/p1b-t2-predevice.py --mode source-gate
+
+      - name: Assert constraints
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -Ei '(^|/)(r3-p1b|p1b).*\.(img)$'; then
+            echo 'tracked p1b device image found' >&2
+            exit 1
+          fi
+          echo 'LOCAL_BUILD=NO'
+          echo 'GHA_ONLY=YES'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'HOST_DEVICE_INTERFACE=UNUSED'
+          echo 'PARTITION_WRITES=0'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+  t2-build:
+    name: R3 P1B T2-8 fail-closed inline build + identity/diff/geometry gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    needs: [source-audit]
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install pinned LLVM 18.1.3 toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang lld llvm make gcc bc bison flex libssl-dev libelf-dev \
+            cpio file python3 gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu
+          clang --version | head -1 | tee clang-version.txt
+          grep -F '18.1.3' clang-version.txt
+          echo "TOOLCHAIN_PINNED=$(clang --version | head -1)"
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          base=$(git -C linux-6.6 rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base"
+          test "$base" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+      - name: Download frozen RT-D from public GHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RT_D_RUN_ID: ${{ inputs.rt_d_run_id || '34678001413' }}
+        run: |
+          set -euo pipefail
+          gh run download "$RT_D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-runtime-dtb --dir rt-d
+          test -s rt-d/rt-d.dtb
+          printf '%s  rt-d/rt-d.dtb\n' \
+            4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 \
+            | sha256sum -c -
+          echo 'RT_D_SOURCE=PUBLIC_GHA_RUN'
+
+      - name: Download frozen FIXED INIT8 payload from public GHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FIX8_RUN_ID: ${{ inputs.fix8_run_id || '34741153230' }}
+        run: |
+          set -euo pipefail
+          gh run download "$FIX8_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-fix8-fix24 --dir fix8
+          test -s fix8/thyme-r3-p1b-fix8-kernel-payload.bin
+          printf '%s  fix8/thyme-r3-p1b-fix8-kernel-payload.bin\n' \
+            4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 \
+            | sha256sum -c -
+          echo 'FIX8_PAYLOAD_BASE=PUBLIC_GHA_RUN_34741153230'
+
+      - name: Build fail-closed T2-8 + run all gates
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          mkdir -p out-t2
+          python3 scripts/r3-p1b/p1b-t2-predevice.py \
+            --mode t2 --out out-t2 --jobs "$(nproc)" \
+            --rt-d rt-d/rt-d.dtb \
+            --fix8-payload fix8/thyme-r3-p1b-fix8-kernel-payload.bin \
+            | tee out-t2-run.txt
+          grep -Fxq 'T2_BUILD_GATES=PASS' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_BASELINE=FROZEN_FIX8' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_PRIMARY_SWITCHED_REDERIVED=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_PRIMARY_ENTRY_OFFSET_REDERIVED=YES' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_PRIMARY_SWITCHED_ORIGINAL_INSN=adrp x4, init_task' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_PRIMARY_SWITCHED_ORIGINAL_INSN_SOURCES_AGREE=YES' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'IMAGE_HEADER_IMAGE_SIZE_REDERIVED=YES' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_PROBE_ARCHITECTURE=INLINE' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_INLINE_OVERWRITE_SAFE=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_SYMBOL_SCAN=PASS' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_BRANCH_SCAN=PASS' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_RELOCATION_SCAN=PASS' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_LITERAL_SCAN=PASS' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_CONTROL_FLOW_SCAN=PASS' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_SECTION_BOUNDARY_SCAN=PASS' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_ALT_EX_TABLE_HAZARD=NO_POST_START_KERNEL_ONLY' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_MAPPING_SOURCE=KERNEL_TEXT_VA_SELF_EVIDENT' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_MAPPING_EXECUTABLE=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_EXTERNAL_CHECKPOINT_USED=NO' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_PADDING_MAPPING_USED=NO' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_ENTRY_MMU=ON' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_ENTRY_PC_ADDRESS_SPACE=VA' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_ENTRY_SP_VALID=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_REACH_IMPLIES_MMU_ENABLE_PATH_EXECUTED=YES' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_DEVICE_CANDIDATE_DELAY=8s' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_TIMER_PRIMITIVE=CNTPCT_REGISTER_ONLY' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_CNTPCT_ACCESS_SAFE=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_RESET_PRIMITIVE=PSCI_SYSTEM_RESET_0x84000009_SMC' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_PSCI_SYSTEM_RESET_SAFE=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_FAIL_CLOSED=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_STACK_USAGE=NO' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_NO_MEMORY_READS=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_NO_MEMORY_WRITES=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_DIAGNOSTIC_CORE_MATCHES_T1=YES' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_POSITION_INDEPENDENT=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_RUNTIME_RELOCATIONS=0' out-t2/p1b-t2-gates.txt
+          grep -Fxq \
+            'T2_RUNTIME_SEMANTIC_DELTA=PRIMARY_SWITCHED_REACHABILITY_CHECKPOINT_ONLY' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_PRECHECKPOINT_HEADS_PATH_IDENTICAL_TO_FIX8=YES' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_TRAMPOLINE_IDENTICAL_TO_FIX8=YES' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_RT_D_IDENTITY=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_INIT_IDENTITY=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_INITRAMFS_IDENTITY=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq \
+            'T2_PAYLOAD_DIFF_ATTRIBUTED=PRIMARY_SWITCHED_CHECKPOINT_ONLY' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_PAYLOAD_SIZE_IDENTICAL=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_BOOT_SIZE_IDENTICAL=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_GEOMETRY_GATES=PASS' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_NEGATIVE_FIXTURES=PASS' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_DECODER_FIXTURES=PASS' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_STATUS_GATE_SEMANTIC=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_DIAGNOSTIC_ONLY=YES' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T2_NORMAL_KERNEL_BOOT_CANDIDATE=NO' \
+            out-t2/p1b-t2-gates.txt
+          grep -Fxq 'T3_STATUS=NOT_DEVICE_READY' out-t2/p1b-t2-gates.txt
+          grep -Fxq 'READY_FOR_DEVICE=NO' out-t2/p1b-t2-gates.txt
+          grep -Eq '^T2_NEGATIVE_FIXTURE_COUNT=3[0-9]$' \
+            out-t2/p1b-t2-negative-fixtures.txt
+
+      - name: T2 observer fixtures
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1b/p1b-t2-predevice.py \
+            --mode observer-fixtures --out out-t2
+          grep -Fxq 'OBSERVER_T2_AST_DEADLOCK_GATE=PASS' \
+            out-t2/p1b-t2-observer-fixtures.txt
+          grep -Fxq 'OBSERVER_T2_IDENTITY_T0_BOOT_MISBOOT_REFUSED=PASS' \
+            out-t2/p1b-t2-observer-fixtures.txt
+          grep -Fxq 'OBSERVER_T2_IDENTITY_T1_BOOT_MISBOOT_REFUSED=PASS' \
+            out-t2/p1b-t2-observer-fixtures.txt
+          grep -Fxq 'OBSERVER_T2_IDENTITY_FIX8_BOOT_MISBOOT_REFUSED=PASS' \
+            out-t2/p1b-t2-observer-fixtures.txt
+          grep -Fxq 'OBSERVER_T2_IDENTITY_PANIC30_BOOT_MISBOOT_REFUSED=PASS' \
+            out-t2/p1b-t2-observer-fixtures.txt
+          grep -Fxq 'OBSERVER_T2_IDENTITY_EXACT_MATCH_ACCEPTED=PASS' \
+            out-t2/p1b-t2-observer-fixtures.txt
+          grep -Fxq 'OBSERVER_T2_DECODER_CASES_A_TO_F=PASS' \
+            out-t2/p1b-t2-observer-fixtures.txt
+          grep -Fxq 'OBSERVER_T2_SUMMARY_FIXTURE=PASS' \
+            out-t2/p1b-t2-observer-fixtures.txt
+
+      - name: Assert no device image was emitted
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_P1B_T2_NO_DEVICE_IMAGE=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+
+      - name: Stage T2 release inputs
+        run: |
+          mkdir -p out-t2-release
+          cp out-t2/thyme-r3-p1b-t2-kernel-payload.bin out-t2-release/
+          cp out-t2/p1b-t2-checkpoint.bin out-t2/p1b-t2-checkpoint.elf \
+            out-t2/p1b-t2-checkpoint-disasm.txt out-t2-release/
+          cp out-t2/p1b-t1-core-reference.bin \
+            out-t2/p1b-t1-core-reference-disasm.txt out-t2-release/
+          cp out-t2/p1b-t2-primary-switched-vmlinux-disasm.txt out-t2-release/
+          cp out-t2/p1b-t2-original-covered-insns-record-disasm.txt \
+            out-t2-release/
+          cp out-t2/p1b-t2-vmlinux-sections.txt out-t2-release/
+          cp out-t2/p1b-t2-vmlinux-relocations.txt out-t2-release/
+          cp out-t2/p1b-t2-sysmap-excerpt.txt out-t2-release/
+          cp out-t2/p1b-t2-payload-diff-report.txt out-t2-release/
+          cp out-t2/p1b-t2-negative-fixtures.txt out-t2-release/
+          cp out-t2/p1b-t2-decoder-fixtures.txt out-t2-release/
+          cp out-t2/p1b-t2-observer-fixtures.txt out-t2-release/
+          cp out-t2/p1b-t2-report.txt out-t2/p1b-t2-manifest.json \
+            out-t2/p1b-t2-gates.txt out-t2-release/
+          cp out-t2-run.txt out-t2-release/
+          ( cd out-t2-release && sha256sum \
+              thyme-r3-p1b-t2-kernel-payload.bin \
+              p1b-t2-checkpoint.bin \
+              p1b-t1-core-reference.bin \
+              > SHA256SUMS )
+          cat out-t2-release/SHA256SUMS
+
+      - name: Upload T2 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-t2
+          if-no-files-found: error
+          path: out-t2-release/**
+
+  verify:
+    name: R3 P1B T2 independent re-verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: t2-build
+    steps:
+      - name: Download this run artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh run download "$RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-t2 --dir art
+          ( cd art && sha256sum -c SHA256SUMS )
+          echo 'ARTIFACT_SHA_RECHECK=PASS'
+
+      - name: Download frozen FIX8 payload + RT-D again
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FIX8_RUN_ID: ${{ inputs.fix8_run_id || '34741153230' }}
+          RT_D_RUN_ID: ${{ inputs.rt_d_run_id || '34678001413' }}
+        run: |
+          set -euo pipefail
+          gh run download "$FIX8_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-fix8-fix24 --dir fix8
+          printf '%s  fix8/thyme-r3-p1b-fix8-kernel-payload.bin\n' \
+            4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 \
+            | sha256sum -c -
+          gh run download "$RT_D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-runtime-dtb --dir rt-d
+          printf '%s  rt-d/rt-d.dtb\n' \
+            4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 \
+            | sha256sum -c -
+
+      - name: Independent structured re-verification
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, struct
+          from pathlib import Path
+
+          def sha(b): return hashlib.sha256(b).hexdigest()
+          def sx(v, bits):
+              m = 1 << bits
+              return v - m if v & (m >> 1) else v
+          def align(v, a): return (v + a - 1) // a * a
+
+          t2 = Path("art/thyme-r3-p1b-t2-kernel-payload.bin").read_bytes()
+          fix8 = Path("fix8/thyme-r3-p1b-fix8-kernel-payload.bin").read_bytes()
+          rtd = Path("rt-d/rt-d.dtb").read_bytes()
+          ckbin = Path("art/p1b-t2-checkpoint.bin").read_bytes()
+          t1core = Path("art/p1b-t1-core-reference.bin").read_bytes()
+          m = json.loads(Path("art/p1b-t2-manifest.json").read_text())
+
+          if sha(t2) != m["t2_payload_sha256"]:
+              raise SystemExit("T2_VERIFY_FAILED payload sha vs manifest")
+          if len(t2) != 37369041 or len(fix8) != len(t2):
+              raise SystemExit(f"T2_VERIFY_FAILED size {len(t2)}")
+          if sha(ckbin) != m["t2_checkpoint_sha256"]:
+              raise SystemExit("T2_VERIFY_FAILED checkpoint sha vs manifest")
+          if ckbin != t1core:
+              raise SystemExit("T2_VERIFY_FAILED T2 core != T1 core")
+          if m["t2_diagnostic_core_matches_t1"] is not True:
+              raise SystemExit("T2_VERIFY_FAILED core identity flag")
+          if len(ckbin) != 76:
+              raise SystemExit(f"T2_VERIFY_FAILED core size {len(ckbin)}")
+
+          # Section 11/33: re-read image_size from the real headers.
+          isz_t2 = struct.unpack_from("<Q", t2, 16)[0]
+          isz_fix8 = struct.unpack_from("<Q", fix8, 16)[0]
+          if isz_t2 != isz_fix8 or isz_t2 <= 0:
+              raise SystemExit(f"T2_VERIFY_FAILED image_size {isz_t2:#x}")
+          dtb_off = align(isz_t2 + 0x80000, 0x200000) - 0x80000
+          if dtb_off != 0x2380000:
+              raise SystemExit(f"T2_VERIFY_FAILED dtb_offset {dtb_off:#x}")
+          if struct.unpack_from("<I", t2, 4)[0] != 0x1400000F:
+              raise SystemExit("T2_VERIFY_FAILED code1")
+
+          off_ps = int(m["primary_switched_image_offset"], 16)
+          plen = int(m["t2_checkpoint_size"])
+          off_primary = int(m["primary_entry_offset"], 16)
+          if m["primary_entry_patched"] is not False:
+              raise SystemExit("T2_VERIFY_FAILED primary_entry patched")
+          # INLINE: the single diff region is the __primary_switched window.
+          allowed = set(range(off_ps, off_ps + plen))
+          diffs = [i for i in range(len(fix8)) if fix8[i] != t2[i]]
+          bad = [i for i in diffs if i not in allowed]
+          if bad:
+              raise SystemExit(f"T2_VERIFY_FAILED diff outside region {bad[:8]}")
+          if not diffs:
+              raise SystemExit("T2_VERIFY_FAILED empty diff region")
+          if t2[:off_ps] != fix8[:off_ps]:
+              raise SystemExit("T2_VERIFY_FAILED pre-T2 path modified")
+          if t2[off_ps:off_ps + plen] != ckbin:
+              raise SystemExit("T2_VERIFY_FAILED inline region bytes")
+          print(f"T2_VERIFY_DIFF_BYTE_COUNT={len(diffs)}")
+          print(f"T2_VERIFY_DIFF_RANGES=[{off_ps:#x},{off_ps+plen:#x})")
+          print("T2_VERIFY_DIFF_ATTRIBUTION="
+                "PRIMARY_SWITCHED_CHECKPOINT_ONLY")
+          print("T2_VERIFY_PRIMARY_ENTRY_UNPATCHED=YES")
+
+          # Trampoline identity: byte-identical to frozen FIX8.
+          tramp = t2[0x40:0x70]
+          if sha(tramp) != ("362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d"
+                            "747dc623"):
+              raise SystemExit("T2_VERIFY_FAILED trampoline != frozen FIX8")
+          if tramp != fix8[0x40:0x70]:
+              raise SystemExit("T2_VERIFY_FAILED trampoline bytes differ")
+          tw = struct.unpack_from("<12I", tramp, 0)
+          if (tw[8] >> 26) != 0b000101:
+              raise SystemExit("T2_VERIFY_FAILED trampoline word[8] not B")
+          if 0x40 + 0x20 + sx(tw[8] & 0x03FFFFFF, 26) * 4 != off_primary:
+              raise SystemExit("T2_VERIFY_FAILED trampoline branch target")
+          print("T2_VERIFY_TRAMPOLINE=FROZEN_FIX8_BYTE_IDENTICAL")
+
+          # Fail-closed terminal structure decoded from raw words.
+          words = struct.unpack_from(f"<{plen // 4}I", ckbin, 0)
+          smc = [i for i, w in enumerate(words) if w == 0xD4000003]
+          if len(smc) != 1:
+              raise SystemExit(f"T2_VERIFY_FAILED smc count {smc}")
+          i = smc[0]
+          if words[i + 1] != 0xD503205F:
+              raise SystemExit("T2_VERIFY_FAILED no wfe after smc")
+          w = words[i + 2]
+          if (w >> 26) != 0b000101:
+              raise SystemExit("T2_VERIFY_FAILED no branch after wfe")
+          target = (i + 2) * 4 + sx(w & 0x03FFFFFF, 26) * 4
+          if target != (i + 1) * 4:
+              raise SystemExit(
+                  f"T2_VERIFY_FAILED terminal b {target:#x} != wfe {(i+1)*4:#x}")
+          if words[3] != 0xD280010A:
+              raise SystemExit(f"T2_VERIFY_FAILED delay word {words[3]:#010x}")
+          for idx, w in enumerate(words):
+              addr = idx * 4
+              top = w >> 26
+              if top == 0b000101 or top == 0b100101:
+                  t = addr + sx(w & 0x03FFFFFF, 26) * 4
+              elif (w >> 24) == 0x54:
+                  t = addr + sx((w >> 5) & 0x7FFFF, 19) * 4
+              else:
+                  continue
+              if not (0 <= t < plen):
+                  raise SystemExit(
+                      f"T2_VERIFY_FAILED branch leaves checkpoint: "
+                      f"{addr:#x} -> {t:#x}")
+          print("T2_VERIFY_FAIL_CLOSED=SMC_WFE_LOOP_NO_CONTINUATION")
+
+          # The inline window must sit AFTER primary_entry and inside the
+          # Image file, i.e. inside kernel text and not in any trailing pad.
+          file_size = int(m["image_file_size"])
+          if off_ps <= off_primary or (off_ps + plen) > file_size:
+              raise SystemExit(
+                  f"T2_VERIFY_FAILED inline window {off_ps:#x}+{plen} outside "
+                  f"kernel text (file {file_size}, primary {off_primary:#x})")
+          print(f"T2_VERIFY_INLINE_WINDOW_INSIDE_KERNEL_TEXT=YES "
+                f"start={off_ps:#x} end={off_ps+plen:#x}")
+
+          # RT-D trailer + geometry identity.
+          if t2[dtb_off:] != rtd or sha(rtd) != (
+                  "4849743205af9d00f4b5bcd01070aac68be7dc6095497506935"
+                  "6d29fe33df327") or len(rtd) != 144593:
+              raise SystemExit("T2_VERIFY_FAILED trailer != frozen RT-D")
+          boot_est = (4096 + len(t2) + 4095) & ~4095
+          boot_est += 4096
+          if boot_est != 37380096:
+              raise SystemExit(f"T2_VERIFY_FAILED boot_est {boot_est}")
+          if 201326592 - boot_est < 0x1000000:
+              raise SystemExit("T2_VERIFY_FAILED capacity")
+          print(f"T2_VERIFY_IMAGE_HEADER_IMAGE_SIZE={isz_t2:#x}")
+          print(f"T2_VERIFY_IMAGE_FILE_SIZE={file_size}")
+          print(f"T2_VERIFY_PRIMARY_SWITCHED_OFFSET={off_ps:#x} size={plen}")
+          print(f"T2_VERIFY_PAYLOAD_SIZE={len(t2)} boot_size_est={boot_est}")
+          print("T2_VERIFY_GATES=PASS")
+          print("DEVICE_OPERATION=NO")
+          print("READY_FOR_DEVICE=NO")
+          PY
+
+      - name: Assert constraints + assemble verdict
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          {
+            echo "MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI (CI ONLY)"
+            echo "DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "--- gates ---"
+            cat art/p1b-t2-gates.txt
+            echo "--- manifest ---"
+            cat art/p1b-t2-manifest.json
+          } > verdict.txt
+          cat verdict.txt >> "$GITHUB_STEP_SUMMARY"
+          echo 'T2_PREDEVICE_READINESS_CI_VERDICT=CI_PASS'
