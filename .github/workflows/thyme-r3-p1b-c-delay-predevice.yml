@@ -1,0 +1,655 @@
+name: thyme-r3-p1b-c-delay-predevice
+
+# MAINLINE_V2_R3_P1B_C_DELAY_PREDEVICE_READINESS_CI — CI / SOURCE AUDIT /
+# ARTIFACT PREPARATION ONLY. No device operation anywhere; this public
+# repository never emits a device-installable image (pack v3 is private
+# only).
+# Deliverables:
+#   source-audit   boundary gate over the T4 INLINE post-stage C diagnostic
+#                  source (fail-closed: any smc return -> wfe forever, no
+#                  start_kernel continuation), T4 observer + fixtures, T4
+#                  scripts, c-stage-map, this workflow
+#   map-reverify   re-run Agent B c-stage-map source-identity / source-audit
+#                  / negative-fixtures on this tree (no vmlinux rebuild)
+#   c-delay-build       frozen-FIX8-anchored T4-8 candidate: authoritative kernel
+#                  rebuild, selected C-stage checkpoint, T3/T2 probe removal,
+#                  T1-core identity, geometry, negative/decoder/observer
+#                  fixtures; uploads artifact thyme-r3-p1b-c-delay
+#   verify         independent structural re-verification of the uploaded T4
+#                  payload against the frozen FIX8 payload + RT-D trailer
+on:
+  push:
+    branches: [route-b-v3, route-b-v3-c-delay-integration]
+    paths:
+      - '.github/workflows/thyme-r3-p1b-c-delay-predevice.yml'
+      - 'scripts/r3-p1b/p1b-c-delay-device.S'
+      - 'scripts/r3-p1b/p1b-c-delay-device.ld'
+      - 'scripts/r3-p1b/p1b-c-delay-predevice.py'
+      - 'scripts/r3-p1b/observe-r3-p1b-c-delay.py'
+      - 'scripts/r3-p1b/observer-c-delay-fixtures.py'
+      - 'scripts/r3-p1b/p1b-t3-device.S'
+      - 'scripts/r3-p1b/p1b-t3-device.ld'
+      - 'scripts/r3-p1b/p1b-t2-device.S'
+      - 'scripts/r3-p1b/p1b-t2-device.ld'
+      - 'scripts/r3-p1b/p1b-t1-device.S'
+      - 'scripts/r3-p1b/p1b-t1-device.ld'
+      - 'scripts/r3-p1b/p1b-build.py'
+      - 'scripts/r3-p1b/p1b-trampoline.S'
+      - 'scripts/r3-p1b/p1b-trampoline.ld'
+      - 'scripts/r3-c-stage-audit/c-stage-map.py'
+      - 'scripts/r3-c-stage-audit/**'
+      - 'docs/route-r3-p1b-c-delay-predevice-readiness.md'
+      - 'docs/route-r3-early-c-stage-map.md'
+      - 'docs/route-r3-current-status.md'
+      - 'artifacts/p1b-c-delay-private-workflow-staging.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-p1b-c-delay-predevice.yml'
+      - 'scripts/r3-p1b/**'
+      - 'scripts/r3-c-stage-audit/**'
+      - 'docs/route-r3-p1b-c-delay-predevice-readiness.md'
+      - 'docs/route-r3-early-c-stage-map.md'
+  workflow_dispatch:
+    inputs:
+      rt_d_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-runtime-dtb
+        required: false
+        default: "34678001413"
+      fix8_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-p1b-fix8-fix24
+        required: false
+        default: "34741153230"
+
+concurrency:
+  group: thyme-r3-p1b-c-delay-predevice-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: R3 P1B C_DELAY predevice source gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-r3-p1b-c-delay-predevice.yml
+
+      - name: Parse T4 scripts + c-stage-map
+        run: |
+          python3 -m py_compile scripts/r3-p1b/p1b-c-delay-predevice.py
+          python3 -m py_compile scripts/r3-p1b/p1b-t3-predevice.py
+          python3 -m py_compile scripts/r3-p1b/observe-r3-p1b-c-delay.py
+          python3 -m py_compile scripts/r3-p1b/observer-c-delay-fixtures.py
+          python3 -m py_compile scripts/r3-c-stage-audit/c-stage-map.py
+          python3 -m py_compile scripts/r3-p1b/p1b-build.py
+
+      - name: T4 predevice source-gate
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1b/p1b-c-delay-predevice.py --mode source-gate
+
+      - name: Assert constraints
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -Ei '(^|/)(r3-p1b|p1b).*\.(img)$'; then
+            echo 'tracked p1b device image found' >&2
+            exit 1
+          fi
+          echo 'LOCAL_BUILD=NO'
+          echo 'GHA_ONLY=YES'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'HOST_DEVICE_INTERFACE=UNUSED'
+          echo 'PARTITION_WRITES=0'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+  map-reverify:
+    name: R3 early C-stage map re-verify (no vmlinux rebuild)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch isolation base
+        run: git fetch origin route-b-v3:refs/remotes/origin/route-b-v3 || true
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          base=$(git -C linux-6.6 rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base"
+          test "$base" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+      - name: Source identity + audit + negative fixtures
+        env:
+          GITHUB_ACTIONS: "true"
+          C_STAGE_ISOLATION_BASE: origin/route-b-v3
+        run: |
+          set -euo pipefail
+          mkdir -p out-c-stage
+          python3 scripts/r3-c-stage-audit/c-stage-map.py \
+            --mode source-identity | tee out-c-stage/source-identity-run.txt
+          python3 scripts/r3-c-stage-audit/c-stage-map.py \
+            --mode source-audit --out out-c-stage \
+            | tee out-c-stage/source-audit-run.txt
+          python3 scripts/r3-c-stage-audit/c-stage-map.py \
+            --mode negative-fixtures --out out-c-stage \
+            | tee out-c-stage/neg-run.txt
+          grep -Fq 'SOURCE_AUDIT=PASS' out-c-stage/source-audit-run.txt
+          grep -Fq 'AGENT_A_FILE_ISOLATION=PASS' out-c-stage/source-audit-run.txt
+          grep -Fq 'PARSE_ARGS_AFTER_SETUP_ARCH=YES' out-c-stage/source-audit-run.txt
+          grep -Fq 'PANIC_IS_CORE_PARAM=YES' out-c-stage/source-audit-run.txt
+          grep -Fq 'CALIBRATE_DELAY_POST_PARSE_ARGS=YES' out-c-stage/source-audit-run.txt
+          grep -Fq 'C_STAGE_MAP_DEPENDS_ON_T3_RESULT=NO' out-c-stage/source-audit-run.txt
+          grep -Fxq 'T3_RESULT_INDEPENDENCE_FIXTURE=PASS' \
+            out-c-stage/negative-fixtures.txt
+          grep -Fq 'T3_RESULT_INDEPENDENCE_FIXTURE=PASS' out-c-stage/neg-run.txt
+          grep -Fq 'AGENT_A_FILE_ISOLATION=PASS' out-c-stage/neg-run.txt
+          echo 'MAP_REVERIFY_NO_VMLINUX_REBUILD=YES'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+
+      - name: Upload map re-verify artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-c-delay-map-reverify
+          if-no-files-found: error
+          path: |
+            out-c-stage/source-audit.json
+            out-c-stage/negative-fixtures.txt
+
+  c-delay-build:
+    name: R3 P1B C_DELAY-8 fail-closed inline build + identity/diff/geometry gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    needs: [source-audit, map-reverify]
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install pinned LLVM 18.1.3 toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang lld llvm make gcc bc bison flex libssl-dev libelf-dev \
+            cpio file python3 gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu
+          clang --version | head -1 | tee clang-version.txt
+          grep -F '18.1.3' clang-version.txt
+          echo "TOOLCHAIN_PINNED=$(clang --version | head -1)"
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          base=$(git -C linux-6.6 rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base"
+          test "$base" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+      - name: Download frozen RT-D from public GHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RT_D_RUN_ID: ${{ inputs.rt_d_run_id || '34678001413' }}
+        run: |
+          set -euo pipefail
+          gh run download "$RT_D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-runtime-dtb --dir rt-d
+          test -s rt-d/rt-d.dtb
+          printf '%s  rt-d/rt-d.dtb\n' \
+            4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 \
+            | sha256sum -c -
+          echo 'RT_D_SOURCE=PUBLIC_GHA_RUN'
+
+      - name: Download frozen FIXED INIT8 payload from public GHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FIX8_RUN_ID: ${{ inputs.fix8_run_id || '34741153230' }}
+        run: |
+          set -euo pipefail
+          gh run download "$FIX8_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-fix8-fix24 --dir fix8
+          test -s fix8/thyme-r3-p1b-fix8-kernel-payload.bin
+          printf '%s  fix8/thyme-r3-p1b-fix8-kernel-payload.bin\n' \
+            4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 \
+            | sha256sum -c -
+          echo 'FIX8_PAYLOAD_BASE=PUBLIC_GHA_RUN_34741153230'
+
+      - name: Build fail-closed T4-8 + run all gates
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          mkdir -p out-c-delay
+          python3 scripts/r3-p1b/p1b-c-delay-predevice.py \
+            --mode c-delay --out out-c-delay --jobs "$(nproc)" \
+            --rt-d rt-d/rt-d.dtb \
+            --fix8-payload fix8/thyme-r3-p1b-fix8-kernel-payload.bin \
+            | tee out-c-delay-run.txt
+          G=out-c-delay/p1b-c-delay-gates.txt
+          grep -Fxq 'C_DELAY_BUILD_GATES=PASS' "$G"
+          grep -Fxq 'C_DELAY_BASELINE=FROZEN_FIX8' "$G"
+          grep -Fxq 'C_DELAY_MAP_JSON_CONSUMED=YES' "$G"
+          grep -Fxq 'C_DELAY_MAP_CRITICAL_POINTS_REDERIVED=YES' "$G"
+          grep -Fxq 'EARLY_C_STAGE_MAP_REVERIFIED_ON_A_MAINLINE=YES' "$G"
+          grep -E 'C_DELAY_SELECTED_STAGE=C_DELAY_CALIBRATE_DELAY_COMPLETE' "$G"
+          grep -Fxq 'C_DELAY_CHECKPOINT_IS_POSTCALL=YES' "$G"
+          grep -Fxq 'C_DELAY_POSTCALL_CONTROL_FLOW_PROVEN=YES' "$G"
+          grep -Fxq 'C_DELAY_PROBE_ARCHITECTURE=INLINE' "$G"
+          grep -Fxq 'C_DELAY_INLINE_OVERWRITE_SAFE=YES' "$G"
+          grep -Fxq 'C_DELAY_ENTRY_INSTRUMENTATION_AUDITED=YES' "$G"
+          grep -Fxq 'C_DELAY_WINDOW_INSIDE_IMAGE_SIZE=YES' "$G"
+          grep -Fxq 'C_DELAY_MAPPING_SOURCE=KERNEL_TEXT_VA_SELF_EVIDENT' "$G"
+          grep -Fxq 'C_DELAY_INLINE_MAPPING_EXECUTABLE=YES' "$G"
+          grep -Fxq 'C_DELAY_EXTERNAL_CHECKPOINT_USED=NO' "$G"
+          grep -Fxq 'C_DELAY_PADDING_MAPPING_USED=NO' "$G"
+          grep -Fxq 'C_DELAY_DEVICE_CANDIDATE_DELAY=8s' "$G"
+          grep -Fxq 'C_DELAY_TIMER_PRIMITIVE=CNTPCT_REGISTER_ONLY' "$G"
+          grep -Fxq 'C_DELAY_CNTPCT_SAFE=YES' "$G"
+          grep -Fxq 'C_DELAY_RESET_PRIMITIVE=PSCI_SYSTEM_RESET_0x84000009_SMC' "$G"
+          grep -Fxq 'C_DELAY_PSCI_SAFE=YES' "$G"
+          grep -Fxq 'C_DELAY_FAIL_CLOSED=YES' "$G"
+          grep -Fxq 'C_DELAY_STACK_USAGE=NO' "$G"
+          grep -Fxq 'C_DELAY_NO_MEMORY_READS=YES' "$G"
+          grep -Fxq 'C_DELAY_NO_MEMORY_WRITES=YES' "$G"
+          grep -Fxq 'C_DELAY_DIAGNOSTIC_CORE_MATCHES_T3=YES' "$G"
+          grep -Fxq 'C_DELAY_DIAGNOSTIC_CORE_MATCHES_T1=YES' "$G"
+          grep -Fxq 'C_DELAY_RUNTIME_RELOCATIONS=0' "$G"
+          grep -Fxq 'T4_PROBE_REMOVED_FROM_C_DELAY=YES' "$G"
+          grep -Fxq 'START_KERNEL_ENTRY_RESTORED_TO_FIX8=YES' "$G"
+          grep -Fxq 'C_DELAY_PRECHECKPOINT_NORMAL_PATH_IDENTICAL_TO_FIX8=YES' "$G"
+          grep -Fxq 'C_DELAY_TRAMPOLINE_IDENTICAL=YES' "$G"
+          grep -Fxq 'C_DELAY_RT_D_IDENTITY=YES' "$G"
+          grep -Fxq 'C_DELAY_INIT_IDENTITY=YES' "$G"
+          grep -Fxq 'C_DELAY_INITRAMFS_IDENTITY=YES' "$G"
+          grep -Fxq 'C_DELAY_PAYLOAD_DIFF_ATTRIBUTED=POST_CALIBRATE_DELAY_CHECKPOINT_ONLY' "$G"
+          grep -Fxq 'C_DELAY_PAYLOAD_SIZE_IDENTICAL=YES' "$G"
+          grep -Fxq 'C_DELAY_BOOT_SIZE_IDENTICAL=YES' "$G"
+          grep -Fxq 'C_DELAY_DTB_OFFSET=0x2380000' "$G"
+          grep -Fxq 'C_DELAY_GEOMETRY_GATES=PASS' "$G"
+          grep -Fxq 'C_DELAY_NEGATIVE_FIXTURES=PASS' "$G"
+          grep -Fxq 'C_DELAY_DECODER_FIXTURES=PASS' "$G"
+          grep -Fxq 'C_DELAY_DIAGNOSTIC_ONLY=YES' "$G"
+          grep -Fxq 'C_DELAY_NORMAL_KERNEL_BOOT_CANDIDATE=NO' "$G"
+          grep -Fxq 'C_DELAY_STATUS=NOT_DEVICE_READY' "$G"
+          grep -Fxq 'READY_FOR_DEVICE=NO' "$G"
+          grep -Fxq 'C6_PANIC_PARAMETER_EFFECTIVE_BY_STAGE=YES' "$G"
+          grep -Fxq 'C6_RDINIT_PARAMETER_EFFECTIVE_BY_STAGE=YES' "$G"
+          grep -Fxq 'PARSE_EARLY_PARAM_EFFECTIVE_INSIDE_SETUP_ARCH=YES' "$G"
+          grep -Fxq 'C6_TO_C_DELAY_NORMAL_PATH_AUDITED=YES' "$G"
+          grep -Fxq 'CALIBRATE_DELAY_RUNTIME_CALL_REQUIRED=YES' "$G"
+          grep -Fxq 'C_DELAY_CHECKPOINT_IS_POSTCALL=YES' "$G"
+          grep -Fxq 'C6_REGION_IDENTICAL_TO_FIX8=YES' "$G"
+          grep -Fxq 'C_DELAY_DIAGNOSTIC_CORE_MATCHES_T4=YES' "$G"
+          grep -Fxq 'PANIC_MDELAY_DEPENDS_ON_LOOPS_PER_JIFFY=YES' "$G"
+          grep -Fxq 'PANIC_MDELAY_DEPENDS_ON_ARCH_TIMER=YES' "$G"
+          grep -Fxq 'CALIBRATE_DELAY_AFFECTS_PANIC_MDELAY=YES' "$G"
+
+      - name: T4 observer fixtures
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1b/p1b-c-delay-predevice.py \
+            --mode observer-fixtures --out out-c-delay
+          F=out-c-delay/p1b-t4-observer-fixtures.txt
+          grep -Fxq 'OBSERVER_C_DELAY_AST_DEADLOCK_GATE=PASS' "$F"
+          grep -Fxq 'OBSERVER_C_DELAY_IDENTITY_T0_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_C_DELAY_IDENTITY_T1_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_C_DELAY_IDENTITY_T2_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_C_DELAY_IDENTITY_T3_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_C_DELAY_IDENTITY_T4_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_C_DELAY_IDENTITY_FIX8_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_C_DELAY_IDENTITY_PANIC30_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_C_DELAY_IDENTITY_OLD_INIT8_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_C_DELAY_IDENTITY_ENTRY_STATE_PROBE_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_C_DELAY_IDENTITY_EXACT_MATCH_ACCEPTED=PASS' "$F"
+          grep -Fxq 'OBSERVER_C_DELAY_DECODER_CASES_A_TO_F=PASS' "$F"
+          grep -Fxq 'OBSERVER_C_DELAY_SUMMARY_FIXTURE=PASS' "$F"
+
+      - name: Assert no device image was emitted
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_P1B_T4_NO_DEVICE_IMAGE=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+
+      - name: Stage T4 release inputs
+        run: |
+          mkdir -p out-c-delay-release
+          cp out-c-delay/thyme-r3-p1b-c-delay-kernel-payload.bin out-c-delay-release/
+          cp out-c-delay/p1b-c-delay-checkpoint.bin out-c-delay-release/
+          cp out-c-delay/p1b-t1-core-reference.bin out-c-delay-release/
+          cp out-c-delay/p1b-t2-probe-reference.bin out-c-delay-release/
+          cp out-c-delay/p1b-t3-probe-reference.bin out-c-delay-release/
+          cp out-c-delay/p1b-c-delay-manifest.json out-c-delay-release/
+          cp out-c-delay/p1b-c-delay-gates.txt out-c-delay-release/
+          cp out-c-delay/p1b-t4-observer-fixtures.txt out-c-delay-release/
+          if test -e out-c-delay/early-c-stage-map.json; then
+            cp out-c-delay/early-c-stage-map.json out-c-delay-release/
+          fi
+          for f in p1b-c-delay-checkpoint.elf p1b-c-delay-checkpoint-disasm.txt \
+                   p1b-t1-core-reference-disasm.txt \
+                   p1b-t2-probe-reference-disasm.txt \
+                   p1b-t3-probe-reference-disasm.txt \
+                   p1b-t4-payload-diff-report.txt \
+                   p1b-t4-negative-fixtures.txt \
+                   p1b-t4-decoder-fixtures.txt \
+                   p1b-t4-report.txt \
+                   p1b-t4-vmlinux-sections.txt \
+                   p1b-t4-vmlinux-relocations.txt \
+                   p1b-t4-sysmap-excerpt.txt; do
+            if test -e "out-c-delay/$f"; then
+              cp "out-c-delay/$f" out-c-delay-release/
+            fi
+          done
+          cp out-c-delay-run.txt out-c-delay-release/
+          ( cd out-c-delay-release && sha256sum \
+              thyme-r3-p1b-c-delay-kernel-payload.bin \
+              p1b-c-delay-checkpoint.bin \
+              p1b-t1-core-reference.bin \
+              p1b-t2-probe-reference.bin \
+              > SHA256SUMS )
+          if test -e out-c-delay-release/p1b-t3-probe-reference.bin; then
+            ( cd out-c-delay-release && sha256sum p1b-t3-probe-reference.bin \
+                >> SHA256SUMS )
+          fi
+          cat out-c-delay-release/SHA256SUMS
+
+      - name: Upload T4 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-c-delay
+          if-no-files-found: error
+          path: out-c-delay-release/**
+
+  verify:
+    name: R3 P1B C_DELAY independent re-verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: c-delay-build
+    steps:
+      - name: Download this run artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh run download "$RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-c-delay --dir art
+          ( cd art && sha256sum -c SHA256SUMS )
+          echo 'ARTIFACT_SHA_RECHECK=PASS'
+
+      - name: Download frozen FIX8 payload + RT-D again
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FIX8_RUN_ID: ${{ inputs.fix8_run_id || '34741153230' }}
+          RT_D_RUN_ID: ${{ inputs.rt_d_run_id || '34678001413' }}
+        run: |
+          set -euo pipefail
+          gh run download "$FIX8_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-fix8-fix24 --dir fix8
+          printf '%s  fix8/thyme-r3-p1b-fix8-kernel-payload.bin\n' \
+            4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 \
+            | sha256sum -c -
+          gh run download "$RT_D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-runtime-dtb --dir rt-d
+          printf '%s  rt-d/rt-d.dtb\n' \
+            4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 \
+            | sha256sum -c -
+
+      - name: Independent structured re-verification
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, struct
+          from pathlib import Path
+
+          def sha(b): return hashlib.sha256(b).hexdigest()
+          def sx(v, bits):
+              m = 1 << bits
+              return v - m if v & (m >> 1) else v
+          def align(v, a): return (v + a - 1) // a * a
+
+          t4 = Path("art/thyme-r3-p1b-c-delay-kernel-payload.bin").read_bytes()
+          fix8 = Path("fix8/thyme-r3-p1b-fix8-kernel-payload.bin").read_bytes()
+          rtd = Path("rt-d/rt-d.dtb").read_bytes()
+          ckbin = Path("art/p1b-c-delay-checkpoint.bin").read_bytes()
+          t2probe = Path("art/p1b-t2-probe-reference.bin").read_bytes()
+          t1core = Path("art/p1b-t1-core-reference.bin").read_bytes()
+          t3_path = Path("art/p1b-t3-probe-reference.bin")
+          t3probe = t3_path.read_bytes() if t3_path.is_file() else None
+          m = json.loads(Path("art/p1b-c-delay-manifest.json").read_text())
+
+          PACIASP = 0xD503233F
+          if sha(t4) != m["c_delay_payload_sha256"]:
+              raise SystemExit("C_DELAY_VERIFY_FAILED payload sha vs manifest")
+          if len(t4) != 37369041 or len(fix8) != len(t4):
+              raise SystemExit(f"C_DELAY_VERIFY_FAILED size {len(t4)}")
+          if sha(ckbin) != m["c_delay_checkpoint_sha256"]:
+              raise SystemExit("C_DELAY_VERIFY_FAILED checkpoint sha vs manifest")
+          if int(m["c_delay_checkpoint_size"]) != 76 or len(ckbin) != 76:
+              raise SystemExit(
+                  f"C_DELAY_VERIFY_FAILED checkpoint size {len(ckbin)} "
+                  f"manifest {m['c_delay_checkpoint_size']}")
+          if len(t1core) != 76:
+              raise SystemExit(f"C_DELAY_VERIFY_FAILED t1 core size {len(t1core)}")
+          if ckbin != t1core:
+              raise SystemExit("C_DELAY_VERIFY_FAILED t4 probe != T1 core")
+          if len(t2probe) < 80:
+              raise SystemExit(f"C_DELAY_VERIFY_FAILED t2 probe size {len(t2probe)}")
+          if ckbin != t2probe[4:]:
+              raise SystemExit("C_DELAY_VERIFY_FAILED t4 probe != t2_probe[4:]")
+          if t3probe is not None:
+              if len(t3probe) != 80:
+                  raise SystemExit(
+                      f"C_DELAY_VERIFY_FAILED t3 probe size {len(t3probe)}")
+              if ckbin != t3probe[4:]:
+                  raise SystemExit(
+                      "C_DELAY_VERIFY_FAILED t4 probe != t3_probe[4:]")
+          if struct.unpack_from("<I", ckbin, 0)[0] == PACIASP:
+              raise SystemExit(
+                  "C_DELAY_VERIFY_FAILED unexpected paciasp pad on 76-byte core")
+          if m.get("c_delay_probe_architecture") != "INLINE":
+              raise SystemExit("C_DELAY_VERIFY_FAILED not INLINE")
+          if m.get("c_delay_normal_kernel_boot_candidate") is not False:
+              raise SystemExit("C_DELAY_VERIFY_FAILED diagnostic-only flag")
+
+          stage = m["c_delay_selected_stage"]
+          if stage != "C_DELAY_CALIBRATE_DELAY_COMPLETE":
+              raise SystemExit(f"C_DELAY_VERIFY_FAILED selected stage {stage!r}")
+          want_delta = "POST_CALIBRATE_DELAY_CHECKPOINT_ONLY"
+          if m["c_delay_runtime_semantic_delta"] != want_delta:
+              raise SystemExit(
+                  f"C_DELAY_VERIFY_FAILED semantic delta "
+                  f"{m['c_delay_runtime_semantic_delta']!r} != {want_delta}")
+
+          isz_t4 = struct.unpack_from("<Q", t4, 16)[0]
+          isz_fix8 = struct.unpack_from("<Q", fix8, 16)[0]
+          if isz_t4 != isz_fix8 or isz_t4 != 0x2230000:
+              raise SystemExit(f"C_DELAY_VERIFY_FAILED image_size {isz_t4:#x}")
+          dtb_off = align(isz_t4 + 0x80000, 0x200000) - 0x80000
+          if dtb_off != 0x2380000:
+              raise SystemExit(f"C_DELAY_VERIFY_FAILED dtb_offset {dtb_off:#x}")
+          if struct.unpack_from("<I", t4, 4)[0] != 0x1400000F:
+              raise SystemExit("C_DELAY_VERIFY_FAILED code1")
+
+          off_ck = int(m["c_delay_checkpoint_image_offset"], 16)
+          plen = int(m["c_delay_checkpoint_size"])
+          off_sk = int(m["start_kernel_image_offset"], 16)
+          off_ps = int(m["primary_switched_image_offset"], 16)
+          off_primary = int(m["primary_entry_offset"], 16)
+          file_size = int(m["image_file_size"])
+          hdr_isz = m["image_header_image_size"]
+          hdr_isz_i = int(hdr_isz, 16) if isinstance(hdr_isz, str) else int(hdr_isz)
+          if hdr_isz_i != 0x2230000:
+              raise SystemExit(f"C_DELAY_VERIFY_FAILED manifest image_size {hdr_isz}")
+          if off_ps <= off_primary or off_sk <= off_primary or off_ck <= off_primary:
+              raise SystemExit("C_DELAY_VERIFY_FAILED window/section ordering")
+          if off_ck == off_sk:
+              raise SystemExit(
+                  "C_DELAY_VERIFY_FAILED checkpoint offset == start_kernel entry")
+          if (off_ck + plen) > isz_t4:
+              raise SystemExit(
+                  f"C_DELAY_VERIFY_FAILED checkpoint window {off_ck:#x}+{plen} "
+                  f"outside image_size {isz_t4:#x}")
+          if off_ck + plen > file_size:
+              raise SystemExit("C_DELAY_VERIFY_FAILED window outside the Image")
+
+          allowed = set(range(off_ck, off_ck + plen))
+          diffs = [i for i in range(len(fix8)) if fix8[i] != t4[i]]
+          bad = [i for i in diffs if i not in allowed]
+          if bad:
+              raise SystemExit(f"C_DELAY_VERIFY_FAILED diff outside region "
+                               f"{[hex(i) for i in bad[:8]]}")
+          if not diffs:
+              raise SystemExit("C_DELAY_VERIFY_FAILED empty diff region")
+          if t4[:off_ck] != fix8[:off_ck] or t4[off_ck + plen:] != \
+                  fix8[off_ck + plen:]:
+              raise SystemExit("C_DELAY_VERIFY_FAILED non-window bytes changed")
+          if t4[off_ck:off_ck + plen] != ckbin:
+              raise SystemExit("C_DELAY_VERIFY_FAILED inline region bytes")
+          print(f"C_DELAY_VERIFY_DIFF_BYTE_COUNT={len(diffs)}")
+          print(f"C_DELAY_VERIFY_DIFF_RANGES=[{off_ck:#x},{off_ck+plen:#x})")
+          print("C_DELAY_VERIFY_DIFF_ATTRIBUTION=SELECTED_C_STAGE_CHECKPOINT_ONLY")
+
+          if struct.unpack_from("<I", t4, off_sk)[0] != PACIASP:
+              raise SystemExit(
+                  "C_DELAY_VERIFY_FAILED start_kernel entry != FIX8 paciasp")
+          if struct.unpack_from("<I", fix8, off_sk)[0] != PACIASP:
+              raise SystemExit(
+                  "C_DELAY_VERIFY_FAILED FIX8 start_kernel entry != paciasp")
+          if t4[off_sk:off_sk + 80] != fix8[off_sk:off_sk + 80]:
+              raise SystemExit("C_DELAY_VERIFY_FAILED T3 probe still present")
+          if t3probe is not None and t4[off_sk:off_sk + 80] == t3probe:
+              raise SystemExit("C_DELAY_VERIFY_FAILED start_kernel still T3 probe")
+          print("C_DELAY_VERIFY_T3_PROBE_REMOVED=YES")
+          print("C_DELAY_VERIFY_START_KERNEL_ENTRY_RESTORED_TO_FIX8=YES")
+          print(f"C_DELAY_VERIFY_START_KERNEL_ENTRY_WORD={PACIASP:#010x}")
+
+          t2_window = fix8[off_ps:off_ps + 80]
+          if t4[off_ps:off_ps + 80] != t2_window:
+              raise SystemExit("C_DELAY_VERIFY_FAILED T2 probe still present")
+          if t4[off_ps:off_ps + 80] == t2probe:
+              raise SystemExit("C_DELAY_VERIFY_FAILED __primary_switched == probe")
+          print("C_DELAY_VERIFY_T2_PROBE_REMOVED=YES")
+          print("C_DELAY_VERIFY_PRIMARY_SWITCHED_IDENTICAL_TO_FIX8=YES")
+          print("C_DELAY_VERIFY_PRIMARY_ENTRY_UNPATCHED=YES")
+
+          tramp = t4[0x40:0x70]
+          if sha(tramp) != ("362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d"
+                            "747dc623"):
+              raise SystemExit("C_DELAY_VERIFY_FAILED trampoline != frozen FIX8")
+          if tramp != fix8[0x40:0x70]:
+              raise SystemExit("C_DELAY_VERIFY_FAILED trampoline bytes differ")
+          tw = struct.unpack_from("<12I", tramp, 0)
+          if (tw[8] >> 26) != 0b000101:
+              raise SystemExit("C_DELAY_VERIFY_FAILED trampoline word[8] not B")
+          if 0x40 + 0x20 + sx(tw[8] & 0x03FFFFFF, 26) * 4 != off_primary:
+              raise SystemExit("C_DELAY_VERIFY_FAILED trampoline branch target")
+          print("C_DELAY_VERIFY_TRAMPOLINE=FROZEN_FIX8_BYTE_IDENTICAL")
+
+          words = struct.unpack_from(f"<{plen // 4}I", ckbin, 0)
+          if len(words) != 19:
+              raise SystemExit(f"C_DELAY_VERIFY_FAILED word count {len(words)}")
+          smc = [i for i, w in enumerate(words) if w == 0xD4000003]
+          if len(smc) != 1 or smc[0] != 16:
+              raise SystemExit(f"C_DELAY_VERIFY_FAILED smc index {smc}")
+          if words[17] != 0xD503205F:
+              raise SystemExit("C_DELAY_VERIFY_FAILED no wfe after smc")
+          w = words[18]
+          if (w >> 26) != 0b000101:
+              raise SystemExit("C_DELAY_VERIFY_FAILED no branch after wfe")
+          target = 18 * 4 + sx(w & 0x03FFFFFF, 26) * 4
+          if target != 17 * 4:
+              raise SystemExit(
+                  f"C_DELAY_VERIFY_FAILED terminal b {target:#x} != wfe {17*4:#x}")
+          if words[3] != 0xD280010A:
+              raise SystemExit(f"C_DELAY_VERIFY_FAILED delay word {words[3]:#010x}")
+          for idx, w in enumerate(words):
+              addr = idx * 4
+              top = w >> 26
+              if top == 0b000101 or top == 0b100101:
+                  t = addr + sx(w & 0x03FFFFFF, 26) * 4
+              elif (w >> 24) == 0x54:
+                  t = addr + sx((w >> 5) & 0x7FFFF, 19) * 4
+              else:
+                  continue
+              if not (0 <= t < plen):
+                  raise SystemExit(
+                      f"C_DELAY_VERIFY_FAILED branch leaves checkpoint: "
+                      f"{addr:#x} -> {t:#x}")
+          print("C_DELAY_VERIFY_FAIL_CLOSED=SMC_WFE_LOOP_NO_CONTINUATION")
+          print("C_DELAY_VERIFY_SMC_WORD_INDEX=16")
+          print("C_DELAY_VERIFY_WFE_WORD_INDEX=17")
+          print("C_DELAY_VERIFY_B_WORD_INDEX=18")
+
+          if t4[dtb_off:] != rtd or sha(rtd) != (
+                  "4849743205af9d00f4b5bcd01070aac68be7dc6095497506935"
+                  "6d29fe33df327") or len(rtd) != 144593:
+              raise SystemExit("C_DELAY_VERIFY_FAILED trailer != frozen RT-D")
+          boot_est = (4096 + len(t4) + 4095) & ~4095
+          boot_est += 4096
+          if boot_est != 37380096:
+              raise SystemExit(f"C_DELAY_VERIFY_FAILED boot_est {boot_est}")
+          if int(m["c_delay_boot_size_est"]) != 37380096:
+              raise SystemExit(
+                  f"C_DELAY_VERIFY_FAILED manifest boot_est {m['c_delay_boot_size_est']}")
+          if 201326592 - boot_est < 0x1000000:
+              raise SystemExit("C_DELAY_VERIFY_FAILED capacity")
+          print(f"C_DELAY_VERIFY_IMAGE_HEADER_IMAGE_SIZE={isz_t4:#x}")
+          print(f"C_DELAY_VERIFY_IMAGE_FILE_SIZE={file_size}")
+          print(f"C_DELAY_VERIFY_CHECKPOINT_OFFSET={off_ck:#x} size={plen}")
+          print(f"C_DELAY_VERIFY_START_KERNEL_OFFSET={off_sk:#x}")
+          print(f"C_DELAY_VERIFY_PRIMARY_SWITCHED_OFFSET={off_ps:#x}")
+          print(f"C_DELAY_VERIFY_SELECTED_STAGE={stage}")
+          print(f"C_DELAY_VERIFY_PAYLOAD_SIZE={len(t4)} boot_size_est={boot_est}")
+          print("C_DELAY_VERIFY_GATES=PASS")
+          print("DEVICE_OPERATION=NO")
+          print("READY_FOR_DEVICE=NO")
+          PY
+
+      - name: Assert constraints + assemble verdict
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          {
+            echo "MAINLINE_V2_R3_P1B_C_DELAY_PREDEVICE_READINESS_CI (CI ONLY)"
+            echo "DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "--- gates ---"
+            cat art/p1b-c-delay-gates.txt
+            echo "--- manifest ---"
+            cat art/p1b-c-delay-manifest.json
+          } > verdict.txt
+          cat verdict.txt >> "$GITHUB_STEP_SUMMARY"
+          echo 'C_DELAY_PREDEVICE_READINESS_CI_VERDICT=CI_PASS'

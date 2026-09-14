@@ -1,0 +1,555 @@
+name: thyme-r3-p1b-c-delay-predevice
+
+# Private CI for the C_DELAY-8 fail-closed post-calibrate_delay diagnostic
+# (MAINLINE_V2_R3_P1B_C_DELAY_PREDEVICE_READINESS_CI).
+# Takes the public T4 kernel payload (frozen FIXED INIT8 bytes with ONLY the
+# INLINE selected C-stage overwrite region applied: the T3 start_kernel
+# entry probe is removed and start_kernel entry is original FIX8 paciasp;
+# __primary_switched, primary_entry, the trampoline and the whole head.S
+# path are byte-identical to FIX8), splices it into the exact M5D boot v3
+# envelope, packs and validates boot v3, records the boot SHA256.
+# No device operation; nothing is installed, started, or written to any
+# partition. The FIX8 / T0 / T1 / T2 / T3 / PANIC30 artifacts stay frozen.
+on:
+  workflow_dispatch:
+    inputs:
+      reverify_only:
+        description: "true = identity re-verify only (no re-pack, no rebuild)"
+        required: false
+        default: "false"
+      reverify_run_id:
+        description: Authoritative private run carrying thyme-r3-p1b-c-delay-boot
+        required: false
+        default: ""
+      expected_boot_sha256:
+        description: Expected T4 boot SHA256 (reverify_only=true)
+        required: false
+        default: ""
+      public_source_commit:
+        description: ChuenSan/xiaomi10s commit SHA (pinned)
+        required: true
+      public_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-p1b-c-delay
+        required: true
+      c_delay_payload_sha:
+        description: Expected SHA256 of thyme-r3-p1b-c-delay-kernel-payload.bin
+        required: true
+      c_delay_tramp_sha:
+        description: Expected SHA256 of the embedded frozen FIX8 trampoline
+        required: true
+      c_delay_checkpoint_sha:
+        description: Expected SHA256 of p1b-c-delay-checkpoint.bin
+        required: true
+
+concurrency:
+  group: thyme-r3-p1b-c-delay-private
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PUBLIC_SOURCE_REPO: ChuenSan/xiaomi10s
+  PUBLIC_SOURCE_COMMIT: ${{ inputs.public_source_commit }}
+  PUBLIC_RUN_ID: ${{ inputs.public_run_id }}
+  M5D_RUN_ID: "34487382191"
+  M5D_ARTIFACT_NAME: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+  M5D_BOOT_NAME: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+  EXPECTED_M5D_BOOT_SHA256: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+
+jobs:
+  c-delay-pack:
+    name: R3 P1B T4 M5D pack + boot v3 gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    if: inputs.reverify_only != 'true'
+    steps:
+      - name: Checkout private wrapper
+        uses: actions/checkout@v4
+        with:
+          path: private-repo
+
+      - name: Checkout pinned public source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.PUBLIC_SOURCE_REPO }}
+          ref: ${{ env.PUBLIC_SOURCE_COMMIT }}
+          path: source
+          fetch-depth: 1
+
+      - name: Assert immutable source and private execution
+        working-directory: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PUBLIC_SOURCE_COMMIT"
+          test "$(gh api repos/${{ github.repository }} --jq .private)" = true
+          echo 'PUBLIC_SOURCE_COMMIT_PINNED=PASS'
+          echo 'PRIVATE_REPO_VISIBILITY=PRIVATE'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'HOST_DEVICE_INTERFACE=UNUSED'
+
+      - name: Lint private workflow
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color private-repo/.github/workflows/thyme-r3-p1b-c-delay-predevice.yml
+
+      - name: Download exact M5D boot artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$M5D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name "$M5D_ARTIFACT_NAME" \
+            --dir m5d-artifact
+          test -s "m5d-artifact/$M5D_BOOT_NAME"
+          printf '%s  m5d-artifact/%s\n' "$EXPECTED_M5D_BOOT_SHA256" "$M5D_BOOT_NAME" \
+            | sha256sum -c -
+          echo 'M5D_BOOT_SHA_EXACT=PASS'
+
+      - name: Download public T4 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          C_DELAY_PAYLOAD_SHA: ${{ inputs.c_delay_payload_sha }}
+          C_DELAY_TRAMP_SHA: ${{ inputs.c_delay_tramp_sha }}
+          C_DELAY_CHECKPOINT_SHA: ${{ inputs.c_delay_checkpoint_sha }}
+        run: |
+          set -euo pipefail
+          gh run download "$PUBLIC_RUN_ID" \
+            --repo "$PUBLIC_SOURCE_REPO" \
+            --name thyme-r3-p1b-c-delay --dir c-delay-artifact
+          test -s c-delay-artifact/thyme-r3-p1b-c-delay-kernel-payload.bin
+          test -s c-delay-artifact/p1b-c-delay-checkpoint.bin
+          test -s c-delay-artifact/p1b-t1-core-reference.bin
+          test -s c-delay-artifact/p1b-t2-probe-reference.bin
+          test -s c-delay-artifact/p1b-c-delay-manifest.json
+          test -s c-delay-artifact/p1b-c-delay-gates.txt
+          ( cd c-delay-artifact && sha256sum -c SHA256SUMS )
+          printf '%s  c-delay-artifact/thyme-r3-p1b-c-delay-kernel-payload.bin\n' \
+            "$C_DELAY_PAYLOAD_SHA" | sha256sum -c -
+          printf '%s  c-delay-artifact/p1b-c-delay-checkpoint.bin\n' \
+            "$C_DELAY_CHECKPOINT_SHA" | sha256sum -c -
+          python3 - "$C_DELAY_PAYLOAD_SHA" "$C_DELAY_TRAMP_SHA" "$C_DELAY_CHECKPOINT_SHA" <<'PY'
+          import hashlib, json, struct, sys
+          from pathlib import Path
+
+          def sha(b): return hashlib.sha256(b).hexdigest()
+
+          payload = Path("c-delay-artifact/thyme-r3-p1b-c-delay-kernel-payload.bin")
+          ckbin = Path("c-delay-artifact/p1b-c-delay-checkpoint.bin")
+          t2probe_p = Path("c-delay-artifact/p1b-t2-probe-reference.bin")
+          t1core_p = Path("c-delay-artifact/p1b-t1-core-reference.bin")
+          t3probe_p = Path("c-delay-artifact/p1b-t3-probe-reference.bin")
+          m = json.loads(Path("c-delay-artifact/p1b-c-delay-manifest.json").read_text())
+          data = payload.read_bytes()
+          if sha(data) != sys.argv[1]:
+              raise SystemExit("C_DELAY_PRIVATE_PAYLOAD_SHA_MISMATCH")
+          tramp = data[0x40:0x40 + 48]
+          if sha(tramp) != sys.argv[2]:
+              raise SystemExit("C_DELAY_PRIVATE_TRAMP_SHA_MISMATCH")
+          probe = ckbin.read_bytes()
+          if sha(probe) != sys.argv[3]:
+              raise SystemExit("C_DELAY_PRIVATE_CHECKPOINT_SHA_MISMATCH")
+          t1core = t1core_p.read_bytes()
+          t2probe = t2probe_p.read_bytes()
+          if len(probe) != 76 or len(t1core) != 76:
+              raise SystemExit(
+                  f"C_DELAY_PRIVATE_CORE_SIZE probe={len(probe)} t1={len(t1core)}")
+          if probe != t1core:
+              raise SystemExit("C_DELAY_PRIVATE_CORE_NOT_T1_IDENTICAL")
+          if probe != t2probe[4:]:
+              raise SystemExit("C_DELAY_PRIVATE_CORE_NOT_T2_SLICE")
+          if t3probe_p.is_file():
+              t3probe = t3probe_p.read_bytes()
+              if probe != t3probe[4:]:
+                  raise SystemExit("C_DELAY_PRIVATE_CORE_NOT_T3_SLICE")
+          PACIASP_LE = bytes.fromhex("3f2303d5")
+          PACIASP = 0xD503233F
+          if probe[:4] == PACIASP_LE:
+              raise SystemExit("C_DELAY_PRIVATE_UNEXPECTED_PACIASP_PAD")
+          stage = m["c_delay_selected_stage"]
+          if stage != "C_DELAY_CALIBRATE_DELAY_COMPLETE":
+              raise SystemExit(f"C_DELAY_PRIVATE_SELECTED_STAGE {stage!r}")
+          want_delta = "POST_CALIBRATE_DELAY_CHECKPOINT_ONLY"
+
+          if m["c_delay_runtime_semantic_delta"] != want_delta:
+              raise SystemExit("C_DELAY_PRIVATE_SEMANTIC_DELTA_MISMATCH")
+          if m["c_delay_probe_architecture"] != "INLINE":
+              raise SystemExit("C_DELAY_PRIVATE_NOT_INLINE")
+          if m["c_delay_normal_kernel_boot_candidate"] is not False:
+              raise SystemExit("C_DELAY_PRIVATE_DIAGNOSTIC_ONLY")
+          if m.get("primary_entry_patched") is True:
+              raise SystemExit("C_DELAY_PRIVATE_PRIMARY_ENTRY_PATCHED")
+          off_ck = int(m["c_delay_checkpoint_image_offset"], 16)
+          plen = int(m["c_delay_checkpoint_size"])
+          off_sk = int(m["start_kernel_image_offset"], 16)
+          off_ps = int(m["primary_switched_image_offset"], 16)
+          off_primary = int(m["primary_entry_offset"], 16)
+          file_size = int(m["image_file_size"])
+          image_size = int(m["image_header_image_size"], 16) \
+              if isinstance(m["image_header_image_size"], str) \
+              else int(m["image_header_image_size"])
+          if plen != 76:
+              raise SystemExit(f"C_DELAY_PRIVATE_CHECKPOINT_SIZE {plen}")
+          if off_ck <= off_primary or off_sk <= off_primary or off_ps <= off_primary:
+              raise SystemExit("C_DELAY_PRIVATE_WINDOW_ORDER")
+          if off_ck == off_sk:
+              raise SystemExit("C_DELAY_PRIVATE_CHECKPOINT_IS_START_KERNEL_ENTRY")
+          if (off_ck + plen) > min(file_size, image_size):
+              raise SystemExit("C_DELAY_PRIVATE_WINDOW_OUTSIDE_TEXT")
+          if data[off_ck:off_ck + plen] != probe:
+              raise SystemExit("C_DELAY_PRIVATE_INLINE_REGION_MISMATCH")
+          if data[off_ps:off_ps + len(t2probe)] == t2probe:
+              raise SystemExit("C_DELAY_PRIVATE_T2_PROBE_STILL_PRESENT")
+          if data[off_sk:off_sk + 4] != PACIASP_LE:
+              raise SystemExit("C_DELAY_PRIVATE_START_KERNEL_ENTRY_NOT_PACIASP")
+          if struct.unpack_from("<I", data, off_sk)[0] != PACIASP:
+              raise SystemExit("C_DELAY_PRIVATE_START_KERNEL_ENTRY_MISMATCH")
+          if struct.unpack_from("<I", data, off_primary)[0] >> 26 != 0b100101:
+              raise SystemExit("C_DELAY_PRIVATE_PRIMARY_ENTRY_NOT_ORIGINAL_BL")
+          print('C_DELAY_PRIVATE_PAYLOAD_IDENTITY_EXACT=PASS')
+          print(f"C_DELAY_PRIVATE_IMAGE_HEADER_IMAGE_SIZE={image_size:#x}")
+          print(f"C_DELAY_PRIVATE_INLINE_WINDOW=[{off_ck:#x},{off_ck+plen:#x})")
+          print(f"C_DELAY_PRIVATE_SELECTED_STAGE={stage}")
+          print("C_DELAY_PRIVATE_T2_PROBE_REMOVED=YES")
+          print("C_DELAY_PRIVATE_T3_PROBE_REMOVED=YES")
+          print("C_DELAY_PRIVATE_START_KERNEL_ENTRY_WORD=3f2303d5")
+          PY
+
+      - name: Pack T4 payload into M5D envelope
+        working-directory: source
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/c-delay-out"
+          python3 scripts/r3-p1b/p1b-build.py --mode splice-boot \
+            --m5d-boot "$GITHUB_WORKSPACE/m5d-artifact/$M5D_BOOT_NAME" \
+            --payload "$GITHUB_WORKSPACE/c-delay-artifact/thyme-r3-p1b-c-delay-kernel-payload.bin" \
+            --boot "$GITHUB_WORKSPACE/c-delay-out/thyme-r3-p1b-c-delay-boot.img" \
+            | tee "$GITHUB_WORKSPACE/pack-c-delay.txt"
+
+      - name: Resolve T4 offsets from the public manifest
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          from pathlib import Path
+          m = json.loads(
+              Path("c-delay-artifact/p1b-c-delay-manifest.json").read_text())
+          print(f"C_DELAY_CHECKPOINT_OFFSET={m['c_delay_checkpoint_image_offset']}")
+          print(f"C_DELAY_START_KERNEL_OFFSET={m['start_kernel_image_offset']}")
+          print(f"C_DELAY_PRIMARY_SWITCHED_OFFSET={m['primary_switched_image_offset']}")
+          print(f"C_DELAY_PRIMARY_ENTRY_OFFSET={m['primary_entry_offset']}")
+          print(f"C_DELAY_BOOT_SIZE_EST={m['c_delay_boot_size_est']}")
+          print(f"C_DELAY_SELECTED_STAGE={m['c_delay_selected_stage']}")
+          print(f"C_DELAY_CHECKPOINT_SIZE={m['c_delay_checkpoint_size']}")
+          print(f"C_DELAY_RUNTIME_SEMANTIC_DELTA={m['c_delay_runtime_semantic_delta']}")
+          PY
+          tail -8 "$GITHUB_ENV"
+
+      - name: T4 pack gates
+        working-directory: source
+        env:
+          GITHUB_ACTIONS: "true"
+          C_DELAY_PAYLOAD_SHA: ${{ inputs.c_delay_payload_sha }}
+          C_DELAY_TRAMP_SHA: ${{ inputs.c_delay_tramp_sha }}
+          C_DELAY_CHECKPOINT_SHA: ${{ inputs.c_delay_checkpoint_sha }}
+        run: |
+          set -euo pipefail
+          python3 scripts/r3-p1b/p1b-t4-predevice.py \
+            --mode c-delay-pack-gates \
+            --m5d-boot "$GITHUB_WORKSPACE/m5d-artifact/$M5D_BOOT_NAME" \
+            --payload "$GITHUB_WORKSPACE/c-delay-artifact/thyme-r3-p1b-c-delay-kernel-payload.bin" \
+            --payload-sha "$C_DELAY_PAYLOAD_SHA" \
+            --checkpoint-bin "$GITHUB_WORKSPACE/c-delay-artifact/p1b-c-delay-checkpoint.bin" \
+            --checkpoint-sha "$C_DELAY_CHECKPOINT_SHA" \
+            --checkpoint-offset "$C_DELAY_CHECKPOINT_OFFSET" \
+            --start-kernel-offset "$C_DELAY_START_KERNEL_OFFSET" \
+            --boot "$GITHUB_WORKSPACE/c-delay-out/thyme-r3-p1b-c-delay-boot.img" \
+            --out "$GITHUB_WORKSPACE/c-delay-out" \
+            | tee "$GITHUB_WORKSPACE/pack-gates-c-delay.txt"
+          G="$GITHUB_WORKSPACE/c-delay-out/p1b-c-delay-pack-gates.txt"
+          grep -Fxq 'C_DELAY_PACK_GATES=PASS' "$G"
+          grep -Fxq 'C_DELAY_RT_D_TRAILER_SHA_EXACT=PASS' "$G"
+          grep -Fxq 'C_DELAY_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY' "$G"
+          grep -Fxq 'C_DELAY_PROBE_ARCHITECTURE=INLINE' "$G"
+          grep -Fxq 'C_DELAY_INLINE_REGION_IN_KERNEL_TEXT=YES' "$G"
+          grep -Fxq "C_DELAY_PAYLOAD_SHA256=$C_DELAY_PAYLOAD_SHA" "$G"
+          grep -Fxq "C_DELAY_TRAMP_SHA256=$C_DELAY_TRAMP_SHA" "$G"
+          grep -Fxq "C_DELAY_CHECKPOINT_SHA256=$C_DELAY_CHECKPOINT_SHA" "$G"
+
+      - name: Boot size vs public manifest cross-check
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          m = json.loads(
+              Path("c-delay-artifact/p1b-c-delay-manifest.json").read_text())
+          boot = Path("c-delay-out/thyme-r3-p1b-c-delay-boot.img").stat().st_size
+          if boot != m["c_delay_boot_size_est"]:
+              raise SystemExit(
+                  f"C_DELAY_PRIVATE_SIZE_MISMATCH boot={boot} "
+                  f"manifest={m['c_delay_boot_size_est']}")
+          if boot != 37380096:
+              raise SystemExit(f"C_DELAY_PRIVATE_UNEXPECTED_BOOT_SIZE {boot}")
+          print(f"C_DELAY_BOOT_SIZE={boot}")
+          print('C_DELAY_PRIVATE_BOOT_SIZE_CROSS_CHECK=PASS')
+          PY
+
+      - name: Record T4 boot identity + verdict
+        run: |
+          set -euo pipefail
+          T4_BOOT_SHA=$(sha256sum c-delay-out/thyme-r3-p1b-c-delay-boot.img | cut -d' ' -f1)
+          {
+            echo "MAINLINE_V2_R3_P1B_C_DELAY_PREDEVICE_READINESS_CI (PRIVATE PACK)"
+            echo "C_DELAY_BOOT_SHA256=$T4_BOOT_SHA"
+            echo "C_DELAY_BOOT_SIZE=$(stat -c%s c-delay-out/thyme-r3-p1b-c-delay-boot.img)"
+            echo "C_DELAY_PAYLOAD_SHA256=${{ inputs.c_delay_payload_sha }}"
+            echo "C_DELAY_TRAMP_SHA256=${{ inputs.c_delay_tramp_sha }}"
+            echo "C_DELAY_CHECKPOINT_SHA256=${{ inputs.c_delay_checkpoint_sha }}"
+            echo "C_DELAY_CHECKPOINT_OFFSET=$C_DELAY_CHECKPOINT_OFFSET"
+            echo "C_DELAY_START_KERNEL_OFFSET=$C_DELAY_START_KERNEL_OFFSET"
+            echo "C_DELAY_PRIMARY_SWITCHED_OFFSET=$C_DELAY_PRIMARY_SWITCHED_OFFSET"
+            echo "C_DELAY_PRIMARY_ENTRY_OFFSET=$C_DELAY_PRIMARY_ENTRY_OFFSET"
+            echo "C_DELAY_CHECKPOINT_SIZE=$C_DELAY_CHECKPOINT_SIZE"
+            echo "C_DELAY_SELECTED_STAGE=$C_DELAY_SELECTED_STAGE"
+            echo "C_DELAY_RUNTIME_SEMANTIC_DELTA=$C_DELAY_RUNTIME_SEMANTIC_DELTA"
+            echo "C_DELAY_PROBE_ARCHITECTURE=INLINE"
+            echo "T4_DIAGNOSTIC_ONLY=YES"
+            echo "T4_NORMAL_KERNEL_BOOT_CANDIDATE=NO"
+            echo "DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "READY_FOR_DEVICE=NO (device round requires separate user approval)"
+          } | tee "$GITHUB_STEP_SUMMARY" | tee c-delay-identity.txt
+          cat c-delay-out/p1b-c-delay-pack-gates.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Assert no unexpected image output
+        shell: bash
+        run: |
+          set -euo pipefail
+          # ./m5d-artifact/*.img is the DOWNLOADED M5D input, not an output.
+          if find . -name '*.img' -not -path './c-delay-out/*' -not -path './m5d-artifact/*' -print -quit | grep -q .; then
+            echo 'unexpected image output outside c-delay-out' >&2
+            exit 1
+          fi
+          echo 'C_DELAY_PRIVATE_PACK_GATES=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+      - name: Upload private T4 boot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-c-delay-boot
+          if-no-files-found: error
+          path: |
+            c-delay-out/thyme-r3-p1b-c-delay-boot.img
+            c-delay-out/p1b-c-delay-pack-gates.txt
+            c-delay-identity.txt
+            pack-c-delay.txt
+            pack-gates-c-delay.txt
+
+  c-delay-identity-reverify:
+    name: R3 P1B T4 boot identity re-verification (no rebuild)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    if: inputs.reverify_only == 'true'
+    steps:
+      - name: Checkout private wrapper
+        uses: actions/checkout@v4
+        with:
+          path: private-repo
+
+      - name: Assert immutable private execution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/${{ github.repository }} --jq .private)" = true
+          echo 'PRIVATE_REPO_VISIBILITY=PRIVATE'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'HOST_DEVICE_INTERFACE=UNUSED'
+
+      - name: Download authoritative T4 boot artifact (no rebuild)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVERIFY_RUN_ID: ${{ inputs.reverify_run_id }}
+        run: |
+          set -euo pipefail
+          test -n "$REVERIFY_RUN_ID"
+          gh run download "$REVERIFY_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-c-delay-boot --dir auth-boot
+          test -s auth-boot/c-delay-out/thyme-r3-p1b-c-delay-boot.img
+          test -s auth-boot/c-delay-out/p1b-c-delay-pack-gates.txt
+          test -s auth-boot/c-delay-identity.txt
+          echo 'T4_BOOT_ARTIFACT_SOURCE=AUTHORITATIVE_PRIVATE_RUN'
+
+      - name: T4 boot identity gates (extract + re-hash, no repack)
+        env:
+          EXPECTED_BOOT_SHA256: ${{ inputs.expected_boot_sha256 }}
+          EXPECTED_PAYLOAD_SHA256: ${{ inputs.c_delay_payload_sha }}
+          EXPECTED_TRAMP_SHA256: ${{ inputs.c_delay_tramp_sha }}
+          EXPECTED_CHECKPOINT_SHA256: ${{ inputs.c_delay_checkpoint_sha }}
+        run: |
+          set -euo pipefail
+          test -n "$EXPECTED_BOOT_SHA256"
+          python3 - <<'PY'
+          import hashlib, os, struct
+          from pathlib import Path
+
+          def sha(b: bytes) -> str:
+              return hashlib.sha256(b).hexdigest()
+
+          PAGE = 4096
+          KERNEL_OFFSET = PAGE
+          DTB_OFFSET = 0x2380000
+          TRAMP_OFF = 0x40
+          TRAMP_SIZE = 48
+          RT_D_SHA = (
+              "4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327")
+          RT_D_SIZE = 144593
+          T2_PROBE_SHA = (
+              "c78c55fb2fa94b6e16a33e59d7973acc715c212a02a88bad1ed954ecb1ce412a")
+          PACIASP = 0xD503233F
+          PACIASP_LE = bytes.fromhex("3f2303d5")
+          BTI_C = 0xD503245F
+          FDT_MAGIC = 0xD00DFEED
+
+          ident = {}
+          for line in Path("auth-boot/c-delay-identity.txt").read_text().splitlines():
+              if "=" not in line:
+                  continue
+              k, v = line.split("=", 1)
+              ident[k.strip()] = v.strip()
+          off_ck = int(ident["C_DELAY_CHECKPOINT_OFFSET"], 16)
+          off_sk = int(ident["C_DELAY_START_KERNEL_OFFSET"], 16)
+          off_ps = int(ident["C_DELAY_PRIMARY_SWITCHED_OFFSET"], 16)
+          off_pe = int(ident["C_DELAY_PRIMARY_ENTRY_OFFSET"], 16)
+          window = int(ident.get("C_DELAY_CHECKPOINT_SIZE", "76"))
+          if window != 76:
+              raise SystemExit(f"C_DELAY_REVERIFY_WINDOW {window}")
+
+          exp_boot = os.environ["EXPECTED_BOOT_SHA256"]
+          exp_payload = os.environ["EXPECTED_PAYLOAD_SHA256"]
+          exp_tramp = os.environ["EXPECTED_TRAMP_SHA256"]
+          exp_ck = os.environ["EXPECTED_CHECKPOINT_SHA256"]
+
+          boot_path = Path("auth-boot/c-delay-out/thyme-r3-p1b-c-delay-boot.img")
+          boot = boot_path.read_bytes()
+          if sha(boot) != exp_boot:
+              raise SystemExit("C_DELAY_REVERIFY_BOOT_SHA_MISMATCH")
+          if len(boot) != 37380096:
+              raise SystemExit(f"C_DELAY_REVERIFY_BOOT_SIZE {len(boot)}")
+          if boot[:8] != b"ANDROID!":
+              raise SystemExit("C_DELAY_REVERIFY_NOT_ANDROID")
+          ksize = struct.unpack_from("<I", boot, 8)[0]
+          if ksize != 37369041:
+              raise SystemExit(f"C_DELAY_REVERIFY_KERNEL_SIZE_FIELD {ksize}")
+          payload = boot[KERNEL_OFFSET:KERNEL_OFFSET + ksize]
+          if len(payload) != 37369041:
+              raise SystemExit("C_DELAY_REVERIFY_PAYLOAD_LEN")
+          if sha(payload) != exp_payload:
+              raise SystemExit("C_DELAY_REVERIFY_PAYLOAD_SHA_MISMATCH")
+          if payload[56:60] != b"ARM\x64":
+              raise SystemExit("C_DELAY_REVERIFY_NOT_ARM64_IMAGE")
+          image_size = struct.unpack_from("<Q", payload, 16)[0]
+          if image_size != 0x2230000:
+              raise SystemExit(f"C_DELAY_REVERIFY_IMAGE_SIZE {image_size:#x}")
+          if struct.unpack_from("<I", payload, 4)[0] != 0x1400000F:
+              raise SystemExit("C_DELAY_REVERIFY_CODE1_NOT_B_0X40")
+          tramp = payload[TRAMP_OFF:TRAMP_OFF + TRAMP_SIZE]
+          if sha(tramp) != exp_tramp:
+              raise SystemExit("C_DELAY_REVERIFY_TRAMP_SHA_MISMATCH")
+          ck_win = payload[off_ck:off_ck + window]
+          if sha(ck_win) != exp_ck:
+              raise SystemExit("C_DELAY_REVERIFY_INLINE_WINDOW_SHA_MISMATCH")
+          if len(ck_win) != 76:
+              raise SystemExit("C_DELAY_REVERIFY_CHECKPOINT_LEN")
+          if ck_win[:4] == PACIASP_LE:
+              raise SystemExit("C_DELAY_REVERIFY_UNEXPECTED_PACIASP_PAD")
+          if payload[off_sk:off_sk + 4] != PACIASP_LE:
+              raise SystemExit("C_DELAY_REVERIFY_ENTRY0_NOT_PACIASP")
+          if struct.unpack_from("<I", payload, off_sk)[0] != PACIASP:
+              raise SystemExit("C_DELAY_REVERIFY_START_KERNEL_ENTRY_NOT_FIX8")
+          ps_win = payload[off_ps:off_ps + 80]
+          if sha(ps_win) == T2_PROBE_SHA:
+              raise SystemExit("C_DELAY_REVERIFY_T2_PROBE_STILL_PRESENT")
+          if sha(ps_win) == exp_ck:
+              raise SystemExit("C_DELAY_REVERIFY_T4_PROBE_AT_PRIMARY_SWITCHED")
+          if struct.unpack_from("<I", ps_win, 0)[0] != BTI_C:
+              raise SystemExit("C_DELAY_REVERIFY_PRIMARY_SWITCHED_NOT_FIX8_BTI_C")
+          if struct.unpack_from("<I", payload, off_pe)[0] >> 26 != 0b100101:
+              raise SystemExit("C_DELAY_REVERIFY_PRIMARY_ENTRY_NOT_BL")
+          trailer = payload[DTB_OFFSET:]
+          if len(payload) != DTB_OFFSET + RT_D_SIZE:
+              raise SystemExit("C_DELAY_REVERIFY_PAYLOAD_GEOMETRY")
+          if len(trailer) != RT_D_SIZE or sha(trailer) != RT_D_SHA:
+              raise SystemExit("C_DELAY_REVERIFY_RT_D_MISMATCH")
+          if trailer[:4] != struct.pack(">I", FDT_MAGIC):
+              raise SystemExit("C_DELAY_REVERIFY_RT_D_MAGIC")
+          if (off_ck + window) > image_size:
+              raise SystemExit("C_DELAY_REVERIFY_WINDOW_OUTSIDE_IMAGE_SIZE")
+          if off_ck == off_sk:
+              raise SystemExit("C_DELAY_REVERIFY_CHECKPOINT_IS_ENTRY")
+          print("C_DELAY_PRIVATE_IDENTITY_REVERIFIED=YES")
+          print(f"C_DELAY_BOOT_SHA256={sha(boot)}")
+          print(f"C_DELAY_BOOT_SIZE={len(boot)}")
+          print(f"T4_PAYLOAD_EXTRACTED_SHA256={sha(payload)}")
+          print(f"T4_INLINE_WINDOW=[{off_ck:#x},{off_ck + window:#x})")
+          print(f"C_DELAY_CHECKPOINT_SHA256={sha(ck_win)}")
+          print(f"C_DELAY_TRAMP_SHA256={sha(tramp)}")
+          print(f"T4_RT_D_TRAILER_SHA256={sha(trailer)}")
+          print(f"C_DELAY_START_KERNEL_OFFSET={off_sk:#x}")
+          print(f"C_DELAY_SELECTED_STAGE={ident.get('C_DELAY_SELECTED_STAGE')}")
+          print("IMAGE_FILE_SIZE=35166720")
+          print(f"IMAGE_HEADER_IMAGE_SIZE={image_size:#x}")
+          print(f"DTB_OFFSET={DTB_OFFSET:#x}")
+          print(f"payload_size={len(payload)}")
+          print("boot_size_expected=37380096")
+          print("T4_GEOMETRY_GATES=PASS")
+          print("T4_ARTIFACT_REBUILD_REQUIRED=NO")
+          PY
+          G=auth-boot/c-delay-out/p1b-c-delay-pack-gates.txt
+          grep -Fxq 'C_DELAY_PACK_GATES=PASS' "$G"
+          grep -Fxq "C_DELAY_BOOT_SHA256=$EXPECTED_BOOT_SHA256" "$G"
+          grep -Fxq "C_DELAY_PAYLOAD_SHA256=$EXPECTED_PAYLOAD_SHA256" "$G"
+          grep -Fxq "C_DELAY_TRAMP_SHA256=$EXPECTED_TRAMP_SHA256" "$G"
+          grep -Fxq "C_DELAY_CHECKPOINT_SHA256=$EXPECTED_CHECKPOINT_SHA256" "$G"
+          grep -Fxq 'C_DELAY_BOOT_SIZE=37380096' "$G"
+          grep -Fxq 'C_DELAY_PROBE_ARCHITECTURE=INLINE' "$G"
+          grep -Fxq 'C_DELAY_INLINE_REGION_IN_KERNEL_TEXT=YES' "$G"
+          grep -Fxq 'C_DELAY_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY' "$G"
+          echo 'C_DELAY_PRIVATE_BOOT_IDENTITY_RECONFIRMED=YES'
+          echo 'T4_ARTIFACT_REBUILD_REQUIRED=NO (extracted from frozen boot, never re-packed)'
+          echo 'C_DELAY_PRIVATE_IDENTITY_REVERIFY=PASS'
+          echo 'DEVICE_OPERATION=NO'
+
+      - name: Verdict
+        run: |
+          {
+            echo "MAINLINE_V2_R3_P1B_C_DELAY_PREDEVICE_READINESS_CI (PRIVATE IDENTITY REVERIFY)"
+            echo "AUTHORITATIVE_PRIVATE_RUN=${{ inputs.reverify_run_id }}"
+            echo "C_DELAY_BOOT_SHA256=${{ inputs.expected_boot_sha256 }}"
+            echo "C_DELAY_BOOT_SIZE=37380096"
+            echo "T4_PAYLOAD_EXTRACTED_SHA256=${{ inputs.c_delay_payload_sha }}"
+            echo "C_DELAY_PRIVATE_IDENTITY_REVERIFIED=YES"
+            echo "C_DELAY_PROBE_ARCHITECTURE=INLINE"
+            echo "T4_DIAGNOSTIC_ONLY=YES"
+            echo "T4_NORMAL_KERNEL_BOOT_CANDIDATE=NO"
+            echo "DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "T4_DEVICE_OPERATION=NO"
+          } | tee "$GITHUB_STEP_SUMMARY"
