@@ -1,0 +1,16 @@
+== T3 BOOTLOADER PREFLIGHT (fastboot getvar, read-only) 2026-09-14T15:03:32Z ==
+product=thyme
+unlocked=yes
+current-slot=a
+snapshot-update-status=none
+battery-soc-ok=yes
+battery-voltage=4412
+max-download-size=805306368
+slot-retry-count:a=6
+slot-unbootable:a=no
+slot-successful:a=yes
+slot-retry-count:b=7
+slot-unbootable:b=no
+slot-successful:b=no
+SET_ACTIVE=NO  FLASH=NO  ERASE=NO  FORMAT=NO
+VERDICT: preflight OK (product=thyme, unlocked=yes, current-slot=a, snapshot none, soc-ok)

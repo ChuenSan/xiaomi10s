@@ -14,6 +14,58 @@ The alternative token `R3_P1B_T3_PREDEVICE_NOT_READY` is retained as the
 fail-closed opposite and is not the current outcome. A T3 true-device run is
 **NOT authorized** by this document.
 
+
+## TRUE DEVICE T3 RESULT (EXECUTED 2026-09-14 15:03 UTC)
+
+`MAINLINE_V2_R3_P1B_T3_TRUE_DEVICE_CONTROL` was EXECUTED with explicit user
+approval and **hit**: **`MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN`**, Case
+**T3-A STRONG**. Exactly ONE identity-gated `fastboot boot`; `T3-8` only;
+`SECOND_BOOT_FORBIDDEN=YES`; `PARTITION_WRITES=0`; `SLOT_A_WRITTEN=NO`;
+`SET_ACTIVE=NO`; no local build (frozen GHA artifact only). mem0 read x3.
+
+Artifact identity re-verified FULL-SHA before any experimental boot and
+re-derived locally (`scripts/r3-p1b/verify-t3-device-artifact.py`):
+boot `d80b9ba20e0ebd10d61592e28d0a6a8ee243d631ed5395628101b51f26a889df`
+(37380096, pack `34856507744`, reverify `34856735790`), payload
+`eff9a4a5b47413ec2c9f071158c7162a3361bf6443cbe58b43db7ccd0787e471`
+(37369041), checkpoint
+`dbeb828e753ba18d3e451551cd9a59eeff705831425ad5d2b0f5e11aa05edad8`
+(80 @ `0x1b303c0`), core `4d792df5…3611` (T2-identical 76 B), trampoline
+`362d9c6e…dc623`, RT-D `48497432…3df327`, `/init` `f1bc8849…e1266d`,
+initramfs `02123e98…4ffff3`. vs FIX8: 75 B, window
+`[0x1b303c0,0x1b30410)`, first changed `0x1b303c4`, 0 B outside.
+`START_KERNEL_ENTRY_PACIASP_PRESERVED=YES` (word0 `3f2303d5`). Callsite
+`0x1b395ec` `75dbff97` DIRECT `BL`. T2 probe removed.
+`T3_PRECHECKPOINT_NORMAL_PATH_IDENTICAL_TO_FIX8=YES`.
+
+Fastboot `Sending OKAY [0.916s]`, `Booting OKAY [0.220s]`, `rc=0`. Timeline
+UTC: `T_COMMAND_START` 15:03:33.355, `T_BOOTING_OKAY` 15:03:34.519,
+`T_FASTBOOT_DISAPPEAR` 15:03:35.782, `T_USB_FIRST_REENUM` 15:03:55.872
+(`18d1:4ee7`), `T_ADB_FIRST_SEEN` 15:03:56.157,
+`RETURNED_ANDROID_KERNEL_START` 15:03:48.757 (uptime 7.4),
+`T_BOOT_COMPLETED` 15:04:07.592.
+
+Timing: `T3_TOTAL = 14.238 s` (cross-check 14.255 s); `T3_MINUS_T2 = −0.002 s`
+(STRONG ≤ 1.0 s); `T3_MINUS_T1 = +0.000 s`; `T3_MINUS_T0 = −0.014 s`;
+early class (< 20 s) and `AUTOMATIC_ANDROID_RETURN` both hold; secondary
+`T3_PROGRAMMED_ESTIMATE = 8.094 s` vs 8.000 s (error `+0.094 s`).
+
+Verdict: `T3_REACHABILITY_SIGNATURE=STRONG`,
+`START_KERNEL_ADDRESS_REACHED=PROVEN`,
+`START_KERNEL_ENTRY_PACIASP_EXECUTED=PROVEN`, **`R4 = PROVEN`**.
+`NORMAL_PRIMARY_SWITCHED_TO_START_KERNEL_PATH_EXECUTED=PROVEN`.
+`NORMAL_START_KERNEL_BODY_AFTER_ENTRY=NOT_PROVEN`. `R5–R7` `NOT_PROVEN`.
+`E2` stays `NOT_PROVEN` (frozen definition not satisfied; never
+auto-upgraded).
+
+Post-test: `ANDROID_A_RESTORED=YES`; pstore empty (auxiliary only); logdump
+`3b6a07d0` / rawdump `254bcc3f` byte-identical to baseline
+(`NO_T3_PERSISTENT_DUMP_EVIDENCE=YES`); no 6.6/`Linux version` trace;
+`CURRENT_B_UNCHANGED_AFTER_T3=YES`. Full record:
+`artifacts/r3-p1b-t3-34856507744/device-round/`. Next:
+`MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI` (CI only; T4 device run NOT
+authorized). `T4 executed: NO`. `FIX24` FROZEN. `M5N` FROZEN.
+
 ---
 
 ## 1. T0 / T1 / T2 proof (frozen predecessors)
@@ -621,6 +673,7 @@ Authoritative public run is `34850631688` at `e2b54b4`.
 - Observer: `T3_OBSERVER_FULL_SHA_GATE=PASS`, `T3_OBSERVER_FIXTURES=PASS`.
 - Final gate: **`READY_FOR_R3_P1B_T3_DEVICE_CONTROL=YES`**.
   Alternative token `R3_P1B_T3_PREDEVICE_NOT_READY` is not the current
-  outcome. `T3_DEVICE_OPERATION=NO`. The T3 device run needs its own
-  explicit user approval. Recommended next:
-  `MAINLINE_V2_R3_P1B_T3_TRUE_DEVICE_CONTROL`.
+  outcome. Historical CI record: `T3_DEVICE_OPERATION=NO` at predevice
+  close. The T3 device run was subsequently EXECUTED (see TRUE DEVICE T3
+  RESULT above). Recommended next after STRONG:
+  `MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI`.

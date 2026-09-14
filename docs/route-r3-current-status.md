@@ -3,11 +3,11 @@
 Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
-facts. Last updated: 2026-09-14
-(MAINLINE_V2_R3_P1B_T3_DEVICE_GATE_FINALIZATION_CI — CI / ARTIFACT
-FINALIZATION / DEVICE-GATE ONLY; `DEVICE_OPERATION=NO`, `PARTITION_WRITES=0`,
-`SLOT_A_WRITTEN=NO`; public T3 CI is frozen `CI_PASS`; T3 boot identity is
-frozen from private pack+reverify; a T3 true-device run is **NOT authorized**).
+Last updated: 2026-09-14
+(MAINLINE_V2_R3_P1B_T3_TRUE_DEVICE_CONTROL — ONE authorized T3-8
+`fastboot boot`; `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`, `SET_ACTIVE=NO`;
+Case T3-A STRONG; final gate
+`MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN`).
 
 <!-- R3-STATUS-KV:BEGIN -->
 <!-- Machine-readable current state. The T3 CI source gate parses THIS block
@@ -23,7 +23,7 @@ R0_STATUS=PROVEN
 R1_STATUS=PROVEN
 R2_STATUS=PROVEN
 R3_STATUS=PROVEN
-R4_STATUS=NOT_PROVEN
+R4_STATUS=PROVEN
 R5_STATUS=NOT_PROVEN
 R6_STATUS=NOT_PROVEN
 R7_STATUS=NOT_PROVEN
@@ -46,7 +46,7 @@ T2_BOOT_SHA256=d347cc1907563afd2c8faa0d07cafed5904985514c346434c8a774c14418e925
 T2_PUBLIC_RUN=34819753692
 T2_PRIVATE_PACK_RUN=34821104997
 T3_TARGET_SYMBOL=start_kernel
-T3_STATUS=PREDEVICE_READY
+T3_STATUS=TRUE_DEVICE_PROVEN
 T3_PREDEVICE_STATUS=READY
 T3_PREDEVICE_CI=PASS
 T3_PUBLIC_CI_PASS=YES
@@ -67,8 +67,14 @@ T3_PACIASP_AUDIT=PASS
 T3_ENTRY_LANDING_AUDIT=PASS
 T3_OBSERVER_READY=YES
 T3_OBSERVER_FIXTURES=PASS
-T3_DEVICE_OPERATION=NO
-T3_DEVICE_CONTROL=NOT_EXECUTED
+T3_DEVICE_OPERATION=EXECUTED
+T3_DEVICE_CONTROL=EXECUTED
+T3_TOTAL_S=14.238
+T3_MINUS_T2_S=-0.002
+T3_MINUS_T1_S=0.000
+T3_MINUS_T0_S=-0.014
+T3_VERDICT=STRONG
+T3_FINAL_GATE=MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN
 PANIC30_STATUS=COMPLETED
 PANIC30_SHIFT=NO_SUPPORTED_SHIFT
 FIX24_STATUS=FROZEN
@@ -79,6 +85,84 @@ SLOT_A_WRITTEN=NO
 PARTITION_WRITES=0
 DEVICE_OPERATION=EXECUTED
 <!-- R3-STATUS-KV:END -->
+
+## T3 TRUE DEVICE ROUND (EXECUTED 2026-09-14 15:03 UTC)
+
+`MAINLINE_V2_R3_P1B_T3_TRUE_DEVICE_CONTROL` was EXECUTED with explicit user
+approval: exactly ONE `fastboot boot` of the frozen T3-8 boot,
+`SECOND_BOOT_FORBIDDEN=YES`, `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`,
+`SET_ACTIVE=NO`, `LOCAL_BUILD=NO`. mem0 read x3 (round start + before
+`adb reboot bootloader` + in bootloader). Case **T3-A STRONG**. Final gate
+**`MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN`**.
+
+Frozen identity re-verified FULL-SHA before any experimental boot and
+re-derived locally (`scripts/r3-p1b/verify-t3-device-artifact.py`):
+boot `d80b9ba20e0ebd10d61592e28d0a6a8ee243d631ed5395628101b51f26a889df`
+(37380096) from private pack `34856507744`, independently re-verified by
+`34856735790`; payload
+`eff9a4a5b47413ec2c9f071158c7162a3361bf6443cbe58b43db7ccd0787e471`
+(37369041); checkpoint
+`dbeb828e753ba18d3e451551cd9a59eeff705831425ad5d2b0f5e11aa05edad8`
+(80 @ `0x1b303c0`); core
+`4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611`
+(76, byte-identical to the T2 proven core); trampoline
+`362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623`;
+RT-D `4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327`;
+`/init` `f1bc8849…e1266d`; initramfs `02123e98…4ffff3`. vs frozen FIX8
+payload: 75 bytes, unique window `[0x1b303c0,0x1b30410)`, first changed
+byte `0x1b303c4`, 0 B outside
+(`T3_PAYLOAD_DIFF_ATTRIBUTED=START_KERNEL_CHECKPOINT_ONLY`).
+`start_kernel` entry0 `paciasp` bytes `3f2303d5` **preserved**
+(`START_KERNEL_ENTRY_PACIASP_PRESERVED=YES`; do not describe this as
+"paciasp replaced"). Callsite `0x1b395ec` `75dbff97` DIRECT `BL` to
+exact `start_kernel`. T2 probe removed
+(`PRIMARY_SWITCHED_IDENTICAL_TO_FIX8=YES`).
+`T3_PRECHECKPOINT_NORMAL_PATH_IDENTICAL_TO_FIX8=YES`.
+
+Fastboot `Sending OKAY [0.916s]`, `Booting OKAY [0.220s]`, `rc=0`.
+Timeline UTC: `T_COMMAND_START` 15:03:33.355, `T_SENDING_OKAY` 15:03:34.299,
+`T_BOOTING_OKAY` 15:03:34.519, `T_FASTBOOT_DISAPPEAR` 15:03:35.782,
+`T_USB_FIRST_REENUM` 15:03:55.872 (`18d1:4ee7`), `T_ADB_FIRST_SEEN`
+15:03:56.157, `RETURNED_ANDROID_KERNEL_START` 15:03:48.757 (uptime 7.4),
+`T_BOOT_COMPLETED` 15:04:07.592.
+
+Timing: `T3_TOTAL = 14.238 s` (cross-check 14.255 s); primary matched
+control `T2_TOTAL = 14.240 s` → `T3_MINUS_T2 = −0.002 s` (STRONG ≤ 1.0 s);
+secondary `T1_TOTAL = 14.238 s` → `T3_MINUS_T1 = +0.000 s`;
+`T0_TOTAL = 14.252 s` → `T3_MINUS_T0 = −0.014 s`; early class (< 20 s) and
+`AUTOMATIC_ANDROID_RETURN` both hold. Secondary
+`T3_PROGRAMMED_ESTIMATE = 14.238 − 6.1445 = 8.094 s` vs 8.000 s (error
+`+0.094 s`, consistent) — secondary only, never overrides the primary
+verdict.
+
+Verdict: **`T3_REACHABILITY_SIGNATURE=STRONG` (Case T3-A)**,
+`START_KERNEL_ADDRESS_REACHED=PROVEN`,
+`START_KERNEL_ENTRY_PACIASP_EXECUTED=PROVEN`, **`R4 = PROVEN`**. Because
+`T3_PRECHECKPOINT_NORMAL_PATH_IDENTICAL_TO_FIX8=YES` holds on the device
+artifact, `NORMAL_PRIMARY_SWITCHED_TO_START_KERNEL_PATH_EXECUTED=PROVEN`.
+`NORMAL_START_KERNEL_BODY_AFTER_ENTRY=NOT_PROVEN` — the diagnostic occupies
+the prologue after the preserved `paciasp`, so this never proves
+`setup_arch`, `parse_args`, `panic=` effective, scheduler, initramfs or
+`/init`. **`R5–R7` stay `NOT_PROVEN`**. Frozen `E2` definition ("early
+Mainline boot") is **not** satisfied by address reachability plus a
+destructive checkpoint; `E2` is **not** auto-upgraded and stays
+`NOT_PROVEN`.
+
+Post-test: `ANDROID_A_RESTORED=YES` (`_a`, `boot_completed=1`, root, Stock
+`4.19.157-perf`, `bootreason=bootloader`); pstore 0 entries (auxiliary only,
+NOT negative evidence); logdump `3b6a07d0` and rawdump `254bcc3f`
+byte-identical to the frozen baseline
+(`NO_T3_PERSISTENT_DUMP_EVIDENCE=YES`); minidump / oops / logfs boot-time
+deltas only, no Linux 6.6 / mainline token
+(`LINUX_6_6_TRACE_PRESENT=NO`); `CURRENT_B_UNCHANGED_AFTER_T3=YES`
+(`M5D+M5H+M5M-B` all MATCH pre+post).
+
+Final gate: **`MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN`**. Full record:
+`artifacts/r3-p1b-t3-34856507744/device-round/`. Recommended next:
+`MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI` (CI-only source audit of the
+first high-value C-stage checkpoint after `start_kernel` entry; a T4 device
+run is NOT authorized). `T4 executed: NO`, `FIX24 FROZEN`, `M5N FROZEN`.
+
 
 ## T3 DEVICE GATE FINALIZATION (CI / artifact only, no device operation)
 
@@ -638,26 +722,28 @@ mismatch, stable bootloader return, no return, boot not accepted) routes to
 `MAINLINE_V2_R3_P1B_T2_TRUE_DEVICE_CONTROL` is now also COMPLETE with final
 gate `MAINLINE_V2_R3_P1B_T2_REACHABILITY_PROVEN` (Case T2-A STRONG,
 `T2_TOTAL = 14.240 s`), so the T2 predevice stage has been consumed as well.
-The next stage is the CI-only promotion of the T3-8 `start_kernel`
-address-reachability candidate
-(`MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI`, this round). Once (and only
-if) that round reaches `READY_FOR_R3_P1B_T3_DEVICE_CONTROL`, the next
-executable candidate becomes **`MAINLINE_V2_R3_P1B_T3_TRUE_DEVICE_CONTROL`** —
-exactly one identity-gated `fastboot boot` of the frozen T3-8 boot,
-`SECOND_BOOT_FORBIDDEN`, `SLOT_A` write forbidden. It is NOT authorized by
-this document; it requires its own explicit user approval. Any T3 negative
-class (not observed, timing mismatch, stable bootloader return, no return,
-boot not accepted) routes to `MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI`,
-never automatically to T4.
+`MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI` and
+`MAINLINE_V2_R3_P1B_T3_DEVICE_GATE_FINALIZATION_CI` are COMPLETE
+(`READY_FOR_R3_P1B_T3_DEVICE_CONTROL=YES`).
+`MAINLINE_V2_R3_P1B_T3_TRUE_DEVICE_CONTROL` is now also COMPLETE with final
+gate `MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN` (Case T3-A STRONG,
+`T3_TOTAL = 14.238 s`, `T3_MINUS_T2 = −0.002 s`). Recommended next:
+**`MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI`** — CI-only source audit of
+the first high-value C-stage checkpoint after `start_kernel` entry
+(candidates: `setup_arch` return, `parse_args("Booting kernel")` complete,
+or an earlier safe inline C-stage point). A T4 device run is NOT authorized
+by this document and needs its own explicit user approval. T4 must stay
+single-variable, statically closed-loop, and matched-control. Any T3
+negative class would have routed to
+`MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI`; that path was not taken.
 
 ## Not-ready candidates
 
-- T3 device run: this round prepares the T3-8 `start_kernel`
-  address-reachability candidate; it is NOT device authorized and needs
-  separate user approval.
+- T3 device run: EXECUTED (Case T3-A STRONG,
+  `MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN`).
 - T4 (`start_kernel`-internal stage boundary such as `setup_arch` return or
-  the completed "Booting kernel" command-line parse): design note only, NOT
-  device ready; it depends on a T3 STRONG result.
+  the completed "Booting kernel" command-line parse): next CI-only candidate,
+  NOT device ready; depends on the T3 STRONG result now in hand.
 - FIX24, M5N, USB bring-up, UFS rootfs, network, drivers: frozen.
 - CopyMem forensics: priority LOWERED (T0 positive removes the transport
   suspicion that would have re-raised it).

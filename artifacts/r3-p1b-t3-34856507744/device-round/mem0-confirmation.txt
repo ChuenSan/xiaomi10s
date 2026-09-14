@@ -1,0 +1,61 @@
+== §16 FIRST mem0 CONFIRMATION (round start) 2026-09-14T14:50Z ==
+T0 PROVEN                              = YES (T0_TOTAL 14.252s, STRONG, R1)
+T1 PROVEN                              = YES (T1_TOTAL 14.238s, T1_MINUS_T0 -0.014s, STRONG, R2)
+T2 PROVEN                              = YES (T2_TOTAL 14.240s, T2_MINUS_T1 +0.002s, STRONG, R3, E1)
+T2_TOTAL                               = 14.240s
+T3 DEVICE READY                        = YES (READY_FOR_R3_P1B_T3_DEVICE_CONTROL)
+T3_PUBLIC_CI_PASS                      = YES (run 34850631688, commit e2b54b4)
+T3_PRIVATE_PACK_PASS                   = YES (run 34856507744)
+T3_PRIVATE_REVERIFY_PASS               = YES (run 34856735790)
+T3_ARTIFACT_IDENTITY_FROZEN            = YES
+T3_OBSERVER_READY                      = YES
+T3_OBSERVER_FIXTURES                   = PASS (re-ran locally, all PASS)
+T3_PACIASP_AUDIT                       = PASS
+T3_ENTRY_LANDING_AUDIT                 = PASS
+T3_PREPATH_IDENTITY                    = PASS
+T3 boot full SHA frozen                = YES d80b9ba20e0ebd10d61592e28d0a6a8ee243d631ed5395628101b51f26a889df (37380096)
+start_kernel offset                    = 0x1b303c0 (VA 0xffff800081b303c0, .init.text AX)
+entry0 paciasp preserved               = YES (word0 bytes 3f2303d5, identical to FIX8)
+normal pre-T3 path unchanged           = YES (T3_PRECHECKPOINT_NORMAL_PATH_IDENTICAL_TO_FIX8=YES)
+delay                                  = 8s (CNTPCT register-only)
+fail-closed                            = YES (PSCI SYSTEM_RESET 0x84000009 -> wfe forever)
+active A                               = YES (slot _a, boot_completed=1, root, Stock 4.19.157-perf-g9d90dd04aa7c)
+Current B unchanged                    = YES (M5D+M5H+M5M-B pre-test ALL MATCH)
+PARTITION_WRITES                       = 0
+SECOND_BOOT_FORBIDDEN                  = YES
+T4 unauthorized                        = YES
+FIX24 frozen                           = YES
+M5N frozen                             = YES
+
+== ARTIFACT IDENTITY (locally re-derived from private pack 34856507744) ==
+boot       d80b9ba20e0ebd10d61592e28d0a6a8ee243d631ed5395628101b51f26a889df (37380096)
+payload    eff9a4a5b47413ec2c9f071158c7162a3361bf6443cbe58b43db7ccd0787e471 (37369041)
+checkpoint dbeb828e753ba18d3e451551cd9a59eeff705831425ad5d2b0f5e11aa05edad8 (80 @ 0x1b303c0)
+core       4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611 (76, byte-identical to T2 core)
+trampoline 362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623 (48 @ 0x40, FIX8-identical)
+RT-D       4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 (144593 @ 0x2380000)
+/init      f1bc88496f7c5766a417b3e2a52eadf23bad30efd6cada7ec42fecf0e6e1266d (FIX8-identical; payload outside T3 window unchanged)
+initramfs  02123e984cc618f333d8743ae4491af30ba4448373d987b84b7a2d4cda4ffff3 (FIX8-identical; payload outside T3 window unchanged)
+vs FIX8    4f34eabf...cceb41: diff 75 B, unique window [0x1b303c0,0x1b30410), first changed 0x1b303c4, 0 B outside
+callsite   0x1b395ec bytes 75dbff97 DIRECT BL -> exact start_kernel 0x1b303c0
+T2 probe   REMOVED (__primary_switched bytes identical to FIX8)
+observer   observe-r3-p1b-t3.py HEAD blob 67b844a083f0b2d8d33b74248e81bb3a1b304fd6 file sha256 803c08cc55f1d83754ab3b8984b9e7472126ecfbd9cd4e656b9aff35c34d89d6 (last functional change e2b54b4, device-gate 66197f0 docs/fixtures only)
+VERIFY_RESULT protocol gates PASS (naive PRIMARY_ENTRY:PS_OFF range check is a false positive: start_kernel sits in-file between those symbols; T3_PRECHECKPOINT_NORMAL_PATH_IDENTICAL_TO_FIX8=YES)
+
+== §23 SECOND mem0 READ (immediately before adb reboot bootloader) 2026-09-14T15:01Z ==
+T3-8 ONLY                              = YES
+ONE FASTBOOT BOOT                      = YES
+NO FLASH                               = YES
+NO SET_ACTIVE                          = YES
+NO SLOT WRITE                          = YES
+SECOND_BOOT_FORBIDDEN                  = YES
+NO T4                                  = YES
+NO T3-24                               = YES
+NO T2 rerun                            = YES
+NO T1 rerun                            = YES
+NO T0 rerun                            = YES
+NO PANIC30 rerun                       = YES
+LOCAL_BUILD                            = NO
+SLOT_A_WRITTEN                         = NO
+PARTITION_WRITES                       = 0
+EXPERIMENTAL_BOOTS                     = 1 (pending)

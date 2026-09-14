@@ -1,0 +1,11 @@
+== T3 PERSISTENT AUXILIARY EVIDENCE (read-only) 2026-09-14T15:04Z ==
+pstore entries = 0 (empty; auxiliary only, NOT negative evidence)
+logdump   3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351  /dev/block/by-name/logdump
+rawdump   254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917  /dev/block/by-name/rawdump
+minidump  f61dc37d88ae8a2dd8d54854f1f544b4b31d65dfdb3c88ea9de1b1805f35485c  /dev/block/by-name/minidump
+oops      22ed4ead370fa21acc220de9038e6f69eb816a9b22fdc05acda08c4ac3637189  /dev/block/by-name/oops
+logfs     59d0891186b94ee271cfc99ce1a74f9090aa58ade8bebcae6cc12720b7006535  /dev/block/by-name/logfs
+logdump+rawdump byte-identical to T2/T1 frozen baseline
+minidump/oops/logfs boot-time deltas only
+LINUX_6_6_TRACE_PRESENT=NO (stock 4.19.157-perf strings only; VFS dquot_6.6.0 is not a kernel-version hit)
+NO_T3_PERSISTENT_DUMP_EVIDENCE=YES

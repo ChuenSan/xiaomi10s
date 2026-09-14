@@ -1,0 +1,96 @@
+MAINLINE_V2_R3_P1B_T3_TRUE_DEVICE_CONTROL — ROUND VERDICT (2026-09-14 15:03 UTC boot)
+=====================================================================================
+Constraints: mem0 read x3 (round start + before adb reboot bootloader + in bootloader);
+LOCAL_BUILD=NO (GHA-only artifact, private pack run 34856507744, identity reverify
+34856735790; confirmation run 34857518928 source/determinism only, identity not
+replaced; nothing assembled/linked/spliced/mkbootimg locally); PARTITION_WRITES=0;
+SLOT_A_WRITTEN=NO; SET_ACTIVE=NO; EXPERIMENTAL_BOOTS=1; SECOND_BOOT_FORBIDDEN=YES;
+T3-24/T4/T2 rerun/T1 rerun/T0 rerun/PANIC30 rerun/FIX24/M5N NOT EXECUTED.
+
+Artifact identity (FULL SHA, re-verified from the downloaded private artifact before
+any experimental boot; independent local re-derivation —
+scripts/r3-p1b/verify-t3-device-artifact.py -> VERIFY_RESULT=PASS):
+  boot       d80b9ba20e0ebd10d61592e28d0a6a8ee243d631ed5395628101b51f26a889df (37380096)
+  payload    eff9a4a5b47413ec2c9f071158c7162a3361bf6443cbe58b43db7ccd0787e471 (37369041)
+  checkpoint dbeb828e753ba18d3e451551cd9a59eeff705831425ad5d2b0f5e11aa05edad8 (80 @ 0x1b303c0)
+  core       checkpoint[4:80] = T2 core 4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611 (76)
+  trampoline 362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623 (48 @ 0x40, FIX8-identical)
+  RT-D       4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 (144593 @ 0x2380000)
+  /init      f1bc88496f7c5766a417b3e2a52eadf23bad30efd6cada7ec42fecf0e6e1266d
+  initramfs  02123e984cc618f333d8743ae4491af30ba4448373d987b84b7a2d4cda4ffff3
+  vs FIX8    4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41:
+             size identical, RT-D identical, trampoline byte-identical,
+             diff 75 bytes, ONE window [0x1b303c0,0x1b30410), first changed 0x1b303c4,
+             0 bytes outside
+             => T3_PAYLOAD_DIFF_ATTRIBUTED=START_KERNEL_CHECKPOINT_ONLY
+
+Target re-confirmed read-only from the frozen payload:
+  start_kernel VA 0xffff800081b303c0, Image offset 0x1b303c0, .init.text AX
+  word0 0xd503233f = paciasp (bytes 3f2303d5) PRESERVED (identical to FIX8)
+  => START_KERNEL_ENTRY_PACIASP_PRESERVED=YES; START_KERNEL_TARGET_IDENTITY_MATCH=YES
+  callsite 0x1b395ec bytes 75dbff97 DIRECT BL -> exact start_kernel
+  => CALL TYPE=DIRECT BL; LANDING=DIRECT_BL_NO_BTI_CHECK
+  T2 probe REMOVED: __primary_switched bytes identical to FIX8
+  => T2_PROBE_REMOVED_FROM_T3=YES; PRIMARY_SWITCHED_IDENTICAL_TO_FIX8=YES
+  T3_PRECHECKPOINT_NORMAL_PATH_IDENTICAL_TO_FIX8=YES
+  IMAGE_HEADER_IMAGE_SIZE=0x2230000; IMAGE_FILE_SIZE=35166720; DTB_OFFSET=0x2380000
+  T3_FAIL_CLOSED=YES (8s CNTPCT, PSCI SYSTEM_RESET 0x84000009, wfe forever)
+  Observer: observe-r3-p1b-t3.py last functional change e2b54b4 (device-gate 66197f0
+  docs/fixtures only); file sha256 803c08cc55f1d83754ab3b8984b9e7472126ecfbd9cd4e656b9aff35c34d89d6;
+  fixtures PASS; ARTIFACT_IDENTITY MATCH logged BEFORE the experimental boot.
+
+Bootloader preflight (fastboot getvar, read-only): product=thyme, unlocked=yes,
+current-slot=a, snapshot-update-status=none, battery-soc-ok=yes, battery-voltage=4412,
+max-download-size=805306368, retry:a=6/unbootable:a=no/successful:a=yes,
+retry:b=7/unbootable:b=no/successful:b=no. SET_ACTIVE=NO, FLASH=NO, current-slot=a.
+
+Fastboot: Sending 'boot.img' (36504 KB) OKAY [ 0.916s]; Booting OKAY [ 0.220s];
+Finished. Total time 1.145s; rc=0 sending_ok=True booting_ok=True fail=False.
+
+Timeline UTC: T_COMMAND_START 15:03:33.355 | T_SENDING_OKAY 15:03:34.299 |
+T_BOOTING_OKAY 15:03:34.519 | T_FASTBOOT_DISAPPEAR 15:03:35.782 | T_USB_NONE
+15:03:35.773 | T_USB_FIRST_REENUM 15:03:55.872 (usb=18d1:4ee7) | T_ADB_FIRST_SEEN
+15:03:56.157 | RETURNED_ANDROID_KERNEL_START 15:03:48.757 (uptime 7.4) |
+T_BOOT_COMPLETED 15:04:07.592. Returned-kernel-start algorithm identical to T0/T1/T2:
+host_before_uptime_read - /proc/uptime. ELAPSED_BOOTING_TO_ADB=21.638,
+ELAPSED_DISAPPEAR_TO_ADB=20.375, ELAPSED_BOOTING_TO_BOOT_COMPLETED=33.073.
+
+Timing: T3_TOTAL = 14.238 s (cross-check snapshot 14.255 s);
+T2_REFERENCE_TOTAL = 14.240 s (PRIMARY matched control);
+T3_MINUS_T2 = -0.002 s => |delta| <= 1.000 s => PRIMARY matched-control STRONG;
+T1_REFERENCE_TOTAL = 14.238 s; T3_MINUS_T1 = +0.000 s => <= 2.000 s cross-check OK;
+T0_REFERENCE_TOTAL = 14.252 s; T3_MINUS_T0 = -0.014 s => <= 2.000 s cross-check OK;
+T3_EARLY_RETURN_CLASS_MATCH=YES (<20s); RECOVERY_KIND=AUTOMATIC_ANDROID_RETURN.
+SECONDARY: T3_PROGRAMMED_ESTIMATE = 14.238 - 6.1445 = 8.094 s vs expected 8.000 s
+=> error +0.094 s => T3_SECONDARY_TIMING_CROSSCHECK=CONSISTENT.
+T3_PROGRAMMED_ESTIMATE does NOT override the T3-vs-T2 primary verdict.
+
+VERDICT: T3_REACHABILITY_SIGNATURE=STRONG (Case T3-A);
+START_KERNEL_ADDRESS_REACHED=PROVEN;
+START_KERNEL_ENTRY_PACIASP_EXECUTED=PROVEN;
+R4_START_KERNEL_ADDRESS_REACHABILITY=PROVEN.
+Because T3_PRECHECKPOINT_NORMAL_PATH_IDENTICAL_TO_FIX8=YES (frozen static gate,
+re-confirmed on the device artifact), the normal __primary_switched -> start_kernel
+path executed up to T3:
+NORMAL_PRIMARY_SWITCHED_TO_START_KERNEL_PATH_EXECUTED=PROVEN.
+NORMAL_START_KERNEL_BODY_AFTER_ENTRY=NOT_PROVEN (diagnostic occupies the prologue
+after the preserved paciasp; never auto-upgrade R5).
+E2_EARLY_MAINLINE_BOOT=NOT_PROVEN (frozen definition NOT satisfied; never
+auto-upgraded). T3_DIAGNOSTIC_ONLY=YES, T3_NORMAL_KERNEL_BOOT_CANDIDATE=NO.
+R5/R6/R7 (normal start_kernel body / initramfs / /init) remain NOT_PROVEN.
+
+Post-test: ANDROID_A_RESTORED=YES (slot _a, boot_completed=1, root, Stock
+4.19.157-perf-g9d90dd04aa7c, bootreason=bootloader); pstore 0 entries (auxiliary only,
+NOT negative evidence); logdump 3b6a07d0 and rawdump 254bcc3f byte-identical to frozen
+baseline (NO_T3_PERSISTENT_DUMP_EVIDENCE=YES); minidump/oops/logfs boot-time deltas only;
+no Linux 6.6/mainline token (LINUX_6_6_TRACE_PRESENT=NO);
+CURRENT_B_UNCHANGED_AFTER_T3=YES (M5D+M5H+M5M-B all MATCH pre+post).
+
+FINAL GATE: MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN
+Reachability ladder: R0 PROVEN | R1 PROVEN | R2 PROVEN | R3 PROVEN | R4 PROVEN
+(start_kernel ADDRESS) | R5-R7 NOT_PROVEN.
+Evidence: E0 PROVEN | E1 PROVEN | E2 NOT_PROVEN (frozen definition) | E3-E4 NOT_PROVEN | E5 FROZEN.
+Recommended next: MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI (CI-only source audit of
+the first high-value C-stage checkpoint after start_kernel entry; NO T4 device run
+authorized).
+T4 executed: NO. FIX24: FROZEN. M5N: FROZEN.
