@@ -629,7 +629,7 @@ def run_negative_fixtures(ctx: dict) -> list:
     lines.append(expect_reject(
         "NORMAL_KERNEL_CONTINUATION",
         lambda: t3.gate_no_forbidden(
-            ops + "\n00000000 b start_kernel"), "T3_DISASM_FAILED"))
+            ops + "\n00000000 b __primary_switched"), "T3_DISASM_FAILED"))
     lines.append(expect_reject(
         "RUNTIME_RELOCATION", lambda: t3.gate_no_relocations(
             "0000000000000000  R_AARCH64_ABS64 .text", "fixture"),
