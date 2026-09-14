@@ -828,14 +828,26 @@ def cmd_t1(args: argparse.Namespace) -> None:
     fhdr = pb.parse_image_hdr(frozen, "frozen-fix8-payload")
     if fhdr["code1"] != CODE1_B_0X40:
         fail("T1_IDENTITY_FAILED", "frozen code1 not b 0x40")
-    if fhdr["image_size"] != FIX8_IMAGE_HEADER_IMAGE_SIZE:
-        fail("T1_IDENTITY_FAILED", f"frozen image_size {fhdr['image_size']:#x}")
-    dtb_offset, gap = pb.calc_dtb_offset(fhdr["image_size"])
+    # Section 11: re-read image_size from the authoritative FIX8 Image header;
+    # never inherit a history/doc constant.
+    image_size = fhdr["image_size"]
+    gate_image_size_rederived(image_size, "frozen-fix8-payload")
+    dtb_offset, gap = pb.calc_dtb_offset(image_size)
     if dtb_offset != DTB_OFFSET:
         fail("T1_IDENTITY_FAILED", f"dtb_offset {dtb_offset:#x}")
     if len(frozen) - RT_D_SIZE != dtb_offset:
         fail("T1_IDENTITY_FAILED", "payload layout: len - RT_D_SIZE != dtb_offset")
     gate_tramp_identity(frozen)
+    print(f"IMAGE_FILE_SIZE={FIX8_IMAGE_FILE_SIZE} "
+          "(frozen reference; re-derived from the rebuilt Image length below "
+          "and required to match)")
+    print(f"IMAGE_HEADER_IMAGE_SIZE={image_size:#x} ({image_size})")
+    print(f"DTB_OFFSET={dtb_offset:#x}")
+    print("IMAGE_HEADER_IMAGE_SIZE_REDERIVED=YES "
+          f"(read from the authoritative FIX8 Image header, payload sha "
+          f"{FIX8_PAYLOAD_SHA})")
+    print("IMAGE_HEADER_IMAGE_SIZE_HISTORICAL_READINGS_IGNORED="
+          + ",".join(f"{v:#x}" for v in FIX8_IMAGE_SIZE_HISTORY_READINGS))
     print("T1_FROZEN_FIX8_BASE=PASS sha=" + FIX8_PAYLOAD_SHA)
     print("T1_FROZEN_TRAMPOLINE_EMBEDDED=YES sha=" + TRAMP_SHA)
 
