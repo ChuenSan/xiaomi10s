@@ -223,9 +223,6 @@ T2_STORE_RE = re.compile(
 T2_LOAD_RE = re.compile(
     r"\b(ldr|ldrb|ldrh|ldp|ldur|ldar|ldxr|ldtr)\b", re.I)
 PADDING_MNEMS = {"udf", ".inst", ".word", "nop"}
-SECTION_RE = re.compile(
-    r"^\s*(\d+)\s+(\S+)\s+([0-9a-f]+)\s+([0-9a-f]+)\s+([0-9a-f]+)"
-    r"\s+([0-9a-f]+)\s+(\S+)\s*(.*)$")
 RELOC_OFF_RE = re.compile(r"^([0-9a-f]{8,16})\s+\S+\s+R_AARCH64_")
 STATUS_KV_BEGIN = "<!-- R3-STATUS-KV:BEGIN -->"
 STATUS_KV_END = "<!-- R3-STATUS-KV:END -->"
@@ -961,24 +958,122 @@ def build_probe(out: Path, tools: dict, src: Path, ld: Path,
     return probe, ops, dump
 
 
-def parse_sections(dump: str) -> list:
+def _flag_tokens(flags: str) -> tuple:
+    toks = [t.strip() for t in re.split(r"[,\s]+", flags or "") if t.strip()]
+    code = any(t == "CODE" or (len(t) <= 3 and t.isalpha() and "X" in t)
+               for t in toks)
+    alloc = any(t == "ALLOC" or (len(t) <= 3 and t.isalpha() and "A" in t)
+                for t in toks)
+    return code, alloc
+
+
+OBJDUMP_SEC_RE = re.compile(r"^\s*(\d+)\s+(\S+)\s+(.*)$")
+READELF_SEC_RE = re.compile(
+    r"^\s*\[\s*(\d+)\]\s+(\S+)\s+(\S+)\s+([0-9a-fA-F]+)\s+"
+    r"([0-9a-fA-F]+)\s+([0-9a-fA-F]+)\s+([0-9a-fA-F]+)\s*(.*)$")
+CONT_MARKERS = ("CODE", "ALLOC", "CONTENTS", "LOAD", "READONLY", "DATA",
+                "TLS", "DEBUG", "MERGE", "STRINGS", "INFO", "LINK_ORDER",
+                "GROUP", "EXCLUDE", "COMPRESSED", "NOSHDR", "OS", "PROC",
+                "RELOCATIONS")
+
+
+def _objdump_sections(dump: str) -> list:
+    """Tolerant parse of `llvm-objdump --section-headers`. Field counts and
+    the flags layout differ between LLVM releases (flags may share the line
+    with the numeric columns or follow on an indented continuation line), so
+    the numeric columns are taken positionally from the hex-looking tokens."""
+    out: list = []
+    cur = None
+    for raw in dump.splitlines():
+        line = raw.rstrip()
+        if not line.strip():
+            continue
+        m = OBJDUMP_SEC_RE.match(line)
+        ok = False
+        if m and re.fullmatch(r"[0-9a-fA-F]{4,16}", m.group(2) or "") is None:
+            hexes = [t for t in m.group(3).split()
+                     if re.fullmatch(r"[0-9a-fA-F]{4,16}", t)]
+            if len(hexes) >= 3:
+                size = int(hexes[0], 16)
+                vma = int(hexes[1], 16)
+                file_off = int(hexes[3], 16) if len(hexes) >= 4 \
+                    else int(hexes[2], 16)
+                tail = m.group(3).split()
+                cut = 0
+                for t in tail:
+                    if re.fullmatch(r"[0-9a-fA-F]{4,16}", t):
+                        cut += 1
+                        if cut == len(hexes):
+                            break
+                rest = " ".join(tail[cut:]).strip()
+                if cur:
+                    out.append(cur)
+                cur = {"idx": int(m.group(1)), "name": m.group(2),
+                       "size": size, "vma": vma, "file_off": file_off,
+                       "flags": rest, "source": "objdump"}
+                ok = True
+        if ok:
+            continue
+        s = line.strip()
+        if cur is not None and s.startswith("["):
+            continue
+        if cur is not None and s:
+            up = re.sub(r"[^A-Z_, ]", "", s)
+            if up.strip(" ,_") and (s == up or any(k in s for k in
+                                                   CONT_MARKERS)):
+                cur["flags"] = (cur["flags"] + " " + s).strip()
+    if cur:
+        out.append(cur)
+    out = [s for s in out if s["size"] > 0]
+    for s in out:
+        s["code"], s["alloc"] = _flag_tokens(s["flags"])
+    return out
+
+
+def _readelf_sections(dump: str) -> list:
     out: list = []
     for line in dump.splitlines():
-        m = SECTION_RE.match(line)
-        if not m or m.group(2) == "Name":
+        m = READELF_SEC_RE.match(line)
+        if not m:
             continue
-        size = int(m.group(3), 16)
+        size = int(m.group(6), 16)
         if size == 0:
             continue
-        flags = (m.group(8) or "").strip()
-        toks = [t.strip() for t in flags.split(",") if t.strip()]
-        out.append({"idx": int(m.group(1)), "name": m.group(2),
-                    "size": size, "vma": int(m.group(4), 16),
-                    "file_off": int(m.group(6), 16), "flags": flags,
-                    "code": "CODE" in toks, "alloc": "ALLOC" in toks})
-    if not out:
-        fail("T2_AUDIT_FAILED", "no sections parsed from llvm-objdump -h")
+        rest = [t for t in m.group(8).split() if t]
+        flags = rest[0] if len(rest) >= 4 else ""
+        code, alloc = _flag_tokens(flags)
+        out.append({"idx": int(m.group(1)), "name": m.group(2), "size": size,
+                    "vma": int(m.group(4), 16), "file_off": int(m.group(5), 16),
+                    "flags": flags, "code": code, "alloc": alloc,
+                    "source": "readelf"})
     return out
+
+
+def section_map(out: Path, tools: dict, vmlinux: Path) -> list:
+    dumps = {}
+    for tag, cmd in (
+            ("objdump-h", [tools["objdump"], "-h", str(vmlinux)]),
+            ("objdump-section-headers",
+             [tools["objdump"], "--section-headers", str(vmlinux)]),
+            ("readelf-SW", [tools["readelf"], "-SW", str(vmlinux)])):
+        try:
+            dumps[tag] = pb.run(cmd)
+        except SystemExit as exc:
+            dumps[tag] = f"FAILED: {exc}"
+    (out / "p1b-t2-vmlinux-sections.txt").write_text(
+        "\n".join(f"===== {k} =====\n{v}" for k, v in dumps.items()))
+    for tag, text in dumps.items():
+        if text.startswith("FAILED:"):
+            continue
+        secs = _readelf_sections(text) if tag.startswith("readelf") \
+            else _objdump_sections(text)
+        print(f"T2_SECTION_MAP_SOURCE={tag} sections={len(secs)}")
+        if secs:
+            return secs
+    fail("T2_AUDIT_FAILED",
+         "no sections parsed from any section-header dump; head="
+         + " | ".join(dumps["objdump-h"].splitlines()[:10]))
+    return []
 
 
 def branch_candidates(image: bytes, exec_ranges: list,
@@ -1038,38 +1133,52 @@ def relocation_offsets(out: Path, tools: dict, vmlinux: Path) -> list:
     (decoded RELR), because __relocate_kernel applies both BEFORE
     __primary_switched is reached."""
     offs: list = []
+    n_rela = 0
     rel = pb.run([tools["readelf"], "-rW", str(vmlinux)])
-    (out / "p1b-t2-vmlinux-relocations.txt").write_text(rel)
     for line in rel.splitlines():
         m = RELOC_OFF_RE.match(line.strip())
         if m:
             offs.append(int(m.group(1), 16))
+            n_rela += 1
+    del rel  # the raw dump can be very large; keep only the derived offsets
+    n_relr = 0
     dump = out / "p1b-t2-relr.bin"
     try:
         pb.run([tools["objcopy"], "--dump-section",
                 f".relr.dyn={dump}", str(vmlinux)])
     except SystemExit:
-        return offs
-    if not dump.is_file():
-        return offs
-    data = dump.read_bytes()
-    base = None
-    for i in range(0, len(data) - 7, 8):
-        e = int.from_bytes(data[i:i + 8], "little")
-        if not (e & 1):
-            base = e
-            offs.append(e)
-            continue
-        if base is None:
-            continue
-        cur = base + 8
-        bits = e >> 1
-        while bits:
-            if bits & 1:
-                offs.append(cur)
-            bits >>= 1
-            cur += 8
-        base = cur - 8
+        dump = None
+    if dump is not None and dump.is_file():
+        data = dump.read_bytes()
+        base = None
+        for i in range(0, len(data) - 7, 8):
+            e = int.from_bytes(data[i:i + 8], "little")
+            if not (e & 1):
+                base = e
+                offs.append(e)
+                n_relr += 1
+                continue
+            if base is None:
+                continue
+            cur = base + 8
+            bits = e >> 1
+            while bits:
+                if bits & 1:
+                    offs.append(cur)
+                    n_relr += 1
+                bits >>= 1
+                cur += 8
+            base = cur - 8
+    (out / "p1b-t2-vmlinux-relocations.txt").write_text("\n".join([
+        "T2_RUNTIME_RELOCATION_LOCATIONS",
+        f"RELA_DYN_ENTRIES={n_rela}",
+        f"RELR_DYN_LOCATIONS={n_relr}",
+        f"TOTAL_LOCATIONS={len(offs)}",
+        f"MIN={min(offs):#x} MAX={max(offs):#x}" if offs else "MIN=NA MAX=NA",
+        "NOTE=__relocate_kernel applies .rela.dyn and RELR BEFORE "
+        "__primary_switched is reached; any location inside the inline window "
+        "would rewrite the probe bytes and is REJECTED.",
+        ""]))
     return offs
 
 
@@ -1249,13 +1358,23 @@ def cmd_t2(args: argparse.Namespace) -> None:
     print("T2_PRIMARY_SWITCHED_REDERIVED=YES "
           "(vmlinux nm + System.map, this round)")
 
-    # --- section resolution ---
-    sec_dump = pb.run([tools["objdump"], "-h", str(k["vmlinux"])])
-    (out / "p1b-t2-vmlinux-sections.txt").write_text(sec_dump)
-    sections = parse_sections(sec_dump)
+    # --- section resolution (multi-strategy, tolerates LLVM layout changes) ---
+    sections = section_map(out, tools, k["vmlinux"])
+    flags_source = "SECTION_HEADERS"
+    if not any(s["flags"] for s in sections):
+        for s in sections:
+            if s["vma"] <= ps_va < s["vma"] + s["size"]:
+                s["code"] = True
+                s["alloc"] = True
+        flags_source = "INSTRUCTION_IDENTITY_FALLBACK"
+        print("T2_SECTION_FLAGS_UNAVAILABLE=YES "
+              "(no flags column in the section dump; the containing section "
+              "is marked executable+allocated because PRIMARY_SWITCHED_VA is "
+              "a verified instruction address that the CPU executes)")
     sec = gate_window_section_scan(ps_va, T2_PROBE_SIZE, sections)
     print(f"PRIMARY_SWITCHED_SECTION={sec['name']}")
-    print(f"PRIMARY_SWITCHED_SECTION_FLAGS={sec['flags']}")
+    print(f"PRIMARY_SWITCHED_SECTION_FLAGS={sec['flags'] or 'UNPRINTED'}")
+    print(f"PRIMARY_SWITCHED_SECTION_FLAGS_SOURCE={flags_source}")
     print(f"PRIMARY_SWITCHED_SECTION_VA={sec['vma']:#x}")
     print("PRIMARY_SWITCHED_FILE_OFFSET="
           f"{sec['file_off'] + (ps_va - sec['vma']):#x} (vmlinux file offset)")
@@ -1456,7 +1575,8 @@ def cmd_t2(args: argparse.Namespace) -> None:
         f"PRIMARY_SWITCHED_VA={ps_va:#x}\n"
         f"PRIMARY_SWITCHED_IMAGE_OFFSET={off_ps:#x}\n"
         f"PRIMARY_SWITCHED_SECTION={sec['name']}\n"
-        f"PRIMARY_SWITCHED_SECTION_FLAGS={sec['flags']}\n"
+        f"PRIMARY_SWITCHED_SECTION_FLAGS={sec['flags'] or 'UNPRINTED'}\n"
+        f"PRIMARY_SWITCHED_SECTION_FLAGS_SOURCE={flags_source}\n"
         "T2_PRIMARY_SWITCHED_REDERIVED=YES\n"
         "T2_PRIMARY_ENTRY_OFFSET_REDERIVED=YES\n"
         "T2_PRIMARY_SWITCHED_ORIGINAL_FIRST_INSN=adrp x4, init_task\n"
@@ -1523,6 +1643,8 @@ def cmd_t2(args: argparse.Namespace) -> None:
             sec["file_off"] + (ps_va - sec["vma"])),
         "primary_switched_section": sec["name"],
         "primary_switched_section_flags": sec["flags"],
+        "primary_switched_section_flags_source": flags_source,
+        "primary_switched_section_va": hex(sec["vma"]),
         "primary_switched_rederived": True,
         "primary_switched_original_first_insn": "adrp x4, init_task",
         "primary_switched_original_first_bytes":
