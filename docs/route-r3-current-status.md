@@ -4,11 +4,13 @@ Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
 Last updated: 2026-09-14
-(MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI — CI only, no device.
+(MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI COMPLETE — CI only, no device.
 T3 TRUE DEVICE remains frozen: T3_TOTAL=14.238s STRONG,
 `MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN`. Agent B map NO-FF merged
 from d47bf58 / 8393db6 / run 34842580640. `PARTITION_WRITES=0`,
-`SLOT_A_WRITTEN=NO`. `T4_DEVICE_OPERATION=NO`.)
+`SLOT_A_WRITTEN=NO`. `T4_DEVICE_OPERATION=NO`.
+`READY_FOR_R3_P1B_T4_DEVICE_CONTROL=YES`. WAIT FOR USER APPROVAL.)
+
 
 <!-- R3-STATUS-KV:BEGIN -->
 <!-- Machine-readable current state. The T3 CI source gate parses THIS block
@@ -86,12 +88,33 @@ EARLY_C_STAGE_MAP_SOURCE_BASE=8393db6
 EARLY_C_STAGE_MAP_SOURCE_RUN=34842580640
 EARLY_C_STAGE_MAP_INTEGRATION_METHOD=NO_FF_MERGE
 EARLY_C_STAGE_MAP_INTEGRATION_COMMIT=00df879
-EARLY_C_STAGE_MAP_REVERIFIED=NO
-T4_SELECTED_STAGE=NONE
-T4_PREDEVICE_STATUS=NOT_READY
+EARLY_C_STAGE_MAP_REVERIFIED=YES
+T4_SELECTED_STAGE=C6_PARSE_ARGS_COMPLETE
+T4_PREDEVICE_STATUS=READY
 T4_DEVICE_OPERATION=NO
 T4_PROBE_ARCHITECTURE=INLINE
-T4_STATUS=NOT_DEVICE_READY
+T4_STATUS=PREDEVICE_READY
+T4_PREDEVICE_CI=PASS
+T4_PUBLIC_CI_PASS=YES
+T4_PUBLIC_RUN=34870647657
+T4_PUBLIC_COMMIT=2899ddb
+T4_MAP_REVERIFY_RUN=34864074936
+T4_PRIVATE_PACK_RUN=34873775125
+T4_PRIVATE_REVERIFY_RUN=34873894281
+T4_PAYLOAD_SHA256=64d8f54fd11cc9d4b049ed4a52f5141291cd4c965d25bbf16a8e64670284f76f
+T4_BOOT_SHA256=3827fc0fe4216d7d18ccd2a60ea610a6bd10b2afa269e741923ca3bbc566849d
+T4_BOOT_SIZE=37380096
+T4_CHECKPOINT_SHA256=4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611
+T4_CHECKPOINT_VA=0xffff800081b304a8
+T4_CHECKPOINT_IMAGE_OFFSET=0x1b304a8
+T4_DIFF_BYTES=75
+T4_DIFF_RANGES=[0x1b304a8,0x1b304f4)
+T4_RUNTIME_SEMANTIC_DELTA=POST_PARSE_ARGS_CHECKPOINT_ONLY
+T4_OBSERVER_FIXTURES=PASS
+T4_PRIVATE_IDENTITY_REVERIFIED=YES
+T4_DEVICE_GATE=READY
+T4_FINAL_GATE=READY_FOR_R3_P1B_T4_DEVICE_CONTROL
+
 PANIC30_STATUS=COMPLETED
 PANIC30_SHIFT=NO_SUPPORTED_SHIFT
 FIX24_STATUS=FROZEN
@@ -103,29 +126,49 @@ PARTITION_WRITES=0
 DEVICE_OPERATION=EXECUTED
 <!-- R3-STATUS-KV:END -->
 
-## T4 PREDEVICE (CI IN PROGRESS — NO DEVICE)
+## T4 PREDEVICE (CI COMPLETE — NO DEVICE)
 
-`MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI`. `DEVICE_OPERATION=NO`.
+`MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI` is COMPLETE.
+`T4_PREDEVICE_STATUS=READY`. `T4_DEVICE_OPERATION=NO`.
 `LOCAL_BUILD=NO`. `SLOT_A_WRITTEN=NO`. `PARTITION_WRITES=0`.
+Final gate: **`READY_FOR_R3_P1B_T4_DEVICE_CONTROL`**.
+A T4 true-device run is **NOT authorized**. WAIT FOR USER APPROVAL.
 
 Agent B Early C-stage map absorbed by NO-FF merge `00df879` from
 `route-b-r3-c-stage-map` `d47bf58` (base `8393db6`, run `34842580640`).
-`PATH_OVERLAP` empty. Original Agent A dirty worktree on `5550dc2` was
-not modified. Integration worktree:
+`PATH_OVERLAP` empty. `EARLY_C_STAGE_MAP_REVERIFIED=YES` on A mainline
+(independent map CI `34864074936` + T4 map-reverify job on public run
+`34870647657`). Original Agent A dirty worktree on `5550dc2` was not
+modified. Integration worktree:
 `/Volumes/LinuxDev/thyme-mainline-t4-integration`.
 
-Preferred T4 stage: `C6_PARSE_ARGS_COMPLETE` (post `parse_args("Booting
-kernel")`). Fallback: `C3_SETUP_ARCH_RETURN`. `C_DELAY` FUTURE.
-`parse_early_param` effective inside `setup_arch` (C2→C5→C3).
-`panic=` / `rdinit=` ordinary at C6. `loglevel=` early at C5.
+Selected stage: `T4_SELECTED_STAGE=C6_PARSE_ARGS_COMPLETE` (first insn
+after `bl parse_args("Booting kernel")` at VA `0xffff800081b304a8` /
+offset `0x1b304a8`). Candidate C6 SAFE. Candidate C3 SAFE, unused
+fallback. `C_DELAY` FUTURE. `parse_early_param` effective inside
+`setup_arch` (C2→C5→C3). `panic=` / `rdinit=` ordinary at C6.
+`loglevel=` early at C5. `T4_RUNTIME_SEMANTIC_DELTA=POST_PARSE_ARGS_CHECKPOINT_ONLY`.
 
 T4 is composed from frozen FIX8 with the T3 start_kernel probe removed
-(`START_KERNEL_ENTRY_RESTORED_TO_FIX8`). One INLINE 76-byte T3-core-
-identical diagnostic. No T4 device run is authorized by this section.
-`T4_PREDEVICE_STATUS=NOT_READY` until public GHA + private pack +
-reverify + observer FULL-SHA fixtures close.
+(`START_KERNEL_ENTRY_RESTORED_TO_FIX8=YES`, entry `paciasp` `3f2303d5`).
+One INLINE 76-byte T1/T3-core-identical diagnostic. Public payload
+`64d8f54fd11cc9d4b049ed4a52f5141291cd4c965d25bbf16a8e64670284f76f`
+(37369041, 75 diff bytes, unique window `[0x1b304a8,0x1b304f4)`).
+Private boot
+`3827fc0fe4216d7d18ccd2a60ea610a6bd10b2afa269e741923ca3bbc566849d`
+(37380096) from pack `34873775125`, independently re-verified by
+`34873894281` (`T4_PRIVATE_IDENTITY_REVERIFIED=YES`, envelope
+`KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY`, RT-D
+`4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327`).
+Observer FULL-SHA fixtures PASS (refuses T3/T2/T1/T0/FIX8/PANIC30/
+OLD_INIT8/ENTRY_STATE_PROBE). Observer is prepared, **not run**.
+Future matched-control window frozen: STRONG `|T4_MINUS_T3|<=1.5s`,
+SUPPORTED `<=3.0s`, `T4_TOTAL<20s`, `AUTOMATIC_ANDROID_RETURN=YES`.
+R5 / E2 stay `NOT_PROVEN`. Current B `M5D+M5H+M5M-B` UNCHANGED.
 
+Recommended next: `MAINLINE_V2_R3_P1B_T4_TRUE_DEVICE_CONTROL`.
 Full record: `docs/route-r3-p1b-t4-predevice-readiness.md`.
+
 
 ## T3 TRUE DEVICE ROUND (EXECUTED 2026-09-14 15:03 UTC)
 
@@ -768,23 +811,30 @@ gate `MAINLINE_V2_R3_P1B_T2_REACHABILITY_PROVEN` (Case T2-A STRONG,
 (`READY_FOR_R3_P1B_T3_DEVICE_CONTROL=YES`).
 `MAINLINE_V2_R3_P1B_T3_TRUE_DEVICE_CONTROL` is now also COMPLETE with final
 gate `MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN` (Case T3-A STRONG,
-`T3_TOTAL = 14.238 s`, `T3_MINUS_T2 = −0.002 s`). Recommended next:
-**`MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI`** — CI-only source audit of
-the first high-value C-stage checkpoint after `start_kernel` entry
-(candidates: `setup_arch` return, `parse_args("Booting kernel")` complete,
-or an earlier safe inline C-stage point). A T4 device run is NOT authorized
-by this document and needs its own explicit user approval. T4 must stay
-single-variable, statically closed-loop, and matched-control. Any T3
-negative class would have routed to
-`MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI`; that path was not taken.
+gate `MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN` (Case T3-A STRONG,
+`T3_TOTAL = 14.238 s`, `T3_MINUS_T2 = −0.002 s`).
+`MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI` is now also COMPLETE
+(`READY_FOR_R3_P1B_T4_DEVICE_CONTROL=YES`, selected
+`C6_PARSE_ARGS_COMPLETE`, public run `34870647657`, private pack
+`34873775125`, reverify `34873894281`). Recommended next:
+**`MAINLINE_V2_R3_P1B_T4_TRUE_DEVICE_CONTROL`** — exactly one
+identity-gated `fastboot boot` of the frozen T4-8 boot,
+`SECOND_BOOT_FORBIDDEN`, `SLOT_A` write forbidden. It is NOT
+authorized by this document; it requires its own explicit user
+approval. T4 must stay single-variable, statically closed-loop, and
+matched-control. Any T4 negative class routes to
+`MAINLINE_V2_R3_P1B_T4_FAILURE_ISOLATION_CI`; STRONG/SUPPORTED next
+would be `MAINLINE_V2_R3_P1B_C_DELAY_PREDEVICE_READINESS_CI`.
+
 
 ## Not-ready candidates
 
 - T3 device run: EXECUTED (Case T3-A STRONG,
   `MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN`).
-- T4 (`start_kernel`-internal stage boundary such as `setup_arch` return or
-  the completed "Booting kernel" command-line parse): next CI-only candidate,
-  NOT device ready; depends on the T3 STRONG result now in hand.
+- T4 (`C6_PARSE_ARGS_COMPLETE` INLINE post-`parse_args` checkpoint):
+  PREDEVICE READY (`READY_FOR_R3_P1B_T4_DEVICE_CONTROL=YES`); true-device
+  run is NOT authorized and needs its own explicit user approval.
+
 - FIX24, M5N, USB bring-up, UFS rootfs, network, drivers: frozen.
 - CopyMem forensics: priority LOWERED (T0 positive removes the transport
   suspicion that would have re-raised it).

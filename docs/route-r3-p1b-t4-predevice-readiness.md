@@ -6,11 +6,13 @@ Round: CI ONLY. `DEVICE_OPERATION=NO`, `ADB_DEVICE_OPERATION=NO`,
 `LOCAL_BUILD=NO`. mem0 was read at the start of the round.
 `MEM0_WRITE_INTERFACE_UNAVAILABLE` is recorded if add_memory is not usable.
 
-This round does **not** authorize
+This round does **not** execute
 `MAINLINE_V2_R3_P1B_T4_TRUE_DEVICE_CONTROL`. The fail-closed opposite of a
-completed public+private gate is `R3_P1B_T4_PREDEVICE_NOT_READY`. Until
-private pack + independent reverify + observer FULL-SHA fixtures close,
-`READY_FOR_R3_P1B_T4_DEVICE_CONTROL` is **not** granted.
+completed public+private gate remains `R3_P1B_T4_PREDEVICE_NOT_READY`.
+Public GHA + private pack + independent reverify + observer FULL-SHA
+fixtures have now closed, so
+`READY_FOR_R3_P1B_T4_DEVICE_CONTROL=YES`. WAIT FOR USER APPROVAL.
+
 
 ## 1. T3 true-device proof (frozen predecessor)
 
@@ -195,3 +197,42 @@ Current B: M5D+M5H+M5M-B UNCHANGED. FIX24 FROZEN. M5N FROZEN.
 
 Public path: `.github/workflows/thyme-r3-p1b-t4-predevice.yml`.
 Private staging: `artifacts/p1b-t4-private-workflow-staging.yml`.
+
+## 8. Closed identities (this CI round)
+
+Public commit pin `2899ddb00c0b00ca041771620e6f0930cc2c8135`.
+Public T4 run `34870647657` (source-gate / map-reverify / t4-build /
+independent verify all SUCCESS). Independent map reverify on the
+NO-FF merge: `34864074936`. Agent B source run `34842580640` /
+HEAD `d47bf58` / integration commit `00df879`.
+
+`T4_SELECTED_STAGE=C6_PARSE_ARGS_COMPLETE`. Candidate C6 SAFE.
+Candidate C3 SAFE (unused fallback). Candidate C_DELAY FUTURE.
+Callsite `0xffff800081b304a4` `BL parse_args`. Post-call checkpoint
+`0xffff800081b304a8` / `0x1b304a8`. `T4_CHECKPOINT_IS_POST_STAGE=YES`.
+`T4_POSTCALL_CONTROL_FLOW_PROVEN=YES`. `T4_PROBE_ARCHITECTURE=INLINE`.
+`T4_INLINE_OVERWRITE_SAFE=YES`.
+
+T4 payload `64d8f54fd11cc9d4b049ed4a52f5141291cd4c965d25bbf16a8e64670284f76f`
+(37369041). Checkpoint 76 B
+`4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611`
+(byte-identical T1 core / T3[4:] / T2[4:]). Diff 75 bytes, unique
+window `[0x1b304a8,0x1b304f4)`,
+`T4_PAYLOAD_DIFF_ATTRIBUTED=SELECTED_C_STAGE_CHECKPOINT_ONLY`.
+Trampoline / RT-D / `/init` / initramfs MATCH frozen FIX8.
+
+Private pack run `34873775125` SUCCESS. Independent reverify-only
+`34873894281` SUCCESS (`T4_PRIVATE_IDENTITY_REVERIFIED=YES`,
+`T4_ARTIFACT_REBUILD_REQUIRED=NO`). Frozen T4 boot
+`3827fc0fe4216d7d18ccd2a60ea610a6bd10b2afa269e741923ca3bbc566849d`
+size 37380096. Envelope `KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY`.
+Observer fixtures PASS. Device-round identity env is `R3_T4_SHA256`
+equal to that full boot SHA; forbidden set includes T3/T2/T1/T0/
+FIX8/PANIC30/OLD_INIT8/ENTRY_STATE_PROBE.
+
+`ORIGINAL_DIRTY_WORKTREE_NOW_BEHIND_REMOTE=YES` (`5550dc2` vs
+`route-b-v3`). Original Agent A dirty worktree was not modified.
+
+Recommended next if user approves:
+`MAINLINE_V2_R3_P1B_T4_TRUE_DEVICE_CONTROL`.
+
