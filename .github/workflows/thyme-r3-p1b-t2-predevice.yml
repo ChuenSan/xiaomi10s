@@ -394,12 +394,16 @@ jobs:
               raise SystemExit(f"T2_VERIFY_FAILED size {len(t2)}")
           if sha(ckbin) != m["t2_checkpoint_sha256"]:
               raise SystemExit("T2_VERIFY_FAILED checkpoint sha vs manifest")
-          if ckbin != t1core:
+          if ckbin[4:] != t1core:
               raise SystemExit("T2_VERIFY_FAILED T2 core != T1 core")
           if m["t2_diagnostic_core_matches_t1"] is not True:
               raise SystemExit("T2_VERIFY_FAILED core identity flag")
-          if len(ckbin) != 76:
-              raise SystemExit(f"T2_VERIFY_FAILED core size {len(ckbin)}")
+          if m["t2_bti_landing_pad_preserved"] is not True:
+              raise SystemExit("T2_VERIFY_FAILED BTI landing pad not preserved")
+          if len(ckbin) != 80 or len(t1core) != 76 or ckbin[:4] != b"\x5f\x24\x03\xd5":
+              raise SystemExit(
+                  f"T2_VERIFY_FAILED core sizes {len(ckbin)} {len(t1core)} "
+                  f"pad {ckbin[:4].hex()}")
 
           # Section 11/33: re-read image_size from the real headers.
           isz_t2 = struct.unpack_from("<Q", t2, 16)[0]
@@ -452,20 +456,22 @@ jobs:
           # Fail-closed terminal structure decoded from raw words.
           words = struct.unpack_from(f"<{plen // 4}I", ckbin, 0)
           smc = [i for i, w in enumerate(words) if w == 0xD4000003]
-          if len(smc) != 1:
-              raise SystemExit(f"T2_VERIFY_FAILED smc count {smc}")
-          i = smc[0]
-          if words[i + 1] != 0xD503205F:
+          if len(smc) != 1 or smc[0] != 17:
+              raise SystemExit(f"T2_VERIFY_FAILED smc index {smc}")
+          if words[0] != 0xD503245F:
+              raise SystemExit(
+                  f"T2_VERIFY_FAILED first word {words[0]:#010x} not bti c")
+          if words[18] != 0xD503205F:
               raise SystemExit("T2_VERIFY_FAILED no wfe after smc")
-          w = words[i + 2]
+          w = words[19]
           if (w >> 26) != 0b000101:
               raise SystemExit("T2_VERIFY_FAILED no branch after wfe")
-          target = (i + 2) * 4 + sx(w & 0x03FFFFFF, 26) * 4
-          if target != (i + 1) * 4:
+          target = 19 * 4 + sx(w & 0x03FFFFFF, 26) * 4
+          if target != 18 * 4:
               raise SystemExit(
-                  f"T2_VERIFY_FAILED terminal b {target:#x} != wfe {(i+1)*4:#x}")
-          if words[3] != 0xD280010A:
-              raise SystemExit(f"T2_VERIFY_FAILED delay word {words[3]:#010x}")
+                  f"T2_VERIFY_FAILED terminal b {target:#x} != wfe {18*4:#x}")
+          if words[4] != 0xD280010A:
+              raise SystemExit(f"T2_VERIFY_FAILED delay word {words[4]:#010x}")
           for idx, w in enumerate(words):
               addr = idx * 4
               top = w >> 26
