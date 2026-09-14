@@ -4,14 +4,15 @@ Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
 facts. Last updated: 2026-09-14
-(MAINLINE_V2_R3_P1B_T2_TRUE_DEVICE_CONTROL — EXECUTED, Case T2-A STRONG;
-`MAINLINE_V2_R3_P1B_T2_REACHABILITY_PROVEN`; one identity-gated `fastboot
-boot` of the frozen T2 boot, `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`;
-R3 and E1 now PROVEN; E2–E4 unchanged NOT_PROVEN).
+(MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI — CI / SOURCE AUDIT /
+ARTIFACT PREPARATION ONLY; `DEVICE_OPERATION=NO`, `PARTITION_WRITES=0`,
+`SLOT_A_WRITTEN=NO`; the T3 target is the `start_kernel` ADDRESS,
+`R4_STATUS=NOT_PROVEN` until a future authorized device round).
 
 <!-- R3-STATUS-KV:BEGIN -->
-<!-- Machine-readable current state. The T2 CI source gate parses THIS block
-     as structured key/value pairs (T2_STATUS_GATE_SEMANTIC=YES) instead of
+<!-- Machine-readable current state. The T3 CI source gate parses THIS block
+     as structured key/value pairs (T3_STATUS_GATE_STRUCTURED=YES) and applies
+     semantic predicates to the volatile keys (enumerated values) instead of
      matching natural-language phrases. Keep the values exactly as shown. -->
 T0_STATUS=TRUE_DEVICE_PROVEN
 T0_TOTAL_S=14.252
@@ -25,6 +26,7 @@ R3_STATUS=PROVEN
 R4_STATUS=NOT_PROVEN
 R5_STATUS=NOT_PROVEN
 R6_STATUS=NOT_PROVEN
+R7_STATUS=NOT_PROVEN
 E0_STATUS=PROVEN
 E1_STATUS=PROVEN
 E2_STATUS=NOT_PROVEN
@@ -43,7 +45,10 @@ T2_PRIMARY_SWITCHED_OFFSET=0x1b39534
 T2_BOOT_SHA256=d347cc1907563afd2c8faa0d07cafed5904985514c346434c8a774c14418e925
 T2_PUBLIC_RUN=34819753692
 T2_PRIVATE_PACK_RUN=34821104997
-T3_STATUS=NOT_DEVICE_READY
+T3_TARGET_SYMBOL=start_kernel
+T3_STATUS=PREDEVICE_DESIGNED
+T3_PREDEVICE_STATUS=NOT_READY
+T3_PROBE_ARCHITECTURE=INLINE
 PANIC30_STATUS=COMPLETED
 PANIC30_SHIFT=NO_SUPPORTED_SHIFT
 FIX24_STATUS=FROZEN
@@ -54,6 +59,52 @@ SLOT_A_WRITTEN=NO
 PARTITION_WRITES=0
 DEVICE_OPERATION=EXECUTED
 <!-- R3-STATUS-KV:END -->
+
+## T3 PREDEVICE ROUND (CI only, no device operation)
+
+`MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI` — CI / SOURCE AUDIT /
+ARTIFACT PREPARATION ONLY. Promotion target: a unique, frozen, fail-closed,
+full-SHA identity-gated, MMU-on execution-safe, explainable
+**`start_kernel` ADDRESS reachability true-device diagnostic candidate**.
+
+Architecture: **INLINE at the `start_kernel` function entry** in kernel
+`.init.text`. The first instruction of the function is the checkpoint, so the
+only code between the T2 checkpoint and the T3 checkpoint is the audited
+`__primary_switched` body (`arch/arm64/kernel/head.S` 473-524). The original
+`bti c` landing pad is preserved and the byte-identical 76-byte T0/T1/T2
+diagnostic core (8 s `CNTPCT` register-only delay → PSCI `SYSTEM_RESET`
+`0x84000009` via `smc #0` → `wfe` forever) follows it. `primary_entry`, the
+whole head.S path **and `__primary_switched`** keep their FIX8 bytes — the T2
+inline probe is removed — so the payload diff against the frozen FIX8 payload
+is one contiguous 80-byte region (`T3_RUNTIME_SEMANTIC_DELTA=START_KERNEL_ADDRESS_CHECKPOINT_ONLY`).
+
+Round scope: `start_kernel` re-derivation from this round's own binary (never
+a history constant), the exact `__primary_switched` → `start_kernel` call
+site, the ordered pre-checkpoint control-flow audit, the C-entry
+instrumentation audit (BTI/PAC/CFI/fentry/SCS/KASAN/KCOV read from the real
+build `.config`), inline overwrite safety (symbol / branch / relocation /
+literal / section-boundary / function-extent / exception-table / alternative /
+jump-label / static-call / kCFI scans), the T2-probe-removal proof, an
+independent structural re-verification of the uploaded payload, negative
+fixtures, T2-matched-control decoder fixtures and the T3 observer + fixtures.
+
+T3 proof boundary: a future positive proves `START_KERNEL_ADDRESS_REACHED`
+(`R4`) and, because the pre-checkpoint path is byte-identical to FIX8 and
+audited instruction by instruction,
+`NORMAL_PRIMARY_SWITCHED_TO_START_KERNEL_PATH_EXECUTED`. It never proves the
+`start_kernel` body, `setup_arch`, `parse_args`, the scheduler, initramfs or
+`/init` (`R5`), and `E2` is never auto-upgraded.
+
+Future T3 matched control: primary reference `T2_TOTAL=14.240` s
+(`|T3_MINUS_T2| <= 1.000` STRONG, `<= 2.000` SUPPORTED, plus
+`T3_TOTAL < 20 s` and `AUTOMATIC_ANDROID_RETURN`); secondary references
+`T1_TOTAL=14.238` s and `T0_TOTAL=14.252` s (`|.| <= 2.000`); the P0
+`6.1445` s decoder stays SECONDARY. Every negative class routes to
+`MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI` and records
+`T3_NOT_REACHED_LICENSE=NO` — an early return is never evidence that
+`start_kernel` was not reached. Full record:
+`docs/route-r3-p1b-t3-predevice-readiness.md`. A T3 device run is **NOT
+authorized** and needs its own explicit user approval.
 
 ## T2 TRUE DEVICE ROUND (EXECUTED 2026-09-14 08:39 UTC)
 
@@ -218,6 +269,25 @@ Final gate: **`MAINLINE_V2_R3_P1B_T1_REACHABILITY_PROVEN`**. Full record:
 `docs/route-r3-p1b-t1-predevice-readiness.md` section 26.
 
 ## Current Round
+
+`MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI` — CI / SOURCE AUDIT /
+ARTIFACT PREPARATION ONLY. `DEVICE_OPERATION=NO`,
+`ADB_DEVICE_OPERATION=NO`, `FASTBOOT_DEVICE_OPERATION=NO`,
+`PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`; no T3/T2/T1/T0 device run, no
+PANIC30 rerun, no FIX8 rerun, no FIX24, no M5N, no copydown, no USB, no UFS,
+no network. Local builds remain forbidden — every assembly, link, kernel
+build, disassembly and validation step runs in GitHub Actions only.
+
+Goal: promote the `start_kernel` entry checkpoint to the unique, frozen,
+fail-closed, full-SHA identity-gated, MMU-on execution-safe, explainable
+**T3-8 `start_kernel` ADDRESS reachability true-device diagnostic candidate**,
+and remove the T2 probe so that the whole path from the frozen trampoline to
+the `start_kernel` entry is again the FIX8 original bytes. See
+`docs/route-r3-p1b-t3-predevice-readiness.md`.
+
+The sections below keep the preceding rounds' records unchanged.
+
+### Superseded round record: T1 predevice
 
 `MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI` — CI / SOURCE AUDIT /
 ARTIFACT PREPARATION ONLY. `DEVICE_OPERATION=NO`, `PARTITION_WRITES=0`,
@@ -516,12 +586,29 @@ its own explicit user approval. Any T2 negative class (not observed, timing
 mismatch, stable bootloader return, no return, boot not accepted) routes to
 `MAINLINE_V2_R3_P1B_T2_FAILURE_ISOLATION_CI`, never automatically to T3.
 
+`MAINLINE_V2_R3_P1B_T2_TRUE_DEVICE_CONTROL` is now also COMPLETE with final
+gate `MAINLINE_V2_R3_P1B_T2_REACHABILITY_PROVEN` (Case T2-A STRONG,
+`T2_TOTAL = 14.240 s`), so the T2 predevice stage has been consumed as well.
+The next stage is the CI-only promotion of the T3-8 `start_kernel`
+address-reachability candidate
+(`MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI`, this round). Once (and only
+if) that round reaches `READY_FOR_R3_P1B_T3_DEVICE_CONTROL`, the next
+executable candidate becomes **`MAINLINE_V2_R3_P1B_T3_TRUE_DEVICE_CONTROL`** —
+exactly one identity-gated `fastboot boot` of the frozen T3-8 boot,
+`SECOND_BOOT_FORBIDDEN`, `SLOT_A` write forbidden. It is NOT authorized by
+this document; it requires its own explicit user approval. Any T3 negative
+class (not observed, timing mismatch, stable bootloader return, no return,
+boot not accepted) routes to `MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI`,
+never automatically to T4.
+
 ## Not-ready candidates
 
-- T2 device run: T2 is PREDEVICE READY but NOT device authorized; needs
+- T3 device run: this round prepares the T3-8 `start_kernel`
+  address-reachability candidate; it is NOT device authorized and needs
   separate user approval.
-- T3 (`start_kernel` or the earliest stable C-entry checkpoint): NOT device
-  ready, not designed yet.
+- T4 (`start_kernel`-internal stage boundary such as `setup_arch` return or
+  the completed "Booting kernel" command-line parse): design note only, NOT
+  device ready; it depends on a T3 STRONG result.
 - FIX24, M5N, USB bring-up, UFS rootfs, network, drivers: frozen.
 - CopyMem forensics: priority LOWERED (T0 positive removes the transport
   suspicion that would have re-raised it).
@@ -553,6 +640,20 @@ T0/T1 gates remain literal-substring checks and are left untouched, so the
 phrases they require (`T0 CI_PASS`, `T0 TRUE DEVICE`, `T1 PREDEVICE`,
 `T2 DESIGNED`, `PANIC30`, `FIX24`, `M5N`, `FROZEN`, `NOT_PROVEN`, `14.252`) are
 preserved verbatim in this document.
+
+Follow-up (2026-09-14, T3 round): the T2 gate's **required** key/value pairs are
+frozen to the T2 predevice epoch (`R3_STATUS=NOT_PROVEN`,
+`T2_STATUS=PREDEVICE_READY`, `T2_DEVICE_CONTROL=NOT_AUTHORIZED`), which the T2
+device round then superseded. Consequence, recorded because it is observable:
+every later push that touches this file makes the `thyme-r3-p1b-t2-predevice`
+workflow red in its source-audit job (`T2_SOURCE_GATE_FAILED`), even when the
+change is correct and docs-only. It is a stale-gate artefact, not a regression
+of the T2 result, and the T2 result itself stays
+`MAINLINE_V2_R3_P1B_T2_REACHABILITY_PROVEN`. The T3 gate deliberately avoids
+this class of failure: it applies **semantic predicates** to the volatile keys
+(enumerated value sets for `T3_STATUS`, `T3_PREDEVICE_STATUS`,
+`T3_PROBE_ARCHITECTURE`) and hard equality only to immutable predecessor facts
+(`T3_STATUS_GATE_STRUCTURED=YES`).
 
 ## Panic-audit anchors (corrected 2026-09-13)
 
