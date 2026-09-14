@@ -1,0 +1,9 @@
+== ANDROID A BASELINE 2026-09-14T22:43:29Z ==
+slot_suffix=_a
+boot_completed=1
+uname=4.19.157-perf-g9d90dd04aa7c
+bootreason=bootloader
+uid=uid=0(root) gid=0(root) groups=0(root) context=u:r:magisk:s0
+/proc/uptime=27580.91 217951.04
+root=YES
+STOCK=4.19.157-perf

@@ -1,0 +1,21 @@
+== T4 PERSISTENT AUXILIARY EVIDENCE (read-only) 2026-09-14T22:54:04Z ==
+pstore entries = 0 (empty means 0; auxiliary only, NOT negative evidence)
+total 0
+dr-xr-x---  2 system log  0 1974-07-22 02:03 .
+drwxr-xr-x 11 root   root 0 1974-07-22 02:03 ..
+logdump   3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351  /dev/block/by-name/logdump
+rawdump   254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917  /dev/block/by-name/rawdump
+minidump  719d113e79aea9fd538529022aa50b1c180f6331661cdf9a9214bc8fda6ad726  /dev/block/by-name/minidump
+oops      f1a2b33fc9a90650fcfdcc85fe86d340a5846fe756658646f4346034f676e206  /dev/block/by-name/oops
+logfs     a9e0b082af5fe1e49b097d9815b7a3d76f70a400252181d88c41d3fe2942856b  /dev/block/by-name/logfs
+logdump_vs_T3=BYTE_IDENTICAL
+rawdump_vs_T3=BYTE_IDENTICAL
+-- strings scan (auxiliary; empty is not negative) --
+PART oops hits:
+(none)
+PART minidump hits:
+(none)
+PART logdump hits:
+(none)
+PART logfs hits:
+(none)

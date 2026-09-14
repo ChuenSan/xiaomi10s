@@ -1,0 +1,14 @@
+== BOOTLOADER PREFLIGHT 2026-09-14T22:52:25Z ==
+product=thyme
+unlocked=yes
+current-slot=a
+snapshot-update-status=none
+battery-soc-ok=yes
+battery-voltage=4412
+max-download-size=805306368
+slot-retry-count:a=6
+slot-unbootable:a=no
+slot-successful:a=yes
+slot-retry-count:b=7
+slot-unbootable:b=no
+slot-successful:b=no
