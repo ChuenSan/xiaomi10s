@@ -775,20 +775,33 @@ def nm_table(nm_out: str) -> list[tuple[int, str]]:
     return rows
 
 
-def nm_unique(rows: list[tuple[int, str]], name: str) -> int:
-    hits = [va for va, n in rows if n == name]
-    if len(hits) != 1:
+def nm_hits(rows: list[tuple[int, str]], name: str) -> list[int]:
+    return sorted(va for va, n in rows if n == name)
+
+
+def resolve_sym(rows: list[tuple[int, str]], sysmap: Path, name: str,
+                *, unique: bool = True, optional: bool = False) -> int | None:
+    hits = nm_hits(rows, name)
+    if not hits:
+        if optional:
+            return None
+        fail("WRONG_START_KERNEL_SYMBOL" if name == "start_kernel"
+             else "C_STAGE_SYMBOL_FAILED", f"{name} missing")
+    if unique and len(hits) != 1:
         fail("WRONG_START_KERNEL_SYMBOL" if name == "start_kernel"
              else "C_STAGE_SYMBOL_FAILED",
              f"{name} hits={len(hits)} {[hex(h) for h in hits[:4]]}")
-    return hits[0]
-
-
-def sysmap_unique(sysmap: Path, name: str) -> int:
-    hits = [l for l in sysmap.read_text().splitlines() if l.endswith(" " + name)]
-    if len(hits) != 1:
-        fail("C_STAGE_SYMBOL_FAILED", f"System.map {name} hits={len(hits)}")
-    return int(hits[0].split()[0], 16)
+    va = min(hits)
+    if unique:
+        sm_hits = [l for l in sysmap.read_text().splitlines()
+                   if l.endswith(" " + name)]
+        if len(sm_hits) != 1:
+            fail("WRONG_SYMBOL_VA", f"System.map {name} hits={len(sm_hits)}")
+        sm = int(sm_hits[0].split()[0], 16)
+        if va != sm:
+            fail("WRONG_SYMBOL_VA", f"{name} nm={va:#x} sysmap={sm:#x}")
+    print(f"SYM {name} va={va:#x} nm_hits={len(hits)}")
+    return va
 
 
 def parse_sections(readelf_s: str) -> list[dict]:
@@ -941,20 +954,14 @@ def cmd_stage_map(args: argparse.Namespace) -> dict:
         "unflatten_device_tree": None,
         "prepare_namespace": None,
     }
-    # local_irq_enable may be a macro/inline — tolerate missing
-    optional = {"local_irq_enable", "unknown_bootoption"}
+    optional = {"local_irq_enable", "unknown_bootoption", "load_elf_binary"}
+    allow_multi = {"load_elf_binary"}
     for n in list(names):
-        try:
-            va = nm_unique(rows, n)
-            sm = sysmap_unique(sysmap, n)
-            if va != sm:
-                fail("WRONG_SYMBOL_VA", f"{n} nm={va:#x} sysmap={sm:#x}")
-            names[n] = va
-        except SystemExit:
-            if n in optional:
-                names[n] = None
-            else:
-                raise
+        names[n] = resolve_sym(
+            rows, sysmap, n,
+            unique=(n not in allow_multi),
+            optional=(n in optional),
+        )
 
     relf = run([tools["readelf"], "-S", "--wide", str(vmlinux)])
     (out / "vmlinux.sections.txt").write_text(relf)
