@@ -98,7 +98,12 @@ TRAMP_SHA = iso.TRAMP_SHA
 TRAMP_SIZE = 48
 PSCI_SYSTEM_RESET_FID = 0x84000009
 T2_DELAY_S = 8
-T2_PROBE_SIZE = 0x4C  # 76 bytes = 19 instructions, the T1-proven core size
+T2_CORE_SIZE = 0x4C  # 76 bytes = 19 instructions: the T1-proven core
+T2_BTI_PAD = 0x4  # leading `bti c` landing pad kept from __primary_switched
+T2_PROBE_SIZE = T2_CORE_SIZE + T2_BTI_PAD  # 80 bytes = 20 instructions
+T2_BTI_PAD_WORD = 0xD503245F  # `bti c`
+T2_ORIGINAL_FIRST_INSN = "bti c"
+T2_ORIGINAL_SECOND_INSN = "adrp x4, init_task"
 
 FORBIDDEN_BOOT_SHAS = {
     "T0_BOOT":
@@ -969,9 +974,11 @@ def probe_syms(readelf: str, elf: Path, name: str) -> dict:
 
 def build_probe(out: Path, tools: dict, src: Path, ld: Path,
                 delay_macro: str, delay: int, sym: str,
-                tag: str) -> tuple:
+                tag: str, march: str = None) -> tuple:
     elf = out / f"{tag}.elf"
-    ops = iso.assemble_probe(src, ld, [f"-D{delay_macro}={delay}"], elf, tools)
+    extra = [f"-march={march}"] if march else []
+    ops = iso.assemble_probe(src, ld, [f"-D{delay_macro}={delay}", *extra],
+                             elf, tools)
     offs = probe_syms(tools["readelf"], elf, sym)
     if set(offs) != {sym} or offs[sym] != 0:
         fail("T2_BUILD_FAILED", f"{tag} symbols {sorted(offs)}")
@@ -1510,7 +1517,8 @@ def cmd_t2(args: argparse.Namespace) -> None:
     # --- probe build (T2 + the T1 core for byte identity) ---
     t2_probe, ops, dump = build_probe(out, tools, T2_DEVICE_S, T2_DEVICE_LD,
                                       "P1B_T2_DELAY", T2_DELAY_S,
-                                      "r3_t2_checkpoint", "p1b-t2-checkpoint")
+                                      "r3_t2_checkpoint", "p1b-t2-checkpoint",
+                                      march="armv8.5-a")
     t1_probe, _t1_ops, _t1_dump = build_probe(
         out, tools, T1_DEVICE_S, T1_DEVICE_LD, "P1B_T1_DELAY", 8,
         "r3_t1_checkpoint", "p1b-t1-core-reference")
