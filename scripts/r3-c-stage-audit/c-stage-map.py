@@ -111,23 +111,25 @@ def line_no(text: str, pos: int) -> int:
 
 
 def function_span(text: str, sig: str) -> tuple[int, int, str]:
-    m = re.search(sig, text, re.M)
-    if not m:
-        fail("C_STAGE_SOURCE_FAILED", f"signature not found: {sig}")
-    brace = text.find("{", m.end())
-    if brace < 0:
-        fail("C_STAGE_SOURCE_FAILED", f"no body: {sig}")
-    depth = 0
-    for i, ch in enumerate(text[brace:], brace):
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                start = line_no(text, m.start())
-                end = line_no(text, i)
-                return start, end, text[m.start():i + 1]
-    fail("C_STAGE_SOURCE_FAILED", f"unclosed: {sig}")
+    for m in re.finditer(sig, text, re.M):
+        rest = text[m.end():]
+        skip = re.match(r"\s*;", rest)
+        if skip:
+            continue
+        brace = text.find("{", m.end())
+        if brace < 0:
+            continue
+        depth = 0
+        for i, ch in enumerate(text[brace:], brace):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    start = line_no(text, m.start())
+                    end = line_no(text, i)
+                    return start, end, text[m.start():i + 1]
+    fail("C_STAGE_SOURCE_FAILED", f"signature/body not found: {sig}")
     return 0, 0, ""
 
 
