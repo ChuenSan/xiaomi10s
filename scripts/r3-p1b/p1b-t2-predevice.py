@@ -1804,6 +1804,7 @@ def parse_status_kv(text: str) -> dict:
         fail("T2_SOURCE_GATE_FAILED",
              "structured status KV block markers missing")
     body = text.split(STATUS_KV_BEGIN, 1)[1].split(STATUS_KV_END, 1)[0]
+    body = re.sub(r"<!--.*?-->", "", body, flags=re.S)
     kv: dict = {}
     for line in body.splitlines():
         line = line.strip()
