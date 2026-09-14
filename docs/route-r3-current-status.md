@@ -4,10 +4,10 @@ Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
 facts. Last updated: 2026-09-14
-(MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI — CI / SOURCE AUDIT /
-ARTIFACT PREPARATION ONLY; `DEVICE_OPERATION=NO`, `PARTITION_WRITES=0`,
-`SLOT_A_WRITTEN=NO`; the T3 target is the `start_kernel` ADDRESS,
-`R4_STATUS=NOT_PROVEN` until a future authorized device round).
+(MAINLINE_V2_R3_P1B_T3_DEVICE_GATE_FINALIZATION_CI — CI / ARTIFACT
+FINALIZATION / DEVICE-GATE ONLY; `DEVICE_OPERATION=NO`, `PARTITION_WRITES=0`,
+`SLOT_A_WRITTEN=NO`; public T3 CI is frozen `CI_PASS`; T3 boot identity is
+frozen from private pack+reverify; a T3 true-device run is **NOT authorized**).
 
 <!-- R3-STATUS-KV:BEGIN -->
 <!-- Machine-readable current state. The T3 CI source gate parses THIS block
@@ -46,14 +46,29 @@ T2_BOOT_SHA256=d347cc1907563afd2c8faa0d07cafed5904985514c346434c8a774c14418e925
 T2_PUBLIC_RUN=34819753692
 T2_PRIVATE_PACK_RUN=34821104997
 T3_TARGET_SYMBOL=start_kernel
-T3_STATUS=PREDEVICE_DESIGNED
-T3_PREDEVICE_STATUS=NOT_READY
+T3_STATUS=PREDEVICE_READY
+T3_PREDEVICE_STATUS=READY
+T3_PREDEVICE_CI=PASS
+T3_PUBLIC_CI_PASS=YES
+T3_PUBLIC_RUN=34850631688
+T3_PUBLIC_COMMIT=e2b54b4
+T3_DEVICE_GATE=READY
 T3_PROBE_ARCHITECTURE=INLINE
 T3_START_KERNEL_VA=0xffff800081b303c0
 T3_START_KERNEL_IMAGE_OFFSET=0x1b303c0
 T3_START_KERNEL_SECTION=.init.text
 T3_START_KERNEL_ENTRY_INSN=paciasp
 T3_START_KERNEL_ENTRY_BYTES=3f2303d5
+T3_PAYLOAD_SHA256=eff9a4a5b47413ec2c9f071158c7162a3361bf6443cbe58b43db7ccd0787e471
+T3_BOOT_SHA256=d80b9ba20e0ebd10d61592e28d0a6a8ee243d631ed5395628101b51f26a889df
+T3_PRIVATE_PACK_RUN=34856507744
+T3_PRIVATE_REVERIFY_RUN=34856735790
+T3_PACIASP_AUDIT=PASS
+T3_ENTRY_LANDING_AUDIT=PASS
+T3_OBSERVER_READY=YES
+T3_OBSERVER_FIXTURES=PASS
+T3_DEVICE_OPERATION=NO
+T3_DEVICE_CONTROL=NOT_EXECUTED
 PANIC30_STATUS=COMPLETED
 PANIC30_SHIFT=NO_SUPPORTED_SHIFT
 FIX24_STATUS=FROZEN
@@ -65,33 +80,64 @@ PARTITION_WRITES=0
 DEVICE_OPERATION=EXECUTED
 <!-- R3-STATUS-KV:END -->
 
+## T3 DEVICE GATE FINALIZATION (CI / artifact only, no device operation)
+
+`MAINLINE_V2_R3_P1B_T3_DEVICE_GATE_FINALIZATION_CI` closes the previous
+predevice `CI_PASS` (public run `34850631688` at `e2b54b4`) into
+`READY_FOR_R3_P1B_T3_DEVICE_CONTROL=YES`.
+
+`PREVIOUS_READY_FOR_DEVICE_NO_REASON=PREDEVICE_WORKFLOW_DEFAULT_FORBID
++ PRIVATE_BOOT_NOT_PACKED + PRIVATE_REVERIFY_NOT_DONE + T3_BOOT_SHA_NOT_FROZEN
++ PACIASP_DIAGNOSTIC_BOUNDARY_NOT_EXPLICIT`. All four are now closed.
+
+Frozen public payload: `T3_PAYLOAD_SHA256=eff9a4a5b47413ec2c9f071158c7162a3361bf6443cbe58b43db7ccd0787e471`
+size 37369041, 75 diff bytes, unique range `[0x1b303c0,0x1b30410)`,
+`START_KERNEL_CHECKPOINT_ONLY`. Private boot
+`T3_BOOT_SHA256=d80b9ba20e0ebd10d61592e28d0a6a8ee243d631ed5395628101b51f26a889df`
+size 37380096, pack `34856507744`, reverify `34856735790`
+(`T3_PRIVATE_IDENTITY_REVERIFIED=YES`, envelope
+`KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY`).
+
+PAC / landing: original `start_kernel` entry0 is `paciasp` (`3f2303d5`).
+The T3 window occupies that slot (`T3_PACIASP_INTENTIONALLY_REPLACED=YES`);
+the probe re-emits the same encoding as word0 (`T3_ENTRY_PAD_PRESERVED=YES`,
+first changed byte `0x1b303c4`) and never returns
+(`T3_DIAGNOSTIC_REQUIRES_PACIASP=NO`). Exact callsite
+`0xffff800081b395ec` is direct `bl start_kernel` (`75dbff97`);
+`T3_ENTRY_LANDING_REQUIREMENT=DIRECT_BL_NO_BTI_CHECK`,
+`T3_PROBE_LANDING_REQUIREMENT_SATISFIED=YES`. Symbol layout
+(`start_kernel` `0x1b303c0` < `__primary_switched` `0x1b39534`) is not
+control-flow order.
+
+Observer: FULL-SHA env gate `R3_T3_SHA256`, refuses T2/T1/T0/FIX8/PANIC30/
+old INIT8/entry-state, `FASTBOOT_BOOT_ONLY=YES`, `SECOND_BOOT_FORBIDDEN=YES`,
+fixtures PASS including mutated-T3 REJECT. Not run this round.
+
+A T3 true-device run is **NOT authorized**. Recommended next:
+`MAINLINE_V2_R3_P1B_T3_TRUE_DEVICE_CONTROL`. Full record:
+`docs/route-r3-p1b-t3-predevice-readiness.md`.
+
 ## T3 PREDEVICE ROUND (CI only, no device operation)
 
 `MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI` — CI / SOURCE AUDIT /
-ARTIFACT PREPARATION ONLY. Promotion target: a unique, frozen, fail-closed,
-full-SHA identity-gated, MMU-on execution-safe, explainable
-**`start_kernel` ADDRESS reachability true-device diagnostic candidate**.
+ARTIFACT PREPARATION ONLY. Authoritative public run `34850631688` /
+commit `e2b54b4`: source-audit PASS, T3 build PASS, independent verify PASS,
+`T3_PREDEVICE_READINESS_CI_VERDICT=CI_PASS`. Promotion target: a unique,
+frozen, fail-closed, full-SHA identity-gated, MMU-on execution-safe,
+explainable **`start_kernel` ADDRESS reachability true-device diagnostic
+candidate**.
 
 Architecture: **INLINE at the `start_kernel` function entry** in kernel
 `.init.text`. The first instruction of the function is the checkpoint, so the
 only code between the T2 checkpoint and the T3 checkpoint is the audited
-`__primary_switched` body (`arch/arm64/kernel/head.S` 473-524). The original
-`bti c` landing pad is preserved and the byte-identical 76-byte T0/T1/T2
+`__primary_switched` body (`arch/arm64/kernel/head.S` 473-524). Original
+entry0 is `paciasp` (not `bti c`); the probe occupies that slot and re-emits
+the same encoding as word0, then the byte-identical 76-byte T0/T1/T2
 diagnostic core (8 s `CNTPCT` register-only delay → PSCI `SYSTEM_RESET`
-`0x84000009` via `smc #0` → `wfe` forever) follows it. `primary_entry`, the
+`0x84000009` via `smc #0` → `wfe` forever). `primary_entry`, the
 whole head.S path **and `__primary_switched`** keep their FIX8 bytes — the T2
 inline probe is removed — so the payload diff against the frozen FIX8 payload
 is one contiguous 80-byte region (`T3_RUNTIME_SEMANTIC_DELTA=START_KERNEL_ADDRESS_CHECKPOINT_ONLY`).
-
-Round scope: `start_kernel` re-derivation from this round's own binary (never
-a history constant), the exact `__primary_switched` → `start_kernel` call
-site, the ordered pre-checkpoint control-flow audit, the C-entry
-instrumentation audit (BTI/PAC/CFI/fentry/SCS/KASAN/KCOV read from the real
-build `.config`), inline overwrite safety (symbol / branch / relocation /
-literal / section-boundary / function-extent / exception-table / alternative /
-jump-label / static-call / kCFI scans), the T2-probe-removal proof, an
-independent structural re-verification of the uploaded payload, negative
-fixtures, T2-matched-control decoder fixtures and the T3 observer + fixtures.
 
 T3 proof boundary: a future positive proves `START_KERNEL_ADDRESS_REACHED`
 (`R4`) and, because the pre-checkpoint path is byte-identical to FIX8 and
@@ -99,6 +145,7 @@ audited instruction by instruction,
 `NORMAL_PRIMARY_SWITCHED_TO_START_KERNEL_PATH_EXECUTED`. It never proves the
 `start_kernel` body, `setup_arch`, `parse_args`, the scheduler, initramfs or
 `/init` (`R5`), and `E2` is never auto-upgraded.
+`T3_NORMAL_START_KERNEL_PROLOGUE_EXECUTED=NOT_PROVEN`.
 
 Future T3 matched control: primary reference `T2_TOTAL=14.240` s
 (`|T3_MINUS_T2| <= 1.000` STRONG, `<= 2.000` SUPPORTED, plus
@@ -106,10 +153,7 @@ Future T3 matched control: primary reference `T2_TOTAL=14.240` s
 `T1_TOTAL=14.238` s and `T0_TOTAL=14.252` s (`|.| <= 2.000`); the P0
 `6.1445` s decoder stays SECONDARY. Every negative class routes to
 `MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI` and records
-`T3_NOT_REACHED_LICENSE=NO` — an early return is never evidence that
-`start_kernel` was not reached. Full record:
-`docs/route-r3-p1b-t3-predevice-readiness.md`. A T3 device run is **NOT
-authorized** and needs its own explicit user approval.
+`T3_NOT_REACHED_LICENSE=NO`. A T3 device run is **NOT authorized**.
 
 ## T2 TRUE DEVICE ROUND (EXECUTED 2026-09-14 08:39 UTC)
 

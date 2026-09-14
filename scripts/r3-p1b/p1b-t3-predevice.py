@@ -2852,6 +2852,11 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
                   "T3_START_KERNEL_ENTRY_INSTRUCTION0=paciasp",
                   "T3_BTI_LANDING_REQUIRED=NO",
                   "T3_ENTRY_PAD_PRESERVED",
+                  "T3_PACIASP_INTENTIONALLY_REPLACED=YES",
+                  "T3_DIAGNOSTIC_REQUIRES_PACIASP=NO",
+                  "T3_NORMAL_START_KERNEL_PROLOGUE_EXECUTED=NOT_PROVEN",
+                  "T3_ENTRY_LANDING_REQUIREMENT=DIRECT_BL_NO_BTI_CHECK",
+                  "T3_PROBE_LANDING_REQUIREMENT_SATISFIED=YES",
                   "T3_START_KERNEL_CALLSITE_FOUND=YES",
                   "T3_START_KERNEL_CALL_TARGET_EXACT=YES",
                   "T3_PRE_START_KERNEL_CONTROL_FLOW_AUDITED=YES",
@@ -2872,6 +2877,7 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
                   "T2_REFERENCE_TOTAL", "14.240", "14.238", "14.252",
                   "6.1445", "0x2380000", "0x84000009", "wfe", "CNTPCT",
                   "T3_FAILURE_ISOLATION_CI", "STRONG", "SUPPORTED",
+                  "DEVICE GATE FINALIZATION",
                   "READY_FOR_R3_P1B_T3_DEVICE_CONTROL",
                   "R3_P1B_T3_PREDEVICE_NOT_READY", "T4", "R4", "R5", "E2"):
         need(doc, token)

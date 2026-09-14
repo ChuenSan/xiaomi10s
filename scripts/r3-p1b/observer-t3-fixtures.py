@@ -158,6 +158,14 @@ def identity_fixtures(lines):
             lines.append(f"OBSERVER_T3_IDENTITY_{name}_REJECTED=PASS")
             continue
         fail("IDENTITY", f"{name} accepted")
+    mutated = good_sha[:-1] + ("0" if good_sha[-1] != "0" else "1")
+    try:
+        mod.verify_identity(mod.EXPECTED_SIZE, mutated, good_sha, forbidden,
+                            mod.EXPECTED_PAYLOAD_SHA)
+    except SystemExit:
+        lines.append("OBSERVER_T3_IDENTITY_MUTATED_T3_REJECTED=PASS")
+    else:
+        fail("IDENTITY", "mutated T3 accepted")
     misboot = dict(forbidden)
     for name in forbidden:
         try:

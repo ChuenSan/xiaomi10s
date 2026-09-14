@@ -358,7 +358,7 @@ jobs:
           test -s auth-boot/t3-out/p1b-t3-pack-gates.txt
           echo 'T3_BOOT_ARTIFACT_SOURCE=AUTHORITATIVE_PRIVATE_RUN'
 
-      - name: T3 boot identity gates (re-hash only)
+      - name: T3 boot identity gates (extract + re-hash, no repack)
         env:
           EXPECTED_BOOT_SHA256: ${{ inputs.expected_boot_sha256 }}
           EXPECTED_PAYLOAD_SHA256: ${{ inputs.t3_payload_sha }}
@@ -367,10 +367,101 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$EXPECTED_BOOT_SHA256"
-          printf '%s  auth-boot/t3-out/thyme-r3-p1b-t3-boot.img\n' \
-            "$EXPECTED_BOOT_SHA256" | sha256sum -c -
-          boot_size=$(stat -c%s auth-boot/t3-out/thyme-r3-p1b-t3-boot.img)
-          test "$boot_size" = 37380096
+          python3 - <<'PY'
+          import hashlib, os, struct, sys
+          from pathlib import Path
+
+          def sha(b: bytes) -> str:
+              return hashlib.sha256(b).hexdigest()
+
+          PAGE = 4096
+          KERNEL_OFFSET = PAGE
+          DTB_OFFSET = 0x2380000
+          SK = 0x1B303C0
+          PS = 0x1B39534
+          PE = 0x1B1C0A0
+          WINDOW = 80
+          TRAMP_OFF = 0x40
+          TRAMP_SIZE = 48
+          RT_D_SHA = (
+              "4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327")
+          RT_D_SIZE = 144593
+          T2_PROBE_SHA = (
+              "c78c55fb2fa94b6e16a33e59d7973acc715c212a02a88bad1ed954ecb1ce412a")
+          PACIASP = 0xD503233F
+          BTI_C = 0xD503245F
+          FDT_MAGIC = 0xD00DFEED
+
+          exp_boot = os.environ["EXPECTED_BOOT_SHA256"]
+          exp_payload = os.environ["EXPECTED_PAYLOAD_SHA256"]
+          exp_tramp = os.environ["EXPECTED_TRAMP_SHA256"]
+          exp_ck = os.environ["EXPECTED_CHECKPOINT_SHA256"]
+
+          boot_path = Path("auth-boot/t3-out/thyme-r3-p1b-t3-boot.img")
+          boot = boot_path.read_bytes()
+          if sha(boot) != exp_boot:
+              raise SystemExit("T3_REVERIFY_BOOT_SHA_MISMATCH")
+          if len(boot) != 37380096:
+              raise SystemExit(f"T3_REVERIFY_BOOT_SIZE {len(boot)}")
+          if boot[:8] != b"ANDROID!":
+              raise SystemExit("T3_REVERIFY_NOT_ANDROID")
+          ksize = struct.unpack_from("<I", boot, 8)[0]
+          if ksize != 37369041:
+              raise SystemExit(f"T3_REVERIFY_KERNEL_SIZE_FIELD {ksize}")
+          payload = boot[KERNEL_OFFSET:KERNEL_OFFSET + ksize]
+          if len(payload) != 37369041:
+              raise SystemExit("T3_REVERIFY_PAYLOAD_LEN")
+          if sha(payload) != exp_payload:
+              raise SystemExit("T3_REVERIFY_PAYLOAD_SHA_MISMATCH")
+          if payload[56:60] != b"ARM\x64":
+              raise SystemExit("T3_REVERIFY_NOT_ARM64_IMAGE")
+          image_size = struct.unpack_from("<Q", payload, 16)[0]
+          if image_size != 0x2230000:
+              raise SystemExit(f"T3_REVERIFY_IMAGE_SIZE {image_size:#x}")
+          if struct.unpack_from("<I", payload, 4)[0] != 0x1400000F:
+              raise SystemExit("T3_REVERIFY_CODE1_NOT_B_0X40")
+          tramp = payload[TRAMP_OFF:TRAMP_OFF + TRAMP_SIZE]
+          if sha(tramp) != exp_tramp:
+              raise SystemExit("T3_REVERIFY_TRAMP_SHA_MISMATCH")
+          window = payload[SK:SK + WINDOW]
+          if sha(window) != exp_ck:
+              raise SystemExit("T3_REVERIFY_INLINE_WINDOW_SHA_MISMATCH")
+          if struct.unpack_from("<I", window, 0)[0] != PACIASP:
+              raise SystemExit("T3_REVERIFY_ENTRY0_NOT_PACIASP")
+          ps_win = payload[PS:PS + WINDOW]
+          if sha(ps_win) == T2_PROBE_SHA:
+              raise SystemExit("T3_REVERIFY_T2_PROBE_STILL_PRESENT")
+          if sha(ps_win) == exp_ck:
+              raise SystemExit("T3_REVERIFY_T3_PROBE_AT_PRIMARY_SWITCHED")
+          if struct.unpack_from("<I", ps_win, 0)[0] != BTI_C:
+              raise SystemExit("T3_REVERIFY_PRIMARY_SWITCHED_NOT_FIX8_BTI_C")
+          if struct.unpack_from("<I", payload, PE)[0] >> 26 != 0b100101:
+              raise SystemExit("T3_REVERIFY_PRIMARY_ENTRY_NOT_BL")
+          trailer = payload[DTB_OFFSET:]
+          if len(payload) != DTB_OFFSET + RT_D_SIZE:
+              raise SystemExit("T3_REVERIFY_PAYLOAD_GEOMETRY")
+          if len(trailer) != RT_D_SIZE or sha(trailer) != RT_D_SHA:
+              raise SystemExit("T3_REVERIFY_RT_D_MISMATCH")
+          if trailer[:4] != struct.pack(">I", FDT_MAGIC):
+              raise SystemExit("T3_REVERIFY_RT_D_MAGIC")
+          if (SK + WINDOW) > image_size:
+              raise SystemExit("T3_REVERIFY_WINDOW_OUTSIDE_IMAGE_SIZE")
+          print("T3_PRIVATE_IDENTITY_REVERIFIED=YES")
+          print(f"T3_BOOT_SHA256={sha(boot)}")
+          print(f"T3_BOOT_SIZE={len(boot)}")
+          print(f"T3_PAYLOAD_EXTRACTED_SHA256={sha(payload)}")
+          print(f"T3_INLINE_WINDOW=[{SK:#x},{SK + WINDOW:#x})")
+          print(f"T3_CHECKPOINT_SHA256={sha(window)}")
+          print(f"T3_TRAMP_SHA256={sha(tramp)}")
+          print(f"T3_RT_D_TRAILER_SHA256={sha(trailer)}")
+          print("IMAGE_FILE_SIZE=35166720")
+          print(f"IMAGE_HEADER_IMAGE_SIZE={image_size:#x}")
+          print(f"DTB_OFFSET={DTB_OFFSET:#x}")
+          print(f"payload_size={len(payload)}")
+          print("boot_size_expected=37380096")
+          print("T3_GEOMETRY_GATES=PASS")
+          print("T3_ARTIFACT_REBUILD_REQUIRED=NO")
+          PY
           G=auth-boot/t3-out/p1b-t3-pack-gates.txt
           grep -Fxq 'T3_PACK_GATES=PASS' "$G"
           grep -Fxq "T3_BOOT_SHA256=$EXPECTED_BOOT_SHA256" "$G"
@@ -382,7 +473,7 @@ jobs:
           grep -Fxq 'T3_INLINE_REGION_IN_KERNEL_TEXT=YES' "$G"
           grep -Fxq 'T3_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY' "$G"
           echo 'T3_PRIVATE_BOOT_IDENTITY_RECONFIRMED=YES'
-          echo 'T3_ARTIFACT_REBUILD_REQUIRED=NO (boot re-hashed, never re-packed)'
+          echo 'T3_ARTIFACT_REBUILD_REQUIRED=NO (extracted from frozen boot, never re-packed)'
           echo 'T3_PRIVATE_IDENTITY_REVERIFY=PASS'
 
       - name: Verdict
@@ -392,11 +483,13 @@ jobs:
             echo "AUTHORITATIVE_PRIVATE_RUN=${{ inputs.reverify_run_id }}"
             echo "T3_BOOT_SHA256=${{ inputs.expected_boot_sha256 }}"
             echo "T3_BOOT_SIZE=37380096"
+            echo "T3_PAYLOAD_EXTRACTED_SHA256=${{ inputs.t3_payload_sha }}"
+            echo "T3_PRIVATE_IDENTITY_REVERIFIED=YES"
             echo "T3_PROBE_ARCHITECTURE=INLINE"
             echo "T3_DIAGNOSTIC_ONLY=YES"
             echo "T3_NORMAL_KERNEL_BOOT_CANDIDATE=NO"
             echo "DEVICE_OPERATION=NO"
             echo "PARTITION_WRITES=0"
             echo "SLOT_A_WRITTEN=NO"
-            echo "READY_FOR_DEVICE=NO"
+            echo "T3_DEVICE_OPERATION=NO"
           } | tee "$GITHUB_STEP_SUMMARY"

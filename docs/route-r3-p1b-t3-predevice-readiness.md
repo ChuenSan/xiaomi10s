@@ -8,10 +8,11 @@ inspection, payload generation, boot pack and binary validation runs in
 GitHub Actions; locally only source reading, text editing and syntax checks
 were performed. mem0 was read at the start of the round.
 
-Status: `T3_STATUS=PREDEVICE_DESIGNED` →
-**`T3_PREDEVICE_STATUS=NOT_READY` / `READY`** depending on the final gate
-`READY_FOR_R3_P1B_T3_DEVICE_CONTROL` or `R3_P1B_T3_PREDEVICE_NOT_READY`.
-A T3 true-device run is **NOT authorized** by this document.
+Status: `T3_STATUS=PREDEVICE_READY`, `T3_PREDEVICE_STATUS=READY`.
+Final gate: **`READY_FOR_R3_P1B_T3_DEVICE_CONTROL=YES`**.
+The alternative token `R3_P1B_T3_PREDEVICE_NOT_READY` is retained as the
+fail-closed opposite and is not the current outcome. A T3 true-device run is
+**NOT authorized** by this document.
 
 ---
 
@@ -225,17 +226,30 @@ the disassembled entry and the frozen entry word.
   disagrees with the disassembly.
 - PAC: `paciasp` signs x30 with SP as an architectural register and performs
   no memory access, so it is consistent with `T3_STACK_USAGE=NO` (no loads,
-  no stores). It is preserved verbatim and never matters afterwards because
-  the probe never returns. `__no_stack_protector` means no canary load at the
-  entry.
+  no stores). `__no_stack_protector` means no canary load at the entry.
+  Diagnostic-boundary closed loop:
+  `T3_PACIASP_INTENTIONALLY_REPLACED=YES` (the 80-byte window occupies the
+  original `start_kernel` entry including the `paciasp` slot; the original
+  C prologue after word0 is overwritten),
+  `T3_DIAGNOSTIC_REQUIRES_PACIASP=NO` (the probe never returns, never
+  executes `autiasp`, never consumes a signed LR, and WFE-forevers after
+  SMC), `T3_NORMAL_START_KERNEL_PROLOGUE_EXECUTED=NOT_PROVEN`.
+- Landing from the exact callsite: `__primary_switched` at
+  `0xffff800081b395ec` is `bl start_kernel` (`START_KERNEL_CALLSITE_BYTES=75dbff97`),
+  `T3_ENTRY_LANDING_REQUIREMENT=DIRECT_BL_NO_BTI_CHECK`. Direct `BL` is not
+  BTI-checked. Probe word0 remains `paciasp`, which would also be a legal
+  BTI-c landing if the path were indirect; that requirement does not apply.
+  `T3_PROBE_LANDING_REQUIREMENT_SATISFIED=YES`.
+  `start_kernel` Image offset `0x1b303c0` being less than
+  `__primary_switched` `0x1b39534` is symbol layout, not control-flow order.
 - CFI: `CONFIG_CFI_CLANG` is unset, so there is no `__cfi_start_kernel`
   prefix landing pad and no kCFI hash check on a direct `bl`.
 - `.kcfi_traps` is still scanned as a future guard
   (`T3_KCFI_TRAPS_SCAN=PASS`).
-- `T3_DIAGNOSTIC_CORE_SLICE_MATCHES_T2=YES`: the 76-byte core is
-  byte-identical to the T2 probe core assembled in the same CI run; the
-  difference from the T2 probe is exactly the preserved entry word plus the
-  checkpoint address.
+- `T3_DIAGNOSTIC_CORE_SLICE_MATCHES_T2=YES` /
+  `T3_DIAGNOSTIC_CORE_MATCHES_T2=YES`: the 76-byte core is byte-identical to
+  the T2 probe core; word0 differs because T2 preserved `bti c` and T3
+  preserved `paciasp`.
 
 ## 10. Inline / external decision
 
@@ -496,44 +510,82 @@ choice is a **design note only** in this round: T4 is not device-ready and
 
 ---
 
+## 29. DEVICE GATE FINALIZATION
+
+This section closes `T3_PREDEVICE_READINESS_CI_VERDICT=CI_PASS` into
+`READY_FOR_R3_P1B_T3_DEVICE_CONTROL=YES`. No device operation.
+
+`PREVIOUS_READY_FOR_DEVICE_NO_REASON=PREDEVICE_WORKFLOW_DEFAULT_FORBID + PRIVATE_BOOT_NOT_PACKED + PRIVATE_REVERIFY_NOT_DONE + T3_BOOT_SHA_NOT_FROZEN + PACIASP_DIAGNOSTIC_BOUNDARY_NOT_EXPLICIT`.
+
+| gate | value |
+| --- | --- |
+| `T3_PUBLIC_CI_PASS` | YES (run `34850631688`, commit `e2b54b4`) |
+| `T3_PRIVATE_PACK_PASS` | YES (run `34856507744`) |
+| `T3_PRIVATE_REVERIFY_PASS` | YES (run `34856735790`) |
+| `T3_ARTIFACT_IDENTITY_FROZEN` | YES |
+| `T3_OBSERVER_READY` | YES |
+| `T3_OBSERVER_FIXTURES` | PASS |
+| `T3_PACIASP_AUDIT` | PASS |
+| `T3_ENTRY_LANDING_AUDIT` | PASS |
+| `T3_PREPATH_IDENTITY` | PASS |
+| `T3_DEVICE_OPERATION` | NO |
+
+Public payload `eff9a4a5b47413ec2c9f071158c7162a3361bf6443cbe58b43db7ccd0787e471`
+size 37369041, 75 diff bytes, `[0x1b303c0,0x1b30410)`,
+`START_KERNEL_CHECKPOINT_ONLY`. Private boot
+`d80b9ba20e0ebd10d61592e28d0a6a8ee243d631ed5395628101b51f26a889df`
+size 37380096, envelope `KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY`. Independent
+reverify extracted the kernel from that boot (no repack) and re-matched
+payload SHA, inline window, trampoline, RT-D, geometry.
+
+Observer FULL-SHA gate uses `R3_T3_SHA256=<T3 boot SHA>` before any
+fastboot interaction; T2/T1/T0/FIX8/PANIC30/old INIT8/entry-state and
+mutated T3 are refused. `FASTBOOT_BOOT_ONLY=YES`,
+`SECOND_BOOT_FORBIDDEN=YES`. Observer is frozen, not executed.
+
+Future timing (frozen, never changed after a result): T2 reference 14.240 s,
+STRONG `|T3-14.240|<=1.000s`, SUPPORTED `<=2.000s`, `T3_TOTAL<20s`,
+`AUTOMATIC_ANDROID_RETURN=YES`; secondary `|T3-T1|<=2s`, `|T3-T0|<=2s`.
+
+Future STRONG may record `START_KERNEL_ADDRESS_REACHED=PROVEN`, `R4=PROVEN`,
+`NORMAL_PRIMARY_SWITCHED_TO_START_KERNEL_PATH_EXECUTED=PROVEN`. Must keep
+`R5` / normal `start_kernel` body `NOT_PROVEN` because original `paciasp`
+prologue is diagnostically occupied. Must not claim `setup_arch`, cmdline
+parse, initramfs, or `/init`. Evidence ladder is not upgraded this round.
+
+---
+
 ## Round results (filled from the CI run)
 
 Design iteration record: the first CI run (public run `34829584767`, commit
 `2d11968`) passed the source gate on its first attempt and then failed
 **by design** at the entry-instrumentation gate with
-`T3_ENTRY_INSTRUMENTATION_FAILED: frozen first word 0xd503233f is not bti c`
-— the assumption that the C entry carries a `bti c` landing pad was wrong for
-this binary, and the fail-closed gate caught it before any payload was
-emitted. The same run already re-derived and printed, from its own rebuilt
-vmlinux: `START_KERNEL_VA=0xffff800081b303c0`,
-`START_KERNEL_IMAGE_OFFSET=0x1b303c0`, `START_KERNEL_SECTION=.init.text`
-(flags `AX`), `START_KERNEL_SIZE_IF_KNOWN=0x388`,
-`START_KERNEL_NEXT_SYMBOL_VA=0xffff800081b30748`,
-`__primary_switched=0x1b39534` (reproducing the frozen history exactly),
-`primary_entry=0x1b1c0a0`, and the entry word `3f2303d5` = `paciasp`. The
-corrected candidate (this document) preserves that word as the probe's first
-instruction and keeps the 76-byte proven core unchanged; everything else in
-the audit design is untouched.
+`T3_ENTRY_INSTRUMENTATION_FAILED: frozen first word 0xd503233f is not bti c`.
+Authoritative public run is `34850631688` at `e2b54b4`.
 
-Non-reproducibility handling: the rebuilt vmlinux is NOT byte-identical to
-the frozen FIX8 payload (the same property T2 reported as
-`T2_REBUILT_IMAGE_BYTE_IDENTICAL=NO`; here a divergence appears at
-`start_kernel` word 18 — `0x91004400` rebuilt vs `0x9100e400` frozen). The
-device runs the **frozen** payload, so the audit and the patch are both
-performed over the frozen payload's window bytes directly
-(`covered = frozen[off_sk:off_sk+80]`, disassembled verbatim by
-`inst_record`), and the branch/literal safety scans run over the frozen
-payload's Image portion. The rebuilt vmlinux is used only for symbol VA /
-section / relocation / callsite-VA metadata and for the word-0 entry-class
-identity check. A full window byte-agreement gate over the rebuilt vmlinux
-was therefore removed: it would audit bytes the device never runs.
-
-- Public run / commit: `T3_PUBLIC_RUN`, `T3_PUBLIC_COMMIT`.
+- Public: `T3_PUBLIC_RUN=34850631688`, `T3_PUBLIC_COMMIT=e2b54b4`,
+  source-audit PASS, T3 build PASS, independent verify PASS,
+  `T3_PREDEVICE_READINESS_CI_VERDICT=CI_PASS`.
+- `START_KERNEL_LINK_VA=0xffff800081b303c0`
+- `START_KERNEL_IMAGE_OFFSET=0x1b303c0`
+- `START_KERNEL_FILE_OFFSET=0x1b303c0`
+- `START_KERNEL_SECTION=.init.text`
+- `START_KERNEL_SECTION_FLAGS=AX`
+- `START_KERNEL_ENTRY0=paciasp`
+- `START_KERNEL_ENTRY0_BYTES=3f2303d5`
+- callsite `0xffff800081b395ec` `75dbff97` DIRECT `BL`
+- `T3_ENTRY_LANDING_REQUIREMENT=DIRECT_BL_NO_BTI_CHECK`
+- `T3_PROBE_LANDING_REQUIREMENT_SATISFIED=YES`
+- `T3_PACIASP_INTENTIONALLY_REPLACED=YES`
+- `T3_DIAGNOSTIC_REQUIRES_PACIASP=NO`
+- `T3_NORMAL_START_KERNEL_PROLOGUE_EXECUTED=NOT_PROVEN`
 - `T3_BUILD_GATES=PASS`, `T3_NEGATIVE_FIXTURES=PASS`,
   `T3_DECODER_FIXTURES=PASS`, `T3_STATUS_GATE_STRUCTURED=YES`.
-- Frozen candidate identity: `T3_PAYLOAD_SHA256`, `T3_PAYLOAD_SIZE`,
-  `T3_CHECKPOINT_SHA256`, `T3_CHECKPOINT_SIZE`,
-  `T3_PROBE_ARCHITECTURE=INLINE`, `T3_INLINE_OVERWRITE_SAFE=YES`,
+- `T3_PAYLOAD_SHA256=eff9a4a5b47413ec2c9f071158c7162a3361bf6443cbe58b43db7ccd0787e471`
+- `T3_PAYLOAD_SIZE=37369041`
+- `T3_CHECKPOINT_SHA256=dbeb828e753ba18d3e451551cd9a59eeff705831425ad5d2b0f5e11aa05edad8`
+- `T3_CHECKPOINT_SIZE=80`
+- `T3_PROBE_ARCHITECTURE=INLINE`, `T3_INLINE_OVERWRITE_SAFE=YES`,
   `T3_INLINE_MAPPING_EXECUTABLE=YES`,
   `T3_MAPPING_SOURCE=KERNEL_TEXT_VA_SELF_EVIDENT`,
   `T3_RELOCATION_SCAN=PASS`, `T3_LITERAL_SCAN=PASS`,
@@ -543,9 +595,10 @@ was therefore removed: it would audit bytes the device never runs.
   `T3_DIAGNOSTIC_CORE_MATCHES_T2=YES`,
   `T2_PROBE_REMOVED_FROM_T3=YES`,
   `PRIMARY_SWITCHED_IDENTICAL_TO_FIX8=YES`,
+  `T3_PRECHECKPOINT_NORMAL_PATH_IDENTICAL_TO_FIX8=YES`,
   `T3_PAYLOAD_DIFF_ATTRIBUTED=START_KERNEL_CHECKPOINT_ONLY`,
-  `T3_DIFF_BYTE_COUNT`, `T3_DIFF_RANGES`.
--   `T3_START_KERNEL_REDERIVED=YES`,
+  `T3_DIFF_BYTE_COUNT=75`, `T3_DIFF_RANGES=[0x1b303c0,0x1b30410)`.
+- `T3_START_KERNEL_REDERIVED=YES`,
   `T3_START_KERNEL_CALLSITE_FOUND=YES`,
   `T3_START_KERNEL_CALL_TARGET_EXACT=YES`,
   `T3_START_KERNEL_ENTRY_INSTRUCTION0=paciasp`,
@@ -558,8 +611,16 @@ was therefore removed: it would audit bytes the device never runs.
   `T3_CNTPCT_ACCESS_SAFE=YES`, `T3_PSCI_SYSTEM_RESET_SAFE=YES`,
   `T3_FAIL_CLOSED=YES`, `T3_STACK_USAGE=NO`, `T3_RUNTIME_RELOCATIONS=0`,
   `T3_TRAMPOLINE_IDENTICAL=YES`.
-- Private pack run / boot identity: `T3_PRIVATE_PACK_RUN`,
-  `T3_PRIVATE_REVERIFY_RUN`, `T3_BOOT_SHA256`, `T3_BOOT_SIZE`.
-- Final gate: `READY_FOR_R3_P1B_T3_DEVICE_CONTROL` or
-  `R3_P1B_T3_PREDEVICE_NOT_READY`. `T3_STATUS=NOT_DEVICE_READY`; the T3
-  device run needs its own explicit user approval.
+- `IMAGE_FILE_SIZE=35166720`, `IMAGE_HEADER_IMAGE_SIZE=0x2230000`,
+  `DTB_OFFSET=0x2380000`, `payload_size=37369041`,
+  `boot_size_expected=37380096`.
+- Private: `T3_PRIVATE_PACK_RUN=34856507744`,
+  `T3_PRIVATE_REVERIFY_RUN=34856735790`,
+  `T3_BOOT_SHA256=d80b9ba20e0ebd10d61592e28d0a6a8ee243d631ed5395628101b51f26a889df`,
+  `T3_BOOT_SIZE=37380096`, `T3_PRIVATE_IDENTITY_REVERIFIED=YES`.
+- Observer: `T3_OBSERVER_FULL_SHA_GATE=PASS`, `T3_OBSERVER_FIXTURES=PASS`.
+- Final gate: **`READY_FOR_R3_P1B_T3_DEVICE_CONTROL=YES`**.
+  Alternative token `R3_P1B_T3_PREDEVICE_NOT_READY` is not the current
+  outcome. `T3_DEVICE_OPERATION=NO`. The T3 device run needs its own
+  explicit user approval. Recommended next:
+  `MAINLINE_V2_R3_P1B_T3_TRUE_DEVICE_CONTROL`.
