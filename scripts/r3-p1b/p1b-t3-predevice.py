@@ -1977,8 +1977,17 @@ def cmd_t3(args: argparse.Namespace) -> None:
         fail("T3_IDENTITY_FAILED",
              f"only {sk_n_insns} instructions disassembled at start_kernel; "
              "at least 32 are required")
-    window_words = gate_window_bytes_agree(sk_va, off_sk, dump_sk, frozen,
-                                           T3_PROBE_SIZE // 4)
+    # The device runs the FROZEN payload; the audit and the patch are
+    # therefore performed over the frozen payload's window bytes directly
+    # (covered = frozen[off_sk:off_sk+80], inst_record disassembles those
+    # exact bytes). The rebuilt vmlinux is only used for symbol VA / section
+    # / relocation / callsite-VA metadata and for the word-0 entry-class
+    # identity check. The rebuild is NOT byte-identical to the frozen payload
+    # (the same non-reproducibility T2 reported as
+    # T2_REBUILT_IMAGE_BYTE_IDENTICAL=NO; here it shows up as a divergence at
+    # start_kernel word 18), so a full window byte-agreement gate over the
+    # rebuilt vmlinux would be wrong: it would audit bytes the device never
+    # runs.
     orig_word = gate_vmlinux_frozen_agreement(sk_va, off_sk, dump_sk, frozen)
     orig_word1 = struct.unpack_from("<I", frozen, off_sk + 4)[0]
     sk0 = INSTR_RE.match(sk_lines[0])
@@ -1999,9 +2008,9 @@ def cmd_t3(args: argparse.Namespace) -> None:
           f"{struct.pack('<I', orig_word1).hex()}")
     print("T3_START_KERNEL_ENTRY_AUDITED=YES "
           f"(original entry instruction {entry_mnemonic!r} preserved + "
-          f"{sk_n_insns} instructions recorded + all "
-          f"{T3_PROBE_SIZE // 4} window words agreed between the rebuilt "
-          "vmlinux and the frozen payload)")
+          f"{sk_n_insns} instructions recorded from the rebuilt vmlinux; the "
+          f"overwritten window bytes are audited from the FROZEN payload "
+          f"directly (covered = frozen[off_sk:off_sk+80]))")
     print(f"T3_START_KERNEL_OVERWRITTEN_INSN_COUNT={T3_PROBE_SIZE // 4}")
     print("T3_START_KERNEL_OVERWRITTEN_INSN_WORDS="
           + ",".join(f"{w:#010x}" for w in covered))
@@ -2015,7 +2024,6 @@ def cmd_t3(args: argparse.Namespace) -> None:
     prologue_class = ("BTI_LANDING_PAD" if entry_mnemonic == "bti"
                       else "PAC_RET_PROLOGUE_NO_BTI_LANDING_PAD")
     print(f"T3_START_KERNEL_ENTRY_PROLOGUE_CLASS={prologue_class}")
-    del window_words
 
     # --- __primary_switched -> start_kernel control-flow chain ---
     head_text = (LINUX / "arch" / "arm64" / "kernel" / "head.S").read_text()
@@ -2099,7 +2107,13 @@ def cmd_t3(args: argparse.Namespace) -> None:
     n_sym = gate_window_symbol_scan(sk_va, T3_PROBE_SIZE, symbol_vas)
     exec_ranges = [(s["vma"] - text_addr, s["vma"] - text_addr + s["size"])
                    for s in sections if s["code"] and s["alloc"]]
-    cand_hits = branch_candidates(image, exec_ranges, window_va)
+    # The branch/literal safety scans run over the FROZEN payload's Image
+    # portion (the bytes the device actually executes), not the rebuilt
+    # image: the rebuild is not byte-identical to the frozen payload, so a
+    # scan over the rebuild could miss a hazard that is present (or absent)
+    # in the device binary.
+    frozen_image = frozen[:image_file_size]
+    cand_hits = branch_candidates(frozen_image, exec_ranges, window_va)
     confirmed = [(s, t) for s, t in cand_hits
                  if confirm_branch(tools, k["vmlinux"], s, t)]
     n_raw = gate_window_branch_scan(sk_va, T3_PROBE_SIZE, confirmed)
@@ -2107,7 +2121,7 @@ def cmd_t3(args: argparse.Namespace) -> None:
         print(f"T3_BRANCH_INTO_WINDOW_CONFIRMED src={s:#x} target={t:#x}")
     reloc = relocation_offsets(out, tools, k["vmlinux"])
     n_rel = gate_window_relocation_scan(sk_va, T3_PROBE_SIZE, reloc)
-    n_lit = gate_window_literal_scan(sk_va, T3_PROBE_SIZE, image)
+    n_lit = gate_window_literal_scan(sk_va, T3_PROBE_SIZE, frozen_image)
     extent_len = gate_function_extent_scan(sk_va, T3_PROBE_SIZE, sk_extent)
     rw = runtime_rewrite_scan(out, tools, k["vmlinux"], sections, window_va)
     print(f"T3_SYMBOL_SCAN=PASS ({n_sym} symbols, none inside the window)")

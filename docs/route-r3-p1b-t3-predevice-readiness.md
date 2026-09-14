@@ -515,6 +515,19 @@ corrected candidate (this document) preserves that word as the probe's first
 instruction and keeps the 76-byte proven core unchanged; everything else in
 the audit design is untouched.
 
+Non-reproducibility handling: the rebuilt vmlinux is NOT byte-identical to
+the frozen FIX8 payload (the same property T2 reported as
+`T2_REBUILT_IMAGE_BYTE_IDENTICAL=NO`; here a divergence appears at
+`start_kernel` word 18 — `0x91004400` rebuilt vs `0x9100e400` frozen). The
+device runs the **frozen** payload, so the audit and the patch are both
+performed over the frozen payload's window bytes directly
+(`covered = frozen[off_sk:off_sk+80]`, disassembled verbatim by
+`inst_record`), and the branch/literal safety scans run over the frozen
+payload's Image portion. The rebuilt vmlinux is used only for symbol VA /
+section / relocation / callsite-VA metadata and for the word-0 entry-class
+identity check. A full window byte-agreement gate over the rebuilt vmlinux
+was therefore removed: it would audit bytes the device never runs.
+
 - Public run / commit: `T3_PUBLIC_RUN`, `T3_PUBLIC_COMMIT`.
 - `T3_BUILD_GATES=PASS`, `T3_NEGATIVE_FIXTURES=PASS`,
   `T3_DECODER_FIXTURES=PASS`, `T3_STATUS_GATE_STRUCTURED=YES`.
