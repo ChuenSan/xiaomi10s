@@ -178,7 +178,7 @@ def identity_fixtures(lines):
 def decoder_fixtures(lines):
     mod = OBS
     t4ci = "MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI"
-    iso = "T3_FAILURE_ISOLATION_CI"
+    iso = "MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI"
     v = mod.t3_reachability(14.240, "AUTOMATIC_ANDROID_RETURN")
     assert v["verdict"] == "STRONG" and v["r4"] == "PROVEN", v
     assert v["case"] == "T3_A_STRONG" and v["next"] == t4ci, v
@@ -219,11 +219,12 @@ def decoder_fixtures(lines):
     assert mod.P0_REF_OVERHEAD_S == 6.1445, mod.P0_REF_OVERHEAD_S
     for bad in ({"verdict": "STRONG", "r4": "NOT_PROVEN"},
                 {"verdict": "SUPPORTED", "r4": "PROVEN"}):
-        if mod.t3_reachability(bad["verdict"] == "STRONG" and 14.2 or 15.3,
-                               "AUTOMATIC_ANDROID_RETURN")["r4"] != \
-                bad["r4"]:
+        got_r4 = mod.t3_reachability(
+            14.2 if bad["verdict"] == "STRONG" else 15.3,
+            "AUTOMATIC_ANDROID_RETURN")["r4"]
+        if got_r4 == bad["r4"]:
             fail("DECODER",
-                 f"r4 grading lost for {bad['verdict']}")
+                 f"r4 grading lost for {bad['verdict']}: {got_r4}")
     lines.append("OBSERVER_T3_DECODER_CONSTANTS=PASS")
     lines.append("OBSERVER_T3_DECODER_CASES_A_TO_F=PASS")
 
@@ -241,7 +242,8 @@ def s1_zero_event_summary():
     assert cap.has(r"SUMMARY T3_BOOTING_TO_RETURNED_KERNEL_START=NA")
     assert cap.has(r"SUMMARY T3_SIGNATURE_NOT_OBSERVED=YES")
     assert cap.has(r"T3_NOT_REACHED_LICENSE=NO")
-    assert cap.has(r"SUMMARY T3_NEXT_STEP=T3_FAILURE_ISOLATION_CI")
+    assert cap.has(r"SUMMARY T3_NEXT_STEP="
+                   r"MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI")
     assert cap.has(r"SUMMARY RECOVERY_KIND=UNKNOWN")
     assert cap.has(r"SUMMARY T3_DIAGNOSTIC_ONLY=YES")
     assert cap.has(r"T3_NORMAL_KERNEL_BOOT_CANDIDATE=NO")
@@ -355,7 +357,8 @@ def s4_early_return_timing_mismatch_case_d():
                        r"NOT_PROVEN"), total
         assert cap.has(r"SUMMARY T3_SIGNATURE_NOT_OBSERVED=YES"), total
         assert cap.has(r"T3_NOT_REACHED_LICENSE=NO"), total
-        assert cap.has(r"SUMMARY T3_NEXT_STEP=T3_FAILURE_ISOLATION_CI"), total
+        assert cap.has(r"SUMMARY T3_NEXT_STEP="
+                   r"MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI"), total
 
 
 def s5_old_auto_return_class_case_c():
@@ -396,7 +399,7 @@ def s6_stable_fastboot_case_e():
     assert v["case"] == "T3_STABLE_FASTBOOT"
     assert v["reason"] == \
         "CASE_E_STABLE_FASTBOOT_SECOND_BOOT_AND_T3_FORBIDDEN"
-    assert v["next"] == "T3_FAILURE_ISOLATION_CI"
+    assert v["next"] == "MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI"
 
 
 def s7_no_return_manual_excluded():
@@ -413,7 +416,8 @@ def s7_no_return_manual_excluded():
     assert cap.has(r"SUMMARY T3_BOOTING_TO_RETURNED_KERNEL_START=NA")
     assert not cap.has(r"T3_BOOTING_TO_RETURNED_KERNEL_START=[0-9]")
     assert cap.has(r"T3_NOT_REACHED_LICENSE=NO")
-    assert cap.has(r"SUMMARY T3_NEXT_STEP=T3_FAILURE_ISOLATION_CI")
+    assert cap.has(r"SUMMARY T3_NEXT_STEP="
+                   r"MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI")
 
 
 def s8_timing_without_android_return_insufficient():
@@ -427,7 +431,8 @@ def s8_timing_without_android_return_insufficient():
     assert cap.has(r"SUMMARY T3_REACHABILITY_SIGNATURE=NOT_OBSERVED")
     assert cap.has(r"SUMMARY T_SENDING_OKAY=NA")
     assert cap.has(r"T3_NOT_REACHED_LICENSE=NO")
-    assert cap.has(r"SUMMARY T3_NEXT_STEP=T3_FAILURE_ISOLATION_CI")
+    assert cap.has(r"SUMMARY T3_NEXT_STEP="
+                   r"MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI")
 
 
 OBS = None

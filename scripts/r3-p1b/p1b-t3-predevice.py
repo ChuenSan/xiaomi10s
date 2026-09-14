@@ -955,15 +955,15 @@ def t3_reachability(t3_total_s, recovery_kind: str) -> dict:
     routes to T3_FAILURE_ISOLATION_CI."""
     if recovery_kind == "AUTOMATIC_STABLE_FASTBOOT_RETURN":
         return {"verdict": "NOT_OBSERVED", "case": "T3_STABLE_FASTBOOT",
-                "r4": "NOT_PROVEN", "next": "T3_FAILURE_ISOLATION_CI",
+                "r4": "NOT_PROVEN", "next": "MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI",
                 "reason": "CASE_E_STABLE_FASTBOOT_SECOND_BOOT_FORBIDDEN"}
     if recovery_kind == "MANUAL_RECOVERY_OR_NO_RETURN":
         return {"verdict": "NOT_OBSERVED", "case": "T3_NO_RETURN",
-                "r4": "NOT_PROVEN", "next": "T3_FAILURE_ISOLATION_CI",
+                "r4": "NOT_PROVEN", "next": "MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI",
                 "reason": "CASE_F_NO_RETURN_MANUAL_ELAPSED_EXCLUDED"}
     if t3_total_s is None or recovery_kind != "AUTOMATIC_ANDROID_RETURN":
         return {"verdict": "NOT_OBSERVED", "case": "UNKNOWN",
-                "r4": "NOT_PROVEN", "next": "T3_FAILURE_ISOLATION_CI",
+                "r4": "NOT_PROVEN", "next": "MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI",
                 "reason": f"RECOVERY_KIND={recovery_kind}"}
     d2 = t3_minus_t2(t3_total_s)
     d1 = t3_minus_t1(t3_total_s)
@@ -992,21 +992,22 @@ def t3_reachability(t3_total_s, recovery_kind: str) -> dict:
     if early:
         return {"verdict": "NOT_OBSERVED",
                 "case": "T3_EARLY_RETURN_TIMING_MISMATCH",
-                "r4": "NOT_PROVEN", "next": "T3_FAILURE_ISOLATION_CI",
+                "r4": "NOT_PROVEN", "next": "MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI",
                 "reason": f"T3_MINUS_T2={d2:+.3f}s OUTSIDE_SUPPORTED_WINDOW"}
     lo, hi = T3_CASE_C_BAND_S
     if lo <= t3_total_s < hi:
         return {"verdict": "NOT_OBSERVED", "case": "T3_SIGNATURE_NOT_OBSERVED",
-                "r4": "NOT_PROVEN", "next": "T3_FAILURE_ISOLATION_CI",
+                "r4": "NOT_PROVEN", "next": "MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI",
                 "reason": "CASE_C_OLD_AUTO_RETURN_CLASS"}
     return {"verdict": "NOT_OBSERVED", "case": "UNKNOWN", "r4": "NOT_PROVEN",
-            "next": "T3_FAILURE_ISOLATION_CI",
+            "next": "MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI",
             "reason": f"T3_TOTAL={t3_total_s:.3f}s OUTSIDE_PREREGISTERED_BANDS"}
 
 
 def run_decoder_fixtures() -> list:
     lines: list = []
     t4ci = "MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI"
+    iso = "MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI"
 
     def case(name, total, kind, want_verdict, want_case=None, want_r4=None,
              want_next=None):
@@ -1040,23 +1041,22 @@ def run_decoder_fixtures() -> list:
          "T3_B_SUPPORTED", "STRONGLY_SUPPORTED")
     case("EARLY_MISMATCH_16P4S", 16.4, "AUTOMATIC_ANDROID_RETURN",
          "NOT_OBSERVED", "T3_EARLY_RETURN_TIMING_MISMATCH", "NOT_PROVEN",
-         "T3_FAILURE_ISOLATION_CI")
+         iso)
     case("EARLY_MISMATCH_11P0S", 11.0, "AUTOMATIC_ANDROID_RETURN",
-         "NOT_OBSERVED", "T3_EARLY_RETURN_TIMING_MISMATCH", "NOT_PROVEN")
+         "NOT_OBSERVED", "T3_EARLY_RETURN_TIMING_MISMATCH", "NOT_PROVEN",
+         iso)
     case("CASE_C_FIX8_CLASS_23P852S", FIX8_TOTAL_S,
          "AUTOMATIC_ANDROID_RETURN", "NOT_OBSERVED",
-         "T3_SIGNATURE_NOT_OBSERVED", "NOT_PROVEN", "T3_FAILURE_ISOLATION_CI")
+         "T3_SIGNATURE_NOT_OBSERVED", "NOT_PROVEN", iso)
     case("CASE_C_PANIC30_CLASS_26P289S", PANIC30_TOTAL_S,
          "AUTOMATIC_ANDROID_RETURN", "NOT_OBSERVED",
-         "T3_SIGNATURE_NOT_OBSERVED", "NOT_PROVEN")
+         "T3_SIGNATURE_NOT_OBSERVED", "NOT_PROVEN", iso)
     case("CASE_C_BAND_EDGE_20P0S", 20.0, "AUTOMATIC_ANDROID_RETURN",
-         "NOT_OBSERVED", "T3_SIGNATURE_NOT_OBSERVED", "NOT_PROVEN")
+         "NOT_OBSERVED", "T3_SIGNATURE_NOT_OBSERVED", "NOT_PROVEN", iso)
     case("CASE_E_STABLE_FASTBOOT", None, "AUTOMATIC_STABLE_FASTBOOT_RETURN",
-         "NOT_OBSERVED", "T3_STABLE_FASTBOOT", "NOT_PROVEN",
-         "T3_FAILURE_ISOLATION_CI")
+         "NOT_OBSERVED", "T3_STABLE_FASTBOOT", "NOT_PROVEN", iso)
     case("CASE_F_NO_RETURN", None, "MANUAL_RECOVERY_OR_NO_RETURN",
-         "NOT_OBSERVED", "T3_NO_RETURN", "NOT_PROVEN",
-         "T3_FAILURE_ISOLATION_CI")
+         "NOT_OBSERVED", "T3_NO_RETURN", "NOT_PROVEN", iso)
     case("UNKNOWN_KIND", 14.2, "UNKNOWN", "NOT_OBSERVED", "UNKNOWN",
          "NOT_PROVEN")
     case("UNUSED_KIND", 14.2, "AUTOMATIC_ANDROID_RETURN_UNUSED",

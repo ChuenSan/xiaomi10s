@@ -238,17 +238,18 @@ def t3_reachability(t3_total_s, recovery_kind: str) -> dict:
     """Primary: matched-control delta vs T2_TOTAL=14.240s plus the T1/T0
     secondary cross-checks. A negative NEVER licenses T3_NOT_REACHED; it
     routes to failure isolation."""
+    iso = "MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI"
     if recovery_kind == "AUTOMATIC_STABLE_FASTBOOT_RETURN":
         return {"verdict": "NOT_OBSERVED", "case": "T3_STABLE_FASTBOOT",
-                "r4": "NOT_PROVEN", "next": "T3_FAILURE_ISOLATION_CI",
+                "r4": "NOT_PROVEN", "next": iso,
                 "reason": "CASE_E_STABLE_FASTBOOT_SECOND_BOOT_AND_T3_FORBIDDEN"}
     if recovery_kind == "MANUAL_RECOVERY_OR_NO_RETURN":
         return {"verdict": "NOT_OBSERVED", "case": "T3_NO_RETURN",
-                "r4": "NOT_PROVEN", "next": "T3_FAILURE_ISOLATION_CI",
+                "r4": "NOT_PROVEN", "next": iso,
                 "reason": "CASE_F_NO_RETURN_MANUAL_ELAPSED_EXCLUDED"}
     if t3_total_s is None or recovery_kind != "AUTOMATIC_ANDROID_RETURN":
         return {"verdict": "NOT_OBSERVED", "case": "UNKNOWN",
-                "r4": "NOT_PROVEN", "next": "T3_FAILURE_ISOLATION_CI",
+                "r4": "NOT_PROVEN", "next": iso,
                 "reason": f"RECOVERY_KIND={recovery_kind}"}
     d2 = t3_minus_t2(t3_total_s)
     d1 = t3_minus_t1(t3_total_s)
@@ -282,10 +283,11 @@ def t3_reachability(t3_total_s, recovery_kind: str) -> dict:
     lo, hi = T3_CASE_C_BAND_S
     if lo <= t3_total_s < hi:
         return {"verdict": "NOT_OBSERVED", "case": "T3_SIGNATURE_NOT_OBSERVED",
-                "r4": "NOT_PROVEN", "next": "T3_FAILURE_ISOLATION_CI",
+                "r4": "NOT_PROVEN",
+                "next": "MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI",
                 "reason": "CASE_C_OLD_AUTO_RETURN_CLASS"}
     return {"verdict": "NOT_OBSERVED", "case": "UNKNOWN", "r4": "NOT_PROVEN",
-            "next": "T3_FAILURE_ISOLATION_CI",
+            "next": "MAINLINE_V2_R3_P1B_T3_FAILURE_ISOLATION_CI",
             "reason": f"T3_TOTAL={t3_total_s:.3f}s OUTSIDE_PREREGISTERED_BANDS"}
 
 
@@ -439,13 +441,14 @@ def emit_summary(emit=log, final_usb=None, final_fastboot=None,
             emit("SUMMARY E2_EARLY_MAINLINE_BOOT=NOT_PROVEN")
             emit(f"SUMMARY T3_NEXT_STEP={verdict['next']}")
     else:
+        verdict = t3_reachability(None, kind)
         emit("SUMMARY T3_BOOTING_TO_RETURNED_KERNEL_START=NA")
         emit("SUMMARY T3_SIGNATURE_NOT_OBSERVED=YES "
              "T3_NOT_REACHED_LICENSE=NO (no timing product)")
         emit("SUMMARY R3_START_KERNEL_ADDRESS_REACHABILITY=NOT_PROVEN")
         emit("SUMMARY R5_NORMAL_START_KERNEL_BODY=NOT_PROVEN")
         emit("SUMMARY E2_EARLY_MAINLINE_BOOT=NOT_PROVEN")
-        emit("SUMMARY T3_NEXT_STEP=T3_FAILURE_ISOLATION_CI")
+        emit(f"SUMMARY T3_NEXT_STEP={verdict['next']}")
     t_st = st.get("t_fastboot_stable")
     t_ok = st.get("t_booting_okay")
     if t_ok is not None and t_st is not None:
