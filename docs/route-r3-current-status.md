@@ -4,11 +4,10 @@ Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
 facts. Last updated: 2026-09-14
-(MAINLINE_V2_R3_P1B_T1_TRUE_DEVICE_CONTROL — EXECUTED, Case T1-A STRONG;
-`MAINLINE_V2_R3_P1B_T1_REACHABILITY_PROVEN`; one identity-gated `fastboot
-boot` of the frozen T1-8 boot, `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`;
-followed by MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI — CI only, no device
-operation).
+(MAINLINE_V2_R3_P1B_T2_TRUE_DEVICE_CONTROL — EXECUTED, Case T2-A STRONG;
+`MAINLINE_V2_R3_P1B_T2_REACHABILITY_PROVEN`; one identity-gated `fastboot
+boot` of the frozen T2 boot, `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`;
+R3 and E1 now PROVEN; E2–E4 unchanged NOT_PROVEN).
 
 <!-- R3-STATUS-KV:BEGIN -->
 <!-- Machine-readable current state. The T2 CI source gate parses THIS block
@@ -22,15 +21,19 @@ T1_MINUS_T0_S=-0.014
 R0_STATUS=PROVEN
 R1_STATUS=PROVEN
 R2_STATUS=PROVEN
-R3_STATUS=NOT_PROVEN
+R3_STATUS=PROVEN
 R4_STATUS=NOT_PROVEN
 R5_STATUS=NOT_PROVEN
 R6_STATUS=NOT_PROVEN
 E0_STATUS=PROVEN
-E1_STATUS=NOT_PROVEN
+E1_STATUS=PROVEN
 E2_STATUS=NOT_PROVEN
-T2_STATUS=PREDEVICE_READY
-T2_DEVICE_CONTROL=NOT_AUTHORIZED
+T2_STATUS=TRUE_DEVICE_PROVEN
+T2_TOTAL_S=14.240
+T2_MINUS_T1_S=0.002
+T2_MINUS_T0_S=-0.012
+T2_DEVICE_CONTROL=EXECUTED
+T2_FINAL_GATE=MAINLINE_V2_R3_P1B_T2_REACHABILITY_PROVEN
 T2_READINESS=READY_FOR_R3_P1B_T2_DEVICE_CONTROL
 T2_PAYLOAD_SHA256=c48dc5ce5cc02ea0a51fc6003c4e9e822efca1c1a4e26d17260412f52b19090d
 T2_PAYLOAD_SIZE=37369041
@@ -49,8 +52,74 @@ USB_STATUS=FROZEN
 CURRENT_B=M5D+M5H+M5M-B
 SLOT_A_WRITTEN=NO
 PARTITION_WRITES=0
-DEVICE_OPERATION=NO
+DEVICE_OPERATION=EXECUTED
 <!-- R3-STATUS-KV:END -->
+
+## T2 TRUE DEVICE ROUND (EXECUTED 2026-09-14 08:39 UTC)
+
+`MAINLINE_V2_R3_P1B_T2_TRUE_DEVICE_CONTROL` was EXECUTED with explicit user
+approval: exactly ONE `fastboot boot` of the frozen T2 boot, `T2-8` only,
+`SECOND_BOOT_FORBIDDEN=YES`, `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`,
+`SET_ACTIVE=NO`. mem0 was read three times (round start, before
+`adb reboot bootloader`, and again inside the bootloader). No local build,
+link, splice or `mkbootimg`: the authoritative frozen GHA artifact only
+(private pack run 34821104997, identity reverify 34821289820).
+
+Artifact identity was re-verified FULL-SHA from the downloaded artifact before
+any fastboot interaction and independently re-derived locally
+(`scripts/r3-p1b/verify-t2-device-artifact.py` → `VERIFY_RESULT=PASS`): boot
+`d347cc19…8e925` (37380096), payload `c48dc5ce…19090d` (37369041), probe
+`c78c55fb…1ce412a` (80 @ `0x1b39534`, core = T1 checkpoint `4d792df5…3611`),
+trampoline `362d9c6e…dc623` (48 @ `0x40`, byte-identical to FIX8), RT-D
+`48497432…3df327` (144593 @ `0x2380000`), payload diff 72 B in the single
+window `[0x1b39534,0x1b39584)` with zero bytes changed outside
+(`PRIMARY_SWITCHED_CHECKPOINT_ONLY`). Target re-confirmed read-only: original
+`__primary_switched` word0 `0xd503245f` = `bti c`, word1 `0xf0001144` =
+`ADRP Rd=x4`; `primary_entry` `0x1b1c0a0` UNPATCHED; probe keeps the `bti c`
+landing pad. The source baseline (`0895098..HEAD`) is docs-only, so no
+post-READY functional change; the observer was byte-identical to its HEAD
+blob and its 23 fixtures passed.
+
+Fastboot: `Sending 'boot.img' (36504 KB) OKAY [0.915s]`, `Booting OKAY
+[0.220s]`, `rc=0`. Timeline UTC: `T_COMMAND_START` 08:39:28.138,
+`T_SENDING_OKAY` 08:39:30.093, `T_BOOTING_OKAY` 08:39:30.313,
+`T_FASTBOOT_DISAPPEAR` 08:39:31.657, `T_USB_FIRST_REENUM` 08:39:52.117
+(`18d1:4ee7`), `T_ADB_FIRST_SEEN` 08:39:52.573,
+`RETURNED_ANDROID_KERNEL_START` 08:39:44.553 (uptime 8.02),
+`T_BOOT_COMPLETED` 08:40:01.988. Returned-kernel-start algorithm identical to
+T0/T1 (`host_before_uptime_read − /proc/uptime`).
+
+Timing: `T2_TOTAL = 14.240 s` (cross-check 14.246 s); primary matched control
+`T1_TOTAL = 14.238 s` → `T2_MINUS_T1 = +0.002 s` (STRONG ≤ 1.0 s); second
+cross-check `T0_TOTAL = 14.252 s` → `T2_MINUS_T0 = −0.012 s` (≤ 2.0 s);
+early class (< 20 s) and `AUTOMATIC_ANDROID_RETURN` both hold. Secondary
+`T2_PROGRAMMED_ESTIMATE = 14.240 − 6.1445 = 8.095 s` vs 8.000 s (error
+`+0.095 s`, consistent) — secondary only, never overrides the primary verdict.
+
+Verdict: **`T2_REACHABILITY_SIGNATURE=STRONG` (Case T2-A)**,
+`PRIMARY_SWITCHED_ADDRESS_REACHED=PROVEN`, `R3 = PROVEN`. Because the frozen
+static gate `T2_PRECHECKPOINT_HEADS_PATH_IDENTICAL_TO_FIX8=YES` also holds on
+the device artifact, the **normal** `primary_entry` path executed up to T2:
+`NORMAL_PRIMARY_ENTRY_PATH_TO_T2_EXECUTED=PROVEN` → `E1 = PROVEN`. `E2` stays
+`NOT_PROVEN` (the frozen `E2` definition is not satisfied by a head.S/MMU
+transition alone; never auto-upgraded). `T2_REACH_IMPLIES_MMU_ENABLE_PATH_EXECUTED=YES`
+claims the **head.S MMU transition only** — not that all memory setup is
+correct, and not `start_kernel` / DT / initramfs / `/init`. `R4–R6` remain
+`NOT_PROVEN`.
+
+Post-test: `ANDROID_A_RESTORED=YES` (`_a`, `boot_completed=1`, root, Stock
+`4.19.157-perf`, `bootreason=bootloader`); pstore 0 entries (auxiliary only,
+NOT negative evidence); logdump `3b6a07d0` and rawdump `254bcc3f` byte-identical
+to the frozen baseline (`NO_T2_PERSISTENT_DUMP_EVIDENCE=YES`); minidump / oops
+/ logfs boot-time deltas only, no `Linux version` / 6.6 / mainline token
+(`LINUX_6_6_TRACE_PRESENT=NO`); `CURRENT_B_UNCHANGED_AFTER_T2=YES`
+(`M5D+M5H+M5M-B` all MATCH pre+post).
+
+Final gate: **`MAINLINE_V2_R3_P1B_T2_REACHABILITY_PROVEN`**. Full record:
+`artifacts/r3-p1b-t2-34821104997/device-round/`. Recommended next:
+`MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI` (CI-only source audit of
+`__primary_switched` → `start_kernel`; a T3 device run is NOT authorized).
+`T3 executed: NO`, `FIX24 FROZEN`, `M5N FROZEN`.
 
 ## T2 PREDEVICE ROUND (CI only, no device operation)
 

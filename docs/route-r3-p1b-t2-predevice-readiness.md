@@ -27,6 +27,52 @@ preparation is complete and every gate of §31 passes. A T2 device run is still
 
 ---
 
+## T2 TRUE DEVICE RESULT (EXECUTED 2026-09-14 08:39 UTC)
+
+`MAINLINE_V2_R3_P1B_T2_TRUE_DEVICE_CONTROL` was EXECUTED with explicit user
+approval and **hit**: **`MAINLINE_V2_R3_P1B_T2_REACHABILITY_PROVEN`**, Case
+**T2-A STRONG**. Exactly ONE identity-gated `fastboot boot`; `T2-8` only;
+`SECOND_BOOT_FORBIDDEN=YES`; `PARTITION_WRITES=0`; `SLOT_A_WRITTEN=NO`;
+`SET_ACTIVE=NO`; no local build (frozen GHA artifact only). mem0 read x3.
+
+Artifact identity re-verified FULL-SHA before any fastboot interaction and
+re-derived locally (`scripts/r3-p1b/verify-t2-device-artifact.py` →
+`VERIFY_RESULT=PASS`): boot `d347cc19…8e925`, payload `c48dc5ce…19090d`,
+probe `c78c55fb…1ce412a`, core = T1 checkpoint `4d792df5…3611`, trampoline
+`362d9c6e…dc623`, RT-D `48497432…3df327`; payload diff 72 B confined to
+`[0x1b39534,0x1b39584)`, 0 B outside. `primary_entry` `0x1b1c0a0` UNPATCHED;
+probe word0 `0xd503245f` = `bti c` (landing pad preserved); original target
+word1 `0xf0001144` = `ADRP Rd=x4`.
+
+Fastboot `Sending OKAY [0.915s]`, `Booting OKAY [0.220s]`, `rc=0`. Timeline
+UTC: `T_COMMAND_START` 08:39:28.138, `T_BOOTING_OKAY` 08:39:30.313,
+`T_FASTBOOT_DISAPPEAR` 08:39:31.657, `T_USB_FIRST_REENUM` 08:39:52.117
+(`18d1:4ee7`), `T_ADB_FIRST_SEEN` 08:39:52.573,
+`RETURNED_ANDROID_KERNEL_START` 08:39:44.553 (uptime 8.02),
+`T_BOOT_COMPLETED` 08:40:01.988.
+
+Timing: `T2_TOTAL = 14.240 s` (cross-check 14.246 s); `T2_MINUS_T1 = +0.002 s`
+(STRONG ≤ 1.0 s); `T2_MINUS_T0 = −0.012 s` (≤ 2.0 s); early class (< 20 s) and
+`AUTOMATIC_ANDROID_RETURN` both hold; secondary
+`T2_PROGRAMMED_ESTIMATE = 8.095 s` vs 8.000 s (error `+0.095 s`).
+
+Verdict: `T2_REACHABILITY_SIGNATURE=STRONG`, `PRIMARY_SWITCHED_ADDRESS_REACHED=PROVEN`,
+**`R3 = PROVEN`**. With the frozen static gate
+`T2_PRECHECKPOINT_HEADS_PATH_IDENTICAL_TO_FIX8=YES` holding on the device
+artifact, `NORMAL_PRIMARY_ENTRY_PATH_TO_T2_EXECUTED=PROVEN` and **`E1 = PROVEN`**.
+`E2` stays `NOT_PROVEN` (never auto-upgraded). `T2_REACH_IMPLIES_MMU_ENABLE_PATH_EXECUTED=YES`
+is the head.S MMU transition only. `R4–R6` `NOT_PROVEN`.
+
+Post-test: `ANDROID_A_RESTORED=YES`; pstore empty (auxiliary only); logdump
+`3b6a07d0` / rawdump `254bcc3f` byte-identical to baseline
+(`NO_T2_PERSISTENT_DUMP_EVIDENCE=YES`); no 6.6/`Linux version` trace;
+`CURRENT_B_UNCHANGED_AFTER_T2=YES`. Full record:
+`artifacts/r3-p1b-t2-34821104997/device-round/`. Next:
+`MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI` (CI only; T3 device run NOT
+authorized).
+
+---
+
 ## 0. Permanent constraints (unchanged)
 
 ```
@@ -774,3 +820,8 @@ until a future STRONG device round under §29.
 Result of this round: **`READY_FOR_R3_P1B_T2_DEVICE_CONTROL`** (the
 alternative outcome token is `R3_P1B_T2_PREDEVICE_NOT_READY`).
 `DEVICE_OPERATION=NO`. `WAIT FOR USER APPROVAL`.
+
+> UPDATE 2026-09-14: the T2 device round WAS subsequently approved and
+> executed — see **T2 TRUE DEVICE RESULT** above. It was Case T2-A STRONG, so
+> under §29 `R3 = PROVEN`, `E1 = PROVEN`, and `E2` stays `NOT_PROVEN`. Final
+> gate: `MAINLINE_V2_R3_P1B_T2_REACHABILITY_PROVEN`.

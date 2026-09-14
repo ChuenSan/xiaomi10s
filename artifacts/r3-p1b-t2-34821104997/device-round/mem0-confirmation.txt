@@ -1,0 +1,42 @@
+== §22 FIRST mem0 CONFIRMATION (round start) 2026-09-14T08:39Z ==
+T0 PROVEN                              = YES (T0_TOTAL 14.252s, STRONG, R1)
+T1 PROVEN                              = YES (T1_TOTAL 14.238s, T1_MINUS_T0 -0.014s, STRONG, R2)
+T1_TOTAL                               = 14.238s
+T2 DEVICE READY                        = YES (READY_FOR_R3_P1B_T2_DEVICE_CONTROL)
+T2 boot full SHA frozen                = YES d347cc19...8e925 (37380096)
+T2 inline                              = YES (INLINE over __primary_switched, window [0x1b39534,0x1b39584))
+T2 BTI preserved                       = YES (probe word0 = 5f2403d5 = bti c)
+T2 MMU-on                              = YES (T2_ENTRY_MMU=ON, PC semantics VA)
+T2 normal pre-path unchanged           = YES (primary_entry UNPATCHED; prefix byte-identical to FIX8)
+T2 delay                               = 8s (CNTPCT register-only)
+T2 fail-closed                         = YES (PSCI SYSTEM_RESET 0x84000009 -> wfe forever)
+active A                               = YES (slot _a, boot_completed=1, root, Stock 4.19.157-perf-g9d90dd04aa7c)
+Current B unchanged                    = YES (M5D+M5H+M5M-B pre-test ALL MATCH)
+PARTITION_WRITES                       = 0
+SECOND_BOOT_FORBIDDEN                  = YES
+T3 unauthorized                        = YES
+FIX24 frozen                           = YES
+M5N frozen                             = YES
+
+== §28 SECOND mem0 READ (immediately before adb reboot bootloader) 2026-09-14T08:39Z ==
+T2-8 ONLY                              = YES
+ONE FASTBOOT BOOT                      = YES
+NO FLASH                               = YES
+NO SET_ACTIVE                          = YES
+NO SLOT WRITE                          = YES
+SECOND_BOOT_FORBIDDEN                  = YES
+NO T3                                  = YES
+NO T2-24                               = YES
+NO T1 rerun                            = YES
+NO T0 rerun                            = YES
+NO PANIC30 rerun                       = YES
+
+== ARTIFACT IDENTITY (locally re-derived, VERIFY_RESULT=PASS) ==
+boot       d347cc1907563afd2c8faa0d07cafed5904985514c346434c8a774c14418e925 (37380096)
+payload    c48dc5ce5cc02ea0a51fc6003c4e9e822efca1c1a4e26d17260412f52b19090d (37369041)
+probe      c78c55fb2fa94b6e16a33e59d7973acc715c212a02a88bad1ed954ecb1ce412a (80 @ 0x1b39534)
+core       c78c... == bti c + T1 core 4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611 (76)
+trampoline 362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623 (48 @ 0x40, FIX8-identical)
+RT-D       4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 (144593 @ 0x2380000)
+vs FIX8    4f34eabf...cceb41: diff 72 B, one window [0x1b39534,0x1b39584), 0 B outside
+observer   observe-r3-p1b-t2.py worktree sha == HEAD blob sha (UNCHANGED), fixtures 23/23 PASS

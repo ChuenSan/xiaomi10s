@@ -1,0 +1,83 @@
+MAINLINE_V2_R3_P1B_T2_TRUE_DEVICE_CONTROL — ROUND VERDICT (2026-09-14 08:39 UTC boot)
+=====================================================================================
+Constraints: mem0 read x3 (round start + before adb reboot bootloader + in bootloader);
+LOCAL_BUILD=NO (GHA-only artifact, private pack run 34821104997, identity reverify
+34821289820; nothing assembled/linked/spliced/mkbootimg locally); PARTITION_WRITES=0;
+SLOT_A_WRITTEN=NO; SET_ACTIVE=NO; EXPERIMENTAL_BOOTS=1; SECOND_BOOT_FORBIDDEN=YES;
+T2-24/T1 rerun/T0 rerun/PANIC30 rerun/FIX24/M5N/T3 NOT EXECUTED.
+
+Artifact identity (FULL SHA, re-verified from the downloaded private artifact before
+any fastboot interaction; independent local re-derivation of every frozen token —
+scripts/r3-p1b/verify-t2-device-artifact.py -> VERIFY_RESULT=PASS, 46/46 gates):
+  boot       d347cc1907563afd2c8faa0d07cafed5904985514c346434c8a774c14418e925 (37380096)
+  payload    c48dc5ce5cc02ea0a51fc6003c4e9e822efca1c1a4e26d17260412f52b19090d (37369041)
+  probe      c78c55fb2fa94b6e16a33e59d7973acc715c212a02a88bad1ed954ecb1ce412a (80 @ 0x1b39534)
+  core       = probe[4:80] = T1 core 4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611 (76)
+  trampoline 362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623 (48 @ 0x40, FIX8-identical)
+  RT-D       4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 (144593 @ 0x2380000)
+  vs FIX8    4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41:
+             size identical, RT-D identical, trampoline byte-identical,
+             diff 72 bytes, ONE window [0x1b39534,0x1b39584), 0 bytes outside,
+             prefix[0,0x1b39534) and suffix[0x1b39584,EOF) byte-identical
+             => T2_PAYLOAD_DIFF_ATTRIBUTED=PRIMARY_SWITCHED_CHECKPOINT_ONLY
+
+Target re-confirmed read-only from the frozen payload:
+  __primary_switched Image offset 0x1b39534; original w0 0xd503245f = bti c (bytes 5f2403d5);
+  original w1 0xf0001144 = ADRP Rd=x4 (bytes 441100f0) => T2_TARGET_IDENTITY_MATCH=YES
+  primary_entry 0x1b1c0a0 UNPATCHED (word 0x94007465 = bl record_mmu_state, byte-identical)
+  probe word0 = 0xd503245f = bti c => T2_BTI_LANDING_PAD_PRESERVED=YES
+  IMAGE_HEADER_IMAGE_SIZE (from the final binary header) = 0x2230000; IMAGE_FILE_SIZE 0x2189A00
+  Observer: observe-r3-p1b-t2.py worktree sha == HEAD blob sha (UNCHANGED since the READY
+  gate); fixtures 23/23 PASS; ARTIFACT_IDENTITY MATCH logged BEFORE any fastboot interaction.
+
+Bootloader preflight (fastboot getvar, read-only): product=thyme, unlocked=yes,
+current-slot=a, snapshot-update-status=none, battery-soc-ok=yes, battery-voltage=4413,
+max-download-size=805306368, retry:a=6/unbootable:a=no/successful:a=yes,
+retry:b=7/unbootable:b=no/successful:b=no. SET_ACTIVE=NO, FLASH=NO, current-slot=a.
+
+Fastboot: Sending 'boot.img' (36504 KB) OKAY [ 0.915s]; Booting OKAY [ 0.220s];
+Finished. Total time 1.147s; rc=0 sending_ok=True booting_ok=True fail=False.
+
+Timeline UTC: T_COMMAND_START 08:39:28.138 | T_SENDING_OKAY 08:39:30.093 |
+T_BOOTING_OKAY 08:39:30.313 | T_FASTBOOT_DISAPPEAR 08:39:31.657 | T_USB_NONE
+08:39:31.674 | T_USB_FIRST_REENUM 08:39:52.117 (usb=18d1:4ee7) | T_ADB_FIRST_SEEN
+08:39:52.573 | RETURNED_ANDROID_KERNEL_START 08:39:44.553 (uptime 8.02) |
+T_BOOT_COMPLETED 08:40:01.988. Returned-kernel-start algorithm identical to T0/T1:
+host_before_uptime_read - /proc/uptime. ELAPSED_BOOTING_TO_ADB=22.260,
+ELAPSED_DISAPPEAR_TO_ADB=20.916, ELAPSED_BOOTING_TO_BOOT_COMPLETED=31.675.
+
+Timing: T2_TOTAL = 14.240 s (cross-check snapshot 14.246 s);
+T1_REFERENCE_TOTAL = 14.238 s (PRIMARY matched control);
+T2_MINUS_T1 = +0.002 s => |delta| <= 1.000 s => PRIMARY matched-control STRONG;
+T0_REFERENCE_TOTAL = 14.252 s; T2_MINUS_T0 = -0.012 s => <= 2.000 s cross-check OK;
+T2_EARLY_RETURN_CLASS_MATCH=YES (<20s); RECOVERY_KIND=AUTOMATIC_ANDROID_RETURN.
+SECONDARY: T2_PROGRAMMED_ESTIMATE = 14.240 - 6.1445 = 8.095 s vs expected 8.000 s
+=> error +0.095 s => T2_SECONDARY_TIMING_CROSSCHECK=CONSISTENT.
+T2_PROGRAMMED_ESTIMATE does NOT override the T2-vs-T1 primary verdict.
+
+VERDICT: T2_REACHABILITY_SIGNATURE=STRONG (Case T2-A);
+PRIMARY_SWITCHED_ADDRESS_REACHED=PROVEN;
+R3_PRIMARY_SWITCHED_ADDRESS_REACHABILITY=PROVEN.
+Because T2_PRECHECKPOINT_HEADS_PATH_IDENTICAL_TO_FIX8=YES (frozen static gate,
+re-confirmed on the device artifact), the normal primary_entry path executed up to T2:
+NORMAL_PRIMARY_ENTRY_PATH_TO_T2_EXECUTED=PROVEN => E1_NORMAL_PRIMARY_ENTRY_EXECUTION=PROVEN.
+E2_EARLY_MAINLINE_BOOT=NOT_PROVEN (frozen definition NOT satisfied by a head.S/MMU
+transition alone; never auto-upgraded). T2_DIAGNOSTIC_ONLY=YES,
+T2_NORMAL_KERNEL_BOOT_CANDIDATE=NO. T2_REACH_IMPLIES_MMU_ENABLE_PATH_EXECUTED=YES
+(head.S MMU transition only; NOT a claim that all memory setup is correct).
+R4/R5/R6 (start_kernel / initramfs / /init) remain NOT_PROVEN.
+
+Post-test: ANDROID_A_RESTORED=YES (slot _a, boot_completed=1, root, Stock
+4.19.157-perf-g9d90dd04aa7c, bootreason=bootloader); pstore 0 entries (auxiliary only,
+NOT negative evidence); logdump 3b6a07d0 and rawdump 254bcc3f byte-identical to frozen
+baseline (NO_T2_PERSISTENT_DUMP_EVIDENCE=YES); minidump/oops/logfs boot-time deltas only;
+no "Linux version"/6.6/mainline token in oops or logfs (LINUX_6_6_TRACE_PRESENT=NO);
+CURRENT_B_UNCHANGED_AFTER_T2=YES (M5D+M5H+M5M-B all MATCH pre+post).
+
+FINAL GATE: MAINLINE_V2_R3_P1B_T2_REACHABILITY_PROVEN
+Reachability ladder: R0 PROVEN | R1 PROVEN | R2 PROVEN | R3 PROVEN (__primary_switched
+ADDRESS) | R4-R6 NOT_PROVEN.
+Evidence: E0 PROVEN | E1 PROVEN | E2-E4 NOT_PROVEN | E5 FROZEN.
+Recommended next: MAINLINE_V2_R3_P1B_T3_PREDEVICE_READINESS_CI (CI-only source audit of
+__primary_switched -> start_kernel; NO T3 device run authorized).
+T3 executed: NO. FIX24: FROZEN. M5N: FROZEN.

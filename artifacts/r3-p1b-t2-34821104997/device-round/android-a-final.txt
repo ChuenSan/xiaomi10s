@@ -1,0 +1,6 @@
+slot=_a
+boot_completed=1
+bootreason=bootloader
+uname=Linux localhost 4.19.157-perf-g9d90dd04aa7c #1 SMP PREEMPT Mon Sep 4 10:51:57 UTC 2023 aarch64 Toybox
+root=uid=0(root) gid=0(root) groups=0(root) context=u:r:magisk:s0
+uptime=28.87 81.34
