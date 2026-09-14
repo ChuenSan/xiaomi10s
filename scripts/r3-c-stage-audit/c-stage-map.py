@@ -316,13 +316,20 @@ def source_facts() -> dict:
         ("calibrate_delay", cal_call),
         ("arch_call_rest_init", acr_call),
     ], "start_kernel")
+    sa_fdt_call, _ = find_in(sa_body, r"setup_machine_fdt\(__fdt_pointer\)")
+    sa_fdt_call += sa_s - 1
     assert_incr([
         ("setup_arch_enter", sa_s),
-        ("early_init_dt_scan", dt_scan),
+        ("setup_machine_fdt_call", sa_fdt_call),
         ("parse_early_param", pep_in_sa),
         ("unflatten", unflat),
         ("setup_arch_end", sa_e),
     ], "setup_arch")
+    assert_incr([
+        ("setup_machine_fdt_enter", smf_s),
+        ("early_init_dt_scan", dt_scan),
+        ("setup_machine_fdt_end", smf_e),
+    ], "setup_machine_fdt")
     assert_incr([
         ("rest_init", ri_s),
         ("kernel_init_thread", umt),
@@ -347,8 +354,8 @@ def source_facts() -> dict:
              f"{pep_in_sk} <= {scl_call}")
     if cal_call <= pa_call:
         fail("CALIBRATE_DELAY_BEFORE_PARSE_ARGS", f"{cal_call} <= {pa_call}")
-    if ri_s <= sk_s:
-        fail("REST_INIT_BEFORE_START_KERNEL")
+    if acr_call <= cal_call:
+        fail("ARCH_CALL_REST_INIT_BEFORE_CALIBRATE_DELAY")
     if run_rd <= ki_s:
         fail("RUN_INIT_PROCESS_BEFORE_KERNEL_INIT")
     if "done" not in pep_body or "return" not in pep_body:
