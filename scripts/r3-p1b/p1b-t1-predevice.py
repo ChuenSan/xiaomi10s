@@ -613,6 +613,7 @@ def expect_reject(name: str, fn, label: str) -> str:
 def run_negative_fixtures(ops: str, dump: str, probe_len: int, frozen: bytes,
                           cand: bytes, off_primary: int, off_record_mm: int,
                           checkpoint_off: int, image_file_size: int,
+                          image_size: int, padding_base: int,
                           original_word: int, branch_word: int) -> list[str]:
     lines: list[str] = []
     regions = [(off_primary, off_primary + 4),
@@ -965,7 +966,7 @@ def cmd_t1(args: argparse.Namespace) -> None:
         fail("T1_IDENTITY_FAILED",
              f"original instruction record did not disassemble as BL: "
              f"{insn_ops!r}")
-    print(f"PRIMARY_ENTRY_ORIGINAL_INSN=bl record_mmu_state")
+    print("PRIMARY_ENTRY_ORIGINAL_INSN=bl record_mmu_state")
     print(f"PRIMARY_ENTRY_ORIGINAL_BYTES={struct.pack('<I', original_word).hex()}")
     print(f"PRIMARY_ENTRY_ORIGINAL_TARGET={insn_target:#x} (record_mmu_state)")
 

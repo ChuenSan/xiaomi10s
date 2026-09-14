@@ -104,6 +104,14 @@ Reported as `PRIMARY_ENTRY_ORIGINAL_INSN`, `PRIMARY_ENTRY_ORIGINAL_BYTES`
 `T1_PRIMARY_ENTRY_ORIGINAL_INSN_SOURCES_AGREE=YES` fails the build on any
 disagreement. The instruction is never hardcoded as fact.
 
+Measured (public run 34800442025): `bl record_mmu_state`,
+`PRIMARY_ENTRY_ORIGINAL_BYTES=65740094` (word `0x65740094`, top six bits
+`0b100101` = BL), `PRIMARY_ENTRY_ORIGINAL_TARGET=0x1b39234`
+(Image-relative `record_mmu_state`). All three sources agreed, and the
+`verify`/build path compares them in one coordinate space — the vmlinux
+absolute operand (`0xffff800081b39234`) is checked against `text_addr` and
+then reduced to the Image-relative value before comparison.
+
 ## 6. Checkpoint placement
 
 The checkpoint is deliberately **not** placed merely after the Image file.
@@ -120,6 +128,10 @@ this, the build STOPS with an explicit reason naming the footprint, the RT-D
 offset and the checkpoint size. This is a correction of the previous
 prototype, which placed its gap probe at the Image file end and therefore
 inside the kernel's own runtime memory footprint.
+
+Measured (public run 34800442025): `T1_CHECKPOINT_OFFSET=0x2230000`, size 76
+bytes, end `0x223004c`; `padding_base` `0x2230000` =
+`max(IMAGE_FILE_SIZE 0x2189a00, IMAGE_HEADER_IMAGE_SIZE 0x2230000)`.
 
 ## 7. Outside-image_size proof
 
@@ -143,7 +155,8 @@ non-zero padding region is rejected.
 
 The AArch64 `B` immediate has a ±128 MiB reach. `T1_BRANCH_DISTANCE` is
 `checkpoint_offset − primary_entry_offset`, gated to be positive, 4-byte
-aligned and `< 2^27`. `T1_BRANCH_IN_RANGE=YES`. The encoded word is
+aligned and `< 2^27`. `T1_BRANCH_IN_RANGE=YES`. Measured: `0x713f60`
+(+7,421,792 bytes ≈ 7.08 MiB). The encoded word is
 re-disassembled and its operand must equal the checkpoint offset exactly, and
 the same target is re-derived independently in the `verify` job from the raw
 payload words.
@@ -309,7 +322,11 @@ and also rejects an *empty* diff in either region (a lost patch):
 - region B — the T1 checkpoint bytes in the zero padding.
 
 `T1_DIFF_BYTE_COUNT` and `T1_DIFF_RANGES` are reported, and the byte budget is
-asserted to equal `A + B` in the private pack job. `T1_TRAMPOLINE_IDENTICAL_TO_FIX8`
+asserted to equal `A + B` in the private pack job. Measured (public run
+34800442025): `T1_DIFF_BYTE_COUNT=75` (`A=4`, `B=71`),
+`T1_DIFF_RANGES=[[0x1b1c0a0,0x1b1c0a4), [0x2230000,0x223004c)]`,
+`T1_PAYLOAD` `3e654ee5…f0fb`, 37369041 bytes — size identical to the frozen
+FIX8 payload. `T1_TRAMPOLINE_IDENTICAL_TO_FIX8`
 and `RT_D_TRAILER_IDENTICAL=YES` are re-asserted over the composed payload.
 
 ## 20. Runtime semantic delta

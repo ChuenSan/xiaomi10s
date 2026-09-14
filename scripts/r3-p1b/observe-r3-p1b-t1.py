@@ -320,7 +320,6 @@ def emit_summary(emit=log, final_usb: str | None = None, final_fastboot=None,
     if st is None:
         with lock:
             st = dict(state)
-    usb = st.get("usb") or ()
     emit(f"SUMMARY T_COMMAND_START={fmt_t(st.get('t_command_start'))}")
     emit(f"SUMMARY T_SENDING_OKAY={fmt_t(st.get('t_sending_okay'))}")
     emit(f"SUMMARY T_BOOTING_OKAY={fmt_t(st.get('t_booting_okay'))}")
@@ -338,8 +337,8 @@ def emit_summary(emit=log, final_usb: str | None = None, final_fastboot=None,
          f"t={fmt_t(st.get('t_fastboot_stable'))}")
     kind = recovery_kind(st)
     emit(f"SUMMARY RECOVERY_KIND={kind}")
-    emit(f"SUMMARY T1_DIAGNOSTIC_ONLY=YES "
-         f"T1_NORMAL_KERNEL_BOOT_CANDIDATE=NO")
+    emit("SUMMARY T1_DIAGNOSTIC_ONLY=YES "
+         "T1_NORMAL_KERNEL_BOOT_CANDIDATE=NO")
     total = t1_total(st.get("kernel_start"), st.get("t_booting_okay"))
     if total is not None:
         delta = t1_minus_t0(total)
