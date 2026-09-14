@@ -928,7 +928,7 @@ def cmd_stage_map(args: argparse.Namespace) -> dict:
     nm_out = run([tools["nm"], str(vmlinux)])
     (out / "vmlinux.nm.txt").write_text(nm_out)
     rows = nm_table(nm_out)
-    text = nm_unique(rows, "_text")
+    text = resolve_sym(rows, sysmap, "_text")
     names = {
         "start_kernel": None,
         "setup_arch": None,
