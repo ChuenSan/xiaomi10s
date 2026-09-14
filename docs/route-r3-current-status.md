@@ -345,7 +345,11 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
 ## Next approved candidate
 
 `MAINLINE_V2_R3_P1B_T1_TRUE_DEVICE_CONTROL` is COMPLETE with final gate
-`MAINLINE_V2_R3_P1B_T1_REACHABILITY_PROVEN`. The next candidate is
+`MAINLINE_V2_R3_P1B_T1_REACHABILITY_PROVEN`. The T1 PREDEVICE readiness stage
+is closed — its single authorized device boot has been consumed, and the token
+`T1 PREDEVICE` is retained in this document deliberately, because the CI
+source gate is a literal-substring check over this file (see the gate-token
+note below). The next candidate is
 **`MAINLINE_V2_R3_P1B_T2_PREDEVICE_READINESS_CI`** — CI / source-audit only,
 and it must separately resolve the dimensions a T1 positive deliberately
 leaves open: MMU-on environment, VA/PA, stack, checkpoint placement, CNTPCT
@@ -364,6 +368,24 @@ mismatch, stable fastboot, no return, boot not accepted) would instead route to
   suspicion that would have re-raised it).
 - Persistent logging (pstore/ramoops/UART/USB gadget/earlycon): deferred;
   would break single-variable isolation.
+
+## Gate-token note (2026-09-14)
+
+`scripts/r3-p1b/p1b-t1-predevice.py --mode source-gate` validates this file by
+**literal substring presence**, not by semantic content: it requires the exact
+strings `MAINLINE_V2_R3_P1B_T1_PREDEVICE_READINESS_CI`,
+`MAINLINE_V2_R3_P1B_T0_PREDEVICE_READINESS_CI`, `T0 CI_PASS`,
+`T0 TRUE DEVICE`, `14.252`, `T1 PREDEVICE`, `T2 DESIGNED`, `PANIC30`, `FIX24`,
+`M5N`, `FROZEN`, `NOT_PROVEN`.
+
+Consequence, recorded because it actually happened: when the T1 true-device
+result was written into this file, the phrase `T1 PREDEVICE` was reworded away
+and the public source gate went red (`T1_SOURCE_GATE_FAILED: missing 'T1
+PREDEVICE'`, run 34810065176) on a docs-only change that was otherwise correct.
+The token is restored above and the wording is kept deliberately. Any future
+rewrite of these sections must re-check the token list before pushing, or the
+gate itself should be changed to a semantic check — the gate currently treats
+removing a phrase as a source-audit failure.
 
 ## Panic-audit anchors (corrected 2026-09-13)
 
