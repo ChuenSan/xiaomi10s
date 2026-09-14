@@ -84,6 +84,7 @@ jobs:
         env:
           GITHUB_ACTIONS: "true"
           C_STAGE_ISOLATION_BASE: origin/route-b-v3
+        run: |
           set -euo pipefail
           mkdir -p out-c-stage
           python3 scripts/r3-c-stage-audit/c-stage-map.py \
