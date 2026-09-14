@@ -137,8 +137,9 @@ jobs:
         env:
           GITHUB_ACTIONS: "true"
           C_STAGE_ISOLATION_BASE: HEAD
-
+        run: |
           set -euo pipefail
+
           mkdir -p out-c-stage
           python3 scripts/r3-c-stage-audit/c-stage-map.py \
             --mode source-identity | tee out-c-stage/source-identity-run.txt
