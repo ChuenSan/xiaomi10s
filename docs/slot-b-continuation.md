@@ -73,6 +73,10 @@ OEM binaries must not be committed or placed in public Actions artifacts.
 Public observer safety CI `35031615785`, source `ddd09bc`, passed all seven
 original tests. The downloaded CI source-hash manifest matched the locally
 executed observer. Neither a local compilation nor local image generation ran.
+Follow-up safety CI `35033250526` at `2eb0711` passed nine tests, including
+rejection of the observed no-return baseline before RESET1 and separation
+of recovery-control versus experimental boot counts. No additional device
+boot occurred after that source-only fix.
 
 B backup/readback found real partition sizes: boot 201326592, vendor_boot
 100663296, dtbo 33554432 bytes. Full original backups are retained under
