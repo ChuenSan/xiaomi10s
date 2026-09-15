@@ -1,0 +1,41 @@
+{
+  "schema_version": "1",
+  "round": "MAINLINE_V2_R3_P1B_RESTART_CHOKEPOINT_PREDEVICE_READINESS_CI",
+  "selected_target": "machine_restart",
+  "fallback_target": "do_kernel_restart",
+  "fallback_selected": "NO",
+  "coverage": {
+    "normal_restart": "PENDING",
+    "emergency_restart": "PENDING",
+    "panic_timeout_restart": "PENDING"
+  },
+  "entry_va": "PENDING",
+  "entry_offset": "PENDING",
+  "entry_prefix": "PENDING",
+  "probe_architecture": "PENDING",
+  "reset8_payload_sha": "PENDING",
+  "reset1_payload_sha": "PENDING",
+  "pair_diff": {
+    "attribution": "PENDING"
+  },
+  "expected_delta": -7.0,
+  "future_windows": {
+    "strong_abs_around_minus_7s": 1.0,
+    "supported_abs_around_minus_7s": 2.0,
+    "absolute_timing": "SECONDARY_ONLY"
+  },
+  "watchdog_fallback": {
+    "rtd_node": "PRESENT",
+    "qcom_wdt": "MODULE",
+    "driver_probes": "NO",
+    "inherited_state_handling": "NONE",
+    "firmware_state": "UNKNOWN",
+    "handoff_gap": "SOURCE_PLAUSIBLE"
+  },
+  "private_pack": false,
+  "device_ready": false,
+  "can_cause_reset": "SOURCE_PROVEN",
+  "can_be_reached_after_c_delay": "SOURCE_SUPPORTED",
+  "can_explain_23_28s_timing": "UNKNOWN",
+  "note": "Live SHAs and entry identity are filled by public GHA; this skeleton is not a device artifact."
+}

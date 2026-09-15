@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thyme.local/r3-p1b/restart-chokepoint-pair-design.schema.json",
+  "title": "R3 P1B restart-chokepoint RESET8/RESET1 pair design",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "round",
+    "selected_target",
+    "fallback_target",
+    "coverage",
+    "entry_va",
+    "entry_offset",
+    "entry_prefix",
+    "probe_architecture",
+    "reset8_payload_sha",
+    "reset1_payload_sha",
+    "pair_diff",
+    "expected_delta",
+    "future_windows",
+    "watchdog_fallback",
+    "private_pack",
+    "device_ready"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "const": "1" },
+    "round": {
+      "type": "string",
+      "const": "MAINLINE_V2_R3_P1B_RESTART_CHOKEPOINT_PREDEVICE_READINESS_CI"
+    },
+    "selected_target": { "type": "string" },
+    "fallback_target": { "type": "string" },
+    "fallback_selected": { "type": "string", "enum": ["YES", "NO"] },
+    "coverage": { "type": "object" },
+    "entry_va": { "type": "string" },
+    "entry_offset": { "type": "string" },
+    "entry_prefix": { "type": "string" },
+    "probe_architecture": {
+      "type": "string",
+      "enum": ["INLINE", "EXTERNAL", "NOT_SAFE", "PENDING"]
+    },
+    "reset8_payload_sha": { "type": "string" },
+    "reset1_payload_sha": { "type": "string" },
+    "pair_diff": { "type": "object" },
+    "expected_delta": { "type": "number" },
+    "future_windows": { "type": "object" },
+    "watchdog_fallback": { "type": "object" },
+    "private_pack": { "type": "boolean", "const": false },
+    "device_ready": { "type": "boolean", "const": false }
+  }
+}

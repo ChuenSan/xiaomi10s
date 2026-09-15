@@ -311,9 +311,9 @@ Live table is in `early/alternative-reset-source-map.json` (GHA
 
 | rank | candidate | passes panic | can explain ~26s |
 | --- | --- | --- | --- |
-| 1 | ARS-SW-001 `machine_restart` / `do_kernel_restart` | NO | SOURCE_YES |
-| 2 | ARS-SW-003 `kernel_restart` | NO | SOURCE_YES |
-| 3 | ARS-SW-005 `psci_sys_reset` | NO | SOURCE_YES |
+| 1 | ARS-SW-001 `machine_restart` / `do_kernel_restart` | NO | UNKNOWN |
+| 2 | ARS-SW-003 `kernel_restart` | NO | UNKNOWN |
+| 3 | ARS-SW-005 `psci_sys_reset` | NO | UNKNOWN |
 | 4 | ARS-SW-002 `emergency_restart` (non-panic callers) | NO | INFERRED |
 | 8 | ARS-WD-001 qcom-wdt (DT yes, driver `m`, would-probe NO) | NO | UNKNOWN |
 | 12 | ARS-EXT-001 inherited APSS WDT | NO | UNKNOWN |
@@ -323,7 +323,9 @@ Source-supported order of the dominant-path question:
 
 1. Linux software restart through `machine_restart` / `do_kernel_restart`
    / PSCI handler (panic-bypassing, reachable after C_DELAY,
-   `can_explain_23_28s=SOURCE_YES`).
+   `CAN_CAUSE_RESET=SOURCE_PROVEN`,
+   `CAN_EXPLAIN_23_28S_TIMING=UNKNOWN` — no source timer; 26s is not
+   derived from `machine_restart`).
 2. `/init` reboot syscall (subset of 1; `/init` NOT_PROVEN; INFERRED).
 3. Inherited firmware/APSS/PMIC watchdog with Linux handoff gap
    (`SOURCE_PLAUSIBLE`, timeout UNKNOWN).

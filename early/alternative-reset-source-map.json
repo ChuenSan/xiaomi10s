@@ -133,7 +133,11 @@
         }
       ],
       "direct_caller_count": 3
-    }
+    },
+    "CAN_CAUSE_RESET": "SOURCE_PROVEN",
+    "CAN_BE_REACHED_AFTER_C_DELAY": "SOURCE_SUPPORTED",
+    "CAN_EXPLAIN_23_28S_TIMING": "UNKNOWN",
+    "timing_26s_source_derived": "NO"
   },
   "watchdog": {
     "WATCHDOG_CONFIG_AUDIT_COMPLETE": "YES",
@@ -439,7 +443,7 @@
       "relevant_config": "none (core)",
       "runtime_patch_risk": "LOW",
       "source_timing_bound": "NOT_SOURCE_DERIVABLE",
-      "can_explain_23_28s": "SOURCE_YES",
+      "can_explain_23_28s": "UNKNOWN",
       "confidence_class": "SOURCE_SUPPORTED",
       "recommended_next_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
       "deprioritized_by_pentry_pair": "NO",
@@ -477,7 +481,7 @@
       "relevant_config": "none (core)",
       "runtime_patch_risk": "LOW",
       "source_timing_bound": "NOT_SOURCE_DERIVABLE",
-      "can_explain_23_28s": "SOURCE_YES",
+      "can_explain_23_28s": "UNKNOWN",
       "confidence_class": "SOURCE_SUPPORTED",
       "recommended_next_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
       "deprioritized_by_pentry_pair": "NO",
@@ -516,7 +520,7 @@
       "relevant_config": "CONFIG_ARM_PSCI_FW",
       "runtime_patch_risk": "LOW",
       "source_timing_bound": "NOT_SOURCE_DERIVABLE",
-      "can_explain_23_28s": "SOURCE_YES",
+      "can_explain_23_28s": "UNKNOWN",
       "confidence_class": "SOURCE_SUPPORTED",
       "recommended_next_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
       "deprioritized_by_pentry_pair": "NO",
@@ -812,7 +816,7 @@
       "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=YES; choke=YES",
       "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
       "passes_panic_entry": "NO",
-      "can_explain_stable_26s": "SOURCE_YES",
+      "can_explain_stable_26s": "UNKNOWN",
       "next_causal_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
       "deprioritized_by_pentry_pair": "NO"
     },
@@ -824,7 +828,7 @@
       "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=YES; choke=YES",
       "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
       "passes_panic_entry": "NO",
-      "can_explain_stable_26s": "SOURCE_YES",
+      "can_explain_stable_26s": "UNKNOWN",
       "next_causal_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
       "deprioritized_by_pentry_pair": "NO"
     },
@@ -836,7 +840,7 @@
       "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=YES; choke=YES",
       "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
       "passes_panic_entry": "NO",
-      "can_explain_stable_26s": "SOURCE_YES",
+      "can_explain_stable_26s": "UNKNOWN",
       "next_causal_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
       "deprioritized_by_pentry_pair": "NO"
     },
