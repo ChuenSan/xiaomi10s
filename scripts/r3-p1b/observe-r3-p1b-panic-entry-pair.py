@@ -51,7 +51,7 @@ import threading
 import time
 from datetime import datetime, timezone
 
-BOOT_IMG = os.environ.get("R3_PANIC_ENTRY_BOOT_IMG", "")
+BOOT_IMG = os.environ.get("R3_PANIC_ENTRY1_BOOT_IMG", "")
 EXPECTED_SHA = os.environ.get("R3_PANIC_ENTRY1_SHA256", "")
 EXPECTED_PAYLOAD_SHA = os.environ.get("R3_PANIC_ENTRY1_PAYLOAD_SHA256", "")
 EXPECTED_SIZE = 37380096
@@ -668,7 +668,7 @@ def verify_identity(size: int, digest: str, expected_sha: str,
 
 def identity_ok() -> None:
     if not BOOT_IMG or not os.path.isfile(BOOT_IMG):
-        raise SystemExit("R3_PANIC_ENTRY_BOOT_IMG missing or not a file")
+        raise SystemExit("R3_PANIC_ENTRY1_BOOT_IMG missing or not a file")
     size, digest = sha256_file(BOOT_IMG)
     verify_identity(size, digest, EXPECTED_SHA, FORBIDDEN_SHAS,
                     EXPECTED_PAYLOAD_SHA)

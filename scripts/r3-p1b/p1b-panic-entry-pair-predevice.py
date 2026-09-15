@@ -848,9 +848,14 @@ def run_pair_decoder_fixtures() -> list:
     chk("NO_SHIFT_ROUTES_ALTERNATIVE",
         panic_entry_delay_pair(26.5, a)["next"]
         == "MAINLINE_V2_R3_ALTERNATIVE_RESET_SOURCE_ISOLATION_CI")
-    # ambiguous band
-    chk("AMBIGUOUS_21S",
-        panic_entry_delay_pair(21.0, a)["case"] == "PENTRY1_PAIR_TIMING_AMBIGUOUS")
+    # Out-of-band pair deviation. 22.0s is |22.0-19.829| = 2.171s off the
+    # expected pair total, so it is NOT SUPPORTED and, being below the natural
+    # 23-28s band, it is AMBIGUOUS rather than SHIFT_NOT_OBSERVED. (Under the
+    # OLD decoder 22.0s would have been called SUPPORTED; the pair-first
+    # decoder deliberately does not consult that absolute band.)
+    chk("AMBIGUOUS_22S",
+        panic_entry_delay_pair(22.0, a)["case"]
+        == "PENTRY1_PAIR_TIMING_AMBIGUOUS")
     chk("AMBIGUOUS_29S",
         panic_entry_delay_pair(29.0, a)["case"] == "PENTRY1_PAIR_TIMING_AMBIGUOUS")
     # 8s re-run would land here and must not be read as a shift

@@ -322,7 +322,8 @@ def s5_ambiguous():
     cap = Capture()
     mod.emit_summary(emit=cap, final_usb="NONE", final_fastboot=False,
                      final_adb=True, st=st)
-    assert cap.has(r"PANIC_ENTRY1_PAIR_TIMING_AMBIGUOUS")
+    assert cap.has(r"SUMMARY PANIC_ENTRY1_DELAY_PAIR_SIGNATURE=NOT_OBSERVED "
+                   r"case=PENTRY1_PAIR_TIMING_AMBIGUOUS"), cap.lines
     assert cap.has(rf"SUMMARY PANIC_ENTRY1_NEXT_STEP={re.escape(ISO)}")
     assert not cap.has(r"NO_LINUX_PANIC=YES")
 
