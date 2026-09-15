@@ -4,13 +4,14 @@ Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
 Last updated: 2026-09-15
-(MAINLINE_V2_R3_P1B_C_DELAY_PREDEVICE_READINESS_CI COMPLETE — CI / source
-audit / artifact preparation only. Predecessor T4 C6 STRONG `T4_TOTAL=14.385s`
-`MAINLINE_V2_R3_P1B_T4_C6_REACHABILITY_PROVEN` remains frozen.
-`C_DELAY_RUNTIME_STATUS=NOT_PROVEN`. `PANIC30_RERUN=FROZEN`.
-`PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`. `DEVICE_OPERATION=NO` this round.
-Final gate: `READY_FOR_R3_P1B_C_DELAY_DEVICE_CONTROL=YES`.
-Recommended next: `MAINLINE_V2_R3_P1B_C_DELAY_TRUE_DEVICE_CONTROL` —
+(MAINLINE_V2_R3_P1B_C_DELAY_TRUE_DEVICE_CONTROL COMPLETE — Case C_DELAY-A
+STRONG. `C_DELAY_TOTAL=14.464s`, `C_DELAY_MINUS_T4=+0.079s`.
+Final gate: `MAINLINE_V2_R3_P1B_C_DELAY_REACHABILITY_PROVEN`.
+`CALIBRATE_DELAY_COMPLETE_REACHED=PROVEN`.
+`PANIC_MDELAY_CALIBRATION_READY=YES`. `PANIC_ENTRY_RUNTIME_STATUS=NOT_PROVEN`.
+`PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`. `EXPERIMENTAL_BOOTS=1`.
+`PANIC30_RERUN=NO`. Recommended next:
+`MAINLINE_V2_R3_P1B_PANIC_ENTRY_PREDEVICE_READINESS_CI` —
 WAIT FOR USER APPROVAL.)
 
 
@@ -33,6 +34,7 @@ R3_STATUS=PROVEN
 R4_STATUS=PROVEN
 R5_STATUS=NOT_PROVEN
 R5_NORMAL_START_KERNEL_BODY_TO_C6=PROVEN
+R5_NORMAL_START_KERNEL_BODY_TO_C_DELAY=PROVEN
 R6_STATUS=NOT_PROVEN
 R7_STATUS=NOT_PROVEN
 E0_STATUS=PROVEN
@@ -131,7 +133,7 @@ C6_RUNTIME_STATUS=PROVEN
 C2_RUNTIME_STATUS=PROVEN
 C5_RUNTIME_STATUS=PROVEN
 C3_RUNTIME_STATUS=PROVEN
-C_DELAY_RUNTIME_STATUS=NOT_PROVEN
+C_DELAY_RUNTIME_STATUS=PROVEN
 C_DELAY_PREDEVICE_STATUS=READY
 C_DELAY_PROBE_ARCHITECTURE=INLINE
 C_DELAY_SELECTED_STAGE=C_DELAY_CALIBRATE_DELAY_COMPLETE
@@ -151,6 +153,17 @@ C_DELAY_DIFF_RANGES=[0x1b30628,0x1b30674)
 C_DELAY_RUNTIME_SEMANTIC_DELTA=POST_CALIBRATE_DELAY_CHECKPOINT_ONLY
 C_DELAY_PRIVATE_IDENTITY_REVERIFIED=YES
 C_DELAY_OBSERVER_FIXTURES=PASS
+C_DELAY_DEVICE_OPERATION=EXECUTED
+C_DELAY_DEVICE_CONTROL=EXECUTED
+C_DELAY_TRUE_DEVICE_STATUS=PROVEN
+C_DELAY_TOTAL_S=14.464
+C_DELAY_MINUS_T4_S=0.079
+C_DELAY_MINUS_T3_S=0.226
+C_DELAY_VERDICT=STRONG
+C_DELAY_FINAL_GATE=MAINLINE_V2_R3_P1B_C_DELAY_REACHABILITY_PROVEN
+CALIBRATE_DELAY_RUNTIME_STATUS=PROVEN
+PANIC_MDELAY_CALIBRATION_READY=YES
+PANIC_ENTRY_RUNTIME_STATUS=NOT_PROVEN
 PANIC_PARAMETER_RUNTIME_STATUS=PROVEN
 RDINIT_PARAMETER_RUNTIME_STATUS=PROVEN
 PRE_C6_FAILURE_EXPLANATION_FOR_PANIC30=RULED_OUT
@@ -172,18 +185,90 @@ PARTITION_WRITES=0
 DEVICE_OPERATION=EXECUTED
 <!-- R3-STATUS-KV:END -->
 
-## C_DELAY PREDEVICE (CI COMPLETE, 2026-09-15)
+## C_DELAY TRUE DEVICE ROUND (EXECUTED 2026-09-15 02:00 UTC)
+
+`MAINLINE_V2_R3_P1B_C_DELAY_TRUE_DEVICE_CONTROL` was EXECUTED with explicit
+user approval: exactly ONE `fastboot boot` of the frozen C_DELAY-8 boot,
+`SECOND_BOOT_FORBIDDEN=YES`, `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`,
+`SET_ACTIVE=NO`, `LOCAL_BUILD=NO`. mem0 read x2 (round start + before
+`adb reboot bootloader`). Case **C_DELAY-A STRONG**. Final gate
+**`MAINLINE_V2_R3_P1B_C_DELAY_REACHABILITY_PROVEN`**.
+
+Structured record:
+`C_DELAY_TRUE_DEVICE_STATUS=PROVEN`
+`C_DELAY_TOTAL=14.464s`
+`C_DELAY_MINUS_T4=+0.079s`
+`CALIBRATE_DELAY_RUNTIME_STATUS=PROVEN`
+`PANIC_MDELAY_CALIBRATION_READY=YES`
+`PANIC_ENTRY_RUNTIME_STATUS=NOT_PROVEN`
+`PANIC30_RERUN=NO`
+`NEXT_STAGE=MAINLINE_V2_R3_P1B_PANIC_ENTRY_PREDEVICE_READINESS_CI`
+
+Frozen identity re-verified FULL-SHA before any experimental boot (private
+pack `34915314009`, reverify `34915464385`, public payload `34913482023`):
+boot `d9f01bff4a7ff0d2fe580867a72a47c4a3d15930c388a99f2402835912847b02`
+(37380096); payload
+`372724921ff922dfbf95dcf5081d8527096732a7b402bb63efc01d14f029c52d`
+(37369041); checkpoint
+`4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611`
+(76 @ `0x1b30628`, T1/T4-core identical); trampoline / RT-D / `/init` /
+initramfs MATCH FIX8. vs FIX8: 73 bytes, unique window
+`[0x1b30628,0x1b30674)`, 0 B outside
+(`C_DELAY_PAYLOAD_DIFF_ATTRIBUTED=POST_CALIBRATE_DELAY_CHECKPOINT_ONLY`).
+`T4_PROBE_REMOVED_FROM_C_DELAY=YES`. `C6_REGION_IDENTICAL_TO_FIX8=YES`.
+`C_DELAY_CHECKPOINT_IS_POSTCALL=YES`.
+`C_DELAY_PRECHECKPOINT_NORMAL_PATH_IDENTICAL_TO_FIX8=YES`.
+
+Fastboot `Sending OKAY [0.920s]`, `Booting OKAY [0.220s]`, `rc=0`.
+Timeline UTC: `T_COMMAND_START` 02:00:55.200, `T_SENDING_OKAY` 02:00:56.151,
+`T_BOOTING_OKAY` 02:00:56.371, `T_FASTBOOT_DISAPPEAR` 02:00:57.761,
+`T_USB_FIRST_REENUM` 02:01:18.345 (`18d1:4ee7`), `T_ADB_FIRST_SEEN`
+02:01:18.945, `RETURNED_ANDROID_KERNEL_START` 02:01:10.835 (uptime 8.11),
+`T_BOOT_COMPLETED` 02:01:29.196.
+
+Timing: `C_DELAY_TOTAL = 14.464 s` (cross-check 14.474 s); primary matched
+control `T4_TOTAL = 14.385 s` → `C_DELAY_MINUS_T4 = +0.079 s` (STRONG ≤ 1.5 s);
+secondary `T3=14.238` → `+0.226 s`; `T2=14.240` → `+0.224 s`;
+`T1=14.238` → `+0.226 s`; `T0=14.252` → `+0.212 s`; early class (< 20 s)
+and `AUTOMATIC_ANDROID_RETURN` both hold. Secondary
+`C_DELAY_PROGRAMMED_ESTIMATE = 8.319 s` vs 8.000 s — secondary only, never
+overrides the primary verdict.
+
+Verdict: **`C_DELAY_REACHABILITY_SIGNATURE=STRONG` (Case C_DELAY-A)**,
+`CALIBRATE_DELAY_COMPLETE_REACHED=PROVEN`,
+`NORMAL_START_KERNEL_BODY_TO_C_DELAY_EXECUTED=PROVEN`,
+C6 / panic= parsed / rdinit= parsed remain PROVEN,
+`PANIC_MDELAY_CALIBRATION_READY=YES`.
+**`R5_NORMAL_START_KERNEL_BODY_TO_C_DELAY = PROVEN`**. Full start_kernel
+body stays `R5_STATUS=NOT_PROVEN`. `PANIC_ENTRY` / `R6` / `R7` / `E2` stay
+`NOT_PROVEN`. Do not write `PANIC30 SHOULD HAVE SHIFTED`.
+
+Post-test: `ANDROID_A_RESTORED=YES` (`_a`, `boot_completed=1`, root, Stock
+`4.19.157-perf`, `bootreason=bootloader`); pstore 0 entries (auxiliary only,
+NOT negative evidence); logdump `3b6a07d0` and rawdump `254bcc3f`
+byte-identical to the frozen T4 baseline
+(`NO_C_DELAY_PERSISTENT_DUMP_EVIDENCE=YES`); minidump / oops / logfs
+boot-time deltas only, no Linux 6.6 token (`LINUX_6_6_TRACE_PRESENT=NO`);
+`CURRENT_B_UNCHANGED_AFTER_C_DELAY=YES` (`M5D+M5H+M5M-B` all MATCH pre+post).
+
+Final gate: **`MAINLINE_V2_R3_P1B_C_DELAY_REACHABILITY_PROVEN`**. Full
+record: `artifacts/r3-p1b-c-delay-34915314009/device-round/`. Recommended
+next: `MAINLINE_V2_R3_P1B_PANIC_ENTRY_PREDEVICE_READINESS_CI` (CI-only; a
+panic-entry device run / PANIC30 rerun / T5 is NOT authorized).
+`PANIC30 rerun: NO`, `T5 executed: NO`, `FIX24 FROZEN`, `M5N FROZEN`.
+WAIT FOR USER APPROVAL.
+
+## C_DELAY PREDEVICE (CI COMPLETE, 2026-09-15 — historical; device later executed)
 
 `MAINLINE_V2_R3_P1B_C_DELAY_PREDEVICE_READINESS_CI` COMPLETE. CI / source
-audit / artifact preparation only. `DEVICE_OPERATION=NO` this round.
-Unique candidate C_DELAY-8 `CALIBRATE_DELAY_COMPLETE` INLINE post-call.
-T4 C6 probe removed (`C6_REGION_IDENTICAL_TO_FIX8=YES`).
-Public run `34913482023` commit `35f976f`. Private pack `34915314009`.
-Reverify `34915464385` (`C_DELAY_PRIVATE_IDENTITY_REVERIFIED=YES`).
-Final gate: **`READY_FOR_R3_P1B_C_DELAY_DEVICE_CONTROL=YES`**.
-`C_DELAY_RUNTIME_STATUS=NOT_PROVEN`. `PANIC30_RERUN=FROZEN`.
-Recommended next: `MAINLINE_V2_R3_P1B_C_DELAY_TRUE_DEVICE_CONTROL`
-(WAIT FOR USER APPROVAL). See
+audit / artifact preparation only. Predevice round itself:
+`DEVICE_OPERATION=NO`. Unique candidate C_DELAY-8
+`CALIBRATE_DELAY_COMPLETE` INLINE post-call. T4 C6 probe removed
+(`C6_REGION_IDENTICAL_TO_FIX8=YES`). Public run `34913482023` commit
+`35f976f`. Private pack `34915314009`. Reverify `34915464385`
+(`C_DELAY_PRIVATE_IDENTITY_REVERIFIED=YES`). Predevice final gate:
+**`READY_FOR_R3_P1B_C_DELAY_DEVICE_CONTROL=YES`**. True-device round later
+executed; see C_DELAY TRUE DEVICE ROUND.
 `docs/route-r3-p1b-c-delay-predevice-readiness.md`.
 
 ## T4 TRUE DEVICE ROUND (EXECUTED 2026-09-14 22:52 UTC)
@@ -949,15 +1034,15 @@ STRONG, `T4_TOTAL = 14.385 s`, `T4_MINUS_T3 = +0.147 s`).
 `MAINLINE_V2_R3_P1B_C_DELAY_PREDEVICE_READINESS_CI` is now also COMPLETE
 (`READY_FOR_R3_P1B_C_DELAY_DEVICE_CONTROL=YES`, selected
 `C_DELAY_CALIBRATE_DELAY_COMPLETE`, public run `34913482023`, private
-pack `34915314009`, reverify `34915464385`). Recommended next:
-**`MAINLINE_V2_R3_P1B_C_DELAY_TRUE_DEVICE_CONTROL`** — exactly one
-identity-gated `fastboot boot` of the frozen C_DELAY-8 boot,
-`SECOND_BOOT_FORBIDDEN`, `SLOT_A` write forbidden. It is NOT
-authorized by this document; it requires its own explicit user
-approval. C_DELAY must stay single-variable, statically closed-loop,
-and T4-matched-control. Any C_DELAY negative class routes to
-`MAINLINE_V2_R3_P1B_C_DELAY_FAILURE_ISOLATION_CI`; never automatic
-PANIC30.
+pack `34915314009`, reverify `34915464385`).
+`MAINLINE_V2_R3_P1B_C_DELAY_TRUE_DEVICE_CONTROL` is now also COMPLETE with
+final gate `MAINLINE_V2_R3_P1B_C_DELAY_REACHABILITY_PROVEN` (Case
+C_DELAY-A STRONG, `C_DELAY_TOTAL = 14.464 s`,
+`C_DELAY_MINUS_T4 = +0.079 s`). Recommended next:
+**`MAINLINE_V2_R3_P1B_PANIC_ENTRY_PREDEVICE_READINESS_CI`** — CI / source
+audit / artifact readiness only. Question: does the current early failure
+path actually enter `panic()`? A panic-entry fail-closed checkpoint is
+not authorized by this document. Never automatic PANIC30.
 
 
 ## Not-ready candidates
@@ -968,9 +1053,10 @@ PANIC30.
   PREDEVICE READY and TRUE-DEVICE PROVEN
   (`MAINLINE_V2_R3_P1B_T4_C6_REACHABILITY_PROVEN`).
 - C_DELAY (`CALIBRATE_DELAY_COMPLETE` INLINE post-`calibrate_delay`):
-  PREDEVICE READY (`READY_FOR_R3_P1B_C_DELAY_DEVICE_CONTROL=YES`);
-  true-device run is NOT authorized and needs its own explicit user
-  approval.
+  PREDEVICE READY (`READY_FOR_R3_P1B_C_DELAY_DEVICE_CONTROL=YES`) and
+  TRUE-DEVICE PROVEN (`MAINLINE_V2_R3_P1B_C_DELAY_REACHABILITY_PROVEN`).
+- panic-entry checkpoint: NOT READY (needs
+  `MAINLINE_V2_R3_P1B_PANIC_ENTRY_PREDEVICE_READINESS_CI`).
 
 - FIX24, M5N, USB bring-up, UFS rootfs, network, drivers: frozen.
 - CopyMem forensics: priority LOWERED (T0 positive removes the transport
@@ -1017,6 +1103,16 @@ this class of failure: it applies **semantic predicates** to the volatile keys
 (enumerated value sets for `T3_STATUS`, `T3_PREDEVICE_STATUS`,
 `T3_PROBE_ARCHITECTURE`) and hard equality only to immutable predecessor facts
 (`T3_STATUS_GATE_STRUCTURED=YES`).
+
+Follow-up (2026-09-15, C_DELAY true-device round): the C_DELAY predevice
+source gate hard-equals `C_DELAY_RUNTIME_STATUS=NOT_PROVEN` from the
+predevice epoch. This docs push records the true-device result
+`C_DELAY_RUNTIME_STATUS=PROVEN`, so `thyme-r3-p1b-c-delay-predevice`
+source-audit is expected to go red. It is a stale-gate artefact, not a
+regression of `MAINLINE_V2_R3_P1B_C_DELAY_REACHABILITY_PROVEN`. The T2
+stale-gate class is unchanged. Required T0/T1 literal tokens
+(`T0 CI_PASS`, `T0 TRUE DEVICE`, `T1 PREDEVICE`, `T2 DESIGNED`,
+`PANIC30`, `FIX24`, `M5N`, `FROZEN`, `NOT_PROVEN`, `14.252`) remain.
 
 ## Panic-audit anchors (corrected 2026-09-13)
 

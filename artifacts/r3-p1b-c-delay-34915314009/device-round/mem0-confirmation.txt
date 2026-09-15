@@ -1,0 +1,50 @@
+== §20 FIRST mem0 CONFIRMATION (round start) 2026-09-15T01:40Z ==
+T4 STRONG                              = YES (T4_TOTAL 14.385s, T4_MINUS_T3 +0.147s, MAINLINE_V2_R3_P1B_T4_C6_REACHABILITY_PROVEN)
+T4_TOTAL                               = 14.385s
+C6 PROVEN                              = YES
+panic= parsed PROVEN                   = YES
+rdinit= parsed PROVEN                  = YES
+C_DELAY DEVICE READY                   = YES (READY_FOR_R3_P1B_C_DELAY_DEVICE_CONTROL)
+C_DELAY boot full SHA frozen           = YES d9f01bff4a7ff0d2fe580867a72a47c4a3d15930c388a99f2402835912847b02 (37380096)
+C_DELAY payload full SHA frozen        = YES 372724921ff922dfbf95dcf5081d8527096732a7b402bb63efc01d14f029c52d (37369041)
+T4 probe removed                       = YES (C6 window identical to FIX8)
+C_DELAY postcall checkpoint exact      = YES (VA 0xffff800081b30628 / off 0x1b30628, first insn AFTER BL calibrate_delay @ 0xffff800081b30624)
+normal pre-C_DELAY path unchanged      = YES (C_DELAY_PRECHECKPOINT_NORMAL_PATH_IDENTICAL_TO_FIX8=YES)
+delay                                  = 8s (CNTPCT register-only)
+fail-closed                            = YES (PSCI SYSTEM_RESET 0x84000009 -> wfe forever)
+active A                               = YES (slot _a, boot_completed=1, root, Stock 4.19.157-perf-g9d90dd04aa7c)
+Current B unchanged                    = YES (M5D+M5H+M5M-B pre-test ALL MATCH; dtbo c5a355b9…)
+PARTITION_WRITES                       = 0
+SECOND_BOOT_FORBIDDEN                  = YES
+PANIC30 rerun unauthorized             = YES
+T5 unauthorized                        = YES
+FIX24 frozen                           = YES
+M5N frozen                             = YES
+LOCAL_BUILD                            = NO
+C_DELAY_PRIVATE_IDENTITY_REVERIFIED    = YES (pack 34915314009 / reverify 34915464385 / local extract MATCH)
+
+== ARTIFACT IDENTITY (read-only from private pack 34915314009; no rebuild) ==
+boot       d9f01bff4a7ff0d2fe580867a72a47c4a3d15930c388a99f2402835912847b02 (37380096)
+payload    372724921ff922dfbf95dcf5081d8527096732a7b402bb63efc01d14f029c52d (37369041)
+checkpoint 4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611 (76 @ 0x1b30628, T1/T4-core identical)
+trampoline 362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623 (48 @ 0x40, FIX8-identical)
+RT-D       4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 (144593 @ 0x2380000, panic=5 rdinit=/init)
+vs FIX8    4f34eabf...cceb41: diff 73 B, unique window [0x1b30628,0x1b30674), 0 B outside
+observer   observe-r3-p1b-c-delay.py blob df6e80c0b2356267dfa0a3cca0fa699982106071 file sha256 3b26de37bc11b50fad2c5ef3ba4f3cf3f47f7b2405f240b3c034a49194f04de9 fixtures PASS (identical to public 35f976f)
+
+== §26 SECOND mem0 READ (immediately before adb reboot bootloader) 2026-09-15T01:55Z ==
+C_DELAY-8 ONLY                           = YES
+ONE FASTBOOT BOOT                      = YES
+NO FLASH                               = YES
+NO SET_ACTIVE                          = YES
+NO SLOT WRITE                          = YES
+SECOND_BOOT_FORBIDDEN                  = YES
+NO PANIC30                             = YES
+NO T5                                  = YES
+NO T4 rerun                            = YES
+NO other checkpoint                    = YES
+LOCAL_BUILD                            = NO
+SLOT_A_WRITTEN                         = NO
+PARTITION_WRITES                       = 0
+EXPERIMENTAL_BOOTS                     = 1 (pending)
+C_DELAY boot SHA                       = d9f01bff4a7ff0d2fe580867a72a47c4a3d15930c388a99f2402835912847b02

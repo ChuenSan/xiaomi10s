@@ -1,0 +1,25 @@
+== C_DELAY PERSISTENT AUXILIARY EVIDENCE (read-only) 2026-09-15T02:02Z ==
+pstore entries = 0 (empty means 0; auxiliary only, NOT negative evidence)
+total 0
+dr-xr-x---  2 system log  0 1974-07-22 05:11 .
+drwxr-xr-x 11 root   root 0 1974-07-22 05:11 ..
+logdump   3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351  /dev/block/by-name/logdump
+rawdump   254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917  /dev/block/by-name/rawdump
+minidump  02733132cee28e6157b1c0d1e8869aecca6e3a86a5c13e1179d2f6fb9d154861  /dev/block/by-name/minidump
+oops      08fe0d833ad09296f2294341e69434d83597621eaa6e287bcee22127356aca2e  /dev/block/by-name/oops
+logfs     9d363d68b7b643705b3247842401bf53b3db0f28c8ff272245d862bf69491458  /dev/block/by-name/logfs
+logdump_vs_T4=BYTE_IDENTICAL
+rawdump_vs_T4=BYTE_IDENTICAL
+minidump/oops/logfs=boot-time deltas only (not used as C_DELAY timing proof)
+-- strings scan (auxiliary; empty is not negative) --
+PART oops hits:
+(none)
+PART minidump hits:
+(none)
+PART logdump hits:
+(none)
+PART logfs hits:
+(none)
+LINUX_6_6_TRACE_PRESENT=NO
+NO_C_DELAY_PERSISTENT_DUMP_EVIDENCE=YES
+C_DELAY proof core remains controlled checkpoint timing.
