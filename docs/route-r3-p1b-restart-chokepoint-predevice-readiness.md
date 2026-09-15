@@ -67,19 +67,21 @@ CAN_EXPLAIN_23_28S_TIMING=UNKNOWN
 Re-derived from **this round's** authoritative final vmlinux (not copied
 from old docs). Consistency check against previous GHA `34966848565`:
 
-| field | expected |
+| field | this-round GHA `34980859158` |
 | --- | --- |
 | symbol | `machine_restart` |
 | MACHINE_RESTART_LINK_VA | `0xffff80008001849c` |
 | MACHINE_RESTART_IMAGE_OFFSET | `0x1849c` |
 | MACHINE_RESTART_FILE_OFFSET | `0x1849c` |
+| MACHINE_RESTART_SIZE | `0x50` (exactly the 80-byte probe window) |
 | MACHINE_RESTART_SECTION | `.text` |
 | MACHINE_RESTART_SECTION_FLAGS | `AX` |
 | entry0 | `paciasp` (`0xd503233f`, file bytes `3f2303d5`) |
 
-GHA prints `entry0`..`entry31` and the live size. A VA/offset mismatch
-against the previous authoritative vmlinux is a hard fail (pinned
-toolchain + frozen FIX8).
+Re-derived from this round's vmlinux; matches previous GHA `34966848565`.
+`entry0`..`entry19` are `machine_restart`; `entry20` is `__show_regs`.
+Direct BL callers: `emergency_restart`, `kernel_restart`,
+`hw_failure_emergency_poweroff_func`. ADRP page refs: 1.
 
 ## PAC/BTI/landing audit
 
@@ -96,7 +98,8 @@ Independent of the panic-entry landing plan.
   this-round ADRP scan, not by panic's export rule.
 
 ```
-MACHINE_RESTART_ENTRY_AUDIT=PASS/FAIL (GHA)
+MACHINE_RESTART_ENTRY_AUDIT=PASS
+MACHINE_RESTART_LANDING_REQUIREMENT=PRESERVE_ENTRY_WORD_ADDRESS_TAKEN_NO_BTI_PAD
 ```
 
 ## caller coverage
@@ -211,13 +214,22 @@ Window-outside changed bytes: 0.
 
 ## payload identities
 
-Filled by this round's public GHA (not guessed):
+Public GHA `34980859158` commit `8c96cf2`:
 
 ```
-RESET8_PAYLOAD_SHA= (GHA)
-RESET1_PAYLOAD_SHA= (GHA)
+RESET8_PAYLOAD_SHA=6254b87baae801e373b7142d45f2469c0bc9122c27004d5fec954da6a9208b8b
+RESET1_PAYLOAD_SHA=68c41b5dcfdbf97e3271fdf4ff156b59ee10aee9c475944b0629e56ef8716856
 PAYLOAD_SIZE=37369041
+RESET_PAIR_DIFF_BYTE_COUNT=2
+RESET_PAIR_DIFF_RANGES=[0x184ac,0x184ae)
+RESET_PAIR_CHANGED_INSTRUCTIONS=[4]
+RESET_PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY
+RESET8_CHECKPOINT=dbeb828e753ba18d3e451551cd9a59eeff705831425ad5d2b0f5e11aa05edad8
+RESET1_CHECKPOINT=61b963d460568edd8ae2e3be9b99badde8d2c96cf863fdd5bf9154c99e1df260
 ```
+
+RESET8 checkpoint is byte-identical to the proven PENTRY8/T3 8s core
+(plus `paciasp` prefix). RESET1 matches PENTRY1 except the delay word.
 
 ## future pair equation
 

@@ -5,24 +5,84 @@
   "fallback_target": "do_kernel_restart",
   "fallback_selected": "NO",
   "coverage": {
-    "normal_restart": "PENDING",
-    "emergency_restart": "PENDING",
-    "panic_timeout_restart": "PENDING"
+    "normal_restart": "YES",
+    "emergency_restart": "YES",
+    "panic_timeout_restart": "YES",
+    "direct_callers": [
+      "emergency_restart",
+      "kernel_restart",
+      "hw_failure_emergency_poweroff_func"
+    ],
+    "indirect_refs": 1,
+    "positive_proves": "dominant return path passed through the machine_restart-covered Linux software restart chain",
+    "negative_reduces": "machine_restart-covered Linux software restart hypothesis",
+    "negative_does_not_exclude": [
+      "direct firmware PSCI reset",
+      "secure-world reset",
+      "PMIC/watchdog autonomous reset",
+      "Linux reset mechanisms that bypass machine_restart"
+    ]
   },
-  "entry_va": "PENDING",
-  "entry_offset": "PENDING",
-  "entry_prefix": "PENDING",
-  "probe_architecture": "PENDING",
-  "reset8_payload_sha": "PENDING",
-  "reset1_payload_sha": "PENDING",
+  "entry_va": "0xffff80008001849c",
+  "entry_offset": "0x1849c",
+  "entry_file_offset": "0x1849c",
+  "entry_size": "0x50",
+  "entry_section": ".text",
+  "entry_section_flags": "AX",
+  "entry_prefix": "paciasp",
+  "entry0": "paciasp",
+  "entry0_word": "0xd503233f",
+  "entry0_file_bytes": "3f2303d5",
+  "landing_requirement": "PRESERVE_ENTRY_WORD_ADDRESS_TAKEN_NO_BTI_PAD",
+  "entry_audit": "PASS",
+  "probe_architecture": "INLINE",
+  "inline_safe": "YES",
+  "runtime_rewrite_overlap": "NONE_IN_WINDOW",
+  "reset8_payload_sha": "6254b87baae801e373b7142d45f2469c0bc9122c27004d5fec954da6a9208b8b",
+  "reset1_payload_sha": "68c41b5dcfdbf97e3271fdf4ff156b59ee10aee9c475944b0629e56ef8716856",
+  "payload_size": 37369041,
+  "reset8_checkpoint_sha": "dbeb828e753ba18d3e451551cd9a59eeff705831425ad5d2b0f5e11aa05edad8",
+  "reset1_checkpoint_sha": "61b963d460568edd8ae2e3be9b99badde8d2c96cf863fdd5bf9154c99e1df260",
+  "checkpoint_size": 80,
   "pair_diff": {
-    "attribution": "PENDING"
+    "byte_count": 2,
+    "ranges": [
+      [
+        "0x184ac",
+        "0x184ae"
+      ]
+    ],
+    "changed_instructions": [
+      4
+    ],
+    "attribution": "DELAY_CONSTANT_ONLY",
+    "entry_identical": "YES",
+    "timer_algorithm_identical": "YES",
+    "reset_core_identical": "YES",
+    "psci_fid_identical": "YES",
+    "branch_structure_identical": "YES",
+    "probe_placement_identical": "YES"
   },
   "expected_delta": -7.0,
+  "reset8_vs_fix8": "RESTART_CHOKE_CHECKPOINT_ONLY",
+  "reset1_vs_fix8": "RESTART_CHOKE_CHECKPOINT_ONLY",
+  "diagnostic_core_matches_proven": "YES",
+  "all_prior_probes_removed": "YES",
+  "init_identical": "YES",
+  "fix8_payload_sha": "4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41",
+  "trampoline_sha": "362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623",
+  "rt_d_sha": "4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327",
+  "init_sha": "f1bc88496f7c5766a417b3e2a52eadf23bad30efd6cada7ec42fecf0e6e1266d",
+  "initramfs_sha": "02123e984cc618f333d8743ae4491af30ba4448373d987b84b7a2d4cda4ffff3",
+  "can_cause_reset": "SOURCE_PROVEN",
+  "can_be_reached_after_c_delay": "SOURCE_SUPPORTED",
+  "can_explain_23_28s_timing": "UNKNOWN",
+  "timing_26s_source_derived": "NO",
   "future_windows": {
     "strong_abs_around_minus_7s": 1.0,
     "supported_abs_around_minus_7s": 2.0,
-    "absolute_timing": "SECONDARY_ONLY"
+    "absolute_timing": "SECONDARY_ONLY",
+    "equation": "RESET1_TOTAL - RESET8_TOTAL ~= -7.000s"
   },
   "watchdog_fallback": {
     "rtd_node": "PRESENT",
@@ -34,8 +94,6 @@
   },
   "private_pack": false,
   "device_ready": false,
-  "can_cause_reset": "SOURCE_PROVEN",
-  "can_be_reached_after_c_delay": "SOURCE_SUPPORTED",
-  "can_explain_23_28s_timing": "UNKNOWN",
-  "note": "Live SHAs and entry identity are filled by public GHA; this skeleton is not a device artifact."
+  "private_pack_run": "NONE",
+  "device_operation": "NO"
 }
