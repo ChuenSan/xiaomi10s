@@ -471,3 +471,76 @@ Current B: `M5D+M5H+M5M-B` UNCHANGED. `PANIC30_RERUN=FROZEN`,
 `FIX24_STATUS=FROZEN`, `M5N_STATUS=FROZEN`.
 Final gate: `READY_FOR_R3_P1B_PANIC_ENTRY_DEVICE_CONTROL=YES`
 (or `R3_P1B_PANIC_ENTRY_PREDEVICE_NOT_READY`).
+
+## 27. TRUE DEVICE PANIC_ENTRY RESULT (EXECUTED 2026-09-15 05:54 UTC)
+
+`MAINLINE_V2_R3_P1B_PANIC_ENTRY_TRUE_DEVICE_CONTROL` was executed with
+explicit user approval: exactly ONE `fastboot boot` of the frozen PANIC_ENTRY-8
+boot. `FASTBOOT_BOOT_ONLY=YES`, `SECOND_BOOT_FORBIDDEN=YES`,
+`PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`, `SET_ACTIVE=NO`, `LOCAL_BUILD=NO`,
+`GHA_ARTIFACT_ONLY=YES`. mem0 read x3. The original dirty worktree stayed
+untouched.
+
+Pre-boot read-only identity (existing verifier, no rebuild, no splice, no
+artifact substitution): boot
+`5e92af2f90b86b875f646c451b573044906afe65dfe4a1786b00e1f8a451ecfe` / `37380096`,
+payload `1988ee22806cba6129f7c3bb34def9667ec39c60f029c622f60341374cc35469`,
+checkpoint `dbeb828e753ba18d3e451551cd9a59eeff705831425ad5d2b0f5e11aa05edad8`
+(80 B @ `0x10b99bc`, 74 diff bytes, `OUTSIDE_WINDOW_CHANGED_BYTES=0`), entry
+word0 `paciasp` `0xd503233f` preserved, trampoline
+`362d9c6e…dc623`, RT-D `4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327`
+(`panic=5`, `rdinit=/init`; `panic=30` absent), geometry
+`IMAGE_FILE_SIZE=35166720` / `IMAGE_HEADER_IMAGE_SIZE=0x2230000` /
+`DTB_OFFSET=0x2380000`. `VERIFY_RESULT=PASS`. The probe is byte-identical to
+the already device-proven T3 probe
+(`PANIC_ENTRY_DIAGNOSTIC_CORE_PREVIOUSLY_DEVICE_PROVEN=YES`),
+`ALL_PRIOR_DIAGNOSTIC_PROBES_REMOVED=YES`,
+`PANIC_ENTRY_BASELINE_NORMAL_PATH_IDENTICAL_TO_FIX8=YES`. The observer's
+FULL-SHA gate ran strictly before any fastboot interaction and refused every
+forbidden predecessor SHA.
+
+Preflight: `product=thyme`, `unlocked=yes`, `current-slot=a`,
+`snapshot-update-status=none`, `battery-soc-ok=yes`. Fastboot:
+`Sending 'boot.img' (36504 KB) OKAY [0.919s]`, `Booting OKAY [0.219s]`,
+`rc=0`, no fail line. `T_COMMAND_START=05:54:03.180Z`,
+`T_BOOTING_OKAY=05:54:04.420Z`, `T_FASTBOOT_DISAPPEAR=05:54:05.682Z`,
+`T_USB_FIRST_REENUM=05:54:38.613Z`, `T_ADB_FIRST_SEEN=05:54:38.909Z`,
+`RETURNED_ANDROID_KERNEL_START=05:54:31.249Z`,
+`T_BOOT_COMPLETED=05:54:49.479Z`. Observation window 122 s (>= 120 s).
+
+Result: `AUTOMATIC_ANDROID_RETURN=YES`, `PANIC_ENTRY_TOTAL=26.829s`,
+`PANIC_ENTRY_MINUS_C_DELAY=+12.365s`, `PANIC_ENTRY_MATCHED_SUBCLASS=NO`.
+The total falls in the pre-registered frozen decoder natural band
+`[23.0, 28.0)s` (Case C):
+
+- `PANIC_ENTRY_REACHABILITY_SIGNATURE=NOT_OBSERVED`
+- `PANIC_ENTRY_REACHED=NOT_PROVEN`
+- `LINUX_PANIC_FUNCTION_INVOKED=NOT_PROVEN`
+- `PANIC_ENTRY_PACIASP_EXECUTED=NOT_PROVEN`
+- `PANIC_ENTRY_NOT_REACHED_LICENSE=NO` (never `NO_LINUX_PANIC` /
+  `PANIC_NOT_REACHED`)
+- final gate `R3_P1B_PANIC_ENTRY_SIGNATURE_NOT_OBSERVED`
+
+The total is `+0.540s` above the historical PANIC30 sample (`26.289s`) and does
+not meet the frozen STRONG gate (`PANIC_ENTRY_TOTAL < 20.000s`); it also does
+not fall in the SUPPORTED band (`20.000s <= TOTAL < 23.000s`). No rule was
+changed after the result. The boundary overlap with the top of the natural band
+is carried into `MAINLINE_V2_R3_P1B_PANIC_ENTRY_FAILURE_ISOLATION_CI` as an
+explicit open item; a post-hoc `26.829s - 8.108s = 18.721s` arithmetic is
+recorded as NOT licensed evidence.
+
+Auxiliary persistent evidence: pstore 0 entries (empty is not negative
+evidence), `logdump`/`rawdump` byte-identical to the C_DELAY round,
+minidump/oops/logfs boot-time deltas only, `LINUX_6_6_TRACE_PRESENT=NO`.
+
+Device final state: `ANDROID_A_RESTORED=YES` (`_a`, `boot_completed=1`, root,
+Stock `4.19.157-perf-g9d90dd04aa7c`);
+`CURRENT_B_UNCHANGED_AFTER_PANIC_ENTRY=YES` (`M5D+M5H+M5M-B` ALL MATCH).
+
+Ladder after the round: C6 and C_DELAY PROVEN; `panic=`/`rdinit=` parsed
+PROVEN; `PANIC_MDELAY_CALIBRATION_READY=YES`; panic entry, `panic_timeout>0`
+branch, timeout wait loop and `emergency_restart` remain NOT_PROVEN.
+
+Recommended next: `MAINLINE_V2_R3_P1B_PANIC_ENTRY_FAILURE_ISOLATION_CI`.
+`PANIC30_RERUN=NO`, `FIX24_STATUS=FROZEN`, `M5N_STATUS=FROZEN`.
+WAIT FOR USER APPROVAL.
