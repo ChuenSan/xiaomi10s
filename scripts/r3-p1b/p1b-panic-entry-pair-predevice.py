@@ -156,11 +156,24 @@ PAIR_PRIMARY_ABS_SANITY_S = 20.0  # secondary signature only
 # (gate_probe_words / W_DELAY_PE, the PENTRY1_DELAY_WORD gate and the
 # PENTRY8-vs-PENTRY1 pair audit), so this token only has to prove ORDER.
 # The frozen PENTRY8 script runs in a separate process and is unaffected.
-t3.ORDER_TOKENS = [
-    ((r"\b(movz|mov)\s+x10,\s+#(0x[0-9a-fA-F]+|[0-9]+)\b", True)
-     if (isinstance(tok, tuple) and isinstance(tok[0], str)
-         and "x10" in tok[0]) else tok)
-    for tok in t3.ORDER_TOKENS]
+_X10_DELAY_TOK = re.compile(r"^\(movz\|mov\) x10,")
+_ORDER_TOKENS_PATCHED = 0
+_new_order_tokens = []
+for _tok in t3.ORDER_TOKENS:
+    # Only the x10 delay-constant token is retargeted. A looser predicate such
+    # as `"x10" in tok[0]` would also hit `mul x10, x9, x10`, duplicating the
+    # pattern and tripping gate_ops_order at the second occurrence.
+    if (isinstance(_tok, tuple) and isinstance(_tok[0], str)
+            and _X10_DELAY_TOK.match(_tok[0])):
+        _new_order_tokens.append(
+            (r"\b(movz|mov)\s+x10,\s+#(0x[0-9a-fA-F]+|[0-9]+)\b", True))
+        _ORDER_TOKENS_PATCHED += 1
+    else:
+        _new_order_tokens.append(_tok)
+if _ORDER_TOKENS_PATCHED != 1:
+    fail("PANIC_ENTRY_BUILD_FAILED",
+         f"expected exactly 1 delay token retarget, got {_ORDER_TOKENS_PATCHED}")
+t3.ORDER_TOKENS = _new_order_tokens
 if not all(isinstance(t, tuple) and len(t) == 2 for t in t3.ORDER_TOKENS):
     fail("PANIC_ENTRY_BUILD_FAILED", "ORDER_TOKENS arity after delay retarget")
 PE_CLOBBER_REGISTERS = "w0/x0(PSCI FID),x9,x10,x11,x12,x13,NZCV"
