@@ -1,0 +1,588 @@
+name: thyme-r3-p1b-panic-entry-predevice
+
+# Private CI for the PANIC_ENTRY-8 fail-closed post-calibrate_delay diagnostic
+# (MAINLINE_V2_R3_P1B_PANIC_ENTRY_PREDEVICE_READINESS_CI).
+# Takes the public T4 kernel payload (frozen FIXED INIT8 bytes with ONLY the
+# INLINE selected C-stage overwrite region applied: the T3 start_kernel
+# entry probe is removed and start_kernel entry is original FIX8 paciasp;
+# __primary_switched, primary_entry, the trampoline and the whole head.S
+# path are byte-identical to FIX8), splices it into the exact M5D boot v3
+# envelope, packs and validates boot v3, records the boot SHA256.
+# No device operation; nothing is installed, started, or written to any
+# partition. The FIX8 / T0 / T1 / T2 / T3 / PANIC30 artifacts stay frozen.
+on:
+  workflow_dispatch:
+    inputs:
+      reverify_only:
+        description: "true = identity re-verify only (no re-pack, no rebuild)"
+        required: false
+        default: "false"
+      reverify_run_id:
+        description: Authoritative private run carrying thyme-r3-p1b-panic-entry-boot
+        required: false
+        default: ""
+      expected_boot_sha256:
+        description: Expected T4 boot SHA256 (reverify_only=true)
+        required: false
+        default: ""
+      public_source_commit:
+        description: ChuenSan/xiaomi10s commit SHA (pinned)
+        required: true
+      public_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-p1b-panic-entry
+        required: true
+      panic_entry_payload_sha:
+        description: Expected SHA256 of thyme-r3-p1b-panic-entry-kernel-payload.bin
+        required: true
+      panic_entry_tramp_sha:
+        description: Expected SHA256 of the embedded frozen FIX8 trampoline
+        required: true
+      panic_entry_checkpoint_sha:
+        description: Expected SHA256 of p1b-panic-entry-checkpoint.bin
+        required: true
+
+concurrency:
+  group: thyme-r3-p1b-panic-entry-private
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PUBLIC_SOURCE_REPO: ChuenSan/xiaomi10s
+  PUBLIC_SOURCE_COMMIT: ${{ inputs.public_source_commit }}
+  PUBLIC_RUN_ID: ${{ inputs.public_run_id }}
+  M5D_RUN_ID: "34487382191"
+  M5D_ARTIFACT_NAME: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+  M5D_BOOT_NAME: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+  EXPECTED_M5D_BOOT_SHA256: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+
+jobs:
+  panic-entry-pack:
+    name: R3 P1B T4 M5D pack + boot v3 gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    if: inputs.reverify_only != 'true'
+    steps:
+      - name: Checkout private wrapper
+        uses: actions/checkout@v4
+        with:
+          path: private-repo
+
+      - name: Checkout pinned public source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.PUBLIC_SOURCE_REPO }}
+          ref: ${{ env.PUBLIC_SOURCE_COMMIT }}
+          path: source
+          fetch-depth: 1
+
+      - name: Assert immutable source and private execution
+        working-directory: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PUBLIC_SOURCE_COMMIT"
+          test "$(gh api repos/${{ github.repository }} --jq .private)" = true
+          echo 'PUBLIC_SOURCE_COMMIT_PINNED=PASS'
+          echo 'PRIVATE_REPO_VISIBILITY=PRIVATE'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'HOST_DEVICE_INTERFACE=UNUSED'
+
+      - name: Lint private workflow
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color private-repo/.github/workflows/thyme-r3-p1b-panic-entry-predevice.yml
+
+      - name: Download exact M5D boot artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$M5D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name "$M5D_ARTIFACT_NAME" \
+            --dir m5d-artifact
+          test -s "m5d-artifact/$M5D_BOOT_NAME"
+          printf '%s  m5d-artifact/%s\n' "$EXPECTED_M5D_BOOT_SHA256" "$M5D_BOOT_NAME" \
+            | sha256sum -c -
+          echo 'M5D_BOOT_SHA_EXACT=PASS'
+
+      - name: Download public T4 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PANIC_ENTRY_PAYLOAD_SHA: ${{ inputs.panic_entry_payload_sha }}
+          PANIC_ENTRY_TRAMP_SHA: ${{ inputs.panic_entry_tramp_sha }}
+          PANIC_ENTRY_CHECKPOINT_SHA: ${{ inputs.panic_entry_checkpoint_sha }}
+        run: |
+          set -euo pipefail
+          gh run download "$PUBLIC_RUN_ID" \
+            --repo "$PUBLIC_SOURCE_REPO" \
+            --name thyme-r3-p1b-panic-entry --dir panic-entry-artifact
+          test -s panic-entry-artifact/thyme-r3-p1b-panic-entry-kernel-payload.bin
+          test -s panic-entry-artifact/p1b-panic-entry-checkpoint.bin
+          test -s panic-entry-artifact/p1b-t1-core-reference.bin
+          test -s panic-entry-artifact/p1b-t2-probe-reference.bin
+          test -s panic-entry-artifact/p1b-panic-entry-manifest.json
+          test -s panic-entry-artifact/p1b-panic-entry-gates.txt
+          ( cd panic-entry-artifact && sha256sum -c SHA256SUMS )
+          printf '%s  panic-entry-artifact/thyme-r3-p1b-panic-entry-kernel-payload.bin\n' \
+            "$PANIC_ENTRY_PAYLOAD_SHA" | sha256sum -c -
+          printf '%s  panic-entry-artifact/p1b-panic-entry-checkpoint.bin\n' \
+            "$PANIC_ENTRY_CHECKPOINT_SHA" | sha256sum -c -
+          python3 - "$PANIC_ENTRY_PAYLOAD_SHA" "$PANIC_ENTRY_TRAMP_SHA" "$PANIC_ENTRY_CHECKPOINT_SHA" <<'PY'
+          import hashlib, json, struct, sys
+          from pathlib import Path
+
+          def sha(b): return hashlib.sha256(b).hexdigest()
+
+          payload = Path("panic-entry-artifact/thyme-r3-p1b-panic-entry-kernel-payload.bin")
+          ckbin = Path("panic-entry-artifact/p1b-panic-entry-checkpoint.bin")
+          t2probe_p = Path("panic-entry-artifact/p1b-t2-probe-reference.bin")
+          t1core_p = Path("panic-entry-artifact/p1b-t1-core-reference.bin")
+          t3probe_p = Path("panic-entry-artifact/p1b-t3-probe-reference.bin")
+          m = json.loads(Path("panic-entry-artifact/p1b-panic-entry-manifest.json").read_text())
+          data = payload.read_bytes()
+          if sha(data) != sys.argv[1]:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_PAYLOAD_SHA_MISMATCH")
+          tramp = data[0x40:0x40 + 48]
+          if sha(tramp) != sys.argv[2]:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_TRAMP_SHA_MISMATCH")
+          probe = ckbin.read_bytes()
+          if sha(probe) != sys.argv[3]:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_CHECKPOINT_SHA_MISMATCH")
+          t1core = t1core_p.read_bytes()
+          t2probe = t2probe_p.read_bytes()
+          if len(t1core) != 76:
+              raise SystemExit(
+                  f"PANIC_ENTRY_PRIVATE_CORE_SIZE t1={len(t1core)}")
+          if len(probe) not in (76, 80):
+              raise SystemExit(f"PANIC_ENTRY_PRIVATE_PROBE_SIZE {len(probe)}")
+          core = probe if len(probe) == 76 else probe[4:]
+          if core != t1core:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_CORE_NOT_T1_IDENTICAL")
+          if core != t2probe[4:]:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_CORE_NOT_T2_SLICE")
+          if t3probe_p.is_file():
+              t3probe = t3probe_p.read_bytes()
+              if core != t3probe[4:]:
+                  raise SystemExit("PANIC_ENTRY_PRIVATE_CORE_NOT_T3_SLICE")
+          PACIASP_LE = bytes.fromhex("3f2303d5")
+          PACIASP = 0xD503233F
+          BTI_C = 0xD503245F
+          if len(probe) == 80:
+              pad = struct.unpack_from("<I", probe, 0)[0]
+              if pad not in (PACIASP, BTI_C):
+                  raise SystemExit(f"PANIC_ENTRY_PRIVATE_BAD_PAD {pad:#010x}")
+          stage = m["panic_entry_selected_stage"]
+          if stage != "PANIC_ENTRY_CANONICAL_PANIC":
+              raise SystemExit(f"PANIC_ENTRY_PRIVATE_SELECTED_STAGE {stage!r}")
+          want_delta = "PANIC_ENTRY_CHECKPOINT_ONLY"
+
+          if m["panic_entry_runtime_semantic_delta"] != want_delta:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_SEMANTIC_DELTA_MISMATCH")
+          if m["panic_entry_probe_architecture"] != "INLINE":
+              raise SystemExit("PANIC_ENTRY_PRIVATE_NOT_INLINE")
+          if m["panic_entry_normal_kernel_boot_candidate"] is not False:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_DIAGNOSTIC_ONLY")
+          if m.get("primary_entry_patched") is True:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_PRIMARY_ENTRY_PATCHED")
+          off_ck = int(m["panic_entry_checkpoint_image_offset"], 16)
+          plen = int(m["panic_entry_checkpoint_size"])
+          off_sk = int(m["start_kernel_image_offset"], 16)
+          off_ps = int(m["primary_switched_image_offset"], 16)
+          off_primary = int(m["primary_entry_offset"], 16)
+          off_c6 = int(m["c6_image_offset"], 16)
+          off_cd = int(m["c_delay_image_offset"], 16)
+          file_size = int(m["image_file_size"])
+          image_size = int(m["image_header_image_size"], 16) \
+              if isinstance(m["image_header_image_size"], str) \
+              else int(m["image_header_image_size"])
+          if plen not in (76, 80) or plen != len(probe):
+              raise SystemExit(f"PANIC_ENTRY_PRIVATE_CHECKPOINT_SIZE {plen}")
+          if off_ck <= off_primary or off_sk <= off_primary or off_ps <= off_primary:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_WINDOW_ORDER")
+          if off_ck == off_sk:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_CHECKPOINT_IS_START_KERNEL_ENTRY")
+          if off_ck == off_c6 or off_ck == off_cd:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_CHECKPOINT_COLLIDES_PRIOR")
+          if (off_ck + plen) > min(file_size, image_size):
+              raise SystemExit("PANIC_ENTRY_PRIVATE_WINDOW_OUTSIDE_TEXT")
+          if data[off_ck:off_ck + plen] != probe:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_INLINE_REGION_MISMATCH")
+          if data[off_c6:off_c6 + plen] == probe:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_T4_PROBE_STILL_PRESENT")
+          if data[off_ps:off_ps + len(t2probe)] == t2probe:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_T2_PROBE_STILL_PRESENT")
+          if data[off_sk:off_sk + 4] != PACIASP_LE:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_START_KERNEL_ENTRY_NOT_PACIASP")
+          if struct.unpack_from("<I", data, off_sk)[0] != PACIASP:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_START_KERNEL_ENTRY_MISMATCH")
+          if struct.unpack_from("<I", data, off_primary)[0] >> 26 != 0b100101:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_PRIMARY_ENTRY_NOT_ORIGINAL_BL")
+          print('PANIC_ENTRY_PRIVATE_PAYLOAD_IDENTITY_EXACT=PASS')
+          print(f"PANIC_ENTRY_PRIVATE_IMAGE_HEADER_IMAGE_SIZE={image_size:#x}")
+          print(f"PANIC_ENTRY_PRIVATE_INLINE_WINDOW=[{off_ck:#x},{off_ck+plen:#x})")
+          print(f"PANIC_ENTRY_PRIVATE_C6_WINDOW=[{off_c6:#x},{off_c6+plen:#x})")
+          print(f"PANIC_ENTRY_PRIVATE_SELECTED_STAGE={stage}")
+          print("PANIC_ENTRY_PRIVATE_T2_PROBE_REMOVED=YES")
+          print("PANIC_ENTRY_PRIVATE_T3_PROBE_REMOVED=YES")
+          print("PANIC_ENTRY_PRIVATE_T4_PROBE_REMOVED=YES")
+          print("PANIC_ENTRY_PRIVATE_START_KERNEL_ENTRY_WORD=3f2303d5")
+          PY
+
+      - name: Pack PANIC_ENTRY payload into M5D envelope
+        working-directory: source
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/panic-entry-out"
+          python3 scripts/r3-p1b/p1b-build.py --mode splice-boot \
+            --m5d-boot "$GITHUB_WORKSPACE/m5d-artifact/$M5D_BOOT_NAME" \
+            --payload "$GITHUB_WORKSPACE/panic-entry-artifact/thyme-r3-p1b-panic-entry-kernel-payload.bin" \
+            --boot "$GITHUB_WORKSPACE/panic-entry-out/thyme-r3-p1b-panic-entry-boot.img" \
+            | tee "$GITHUB_WORKSPACE/pack-panic-entry.txt"
+
+      - name: Resolve PANIC_ENTRY offsets from the public manifest
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          from pathlib import Path
+          m = json.loads(
+              Path("panic-entry-artifact/p1b-panic-entry-manifest.json").read_text())
+          print(f"PANIC_ENTRY_CHECKPOINT_OFFSET={m['panic_entry_checkpoint_image_offset']}")
+          print(f"PANIC_ENTRY_START_KERNEL_OFFSET={m['start_kernel_image_offset']}")
+          print(f"PANIC_ENTRY_PRIMARY_SWITCHED_OFFSET={m['primary_switched_image_offset']}")
+          print(f"PANIC_ENTRY_PRIMARY_ENTRY_OFFSET={m['primary_entry_offset']}")
+          print(f"PANIC_ENTRY_C6_OFFSET={m['c6_image_offset']}")
+          print(f"PANIC_ENTRY_C_DELAY_OFFSET={m['c_delay_image_offset']}")
+          print(f"PANIC_ENTRY_BOOT_SIZE_EST={m['panic_entry_boot_size_est']}")
+          print(f"PANIC_ENTRY_SELECTED_STAGE={m['panic_entry_selected_stage']}")
+          print(f"PANIC_ENTRY_CHECKPOINT_SIZE={m['panic_entry_checkpoint_size']}")
+          print(f"PANIC_ENTRY_RUNTIME_SEMANTIC_DELTA={m['panic_entry_runtime_semantic_delta']}")
+          PY
+          tail -8 "$GITHUB_ENV"
+
+      - name: PANIC_ENTRY pack gates
+        working-directory: source
+        env:
+          GITHUB_ACTIONS: "true"
+          PANIC_ENTRY_PAYLOAD_SHA: ${{ inputs.panic_entry_payload_sha }}
+          PANIC_ENTRY_TRAMP_SHA: ${{ inputs.panic_entry_tramp_sha }}
+          PANIC_ENTRY_CHECKPOINT_SHA: ${{ inputs.panic_entry_checkpoint_sha }}
+        run: |
+          set -euo pipefail
+          python3 scripts/r3-p1b/p1b-panic-entry-predevice.py \
+            --mode panic-entry-pack-gates \
+            --m5d-boot "$GITHUB_WORKSPACE/m5d-artifact/$M5D_BOOT_NAME" \
+            --payload "$GITHUB_WORKSPACE/panic-entry-artifact/thyme-r3-p1b-panic-entry-kernel-payload.bin" \
+            --payload-sha "$PANIC_ENTRY_PAYLOAD_SHA" \
+            --checkpoint-bin "$GITHUB_WORKSPACE/panic-entry-artifact/p1b-panic-entry-checkpoint.bin" \
+            --checkpoint-sha "$PANIC_ENTRY_CHECKPOINT_SHA" \
+            --checkpoint-offset "$PANIC_ENTRY_CHECKPOINT_OFFSET" \
+            --start-kernel-offset "$PANIC_ENTRY_START_KERNEL_OFFSET" \
+            --boot "$GITHUB_WORKSPACE/panic-entry-out/thyme-r3-p1b-panic-entry-boot.img" \
+            --out "$GITHUB_WORKSPACE/panic-entry-out" \
+            | tee "$GITHUB_WORKSPACE/pack-gates-panic-entry.txt"
+          G="$GITHUB_WORKSPACE/panic-entry-out/p1b-panic-entry-pack-gates.txt"
+          grep -Fxq 'PANIC_ENTRY_PACK_GATES=PASS' "$G"
+          grep -Fxq 'PANIC_ENTRY_RT_D_TRAILER_SHA_EXACT=PASS' "$G"
+          grep -Fxq 'PANIC_ENTRY_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY' "$G"
+          grep -Fxq 'PANIC_ENTRY_PROBE_ARCHITECTURE=INLINE' "$G"
+          grep -Fxq 'PANIC_ENTRY_INLINE_REGION_IN_KERNEL_TEXT=YES' "$G"
+          grep -Fxq "PANIC_ENTRY_PAYLOAD_SHA256=$PANIC_ENTRY_PAYLOAD_SHA" "$G"
+          grep -Fxq "PANIC_ENTRY_TRAMP_SHA256=$PANIC_ENTRY_TRAMP_SHA" "$G"
+          grep -Fxq "PANIC_ENTRY_CHECKPOINT_SHA256=$PANIC_ENTRY_CHECKPOINT_SHA" "$G"
+
+      - name: Boot size vs public manifest cross-check
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          m = json.loads(
+              Path("panic-entry-artifact/p1b-panic-entry-manifest.json").read_text())
+          boot = Path("panic-entry-out/thyme-r3-p1b-panic-entry-boot.img").stat().st_size
+          if boot != m["panic_entry_boot_size_est"]:
+              raise SystemExit(
+                  f"PANIC_ENTRY_PRIVATE_SIZE_MISMATCH boot={boot} "
+                  f"manifest={m['panic_entry_boot_size_est']}")
+          if boot != 37380096:
+              raise SystemExit(f"PANIC_ENTRY_PRIVATE_UNEXPECTED_BOOT_SIZE {boot}")
+          print(f"PANIC_ENTRY_BOOT_SIZE={boot}")
+          print('PANIC_ENTRY_PRIVATE_BOOT_SIZE_CROSS_CHECK=PASS')
+          PY
+
+      - name: Record PANIC_ENTRY boot identity + verdict
+        run: |
+          set -euo pipefail
+          PANIC_ENTRY_BOOT_SHA=$(sha256sum panic-entry-out/thyme-r3-p1b-panic-entry-boot.img | cut -d' ' -f1)
+          {
+            echo "MAINLINE_V2_R3_P1B_PANIC_ENTRY_PREDEVICE_READINESS_CI (PRIVATE PACK)"
+            echo "PANIC_ENTRY_BOOT_SHA256=$PANIC_ENTRY_BOOT_SHA"
+            echo "PANIC_ENTRY_BOOT_SIZE=$(stat -c%s panic-entry-out/thyme-r3-p1b-panic-entry-boot.img)"
+            echo "PANIC_ENTRY_PAYLOAD_SHA256=${{ inputs.panic_entry_payload_sha }}"
+            echo "PANIC_ENTRY_TRAMP_SHA256=${{ inputs.panic_entry_tramp_sha }}"
+            echo "PANIC_ENTRY_CHECKPOINT_SHA256=${{ inputs.panic_entry_checkpoint_sha }}"
+            echo "PANIC_ENTRY_CHECKPOINT_OFFSET=$PANIC_ENTRY_CHECKPOINT_OFFSET"
+            echo "PANIC_ENTRY_START_KERNEL_OFFSET=$PANIC_ENTRY_START_KERNEL_OFFSET"
+            echo "PANIC_ENTRY_PRIMARY_SWITCHED_OFFSET=$PANIC_ENTRY_PRIMARY_SWITCHED_OFFSET"
+            echo "PANIC_ENTRY_PRIMARY_ENTRY_OFFSET=$PANIC_ENTRY_PRIMARY_ENTRY_OFFSET"
+            echo "PANIC_ENTRY_C6_OFFSET=$PANIC_ENTRY_C6_OFFSET"
+            echo "PANIC_ENTRY_C_DELAY_OFFSET=$PANIC_ENTRY_C_DELAY_OFFSET"
+            echo "PANIC_ENTRY_CHECKPOINT_SIZE=$PANIC_ENTRY_CHECKPOINT_SIZE"
+            echo "PANIC_ENTRY_SELECTED_STAGE=$PANIC_ENTRY_SELECTED_STAGE"
+            echo "PANIC_ENTRY_RUNTIME_SEMANTIC_DELTA=$PANIC_ENTRY_RUNTIME_SEMANTIC_DELTA"
+            echo "PANIC_ENTRY_PROBE_ARCHITECTURE=INLINE"
+            echo "PANIC_ENTRY_DIAGNOSTIC_ONLY=YES"
+            echo "PANIC_ENTRY_NORMAL_KERNEL_BOOT_CANDIDATE=NO"
+            echo "DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "READY_FOR_DEVICE=NO (device round requires separate user approval)"
+          } | tee "$GITHUB_STEP_SUMMARY" | tee panic-entry-identity.txt
+          cat panic-entry-out/p1b-panic-entry-pack-gates.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Assert no unexpected image output
+        shell: bash
+        run: |
+          set -euo pipefail
+          # ./m5d-artifact/*.img is the DOWNLOADED M5D input, not an output.
+          if find . -name '*.img' -not -path './panic-entry-out/*' -not -path './m5d-artifact/*' -print -quit | grep -q .; then
+            echo 'unexpected image output outside panic-entry-out' >&2
+            exit 1
+          fi
+          echo 'PANIC_ENTRY_PRIVATE_PACK_GATES=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+      - name: Upload private PANIC_ENTRY boot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-panic-entry-boot
+          if-no-files-found: error
+          path: |
+            panic-entry-out/thyme-r3-p1b-panic-entry-boot.img
+            panic-entry-out/p1b-panic-entry-pack-gates.txt
+            panic-entry-identity.txt
+            pack-panic-entry.txt
+            pack-gates-panic-entry.txt
+
+  panic-entry-identity-reverify:
+    name: R3 P1B T4 boot identity re-verification (no rebuild)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    if: inputs.reverify_only == 'true'
+    steps:
+      - name: Checkout private wrapper
+        uses: actions/checkout@v4
+        with:
+          path: private-repo
+
+      - name: Assert immutable private execution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/${{ github.repository }} --jq .private)" = true
+          echo 'PRIVATE_REPO_VISIBILITY=PRIVATE'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'PARTITION_WRITES=0'
+          echo 'HOST_DEVICE_INTERFACE=UNUSED'
+
+      - name: Download authoritative PANIC_ENTRY boot artifact (no rebuild)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVERIFY_RUN_ID: ${{ inputs.reverify_run_id }}
+        run: |
+          set -euo pipefail
+          test -n "$REVERIFY_RUN_ID"
+          gh run download "$REVERIFY_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-panic-entry-boot --dir auth-boot
+          test -s auth-boot/panic-entry-out/thyme-r3-p1b-panic-entry-boot.img
+          test -s auth-boot/panic-entry-out/p1b-panic-entry-pack-gates.txt
+          test -s auth-boot/panic-entry-identity.txt
+          echo 'PANIC_ENTRY_BOOT_ARTIFACT_SOURCE=AUTHORITATIVE_PRIVATE_RUN'
+
+      - name: PANIC_ENTRY boot identity gates (extract + re-hash, no repack)
+        env:
+          EXPECTED_BOOT_SHA256: ${{ inputs.expected_boot_sha256 }}
+          EXPECTED_PAYLOAD_SHA256: ${{ inputs.panic_entry_payload_sha }}
+          EXPECTED_TRAMP_SHA256: ${{ inputs.panic_entry_tramp_sha }}
+          EXPECTED_CHECKPOINT_SHA256: ${{ inputs.panic_entry_checkpoint_sha }}
+        run: |
+          set -euo pipefail
+          test -n "$EXPECTED_BOOT_SHA256"
+          python3 - <<'PY'
+          import hashlib, os, struct
+          from pathlib import Path
+
+          def sha(b: bytes) -> str:
+              return hashlib.sha256(b).hexdigest()
+
+          PAGE = 4096
+          KERNEL_OFFSET = PAGE
+          DTB_OFFSET = 0x2380000
+          TRAMP_OFF = 0x40
+          TRAMP_SIZE = 48
+          RT_D_SHA = (
+              "4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327")
+          RT_D_SIZE = 144593
+          T2_PROBE_SHA = (
+              "c78c55fb2fa94b6e16a33e59d7973acc715c212a02a88bad1ed954ecb1ce412a")
+          PACIASP = 0xD503233F
+          PACIASP_LE = bytes.fromhex("3f2303d5")
+          BTI_C = 0xD503245F
+          FDT_MAGIC = 0xD00DFEED
+
+          ident = {}
+          for line in Path("auth-boot/panic-entry-identity.txt").read_text().splitlines():
+              if "=" not in line:
+                  continue
+              k, v = line.split("=", 1)
+              ident[k.strip()] = v.strip()
+          off_ck = int(ident["PANIC_ENTRY_CHECKPOINT_OFFSET"], 16)
+          off_sk = int(ident["PANIC_ENTRY_START_KERNEL_OFFSET"], 16)
+          off_ps = int(ident["PANIC_ENTRY_PRIMARY_SWITCHED_OFFSET"], 16)
+          off_pe = int(ident["PANIC_ENTRY_PRIMARY_ENTRY_OFFSET"], 16)
+          off_c6 = int(ident["PANIC_ENTRY_C6_OFFSET"], 16)
+          off_cd = int(ident.get("PANIC_ENTRY_C_DELAY_OFFSET", "0"), 16)
+          window = int(ident.get("PANIC_ENTRY_CHECKPOINT_SIZE", "0"))
+          if window not in (76, 80):
+              raise SystemExit(f"PANIC_ENTRY_REVERIFY_WINDOW {window}")
+
+          exp_boot = os.environ["EXPECTED_BOOT_SHA256"]
+          exp_payload = os.environ["EXPECTED_PAYLOAD_SHA256"]
+          exp_tramp = os.environ["EXPECTED_TRAMP_SHA256"]
+          exp_ck = os.environ["EXPECTED_CHECKPOINT_SHA256"]
+
+          boot_path = Path("auth-boot/panic-entry-out/thyme-r3-p1b-panic-entry-boot.img")
+          boot = boot_path.read_bytes()
+          if sha(boot) != exp_boot:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_BOOT_SHA_MISMATCH")
+          if len(boot) != 37380096:
+              raise SystemExit(f"PANIC_ENTRY_REVERIFY_BOOT_SIZE {len(boot)}")
+          if boot[:8] != b"ANDROID!":
+              raise SystemExit("PANIC_ENTRY_REVERIFY_NOT_ANDROID")
+          ksize = struct.unpack_from("<I", boot, 8)[0]
+          if ksize != 37369041:
+              raise SystemExit(f"PANIC_ENTRY_REVERIFY_KERNEL_SIZE_FIELD {ksize}")
+          payload = boot[KERNEL_OFFSET:KERNEL_OFFSET + ksize]
+          if len(payload) != 37369041:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_PAYLOAD_LEN")
+          if sha(payload) != exp_payload:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_PAYLOAD_SHA_MISMATCH")
+          if payload[56:60] != b"ARM\x64":
+              raise SystemExit("PANIC_ENTRY_REVERIFY_NOT_ARM64_IMAGE")
+          image_size = struct.unpack_from("<Q", payload, 16)[0]
+          if image_size != 0x2230000:
+              raise SystemExit(f"PANIC_ENTRY_REVERIFY_IMAGE_SIZE {image_size:#x}")
+          if struct.unpack_from("<I", payload, 4)[0] != 0x1400000F:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_CODE1_NOT_B_0X40")
+          tramp = payload[TRAMP_OFF:TRAMP_OFF + TRAMP_SIZE]
+          if sha(tramp) != exp_tramp:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_TRAMP_SHA_MISMATCH")
+          ck_win = payload[off_ck:off_ck + window]
+          if sha(ck_win) != exp_ck:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_INLINE_WINDOW_SHA_MISMATCH")
+          if len(ck_win) != window:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_CHECKPOINT_LEN")
+          core = ck_win if window == 76 else ck_win[4:]
+          if len(core) != 76:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_CORE_LEN")
+          if window == 80:
+              pad = struct.unpack_from("<I", ck_win, 0)[0]
+              if pad not in (PACIASP, BTI_C):
+                  raise SystemExit(f"PANIC_ENTRY_REVERIFY_BAD_PAD {pad:#010x}")
+          if payload[off_sk:off_sk + 4] != PACIASP_LE:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_ENTRY0_NOT_PACIASP")
+          if struct.unpack_from("<I", payload, off_sk)[0] != PACIASP:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_START_KERNEL_ENTRY_NOT_FIX8")
+          ps_win = payload[off_ps:off_ps + 80]
+          if sha(ps_win) == T2_PROBE_SHA:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_T2_PROBE_STILL_PRESENT")
+          if sha(ps_win) == exp_ck:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_PROBE_AT_PRIMARY_SWITCHED")
+          if struct.unpack_from("<I", ps_win, 0)[0] != BTI_C:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_PRIMARY_SWITCHED_NOT_FIX8_BTI_C")
+          if struct.unpack_from("<I", payload, off_pe)[0] >> 26 != 0b100101:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_PRIMARY_ENTRY_NOT_BL")
+          if off_ck == off_c6 or (off_cd and off_ck == off_cd):
+              raise SystemExit("PANIC_ENTRY_REVERIFY_CHECKPOINT_COLLIDES_PRIOR")
+          if payload[off_c6:off_c6 + 76] == core:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_T4_PROBE_STILL_AT_C6")
+          if off_cd and payload[off_cd:off_cd + 76] == core:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_C_DELAY_PROBE_STILL_PRESENT")
+          trailer = payload[DTB_OFFSET:]
+          if len(payload) != DTB_OFFSET + RT_D_SIZE:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_PAYLOAD_GEOMETRY")
+          if len(trailer) != RT_D_SIZE or sha(trailer) != RT_D_SHA:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_RT_D_MISMATCH")
+          if trailer[:4] != struct.pack(">I", FDT_MAGIC):
+              raise SystemExit("PANIC_ENTRY_REVERIFY_RT_D_MAGIC")
+          if (off_ck + window) > image_size:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_WINDOW_OUTSIDE_IMAGE_SIZE")
+          if off_ck == off_sk:
+              raise SystemExit("PANIC_ENTRY_REVERIFY_CHECKPOINT_IS_ENTRY")
+          print("PANIC_ENTRY_PRIVATE_IDENTITY_REVERIFIED=YES")
+          print(f"PANIC_ENTRY_BOOT_SHA256={sha(boot)}")
+          print(f"PANIC_ENTRY_BOOT_SIZE={len(boot)}")
+          print(f"PANIC_ENTRY_PAYLOAD_EXTRACTED_SHA256={sha(payload)}")
+          print(f"PANIC_ENTRY_INLINE_WINDOW=[{off_ck:#x},{off_ck + window:#x})")
+          print(f"PANIC_ENTRY_CHECKPOINT_SHA256={sha(ck_win)}")
+          print(f"PANIC_ENTRY_TRAMP_SHA256={sha(tramp)}")
+          print(f"PANIC_ENTRY_RT_D_TRAILER_SHA256={sha(trailer)}")
+          print(f"PANIC_ENTRY_START_KERNEL_OFFSET={off_sk:#x}")
+          print(f"PANIC_ENTRY_C6_OFFSET={off_c6:#x}")
+          print(f"PANIC_ENTRY_SELECTED_STAGE={ident.get('PANIC_ENTRY_SELECTED_STAGE')}")
+          print("IMAGE_FILE_SIZE=35166720")
+          print(f"IMAGE_HEADER_IMAGE_SIZE={image_size:#x}")
+          print(f"DTB_OFFSET={DTB_OFFSET:#x}")
+          print(f"payload_size={len(payload)}")
+          print("boot_size_expected=37380096")
+          print("PANIC_ENTRY_GEOMETRY_GATES=PASS")
+          print("PANIC_ENTRY_ARTIFACT_REBUILD_REQUIRED=NO")
+          print("PANIC_ENTRY_REVERIFY_T4_PROBE_REMOVED=YES")
+          PY
+          G=auth-boot/panic-entry-out/p1b-panic-entry-pack-gates.txt
+          grep -Fxq 'PANIC_ENTRY_PACK_GATES=PASS' "$G"
+          grep -Fxq "PANIC_ENTRY_BOOT_SHA256=$EXPECTED_BOOT_SHA256" "$G"
+          grep -Fxq "PANIC_ENTRY_PAYLOAD_SHA256=$EXPECTED_PAYLOAD_SHA256" "$G"
+          grep -Fxq "PANIC_ENTRY_TRAMP_SHA256=$EXPECTED_TRAMP_SHA256" "$G"
+          grep -Fxq "PANIC_ENTRY_CHECKPOINT_SHA256=$EXPECTED_CHECKPOINT_SHA256" "$G"
+          grep -Fxq 'PANIC_ENTRY_BOOT_SIZE=37380096' "$G"
+          grep -Fxq 'PANIC_ENTRY_PROBE_ARCHITECTURE=INLINE' "$G"
+          grep -Fxq 'PANIC_ENTRY_INLINE_REGION_IN_KERNEL_TEXT=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY' "$G"
+          echo 'PANIC_ENTRY_PRIVATE_BOOT_IDENTITY_RECONFIRMED=YES'
+          echo 'PANIC_ENTRY_ARTIFACT_REBUILD_REQUIRED=NO (extracted from frozen boot, never re-packed)'
+          echo 'PANIC_ENTRY_PRIVATE_IDENTITY_REVERIFY=PASS'
+          echo 'DEVICE_OPERATION=NO'
+
+      - name: Verdict
+        run: |
+          {
+            echo "MAINLINE_V2_R3_P1B_PANIC_ENTRY_PREDEVICE_READINESS_CI (PRIVATE IDENTITY REVERIFY)"
+            echo "AUTHORITATIVE_PRIVATE_RUN=${{ inputs.reverify_run_id }}"
+            echo "PANIC_ENTRY_BOOT_SHA256=${{ inputs.expected_boot_sha256 }}"
+            echo "PANIC_ENTRY_BOOT_SIZE=37380096"
+            echo "PANIC_ENTRY_PAYLOAD_EXTRACTED_SHA256=${{ inputs.panic_entry_payload_sha }}"
+            echo "PANIC_ENTRY_PRIVATE_IDENTITY_REVERIFIED=YES"
+            echo "PANIC_ENTRY_PROBE_ARCHITECTURE=INLINE"
+            echo "PANIC_ENTRY_DIAGNOSTIC_ONLY=YES"
+            echo "PANIC_ENTRY_NORMAL_KERNEL_BOOT_CANDIDATE=NO"
+            echo "DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "PANIC_ENTRY_DEVICE_OPERATION=NO"
+          } | tee "$GITHUB_STEP_SUMMARY"

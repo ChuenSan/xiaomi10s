@@ -1,0 +1,595 @@
+name: thyme-r3-p1b-panic-entry-predevice
+
+# MAINLINE_V2_R3_P1B_PANIC_ENTRY_PREDEVICE_READINESS_CI — CI / SOURCE AUDIT /
+# ARTIFACT PREPARATION ONLY. No device operation anywhere; this public
+# repository never emits a device-installable image (pack v3 is private
+# only).
+# Deliverables:
+#   source-audit   boundary gate over the PANIC_ENTRY INLINE panic() entry
+#                  diagnostic source (fail-closed: any smc return -> wfe forever,
+#                  no start_kernel continuation), PANIC_ENTRY observer + fixtures,
+#                  PANIC_ENTRY scripts, this workflow
+#   panic-entry-build  frozen-FIX8-anchored PANIC_ENTRY-8 candidate: authoritative kernel
+#                  rebuild, canonical panic() entry INLINE checkpoint, all prior
+#                  T0-T4/C_DELAY probes removed, T1-core identity, geometry,
+#                  negative/decoder/observer fixtures; uploads artifact
+#                  thyme-r3-p1b-panic-entry
+#   verify         independent structural re-verification of the uploaded
+#                  PANIC_ENTRY payload against the frozen FIX8 payload + RT-D trailer
+on:
+  push:
+    branches: [route-b-v3, route-b-v3-panic-entry-integration]
+    paths:
+      - '.github/workflows/thyme-r3-p1b-panic-entry-predevice.yml'
+      - 'scripts/r3-p1b/p1b-panic-entry-device.S'
+      - 'scripts/r3-p1b/p1b-panic-entry-device.ld'
+      - 'scripts/r3-p1b/p1b-panic-entry-predevice.py'
+      - 'scripts/r3-p1b/observe-r3-p1b-panic-entry.py'
+      - 'scripts/r3-p1b/observer-panic-entry-fixtures.py'
+      - 'scripts/r3-p1b/p1b-t3-device.S'
+      - 'scripts/r3-p1b/p1b-t3-device.ld'
+      - 'scripts/r3-p1b/p1b-t2-device.S'
+      - 'scripts/r3-p1b/p1b-t2-device.ld'
+      - 'scripts/r3-p1b/p1b-t1-device.S'
+      - 'scripts/r3-p1b/p1b-t1-device.ld'
+      - 'scripts/r3-p1b/p1b-t4-device.S'
+      - 'scripts/r3-p1b/p1b-t4-device.ld'
+      - 'scripts/r3-p1b/p1b-c-delay-device.S'
+      - 'scripts/r3-p1b/p1b-c-delay-device.ld'
+      - 'scripts/r3-p1b/p1b-build.py'
+      - 'scripts/r3-p1b/p1b-trampoline.S'
+      - 'scripts/r3-p1b/p1b-trampoline.ld'
+      - 'docs/route-r3-p1b-panic-entry-predevice-readiness.md'
+      - 'docs/route-r3-current-status.md'
+      - 'artifacts/p1b-panic-entry-private-workflow-staging.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-p1b-panic-entry-predevice.yml'
+      - 'scripts/r3-p1b/**'
+      - 'docs/route-r3-p1b-panic-entry-predevice-readiness.md'
+  workflow_dispatch:
+    inputs:
+      rt_d_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-runtime-dtb
+        required: false
+        default: "34678001413"
+      fix8_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-p1b-fix8-fix24
+        required: false
+        default: "34741153230"
+
+concurrency:
+  group: thyme-r3-p1b-panic-entry-predevice-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: R3 P1B PANIC_ENTRY predevice source gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-r3-p1b-panic-entry-predevice.yml
+
+      - name: Parse PANIC_ENTRY scripts
+        run: |
+          python3 -m py_compile scripts/r3-p1b/p1b-panic-entry-predevice.py
+          python3 -m py_compile scripts/r3-p1b/p1b-t3-predevice.py
+          python3 -m py_compile scripts/r3-p1b/observe-r3-p1b-panic-entry.py
+          python3 -m py_compile scripts/r3-p1b/observer-panic-entry-fixtures.py
+          python3 -m py_compile scripts/r3-p1b/p1b-build.py
+
+      - name: PANIC_ENTRY predevice source-gate
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1b/p1b-panic-entry-predevice.py --mode source-gate
+
+      - name: Assert constraints
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -Ei '(^|/)(r3-p1b|p1b).*\.(img)$'; then
+            echo 'tracked p1b device image found' >&2
+            exit 1
+          fi
+          echo 'LOCAL_BUILD=NO'
+          echo 'GHA_ONLY=YES'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'HOST_DEVICE_INTERFACE=UNUSED'
+          echo 'PARTITION_WRITES=0'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+  panic-entry-build:
+    name: R3 P1B PANIC_ENTRY-8 fail-closed inline build + identity/diff/geometry gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    needs: [source-audit]
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install pinned LLVM 18.1.3 toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang lld llvm make gcc bc bison flex libssl-dev libelf-dev \
+            cpio file python3 gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu
+          clang --version | head -1 | tee clang-version.txt
+          grep -F '18.1.3' clang-version.txt
+          echo "TOOLCHAIN_PINNED=$(clang --version | head -1)"
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          base=$(git -C linux-6.6 rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base"
+          test "$base" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+      - name: Download frozen RT-D from public GHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RT_D_RUN_ID: ${{ inputs.rt_d_run_id || '34678001413' }}
+        run: |
+          set -euo pipefail
+          gh run download "$RT_D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-runtime-dtb --dir rt-d
+          test -s rt-d/rt-d.dtb
+          printf '%s  rt-d/rt-d.dtb\n' \
+            4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 \
+            | sha256sum -c -
+          echo 'RT_D_SOURCE=PUBLIC_GHA_RUN'
+
+      - name: Download frozen FIXED INIT8 payload from public GHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FIX8_RUN_ID: ${{ inputs.fix8_run_id || '34741153230' }}
+        run: |
+          set -euo pipefail
+          gh run download "$FIX8_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-fix8-fix24 --dir fix8
+          test -s fix8/thyme-r3-p1b-fix8-kernel-payload.bin
+          printf '%s  fix8/thyme-r3-p1b-fix8-kernel-payload.bin\n' \
+            4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 \
+            | sha256sum -c -
+          echo 'FIX8_PAYLOAD_BASE=PUBLIC_GHA_RUN_34741153230'
+
+      - name: Build fail-closed PANIC_ENTRY-8 + run all gates
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          mkdir -p out-panic-entry
+          python3 scripts/r3-p1b/p1b-panic-entry-predevice.py \
+            --mode panic-entry --out out-panic-entry --jobs "$(nproc)" \
+            --rt-d rt-d/rt-d.dtb \
+            --fix8-payload fix8/thyme-r3-p1b-fix8-kernel-payload.bin \
+            | tee out-panic-entry-run.txt
+          G=out-panic-entry/p1b-panic-entry-gates.txt
+          grep -Fxq 'PANIC_ENTRY_BUILD_GATES=PASS' "$G"
+          grep -Fxq 'PANIC_ENTRY_BASELINE=FROZEN_FIX8' "$G"
+          grep -Fxq 'PANIC_SYMBOL_REDERIVED=YES' "$G"
+          grep -E '^PANIC_CANONICAL_ENTRY_UNIQUE=(YES|PARTIAL)$' "$G"
+          grep -Fxq 'PANIC_ENTRY_PROBE_ARCHITECTURE=INLINE' "$G"
+          grep -Fxq 'PANIC_ENTRY_INLINE_OVERWRITE_SAFE=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_LANDING_REQUIREMENT_SATISFIED=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_ENTRY_INSTRUMENTATION_AUDITED=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_WINDOW_INSIDE_IMAGE_SIZE=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_MAPPING_SOURCE=KERNEL_TEXT_VA_SELF_EVIDENT' "$G"
+          grep -Fxq 'PANIC_ENTRY_INLINE_MAPPING_EXECUTABLE=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_EXTERNAL_CHECKPOINT_USED=NO' "$G"
+          grep -Fxq 'PANIC_ENTRY_PADDING_MAPPING_USED=NO' "$G"
+          grep -Fxq 'PANIC_ENTRY_DEVICE_CANDIDATE_DELAY=8s' "$G"
+          grep -Fxq 'PANIC_ENTRY_TIMER_PRIMITIVE=CNTPCT_REGISTER_ONLY' "$G"
+          grep -Fxq 'PANIC_ENTRY_CNTPCT_SAFE=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_RESET_PRIMITIVE=PSCI_SYSTEM_RESET_0x84000009_SMC' "$G"
+          grep -Fxq 'PANIC_ENTRY_PSCI_SAFE=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_FAIL_CLOSED=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_STACK_USAGE=NO' "$G"
+          grep -Fxq 'PANIC_ENTRY_NO_MEMORY_READS=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_NO_MEMORY_WRITES=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_DIAGNOSTIC_CORE_MATCHES_C_DELAY=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_DIAGNOSTIC_CORE_MATCHES_T1=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_DIAGNOSTIC_INDEPENDENT_OF_PANIC_TIMEOUT=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_RUNTIME_RELOCATIONS=0' "$G"
+          grep -Fxq 'ALL_PRIOR_DIAGNOSTIC_PROBES_REMOVED=YES' "$G"
+          grep -Fxq 'T4_PROBE_REMOVED_FROM_PANIC_ENTRY=YES' "$G"
+          grep -Fxq 'C_DELAY_PROBE_REMOVED_FROM_PANIC_ENTRY=YES' "$G"
+          grep -Fxq 'START_KERNEL_ENTRY_RESTORED_TO_FIX8=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_BASELINE_NORMAL_PATH_IDENTICAL_TO_FIX8=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_TRAMPOLINE_IDENTICAL=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_RT_D_IDENTITY=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_INIT_IDENTITY=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_INITRAMFS_IDENTITY=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_PAYLOAD_DIFF_ATTRIBUTED=PANIC_ENTRY_CHECKPOINT_ONLY' "$G"
+          grep -Fxq 'PANIC_ENTRY_PAYLOAD_SIZE_IDENTICAL=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_BOOT_SIZE_IDENTICAL=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_DTB_OFFSET=0x2380000' "$G"
+          grep -Fxq 'PANIC_ENTRY_GEOMETRY_GATES=PASS' "$G"
+          grep -Fxq 'PANIC_ENTRY_NEGATIVE_FIXTURES=PASS' "$G"
+          grep -Fxq 'PANIC_ENTRY_DECODER_FIXTURES=PASS' "$G"
+          grep -Fxq 'PANIC_ENTRY_DIAGNOSTIC_ONLY=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_NORMAL_KERNEL_BOOT_CANDIDATE=NO' "$G"
+          grep -Fxq 'PANIC_ENTRY_STATUS=NOT_DEVICE_READY' "$G"
+          grep -Fxq 'READY_FOR_DEVICE=NO' "$G"
+          grep -Fxq 'C6_REGION_IDENTICAL_TO_FIX8=YES' "$G"
+          grep -Fxq 'C_DELAY_REGION_IDENTICAL_TO_FIX8=YES' "$G"
+          grep -Fxq 'PANIC_ENTRY_RUNTIME_SEMANTIC_DELTA=PANIC_ENTRY_CHECKPOINT_ONLY' "$G"
+
+      - name: PANIC_ENTRY observer fixtures
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1b/p1b-panic-entry-predevice.py \
+            --mode observer-fixtures --out out-panic-entry
+          F=out-panic-entry/p1b-panic-entry-observer-fixtures.txt
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_AST_DEADLOCK_GATE=PASS' "$F"
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_IDENTITY_T0_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_IDENTITY_T1_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_IDENTITY_T2_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_IDENTITY_T3_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_IDENTITY_T4_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_IDENTITY_C_DELAY_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_IDENTITY_FIX8_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_IDENTITY_PANIC30_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_IDENTITY_OLD_INIT8_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_IDENTITY_ENTRY_STATE_PROBE_BOOT_MISBOOT_REFUSED=PASS' "$F"
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_IDENTITY_EXACT_MATCH_ACCEPTED=PASS' "$F"
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_DECODER_CASES_A_TO_F=PASS' "$F"
+          grep -Fxq 'OBSERVER_PANIC_ENTRY_SUMMARY_FIXTURE=PASS' "$F"
+
+      - name: Assert no device image was emitted
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_R3_P1B_PANIC_ENTRY_NO_DEVICE_IMAGE=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+
+      - name: Stage PANIC_ENTRY release inputs
+        run: |
+          mkdir -p out-panic-entry-release
+          cp out-panic-entry/thyme-r3-p1b-panic-entry-kernel-payload.bin out-panic-entry-release/
+          cp out-panic-entry/p1b-panic-entry-checkpoint.bin out-panic-entry-release/
+          cp out-panic-entry/p1b-t1-core-reference.bin out-panic-entry-release/
+          cp out-panic-entry/p1b-t2-probe-reference.bin out-panic-entry-release/
+          cp out-panic-entry/p1b-t3-probe-reference.bin out-panic-entry-release/
+          cp out-panic-entry/p1b-panic-entry-manifest.json out-panic-entry-release/
+          cp out-panic-entry/p1b-panic-entry-gates.txt out-panic-entry-release/
+          cp out-panic-entry/p1b-panic-entry-observer-fixtures.txt out-panic-entry-release/
+          if test -e out-panic-entry/early-c-stage-map.json; then
+            cp out-panic-entry/early-c-stage-map.json out-panic-entry-release/
+          fi
+          for f in p1b-panic-entry-core.elf p1b-panic-entry-core-disasm.txt \
+                   p1b-t1-core-reference-disasm.txt \
+                   p1b-t2-probe-reference-disasm.txt \
+                   p1b-t3-probe-reference-disasm.txt \
+                   p1b-panic-entry-payload-diff-report.txt \
+                   p1b-panic-entry-negative-fixtures.txt \
+                   p1b-panic-entry-decoder-fixtures.txt \
+                   p1b-panic-entry-report.txt \
+                   p1b-panic-entry-vmlinux-sections.txt \
+                   p1b-panic-entry-vmlinux-relocations.txt \
+                   p1b-panic-entry-sysmap-excerpt.txt; do
+            if test -e "out-panic-entry/$f"; then
+              cp "out-panic-entry/$f" out-panic-entry-release/
+            fi
+          done
+          cp out-panic-entry-run.txt out-panic-entry-release/
+          ( cd out-panic-entry-release && sha256sum \
+              thyme-r3-p1b-panic-entry-kernel-payload.bin \
+              p1b-panic-entry-checkpoint.bin \
+              p1b-t1-core-reference.bin \
+              p1b-t2-probe-reference.bin \
+              > SHA256SUMS )
+          if test -e out-panic-entry-release/p1b-t3-probe-reference.bin; then
+            ( cd out-panic-entry-release && sha256sum p1b-t3-probe-reference.bin \
+                >> SHA256SUMS )
+          fi
+          cat out-panic-entry-release/SHA256SUMS
+
+      - name: Upload PANIC_ENTRY artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-panic-entry
+          if-no-files-found: error
+          path: out-panic-entry-release/**
+
+  verify:
+    name: R3 P1B PANIC_ENTRY independent re-verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: panic-entry-build
+    steps:
+      - name: Download this run artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh run download "$RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-panic-entry --dir art
+          ( cd art && sha256sum -c SHA256SUMS )
+          echo 'ARTIFACT_SHA_RECHECK=PASS'
+
+      - name: Download frozen FIX8 payload + RT-D again
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FIX8_RUN_ID: ${{ inputs.fix8_run_id || '34741153230' }}
+          RT_D_RUN_ID: ${{ inputs.rt_d_run_id || '34678001413' }}
+        run: |
+          set -euo pipefail
+          gh run download "$FIX8_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-fix8-fix24 --dir fix8
+          printf '%s  fix8/thyme-r3-p1b-fix8-kernel-payload.bin\n' \
+            4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 \
+            | sha256sum -c -
+          gh run download "$RT_D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-runtime-dtb --dir rt-d
+          printf '%s  rt-d/rt-d.dtb\n' \
+            4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 \
+            | sha256sum -c -
+
+      - name: Independent structured re-verification
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, struct
+          from pathlib import Path
+
+          def sha(b): return hashlib.sha256(b).hexdigest()
+          def sx(v, bits):
+              m = 1 << bits
+              return v - m if v & (m >> 1) else v
+          def align(v, a): return (v + a - 1) // a * a
+
+          pe = Path("art/thyme-r3-p1b-panic-entry-kernel-payload.bin").read_bytes()
+          fix8 = Path("fix8/thyme-r3-p1b-fix8-kernel-payload.bin").read_bytes()
+          rtd = Path("rt-d/rt-d.dtb").read_bytes()
+          ckbin = Path("art/p1b-panic-entry-checkpoint.bin").read_bytes()
+          t2probe = Path("art/p1b-t2-probe-reference.bin").read_bytes()
+          t1core = Path("art/p1b-t1-core-reference.bin").read_bytes()
+          t3_path = Path("art/p1b-t3-probe-reference.bin")
+          t3probe = t3_path.read_bytes() if t3_path.is_file() else None
+          m = json.loads(Path("art/p1b-panic-entry-manifest.json").read_text())
+
+          PACIASP = 0xD503233F
+          BTI_C = 0xD503245F
+          if sha(pe) != m["panic_entry_payload_sha256"]:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED payload sha vs manifest")
+          if len(pe) != 37369041 or len(fix8) != len(pe):
+              raise SystemExit(f"PANIC_ENTRY_VERIFY_FAILED size {len(pe)}")
+          if sha(ckbin) != m["panic_entry_checkpoint_sha256"]:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED checkpoint sha vs manifest")
+          plen = int(m["panic_entry_checkpoint_size"])
+          if plen not in (76, 80) or len(ckbin) != plen:
+              raise SystemExit(
+                  f"PANIC_ENTRY_VERIFY_FAILED checkpoint size {len(ckbin)} "
+                  f"manifest {plen}")
+          if len(t1core) != 76:
+              raise SystemExit(f"PANIC_ENTRY_VERIFY_FAILED t1 core size {len(t1core)}")
+          core = ckbin if plen == 76 else ckbin[4:]
+          if core != t1core:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED core != T1 core")
+          if len(t2probe) < 80:
+              raise SystemExit(f"PANIC_ENTRY_VERIFY_FAILED t2 probe size {len(t2probe)}")
+          if core != t2probe[4:]:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED core != t2_probe[4:]")
+          if t3probe is not None:
+              if len(t3probe) != 80:
+                  raise SystemExit(
+                      f"PANIC_ENTRY_VERIFY_FAILED t3 probe size {len(t3probe)}")
+              if core != t3probe[4:]:
+                  raise SystemExit("PANIC_ENTRY_VERIFY_FAILED core != t3_probe[4:]")
+          if plen == 80:
+              pad = struct.unpack_from("<I", ckbin, 0)[0]
+              if pad not in (PACIASP, BTI_C):
+                  raise SystemExit(f"PANIC_ENTRY_VERIFY_FAILED pad {pad:#010x}")
+          if m.get("panic_entry_probe_architecture") != "INLINE":
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED not INLINE")
+          if m.get("panic_entry_normal_kernel_boot_candidate") is not False:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED diagnostic-only flag")
+          if m["panic_entry_runtime_semantic_delta"] != "PANIC_ENTRY_CHECKPOINT_ONLY":
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED semantic delta")
+          if not m.get("panic_entry_diagnostic_independent_of_panic_timeout"):
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED timeout coupling")
+
+          isz_pe = struct.unpack_from("<Q", pe, 16)[0]
+          isz_fix8 = struct.unpack_from("<Q", fix8, 16)[0]
+          if isz_pe != isz_fix8 or isz_pe != 0x2230000:
+              raise SystemExit(f"PANIC_ENTRY_VERIFY_FAILED image_size {isz_pe:#x}")
+          dtb_off = align(isz_pe + 0x80000, 0x200000) - 0x80000
+          if dtb_off != 0x2380000:
+              raise SystemExit(f"PANIC_ENTRY_VERIFY_FAILED dtb_offset {dtb_off:#x}")
+          if struct.unpack_from("<I", pe, 4)[0] != 0x1400000F:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED code1")
+
+          off_ck = int(m["panic_entry_checkpoint_image_offset"], 16)
+          off_sk = int(m["start_kernel_image_offset"], 16)
+          off_ps = int(m["primary_switched_image_offset"], 16)
+          off_primary = int(m["primary_entry_offset"], 16)
+          file_size = int(m["image_file_size"])
+          hdr_isz = m["image_header_image_size"]
+          hdr_isz_i = int(hdr_isz, 16) if isinstance(hdr_isz, str) else int(hdr_isz)
+          if hdr_isz_i != 0x2230000:
+              raise SystemExit(f"PANIC_ENTRY_VERIFY_FAILED manifest image_size {hdr_isz}")
+          if off_ps <= off_primary or off_sk <= off_primary or off_ck <= off_primary:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED window/section ordering")
+          if off_ck == off_sk:
+              raise SystemExit(
+                  "PANIC_ENTRY_VERIFY_FAILED checkpoint offset == start_kernel entry")
+          if (off_ck + plen) > isz_pe:
+              raise SystemExit(
+                  f"PANIC_ENTRY_VERIFY_FAILED checkpoint window {off_ck:#x}+{plen} "
+                  f"outside image_size {isz_pe:#x}")
+          if off_ck + plen > file_size:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED window outside the Image")
+
+          allowed = set(range(off_ck, off_ck + plen))
+          diffs = [i for i in range(len(fix8)) if fix8[i] != pe[i]]
+          bad = [i for i in diffs if i not in allowed]
+          if bad:
+              raise SystemExit(f"PANIC_ENTRY_VERIFY_FAILED diff outside region "
+                               f"{[hex(i) for i in bad[:8]]}")
+          if not diffs:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED empty diff region")
+          if pe[:off_ck] != fix8[:off_ck] or pe[off_ck + plen:] != \
+                  fix8[off_ck + plen:]:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED non-window bytes changed")
+          if pe[off_ck:off_ck + plen] != ckbin:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED inline region bytes")
+          print(f"PANIC_ENTRY_VERIFY_DIFF_BYTE_COUNT={len(diffs)}")
+          print(f"PANIC_ENTRY_VERIFY_DIFF_RANGES=[{off_ck:#x},{off_ck+plen:#x})")
+          print("PANIC_ENTRY_VERIFY_DIFF_ATTRIBUTION=PANIC_ENTRY_CHECKPOINT_ONLY")
+
+          if struct.unpack_from("<I", pe, off_sk)[0] != PACIASP:
+              raise SystemExit(
+                  "PANIC_ENTRY_VERIFY_FAILED start_kernel entry != FIX8 paciasp")
+          if struct.unpack_from("<I", fix8, off_sk)[0] != PACIASP:
+              raise SystemExit(
+                  "PANIC_ENTRY_VERIFY_FAILED FIX8 start_kernel entry != paciasp")
+          if pe[off_sk:off_sk + 80] != fix8[off_sk:off_sk + 80]:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED T3 probe still present")
+          if t3probe is not None and pe[off_sk:off_sk + 80] == t3probe:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED start_kernel still T3 probe")
+          print("PANIC_ENTRY_VERIFY_T3_PROBE_REMOVED=YES")
+          print("PANIC_ENTRY_VERIFY_START_KERNEL_ENTRY_RESTORED_TO_FIX8=YES")
+          print(f"PANIC_ENTRY_VERIFY_START_KERNEL_ENTRY_WORD={PACIASP:#010x}")
+          off_c6 = int(m["c6_image_offset"], 16)
+          off_cd = int(m["c_delay_image_offset"], 16)
+          if off_ck == off_c6 or off_ck == off_cd:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED checkpoint collides C6/C_DELAY")
+          if pe[off_c6:off_c6 + 76] != fix8[off_c6:off_c6 + 76]:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED C6 region != FIX8")
+          if pe[off_cd:off_cd + 76] != fix8[off_cd:off_cd + 76]:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED C_DELAY region != FIX8")
+          if pe[off_c6:off_c6 + 76] == t1core or pe[off_cd:off_cd + 76] == t1core:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED prior probe still present")
+          print("PANIC_ENTRY_VERIFY_T4_PROBE_REMOVED=YES")
+          print("PANIC_ENTRY_VERIFY_C_DELAY_PROBE_REMOVED=YES")
+          print("PANIC_ENTRY_VERIFY_C6_REGION_IDENTICAL_TO_FIX8=YES")
+
+          t2_window = fix8[off_ps:off_ps + 80]
+          if pe[off_ps:off_ps + 80] != t2_window:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED T2 probe still present")
+          if pe[off_ps:off_ps + 80] == t2probe:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED __primary_switched == probe")
+          print("PANIC_ENTRY_VERIFY_T2_PROBE_REMOVED=YES")
+          print("PANIC_ENTRY_VERIFY_PRIMARY_SWITCHED_IDENTICAL_TO_FIX8=YES")
+          print("PANIC_ENTRY_VERIFY_PRIMARY_ENTRY_UNPATCHED=YES")
+
+          tramp = pe[0x40:0x70]
+          if sha(tramp) != ("362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d"
+                            "747dc623"):
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED trampoline != frozen FIX8")
+          if tramp != fix8[0x40:0x70]:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED trampoline bytes differ")
+          tw = struct.unpack_from("<12I", tramp, 0)
+          if (tw[8] >> 26) != 0b000101:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED trampoline word[8] not B")
+          if 0x40 + 0x20 + sx(tw[8] & 0x03FFFFFF, 26) * 4 != off_primary:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED trampoline branch target")
+          print("PANIC_ENTRY_VERIFY_TRAMPOLINE=FROZEN_FIX8_BYTE_IDENTICAL")
+
+          words = struct.unpack_from(f"<{plen // 4}I", ckbin, 0)
+          pad_n = 0 if plen == 76 else 1
+          if len(words) != 19 + pad_n:
+              raise SystemExit(f"PANIC_ENTRY_VERIFY_FAILED word count {len(words)}")
+          smc = [i for i, w in enumerate(words) if w == 0xD4000003]
+          if len(smc) != 1 or smc[0] != 16 + pad_n:
+              raise SystemExit(f"PANIC_ENTRY_VERIFY_FAILED smc index {smc}")
+          if words[17 + pad_n] != 0xD503205F:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED no wfe after smc")
+          w = words[18 + pad_n]
+          if (w >> 26) != 0b000101:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED no branch after wfe")
+          target = (18 + pad_n) * 4 + sx(w & 0x03FFFFFF, 26) * 4
+          if target != (17 + pad_n) * 4:
+              raise SystemExit(
+                  f"PANIC_ENTRY_VERIFY_FAILED terminal b {target:#x} != wfe")
+          if words[3 + pad_n] != 0xD280010A:
+              raise SystemExit(f"PANIC_ENTRY_VERIFY_FAILED delay word {words[3+pad_n]:#010x}")
+          for idx, w in enumerate(words):
+              addr = idx * 4
+              top = w >> 26
+              if top == 0b000101 or top == 0b100101:
+                  t = addr + sx(w & 0x03FFFFFF, 26) * 4
+              elif (w >> 24) == 0x54:
+                  t = addr + sx((w >> 5) & 0x7FFFF, 19) * 4
+              else:
+                  continue
+              if not (0 <= t < plen):
+                  raise SystemExit(
+                      f"PANIC_ENTRY_VERIFY_FAILED branch leaves checkpoint: "
+                      f"{addr:#x} -> {t:#x}")
+          print("PANIC_ENTRY_VERIFY_FAIL_CLOSED=SMC_WFE_LOOP_NO_CONTINUATION")
+          print(f"PANIC_ENTRY_VERIFY_SMC_WORD_INDEX={16 + pad_n}")
+
+          if pe[dtb_off:] != rtd or sha(rtd) != (
+                  "4849743205af9d00f4b5bcd01070aac68be7dc6095497506935"
+                  "6d29fe33df327") or len(rtd) != 144593:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED trailer != frozen RT-D")
+          boot_est = (4096 + len(pe) + 4095) & ~4095
+          boot_est += 4096
+          if boot_est != 37380096:
+              raise SystemExit(f"PANIC_ENTRY_VERIFY_FAILED boot_est {boot_est}")
+          if int(m["panic_entry_boot_size_est"]) != 37380096:
+              raise SystemExit(
+                  f"PANIC_ENTRY_VERIFY_FAILED manifest boot_est {m['panic_entry_boot_size_est']}")
+          if 201326592 - boot_est < 0x1000000:
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED capacity")
+          print(f"PANIC_ENTRY_VERIFY_IMAGE_HEADER_IMAGE_SIZE={isz_pe:#x}")
+          print(f"PANIC_ENTRY_VERIFY_IMAGE_FILE_SIZE={file_size}")
+          print(f"PANIC_ENTRY_VERIFY_CHECKPOINT_OFFSET={off_ck:#x} size={plen}")
+          print(f"PANIC_ENTRY_VERIFY_START_KERNEL_OFFSET={off_sk:#x}")
+          print(f"PANIC_ENTRY_VERIFY_PRIMARY_SWITCHED_OFFSET={off_ps:#x}")
+          print(f"PANIC_ENTRY_VERIFY_PANIC_VA={m['panic_va']}")
+          print(f"PANIC_ENTRY_VERIFY_PAYLOAD_SIZE={len(pe)} boot_size_est={boot_est}")
+          print("PANIC_ENTRY_VERIFY_GATES=PASS")
+          print("DEVICE_OPERATION=NO")
+          print("READY_FOR_DEVICE=NO")
+          PY
+
+      - name: Assert constraints + assemble verdict
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          {
+            echo "MAINLINE_V2_R3_P1B_PANIC_ENTRY_PREDEVICE_READINESS_CI (CI ONLY)"
+            echo "DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "--- gates ---"
+            cat art/p1b-panic-entry-gates.txt
+            echo "--- manifest ---"
+            cat art/p1b-panic-entry-manifest.json
+          } > verdict.txt
+          cat verdict.txt >> "$GITHUB_STEP_SUMMARY"
+          echo 'PANIC_ENTRY_PREDEVICE_READINESS_CI_VERDICT=CI_PASS'
