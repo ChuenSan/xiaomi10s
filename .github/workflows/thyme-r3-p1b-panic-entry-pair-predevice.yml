@@ -275,6 +275,8 @@ jobs:
           grep -Fxq 'PANIC_ENTRY_RT_D_IDENTITY=YES' "$G"
           grep -Fxq 'PANIC_ENTRY_INIT_IDENTITY=YES' "$G"
           grep -Fxq 'PANIC_ENTRY_INITRAMFS_IDENTITY=YES' "$G"
+          grep -Fxq 'PENTRY1_INIT_DELAY_SECONDS=8' "$G"
+          grep -Fxq 'PENTRY1_INIT_IDENTITY_FROZEN=YES' "$G"
           grep -Fxq 'PANIC_ENTRY_PAYLOAD_DIFF_ATTRIBUTED=PANIC_ENTRY_CHECKPOINT_ONLY' "$G"
           grep -Fxq 'PANIC_ENTRY_PAYLOAD_SIZE_IDENTICAL=YES' "$G"
           grep -Fxq 'PANIC_ENTRY_BOOT_SIZE_IDENTICAL=YES' "$G"

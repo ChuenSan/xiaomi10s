@@ -1238,17 +1238,24 @@ def cmd_panic_entry(args: argparse.Namespace) -> None:
     print("IMAGE_HEADER_IMAGE_SIZE_REDERIVED=YES")
     print("PANIC_ENTRY_BASELINE=FROZEN_FIX8")
 
-    init = pb.compile_init(out, PE_DELAY_S, args.gcc, args.strip)
+    # /init and its initramfs keep the FROZEN FIX8 identity (DELAY_SECONDS=8):
+    # the pair variable is the panic-entry probe delay ONLY. Compiling /init
+    # with the probe delay would silently change a second, independent
+    # variable and break the delay-only claim.
+    init = pb.compile_init(out, PENTRY8_DELAY_S, args.gcc, args.strip)
     if sha(init.read_bytes()) != FIX8_INIT_SHA:
         fail("PANIC_ENTRY_IDENTITY_FAILED", "/init sha")
-    cpio = out / f"initramfs-{PE_DELAY_S}s.cpio"
+    cpio = out / f"initramfs-{PENTRY8_DELAY_S}s.cpio"
     cpio.write_bytes(pb.build_cpio(init.read_bytes()))
     if sha(cpio.read_bytes()) != FIX8_CPIO_SHA:
         fail("PANIC_ENTRY_IDENTITY_FAILED", "cpio sha")
+    print(f"PENTRY1_INIT_DELAY_SECONDS={PENTRY8_DELAY_S} "
+          f"(FROZEN FIX8 identity, NOT the probe delay)")
+    print("PENTRY1_INIT_IDENTITY_FROZEN=YES")
     print("PANIC_ENTRY_INIT_IDENTITY=YES")
     print("PANIC_ENTRY_INITRAMFS_IDENTITY=YES")
 
-    k = pb.make_kernel(out, PE_DELAY_S, cpio, args.jobs)
+    k = pb.make_kernel(out, PENTRY8_DELAY_S, cpio, args.jobs)
     iso.check_merged_config(k["config"])
     cfg = t3.config_symbols(k["config"].read_text())
     kg = pb.kernel_gate(k["image"], k["vmlinux"], k["sysmap"], tools)
@@ -1769,6 +1776,8 @@ def cmd_panic_entry(args: argparse.Namespace) -> None:
         "PANIC_ENTRY_RT_D_IDENTITY=YES",
         "PANIC_ENTRY_INIT_IDENTITY=YES",
         "PANIC_ENTRY_INITRAMFS_IDENTITY=YES",
+        f"PENTRY1_INIT_DELAY_SECONDS={PENTRY8_DELAY_S}",
+        "PENTRY1_INIT_IDENTITY_FROZEN=YES",
         "PANIC_ENTRY_PAYLOAD_DIFF_ATTRIBUTED=PANIC_ENTRY_CHECKPOINT_ONLY",
         "PANIC_ENTRY_PAYLOAD_SIZE_IDENTICAL=YES",
         "PANIC_ENTRY_BOOT_SIZE_IDENTICAL=YES",
