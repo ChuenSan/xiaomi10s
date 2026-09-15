@@ -1,0 +1,230 @@
+#!/usr/bin/env python3
+"""One Slot-B RAM boot, returning through the proven stock P15 recovery image."""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+import queue
+import re
+import subprocess
+import threading
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+IMAGES = {
+    "recovery": (52666368, "133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34"),
+    "reset8": (37380096, "1422a187bb82cca1dfd85ec0805e2fcb6b6fdea1d48d1a09f8a8e68c9e825b7f"),
+    "reset1": (37380096, "43b9737ac02cd4947b2173109cf6f5dc49b85d5291dbc438c8a2945600aa0ae8"),
+}
+CONTEXT = {
+    "boot_b_prefix": IMAGES["recovery"][1],
+    "vendor_boot_b": "aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972",
+    "dtbo_b": "018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634",
+}
+PROTOCOL = "slot-b-p15-fastboot-return-v1"
+VARS = ("product", "unlocked", "current-slot", "slot-count",
+        "snapshot-update-status", "battery-soc-ok", "max-download-size",
+        "slot-unbootable:b", "slot-retry-count:b", "slot-successful:a")
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def validate_identity(case, size, digest):
+    require(case in IMAGES and (size, digest) == IMAGES[case], "IMAGE_IDENTITY_MISMATCH")
+
+
+def validate_context(context):
+    require(all(context.get(k) == v for k, v in CONTEXT.items()), "B_CONTEXT_MISMATCH")
+    require(context.get("slot_a_unchanged") is True, "SLOT_A_UNCHANGED_NOT_VERIFIED")
+    require(context.get("readback_verified") is True, "B_READBACK_NOT_VERIFIED")
+
+
+def validate_preflight(values, size):
+    expected = {"product": "thyme", "unlocked": "yes", "current-slot": "b",
+                "slot-count": "2", "snapshot-update-status": "none",
+                "battery-soc-ok": "yes", "slot-unbootable:b": "no",
+                "slot-successful:a": "yes"}
+    for key, value in expected.items():
+        require(values.get(key) == value, f"PREFLIGHT_REJECTED:{key}")
+    require(int(values.get("slot-retry-count:b", "0"), 0) >= 2, "B_RETRIES_TOO_LOW")
+    require(int(values.get("max-download-size", "0"), 0) >= size, "DOWNLOAD_TOO_LARGE")
+
+
+def pair_verdict(baseline, result):
+    for record, case in ((baseline, "reset8"), (result, "reset1")):
+        require(record.get("protocol") == PROTOCOL, "PAIR_PROTOCOL_MISMATCH")
+        require(record.get("case") == case, "PAIR_MEMBER_MISMATCH")
+        require(record.get("image_sha256") == IMAGES[case][1], "PAIR_IDENTITY_MISMATCH")
+        require(record.get("status") == "AUTOMATIC_FASTBOOT_RETURN", "PAIR_RETURN_NOT_VALID")
+        require(record.get("final_slot") == "b", "PAIR_NOT_SLOT_B")
+        require(record.get("experimental_boots") == 1, "PAIR_BOOT_COUNT_INVALID")
+        require(record.get("context") == CONTEXT, "PAIR_CONTEXT_MISMATCH")
+        require(isinstance(record.get("total_s"), (int, float)) and
+                math.isfinite(record["total_s"]) and record["total_s"] > 0,
+                "PAIR_TIMING_INVALID")
+    delta = result["total_s"] - baseline["total_s"]
+    error = delta + 7.0
+    verdict = "STRONG" if abs(error) <= 1.0 else (
+        "SUPPORTED" if abs(error) <= 2.0 else "SHIFT_NOT_OBSERVED")
+    return {"delta_s": delta, "expected_delta_s": -7.0, "error_s": error,
+            "verdict": verdict,
+            "machine_restart_entry": "PROVEN" if verdict == "STRONG" else (
+                "SUPPORTED" if verdict == "SUPPORTED" else "NOT_PROVEN"),
+            "original_restart_body": "NOT_PROVEN", "init_executed": "NOT_PROVEN"}
+
+
+class Observer:
+    def __init__(self, args):
+        self.args = args
+        self.fb = ["fastboot", "-s", args.serial]
+        self.events = []
+        self.boots = 0
+
+    def log(self, event, **fields):
+        row = {"utc": datetime.now(timezone.utc).isoformat(), "event": event, **fields}
+        self.events.append(row)
+        print(json.dumps(row, sort_keys=True), flush=True)
+
+    def command(self, args, timeout=4):
+        p = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+        require(p.returncode == 0, "HOST_COMMAND_FAILED")
+        return p.stdout + p.stderr
+
+    def getvar(self, key):
+        out = self.command(self.fb + ["getvar", key])
+        match = re.search(rf"^(?:\(bootloader\)\s*)?{re.escape(key)}:\s*(\S+)\s*$", out, re.M)
+        require(match is not None, f"GETVAR_MISSING:{key}")
+        return match[1]
+
+    def present(self, program, state):
+        try:
+            lines = self.command([program, "devices"], timeout=2).splitlines()
+            return any(line.split()[:2] == [self.args.serial, state] for line in lines)
+        except (ValueError, subprocess.TimeoutExpired):
+            return False
+
+    def launch(self):
+        require(self.boots == 0, "SECOND_EXPERIMENTAL_BOOT_FORBIDDEN")
+        require(self.getvar("current-slot") == "b", "LAST_MOMENT_SLOT_NOT_B")
+        command = self.fb + (["reboot"] if self.args.case == "recovery" else
+                             ["boot", str(self.args.image)])
+        self.boots += 1
+        self.log("COMMAND_START", operation="reboot_b" if self.args.case == "recovery"
+                 else "ram_boot_b", case=self.args.case)
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, bufsize=1)
+        lines = queue.Queue()
+
+        def reader():
+            for line in proc.stdout:
+                lines.put((time.monotonic(), line.rstrip()))
+            lines.put((time.monotonic(), None))
+
+        threading.Thread(target=reader, daemon=True).start()
+        accepted = None
+        deadline = time.monotonic() + 45
+        try:
+            while True:
+                timestamp, line = lines.get(timeout=max(0.01, deadline - time.monotonic()))
+                if line is None:
+                    break
+                self.log("FASTBOOT_OUT", text=line.replace(self.args.serial, "<device>"))
+                require("FAILED" not in line, "BOOT_COMMAND_FAILED_NO_RETRY")
+                if "okay" in line.lower() and "booting" in line.lower():
+                    accepted = timestamp
+            require(proc.wait(timeout=3) == 0 and accepted is not None,
+                    "BOOT_NOT_ACCEPTED_NO_RETRY")
+        except (queue.Empty, subprocess.TimeoutExpired):
+            proc.kill()
+            proc.wait()
+            raise ValueError("COMMAND_TIMEOUT_BOOT_STATE_UNCERTAIN_NO_RETRY") from None
+        self.log("BOOTING_OKAY")
+        return accepted
+
+    def observe(self, start):
+        gone = False
+        first_return = None
+        while time.monotonic() - start < 120:
+            now = time.monotonic()
+            present = self.present("fastboot", "fastboot")
+            if not present:
+                first_return = None
+                if not gone:
+                    gone = True
+                    self.log("FASTBOOT_DISAPPEARED", elapsed_s=now - start)
+                if self.present("adb", "device"):
+                    self.log("UNEXPECTED_ADB_RETURN")
+                    return {"status": "UNEXPECTED_ADB_RETURN"}
+            elif gone:
+                if first_return is None:
+                    first_return = now
+                    self.log("FASTBOOT_FIRST_RETURN", elapsed_s=now - start)
+                elif now - first_return >= 3:
+                    slot = self.getvar("current-slot")
+                    require(self.getvar("product") == "thyme" and slot == "b",
+                            "RETURN_IDENTITY_OR_SLOT_MISMATCH")
+                    return {"status": "AUTOMATIC_FASTBOOT_RETURN", "final_slot": slot,
+                            "total_s": first_return - start,
+                            "b_retries": self.getvar("slot-retry-count:b")}
+            time.sleep(0.10)
+        return {"status": "NO_RETURN_WITHIN_120S", "manual_timing_excluded": True}
+
+    def run(self):
+        image = self.args.image.read_bytes()
+        digest = hashlib.sha256(image).hexdigest()
+        validate_identity(self.args.case, len(image), digest)
+        context = json.loads(self.args.context.read_text())
+        validate_context(context)
+        baseline = None
+        if self.args.case == "reset1":
+            require(self.args.baseline is not None, "RESET8_BASELINE_REQUIRED")
+            baseline = json.loads(self.args.baseline.read_text())
+            # Validate the reference before any device command, without assigning a verdict.
+            candidate = {**baseline, "case": "reset1", "image_sha256": IMAGES["reset1"][1]}
+            pair_verdict(baseline, candidate)
+        self.args.output.mkdir(parents=True, exist_ok=False)
+        result = {"protocol": PROTOCOL, "case": self.args.case, "image_sha256": digest,
+                  "context": CONTEXT, "ci_run": self.args.ci_run,
+                  "slot_a_written": False, "partition_writes": 0}
+        try:
+            values = {key: self.getvar(key) for key in VARS}
+            self.log("PREFLIGHT", **values)
+            validate_preflight(values, len(image))
+            start = self.launch()
+            result.update(self.observe(start))
+            result["experimental_boots"] = self.boots
+            if baseline is not None and result["status"] == "AUTOMATIC_FASTBOOT_RETURN":
+                result["pair"] = pair_verdict(baseline, result)
+            self.log("RESULT", **result)
+        except (ValueError, subprocess.TimeoutExpired, OSError) as exc:
+            result.update(status="STOP", reason=str(exc).replace(self.args.serial, "<device>"),
+                          experimental_boots=self.boots)
+            self.log("STOP", **result)
+        finally:
+            (self.args.output / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+            (self.args.output / "events.json").write_text(json.dumps(self.events, indent=2) + "\n")
+        return 0 if result["status"] == "AUTOMATIC_FASTBOOT_RETURN" else 1
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--case", choices=IMAGES, required=True)
+    parser.add_argument("--serial", required=True)
+    parser.add_argument("--image", type=Path, required=True)
+    parser.add_argument("--context", type=Path, required=True)
+    parser.add_argument("--baseline", type=Path)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--ci-run", required=True)
+    parser.add_argument("--authorize-slot-b-only", action="store_true", required=True)
+    args = parser.parse_args()
+    return Observer(args).run()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

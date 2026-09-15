@@ -1,0 +1,36 @@
+name: thyme-slot-b-continuation
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/**'
+      - '.github/workflows/thyme-slot-b-continuation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  observer-safety:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Test Slot B guards and matched reset pair (no device)
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_*.py' -v 2>&1 | tee observer-tests.txt
+          sha256sum scripts/slot_b/observe.py scripts/slot_b/test_observe.py > observer-source-sha256.txt
+          printf 'SLOT_A_REJECTED=PASS\nSECOND_BOOT_REJECTED=PASS\nDEVICE_OPERATION=NO\n' | tee observer-gate.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: slot-b-observer-safety
+          if-no-files-found: error
+          path: |
+            observer-tests.txt
+            observer-source-sha256.txt
+            observer-gate.txt

@@ -1,5 +1,11 @@
 # thyme R3 current status (single source of truth for the current round)
 
+Continuation 2026-09-16: `route-b-slot-b-continuation` consumes the completed
+RESET device-gate artifacts below. The user now authorizes continuous progress
+with B-only boot-partition writes. The old A-return observer is not executable
+under this round's B test policy. New B recovery/observation preparation is in
+`docs/slot-b-continuation.md`; no new device boot or partition write yet.
+
 Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
