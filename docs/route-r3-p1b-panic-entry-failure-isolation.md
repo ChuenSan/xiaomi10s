@@ -201,7 +201,7 @@ as fact. Evidence classes: `SOURCE_SUPPORTED`, `INFERRED`, `UNKNOWN`.
 | `reboot_notifier_list` | `kernel/reboot.c` | any | YES | NO | INFERRED |
 | `__weak machine_restart` hook | `kernel/reboot.c` | any | YES | NO | INFERRED |
 | arch reset hooks / `machine_shutdown` | `arch/arm64/kernel/process.c` | any | YES | NO | INFERRED |
-| Linux-visible watchdog | `kernel/watchdog/watchdog_core.c` | post-init | PARTIAL | config-dependent | INFERRED |
+| Linux-visible watchdog | `kernel/watchdog.c` | post-init | PARTIAL | config-dependent | INFERRED |
 | Qualcomm watchdog / APCS | in-tree DT + vendor driver | firmware/EL3 | UNKNOWN | NO | UNKNOWN |
 | EL3 / ABL reset | outside the kernel image | firmware | UNKNOWN | NO | UNKNOWN |
 

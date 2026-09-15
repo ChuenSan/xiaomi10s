@@ -356,11 +356,11 @@ def reset_path_stage_map() -> dict:
     process = (LINUX / "arch" / "arm64" / "kernel" / "process.c").read_text()
     traps = (LINUX / "arch" / "arm64" / "kernel" / "traps.c").read_text()
     panic_c = (LINUX / "kernel" / "panic.c").read_text()
-    watchdog_c = (LINUX / "kernel" / "watchdog" / "watchdog_core.c")
-    smp_c = (LINUX / "arch" / "arm64" / "kernel" / "smp.c").read_text()
+    watchdog_c = (LINUX / "kernel" / "watchdog.c")
+    smp_c = (LINUX / "kernel" / "smp.c").read_text()
     main_c = (LINUX / "init" / "main.c").read_text()
-    need(reboot, "atomic_notifier_call_chain(&reboot_notifier_list, SYS_RESTART")
-    need(reboot, "void __weak machine_restart(char *cmd)")
+    need(reboot, "blocking_notifier_call_chain(&reboot_notifier_list, SYS_RESTART")
+    need(reboot, "machine_restart(cmd);")
     need(process, "void machine_restart(char *cmd)")
     need(process, "void machine_shutdown(void)")
     need(traps, "arm64_force_sig_fault")
@@ -424,8 +424,8 @@ def reset_path_stage_map() -> dict:
             "after_c_delay": "YES", "calls_panic": "NO",
             "can_explain_23_28s_return": "INFERRED"},
         "watchdog_linux_visible": {
-            "symbol": "watchdog_core / softlockup / hardlockup",
-            "source": "kernel/watchdog/watchdog_core.c", "stage": "post-init",
+            "symbol": "watchdog core / softlockup / hardlockup",
+            "source": "kernel/watchdog.c", "stage": "post-init",
             "after_c_delay": "PARTIAL (needs a driver to register; no register "
                             "call is proven in the current boot path)",
             "calls_panic": "config-dependent",
@@ -453,7 +453,7 @@ def oops_die_panic_escalation_map() -> dict:
     traps = (LINUX / "arch" / "arm64" / "kernel" / "traps.c").read_text()
     process = (LINUX / "arch" / "arm64" / "kernel" / "process.c").read_text()
     for token in ("panic_on_oops", "void oops_enter(void)",
-                  "static void check_panic_on_warn", "void panic("):
+                  "void check_panic_on_warn(const char *origin)", "void panic("):
         need(panic_c, token)
     need(traps, "void die(const char *str")
     need(process, "void machine_restart(char *cmd)")
@@ -2053,21 +2053,31 @@ def cmd_source_gate(args: argparse.Namespace) -> None:
                   "b\tstart_kernel", "bl\t"):
         forbid(dev, token)
     obs = OBSERVER.read_text()
-    for token in ("R3_PANIC_ENTRY_SHA256", "PANIC_ENTRY_OBSERVER_MISBOOT_REFUSED",
-                  "PANIC_ENTRY_MINUS_C_DELAY", "C_DELAY_REFERENCE_TOTAL",
-                  "FASTBOOT_BOOT_ONLY", "PANIC_ENTRY_NOT_REACHED_LICENSE=NO",
-                  "PANIC_ENTRY_FAILURE_ISOLATION_CI",
-                  "PANIC_ENTRY_NORMAL_KERNEL_BOOT_CANDIDATE",
-                  "PANIC_ENTRY_DIAGNOSTIC_ONLY", "PANIC_ENTRY_CANONICAL_PANIC",
-                  "C_DELAY_BOOT", "NO_LINUX_PANIC=NOT_LICENSED"):
+    for token in ("R3_PANIC_ENTRY1_SHA256",
+                  "PANIC_ENTRY_OBSERVER_MISBOOT_REFUSED",
+                  "PANIC_ENTRY1_MINUS_C_DELAY", "C_DELAY_REFERENCE_TOTAL",
+                  "FASTBOOT_BOOT_ONLY",
+                  "PANIC_ENTRY1_NOT_REACHED_LICENSE=NO",
+                  "PANIC_ENTRY_DELAY_PAIR_FAILURE_ISOLATION_CI",
+                  "PANIC_ENTRY1_NORMAL_KERNEL_BOOT_CANDIDATE",
+                  "PANIC_ENTRY1_DIAGNOSTIC_ONLY",
+                  "PANIC_ENTRY_CANONICAL_PANIC",
+                  "C_DELAY_BOOT", "NO_LINUX_PANIC=NOT_LICENSED",
+                  "PENTRY8_REFERENCE_TOTAL", "PENTRY1_PAIR_EXPECTED_DELTA",
+                  "PENTRY1_PAIR_DELTA",
+                  "PENTRY1_PAIR_C_NO_SHIFT",
+                  "MAINLINE_V2_R3_ALTERNATIVE_RESET_SOURCE_ISOLATION_CI"):
         need(obs, token)
     for token in FORBIDDEN_BOOT_SHAS.values():
+        need(obs, token)
+    for token in (PENTRY8_BOOT_SHA,):
         need(obs, token)
     forbid(obs, "R3_C_DELAY_SHA256")
     fix = OBSERVER_FIXTURES.read_text()
     for token in ("PANIC_ENTRY_OBSERVER_MISBOOT_REFUSED",
-                  "PANIC_ENTRY_NOT_REACHED", "PANIC_ENTRY_STABLE_FASTBOOT",
-                  "PANIC_ENTRY_NO_RETURN", "C_DELAY_BOOT", "T4_BOOT"):
+                  "PANIC_ENTRY1_NOT_REACHED", "PENTRY1_STABLE_FASTBOOT",
+                  "PANIC_ENTRY_NO_RETURN", "C_DELAY_BOOT", "T4_BOOT",
+                  "PENTRY8_BOOT", "OBSERVER_PANIC_ENTRY1_PAIR_DECODER_CASES"):
         need(fix, token)
     doc = DOC.read_text()
     for token in ("PANIC_ENTRY_PROBE_ARCHITECTURE=INLINE",
