@@ -204,8 +204,10 @@ jobs:
               else int(m["image_header_image_size"])
           if plen not in (76, 80) or plen != len(probe):
               raise SystemExit(f"PANIC_ENTRY_PRIVATE_CHECKPOINT_SIZE {plen}")
-          if off_ck <= off_primary or off_sk <= off_primary or off_ps <= off_primary:
-              raise SystemExit("PANIC_ENTRY_PRIVATE_WINDOW_ORDER")
+          if off_ps <= off_sk or off_sk <= off_primary:
+              raise SystemExit(
+                  "PANIC_ENTRY_PRIVATE_INIT_TEXT_ORDER "
+                  f"pe={off_primary:#x} sk={off_sk:#x} ps={off_ps:#x}")
           if off_ck == off_sk:
               raise SystemExit("PANIC_ENTRY_PRIVATE_CHECKPOINT_IS_START_KERNEL_ENTRY")
           if off_ck == off_c6 or off_ck == off_cd:

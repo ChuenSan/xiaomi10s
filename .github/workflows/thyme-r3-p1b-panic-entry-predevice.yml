@@ -436,11 +436,17 @@ jobs:
           hdr_isz_i = int(hdr_isz, 16) if isinstance(hdr_isz, str) else int(hdr_isz)
           if hdr_isz_i != 0x2230000:
               raise SystemExit(f"PANIC_ENTRY_VERIFY_FAILED manifest image_size {hdr_isz}")
-          if off_ps <= off_primary or off_sk <= off_primary or off_ck <= off_primary:
-              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED window/section ordering")
+          if off_ps <= off_sk or off_sk <= off_primary:
+              raise SystemExit(
+                  "PANIC_ENTRY_VERIFY_FAILED init.text landmark ordering "
+                  f"(primary_entry {off_primary:#x} / start_kernel {off_sk:#x} / "
+                  f"__primary_switched {off_ps:#x})")
           if off_ck == off_sk:
               raise SystemExit(
                   "PANIC_ENTRY_VERIFY_FAILED checkpoint offset == start_kernel entry")
+          if off_ck == int(m["c6_image_offset"], 16) or \
+                  off_ck == int(m["c_delay_image_offset"], 16):
+              raise SystemExit("PANIC_ENTRY_VERIFY_FAILED checkpoint collides a prior probe")
           if (off_ck + plen) > isz_pe:
               raise SystemExit(
                   f"PANIC_ENTRY_VERIFY_FAILED checkpoint window {off_ck:#x}+{plen} "
