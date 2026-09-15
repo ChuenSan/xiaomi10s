@@ -598,14 +598,18 @@ jobs:
           print("PENTRY1_VERIFY_TRAMPOLINE=FROZEN_FIX8_BYTE_IDENTICAL")
 
           words = struct.unpack_from("<20I", ckbin, 0)
+          pad_n = 0 if plen == 76 else 1
+          if len(words) != 19 + pad_n:
+              raise SystemExit(f"PENTRY1_VERIFY_FAILED word count {len(words)}")
           smc = [i for i, w in enumerate(words) if w == 0xD4000003]
-          if len(smc) != 1 or smc[0] != 16:
+          if len(smc) != 1 or smc[0] != 16 + pad_n:
               raise SystemExit(f"PENTRY1_VERIFY_FAILED smc index {smc}")
-          if words[17] != 0xD503205F:
+          if words[17 + pad_n] != 0xD503205F:
               raise SystemExit("PENTRY1_VERIFY_FAILED no wfe after smc")
-          if (words[18] >> 26) != 0b000101:
+          if (words[18 + pad_n] >> 26) != 0b000101:
               raise SystemExit("PENTRY1_VERIFY_FAILED no branch after wfe")
-          if 18 * 4 + sx(words[18] & 0x03FFFFFF, 26) * 4 != 17 * 4:
+          if ((18 + pad_n) * 4 + sx(words[18 + pad_n] & 0x03FFFFFF, 26) * 4
+                  != (17 + pad_n) * 4):
               raise SystemExit("PENTRY1_VERIFY_FAILED terminal b != wfe")
           for idx, w in enumerate(words):
               addr = idx * 4
