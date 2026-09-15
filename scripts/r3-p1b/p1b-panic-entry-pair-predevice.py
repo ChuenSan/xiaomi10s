@@ -150,10 +150,14 @@ PAIR_SUPPORTED_TOL_S = 2.0
 PAIR_PRIMARY_ABS_SANITY_S = 20.0  # secondary signature only
 
 # The inherited t3 disassembly ORDER_TOKENS require `movz x10, #8`. PENTRY1
-# programs 1s by design, so the delay token is re-parameterised here. The
-# frozen PENTRY8 script runs in a separate process and is unaffected.
+# programs 1s by design, so the x10 delay token is retargeted to an
+# order-only check that accepts any immediate and any spacing. The delay
+# VALUE is enforced independently and authoritatively at word level
+# (gate_probe_words / W_DELAY_PE, the PENTRY1_DELAY_WORD gate and the
+# PENTRY8-vs-PENTRY1 pair audit), so this token only has to prove ORDER.
+# The frozen PENTRY8 script runs in a separate process and is unaffected.
 t3.ORDER_TOKENS = [
-    ((rf"(movz|mov) x10, #(0x{PE_DELAY_S:x}|{PE_DELAY_S})\b", True)
+    ((r"\b(movz|mov)\s+x10,\s+#(0x[0-9a-fA-F]+|[0-9]+)\b", True)
      if (isinstance(tok, tuple) and isinstance(tok[0], str)
          and "x10" in tok[0]) else tok)
     for tok in t3.ORDER_TOKENS]
@@ -995,7 +999,7 @@ PROBE_OPS_REQUIRED = (
     (r"\bmsr\s+daifset,\s+#0xf\b", "DAIF mask"),
     (r"\bmrs\s+x9,\s+cntfrq_el0\b", "CNTFRQ_EL0 frequency read"),
     (rf"\b(movz|mov)\s+x10,\s+#(0x{PE_DELAY_S:x}|{PE_DELAY_S})\b",
-     f"{PE_DELAY_S}s delay constant"),
+     f"{PE_DELAY_S}s delay constant (word-level gate is authoritative)"),
     (r"\bmrs\s+x11,\s+cntpct_el0\b", "CNTPCT_EL0 start sample"),
     (r"\bmrs\s+x12,\s+cntpct_el0\b", "CNTPCT_EL0 poll sample"),
     (r"\bb\.hs\b", "delay compare branch"),
@@ -1455,6 +1459,12 @@ def cmd_panic_entry(args: argparse.Namespace) -> None:
     cd_probe, _o, _d = t3.build_probe(
         out, tools, C_DELAY_DEVICE_S, C_DELAY_DEVICE_LD, "P1B_C_DELAY_DELAY", 8,
         "r3_c_delay_checkpoint", "p1b-c-delay-core-reference")
+    # Print the built core disassembly BEFORE the order/identity gates so any
+    # gate failure is self-diagnosing from the CI log alone.
+    print("PANIC_ENTRY_CORE_DISASM_BEGIN")
+    for line in ops.splitlines():
+        print(f"PANIC_ENTRY_CORE_OP {line}")
+    print("PANIC_ENTRY_CORE_DISASM_END")
     t3.gate_t3_probe(ops, dump, len(core))
     gate_probe_ops_semantics(ops)
     # PAIR-AWARE core identity: PENTRY1 must be byte-identical to the frozen
