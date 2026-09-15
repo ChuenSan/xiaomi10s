@@ -1,15 +1,20 @@
 # thyme R3 current status (single source of truth for the current round)
 
-Continuation 2026-09-16: `route-b-slot-b-continuation` consumes the completed
-RESET device-gate artifacts below. The user now authorizes continuous progress
-with B-only boot-partition writes. The old A-return observer is not executable
-under this round's B test policy. New B recovery/observation preparation is in
-`docs/slot-b-continuation.md`; no new device boot or partition write yet.
+Continuation 2026-09-16: `route-b-slot-b-continuation` consumed the completed
+RESET device-gate artifacts below. B now contains the verified stock V14
+vendor_boot/dtbo + Actions-built P15 recovery boot. Only these three B
+partitions were flashed; protected A and firmware/vbmeta hashes matched on
+readback. The B recovery control returned to Fastboot in 25.908s. ONE RESET8
+RAM boot on confirmed B was accepted but returned no transport within 120s.
+RESET1 was NOT executed. ADB/Fastboot/USB are unavailable; physical
+Volume-Down+Power recovery is required. No Linux boot success is claimed.
+`docs/slot-b-continuation.md` is the current detailed record; the older
+A-return timing records below are historical, not this round's baseline.
 
 Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
 "E1/E2 SUPPORTED" or a different "Current B", THIS file wins for current
-Last updated: 2026-09-15
+Previous CI gate record: 2026-09-15
 (MAINLINE_V2_R3_P1B_RESTART_CHOKEPOINT_DEVICE_GATE_FINALIZATION_CI.
 Public GHA `34980859158` commit `8c96cf2` PREDEVICE PASS.
 Private pack `34987624341` reverify `34988018208`.
@@ -254,10 +259,10 @@ PANIC30_RERUN=FROZEN
 FIX24_STATUS=FROZEN
 M5N_STATUS=FROZEN
 USB_STATUS=FROZEN
-CURRENT_B=M5D+M5H+M5M-B
+CURRENT_B=STOCK_V14_VENDOR_DTBO_PLUS_PROVEN_P15_RECOVERY
 SLOT_A_WRITTEN=NO
-PARTITION_WRITES=0
-DEVICE_OPERATION=NO
+PARTITION_WRITES=3
+DEVICE_OPERATION=EXECUTED
 PANIC_ENTRY_PENTRY8_STATUS=SIGNATURE_NOT_OBSERVED
 PANIC_ENTRY_PENTRY8_TOTAL=26.829
 PANIC_ENTRY_PENTRY8_MINUS_C_DELAY=12.365
@@ -386,8 +391,9 @@ RESET8_OBSERVER_FULL_SHA_GATE=PASS
 RESET1_OBSERVER_FULL_SHA_GATE=PASS
 RESET_PAIR_DEVICE_EXECUTION_SPLIT=REQUIRED
 RESET_PAIR_EXECUTION_ORDER=RESET8_THEN_RESET1
-RESET8_DEVICE_AUTHORIZED=NO
+RESET8_DEVICE_AUTHORIZED=YES
 RESET1_DEVICE_AUTHORIZED=NO
+RESET1_EXECUTION_BLOCKED=RESET8_NO_VALID_RETURN
 RESET_PROOF_BOUNDARY_AUDITED=PASS
 RESET_PAIR_ONLY_ACTIVE_DIAGNOSTIC=MACHINE_RESTART
 RESET8_ENVELOPE_MATCH=KERNEL_PAYLOAD_ONLY
@@ -420,6 +426,19 @@ FIX8_MACHINE_RESTART_PROLOGUE_MATCH=YES
 ARS_PUBLIC_RUN=34966848565
 ARS_PUBLIC_COMMIT=f714f3c
 ALTERNATIVE_RESET_FINAL_GATE=MAINLINE_V2_R3_P1B_ALTERNATIVE_RESET_SOURCE_ISOLATION_COMPLETE
+SLOT_B_OBSERVER_CI_RUN=35031615785
+SLOT_B_RECOVERY_CONTROL=PASS
+SLOT_B_RECOVERY_TOTAL_S=25.908
+SLOT_B_RESET8_STATUS=NO_RETURN_WITHIN_120S
+SLOT_B_RESET8_EXPERIMENTAL_BOOTS=1
+SLOT_B_RESET1_EXPERIMENTAL_BOOTS=0
+SLOT_B_RESET_PAIR_VERDICT=NOT_EVALUABLE
+LAST_CONFIRMED_ACTIVE_SLOT=B
+POST_RESET8_LIVE_SLOT=UNOBSERVABLE
+DEVICE_TRANSPORT=ADB_FASTBOOT_USB_ABSENT
+DEVICE_RECOVERY=PHYSICAL_FASTBOOT_REQUIRED
+NEXT_DEVICE_ACTION=READ_ONLY_RECOVERY_AND_LOG_CAPTURE
+LOCAL_BUILD=NO
 <!-- R3-STATUS-KV:END -->
 
 ## RESTART CHOKEPOINT DEVICE GATE FINALIZATION (CI ONLY, 2026-09-15)
@@ -1427,8 +1446,13 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
 
 ## Current B
 
-`M5D + M5H + M5M-B` — UNCHANGED. Active slot A (stock Android) untouched;
-`PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`, no set_active, no B boot.
+Stock V14 vendor_boot/dtbo + proven stock P15 recovery boot, installed and
+readback-verified in the Slot B continuation. Original M5D+M5H+M5M-B full
+partition backups are retained privately in the continuation worktree.
+Three B partition writes; no A/vbmeta/firmware writes. Last confirmed active
+slot B; transport is unavailable after the one RESET8 RAM boot. See the
+continuation summary above. Older frozen-round descriptions below do not
+represent current partition contents.
 
 ## Frozen branches / items
 

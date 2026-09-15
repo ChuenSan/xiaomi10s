@@ -1,0 +1,64 @@
+product: thyme
+Finished. Total time: 0.002s
+unlocked: yes
+Finished. Total time: 0.001s
+slot-count: 2
+Finished. Total time: 0.002s
+snapshot-update-status: none
+Finished. Total time: 0.003s
+battery-soc-ok: yes
+Finished. Total time: 0.001s
+slot-successful:a: yes
+Finished. Total time: 0.003s
+SELECTING_SLOT_B_METADATA_ONLY
+Setting current slot to 'b'                        OKAY [  0.080s]
+Finished. Total time: 0.086s
+current-slot: b
+Finished. Total time: 0.003s
+product: thyme
+Finished. Total time: 0.002s
+unlocked: yes
+Finished. Total time: 0.001s
+snapshot-update-status: none
+Finished. Total time: 0.003s
+battery-soc-ok: yes
+Finished. Total time: 0.001s
+current-slot: b
+Finished. Total time: 0.002s
+CONFIRMED_TARGET=vendor_boot_b ACTIVE_SLOT=b SOURCE_SHA256=aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972
+Sending 'vendor_boot_b' (98304 KB)                 OKAY [  2.461s]
+Writing 'vendor_boot_b'                            OKAY [  0.185s]
+Finished. Total time: 2.663s
+product: thyme
+Finished. Total time: 0.002s
+unlocked: yes
+Finished. Total time: 0.001s
+snapshot-update-status: none
+Finished. Total time: 0.003s
+battery-soc-ok: yes
+Finished. Total time: 0.001s
+current-slot: b
+Finished. Total time: 0.002s
+CONFIRMED_TARGET=dtbo_b ACTIVE_SLOT=b SOURCE_SHA256=018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634
+Sending 'dtbo_b' (32768 KB)                        OKAY [  0.823s]
+Writing 'dtbo_b'                                   OKAY [  0.094s]
+Finished. Total time: 0.933s
+product: thyme
+Finished. Total time: 0.002s
+unlocked: yes
+Finished. Total time: 0.001s
+snapshot-update-status: none
+Finished. Total time: 0.003s
+battery-soc-ok: yes
+Finished. Total time: 0.001s
+current-slot: b
+Finished. Total time: 0.002s
+CONFIRMED_TARGET=boot_b ACTIVE_SLOT=b SOURCE_SHA256=133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34
+Sending 'boot_b' (51432 KB)                        OKAY [  1.301s]
+Writing 'boot_b'                                   OKAY [  0.075s]
+Finished. Total time: 1.401s
+current-slot: b
+Finished. Total time: 0.002s
+B_RECOVERY_FLASH_COMPLETE=YES
+SLOT_A_FLASHES=0
+VBMETA_AND_FIRMWARE_FLASHES=0

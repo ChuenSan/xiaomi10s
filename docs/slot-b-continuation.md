@@ -67,3 +67,78 @@ Observer tests and any subsequent image builds run only in GitHub Actions.
 Local operations are source editing, downloads, hashing, read-only device
 checks, explicitly B-gated flashing and observation. Serial/token/CPUID and
 OEM binaries must not be committed or placed in public Actions artifacts.
+
+## Executed results
+
+Public observer safety CI `35031615785`, source `ddd09bc`, passed all seven
+original tests. The downloaded CI source-hash manifest matched the locally
+executed observer. Neither a local compilation nor local image generation ran.
+
+B backup/readback found real partition sizes: boot 201326592, vendor_boot
+100663296, dtbo 33554432 bytes. Full original backups are retained under
+`.cache/slot-b-continuation/device-before/` and match their on-device hashes.
+The first boot backup was quarantined, not deleted: `adb exec-out su -c`
+inserted 420768 CR bytes before LF (201747360 instead of 201326592 bytes).
+A newline probe demonstrated the transport fault; `adb shell -T` preserved
+bytes, and a fresh acquisition matched the device's full SHA256.
+
+Only `vendor_boot_b`, `dtbo_b`, and `boot_b` were flashed, each after an explicit
+`current-slot=b` check. Subsequent readback matched all three intended images.
+The following protected partitions matched their before-write hashes:
+A boot/vendor_boot/dtbo/vbmeta/vbmeta_system/abl/xbl/tz, and
+B vbmeta/vbmeta_system/abl/xbl/tz. No A partition was written.
+
+### P15 recovery control
+
+At `2026-09-15T22:42:23.949Z`, one ordinary B recovery-control boot started.
+Fastboot disappeared and returned automatically after **25.908241s**;
+`current-slot=b`, retry count 7→6. This proves the new B recovery context
+works when reached. It cannot guarantee that a hung experimental kernel
+will reset into it. The original observer recorded its generic launch counter
+as `experimental_boots=1`; this was one **recovery control**, not a mainline
+experiment. The subsequent counter fix separates these categories.
+
+### RESET8 — blocked, no repeated boot
+
+Exact private RESET8 boot `1422a187…5b7f` was used unchanged. Preflight was
+B / unlocked / no snapshot / battery okay / retry 6. One RAM boot command:
+
+| event | UTC on 2026-09-15 |
+| --- | --- |
+| command start | 22:43:34.515 |
+| Booting OKAY | 22:43:35.697 |
+| Fastboot disappeared | 22:43:36.965 |
+| 120-second observation expired | 22:45:35.840 |
+
+`RESET8_STATUS=NO_RETURN_WITHIN_120S`. Direct protocol checks and the macOS USB
+tree subsequently showed no ADB, Fastboot, or phone USB enumeration. No return
+time can be assigned; no automatic P15 recovery boot was observed.
+`RESET1_EXECUTED=NO`, `RESET_PAIR_VERDICT=NOT_EVALUABLE`.
+`MACHINE_RESTART_ENTRY_REACHED=NOT_PROVEN`, `INIT_EXECUTED=NOT_PROVEN`.
+Neither a Linux panic nor a firmware watchdog cause is inferred from absence.
+Old A-return totals must not be used to fill the missing B endpoint.
+
+Evidence: `artifacts/slot-b-continuation-20260916/` (sanitized text only).
+B remains last-known stock V14 + P15; configured slot was B before transport
+loss. No post-RESET8 live slot or partition checksum is claimed.
+
+### Required recovery and next step
+
+Gate: **BLOCKED_ON_PHYSICAL_FASTBOOT_RECOVERY**, not waiting for permission.
+The user has already authorized continued work. Software commands cannot
+recover a phone absent from both ADB and Fastboot.
+
+Keep USB connected, hold **Volume-Down + Power** to enter Fastboot (the same
+manual recovery documented by M5G/M5H). Do not clear data or ordinary-reboot
+an unknown state. Once re-enumerated, first read product/unlocked/current-slot
+and retry state, then recover the unchanged Android A for read-only logs and
+post-test B/protected-partition hashes. Do not automatically rerun RESET8 or
+run RESET1 with an invalid reference.
+
+The kernel source places `rest_init`, scheduling, and SMP bring-up after the
+already proven `calibrate_delay` checkpoint. The existing source audit also
+shows QCOM_WDT is a module, so its boot-enabled watchdog takeover cannot run
+in this built-in-initramfs environment. These remain investigation candidates,
+not established causes; acquire the recovery logs before selecting or building
+the next controlled diagnostic. No watchdog MMIO or speculative kernel change
+was attempted during transport loss.

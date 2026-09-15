@@ -1,0 +1,32 @@
+PARTITION_SIZE boot_a 201326592
+b7f9b3d8287e21275b3f275eb02de9e514f96f0d1447dace059d5f7baf927ecf  /dev/block/by-name/boot_a
+PARTITION_SIZE vendor_boot_a 100663296
+aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972  /dev/block/by-name/vendor_boot_a
+PARTITION_SIZE dtbo_a 33554432
+018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634  /dev/block/by-name/dtbo_a
+PARTITION_SIZE vbmeta_a 131072
+972d3009a37c7f948a89278c0cc7495d3745e9690f79d4ebf72c1f0457efb82d  /dev/block/by-name/vbmeta_a
+PARTITION_SIZE vbmeta_system_a 131072
+6275271d3ec40e10b4ddc78b3051435754671b7458c928f21a7dc77a03f96adb  /dev/block/by-name/vbmeta_system_a
+PARTITION_SIZE abl_a 2097152
+9ba101d6e24a19624922a65b248a92f16163d1c05878c626ed76e5829d10361e  /dev/block/by-name/abl_a
+PARTITION_SIZE xbl_a 8388608
+cdfaa09f4ac48f19078120bd17e089ec6e74294fbaf1e981a624f797383261f5  /dev/block/by-name/xbl_a
+PARTITION_SIZE tz_a 4194304
+f2b80048d698edda3a56e6d6735c7ceee0dd85cd6ba6db3d4e0fc433040b4711  /dev/block/by-name/tz_a
+PARTITION_SIZE boot_b 201326592
+bbb8a279a15af53a153ab605988311a7d381c22a10b56cecbc41ea68d3ceaab0  /dev/block/by-name/boot_b
+PARTITION_SIZE vendor_boot_b 100663296
+2f668ab05c9bfdd9f650f5a702871efe02c291c011975f050f451775d3d22967  /dev/block/by-name/vendor_boot_b
+PARTITION_SIZE dtbo_b 33554432
+c5a355b942bf287d13a9c02e1fe96c13ebf43f20b61be7e05763b8d23872aba8  /dev/block/by-name/dtbo_b
+PARTITION_SIZE vbmeta_b 131072
+972d3009a37c7f948a89278c0cc7495d3745e9690f79d4ebf72c1f0457efb82d  /dev/block/by-name/vbmeta_b
+PARTITION_SIZE vbmeta_system_b 131072
+6275271d3ec40e10b4ddc78b3051435754671b7458c928f21a7dc77a03f96adb  /dev/block/by-name/vbmeta_system_b
+PARTITION_SIZE abl_b 2097152
+9ba101d6e24a19624922a65b248a92f16163d1c05878c626ed76e5829d10361e  /dev/block/by-name/abl_b
+PARTITION_SIZE xbl_b 8388608
+cdfaa09f4ac48f19078120bd17e089ec6e74294fbaf1e981a624f797383261f5  /dev/block/by-name/xbl_b
+PARTITION_SIZE tz_b 4194304
+f2b80048d698edda3a56e6d6735c7ceee0dd85cd6ba6db3d4e0fc433040b4711  /dev/block/by-name/tz_b

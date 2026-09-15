@@ -86,6 +86,12 @@ class Observer:
         self.events = []
         self.boots = 0
 
+    def boot_counts(self):
+        recovery = self.boots if self.args.case == "recovery" else 0
+        return {"host_boot_commands": self.boots,
+                "experimental_boots": self.boots - recovery,
+                "recovery_control_boots": recovery}
+
     def log(self, event, **fields):
         row = {"utc": datetime.now(timezone.utc).isoformat(), "event": event, **fields}
         self.events.append(row)
@@ -198,13 +204,13 @@ class Observer:
             validate_preflight(values, len(image))
             start = self.launch()
             result.update(self.observe(start))
-            result["experimental_boots"] = self.boots
+            result.update(self.boot_counts())
             if baseline is not None and result["status"] == "AUTOMATIC_FASTBOOT_RETURN":
                 result["pair"] = pair_verdict(baseline, result)
             self.log("RESULT", **result)
         except (ValueError, subprocess.TimeoutExpired, OSError) as exc:
             result.update(status="STOP", reason=str(exc).replace(self.args.serial, "<device>"),
-                          experimental_boots=self.boots)
+                          **self.boot_counts())
             self.log("STOP", **result)
         finally:
             (self.args.output / "result.json").write_text(json.dumps(result, indent=2) + "\n")

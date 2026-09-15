@@ -63,6 +63,22 @@ class SafetyTests(unittest.TestCase):
                 observer.launch()
             spawn.assert_not_called()
 
+    def test_recovery_is_not_an_experimental_boot(self):
+        for case in observe.IMAGES:
+            observer = observe.Observer(Namespace(serial="test-device", case=case))
+            self.assertEqual(observer.boot_counts()["host_boot_commands"], 0)
+            observer.boots = 1
+            counts = observer.boot_counts()
+            self.assertEqual(counts["host_boot_commands"], 1)
+            self.assertEqual(counts["experimental_boots"], 0 if case == "recovery" else 1)
+            self.assertEqual(counts["recovery_control_boots"], 1 if case == "recovery" else 0)
+
+    def test_no_return_blocks_reset1(self):
+        for status in ("NO_RETURN_WITHIN_120S", "UNEXPECTED_ADB_RETURN", "STOP"):
+            baseline = {**self.record("reset8", 50.0), "status": status}
+            with self.subTest(status=status), self.assertRaisesRegex(ValueError, "PAIR_RETURN_NOT_VALID"):
+                observe.pair_verdict(baseline, self.record("reset1", 43.0))
+
     def test_context_requires_readback_and_a_protection(self):
         context = {**observe.CONTEXT, "readback_verified": True, "slot_a_unchanged": True}
         observe.validate_context(context)
