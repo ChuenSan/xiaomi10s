@@ -146,13 +146,19 @@ STATUS_DOC_ENUM_KV = {
 }
 
 PE_CNTPCT_SAFE_REASON = (
-    "CNTFRQ_EL0/CNTPCT_EL0 reads are EL1-legal with SCTLR_EL1.M=1; the "
-    "identical access was proven on this device at T0-T4 and C_DELAY; "
-    "panic() entry is after calibrate_delay so time_init has run")
+    "CNTFRQ_EL0/CNTPCT_EL0 reads are EL1-legal with SCTLR_EL1.M=1; no "
+    "pre-checkpoint path writes CNTKCTL_EL1 or CNTHCTL_EL2 (head.S, "
+    "hyp-stub.S, idreg-override.c, init/main.c up to calibrate_delay and "
+    "smp.c are scanned for counter-trap writes), so the EL1 counter reads "
+    "are not trapped; the identical EL1 access was proven on this device at "
+    "T0-T4/C_DELAY; panic() entry is after calibrate_delay, so time_init has "
+    "already programmed the arch timer as clocksource")
 PE_PSCI_SAFE_REASON = (
-    "PSCI SYSTEM_RESET fid=0x84000009 carries no pointer argument; smc is "
-    "synchronous to EL3; psci_dt_init ran inside setup_arch; identical EL1 "
-    "smc proven at T0-T4/C_DELAY; frozen RT-D keeps /psci method=smc")
+    "PSCI SYSTEM_RESET fid=0x84000009 carries no pointer argument, so no "
+    "VA->PA conversion is involved; smc is synchronous to EL3 regardless of "
+    "SCTLR_EL1.M; psci_dt_init already ran inside setup_arch and does not "
+    "replace SMC; the identical EL1 smc was proven at T0-T4/C_DELAY, and the "
+    "frozen RT-D keeps /psci method=smc")
 
 
 def need(text: str, needle: str, label: str = "PANIC_ENTRY_SOURCE_GATE_FAILED") -> None:
@@ -607,33 +613,33 @@ def psci_fid_from_probe(words: list, pad_n: int) -> int:
 # Authoritative semantics check on the DISASSEMBLY, independent of the word
 # encoders above (llvm-objdump produced these strings from the same bytes).
 PROBE_OPS_REQUIRED = (
-    "msr daifset, #0xf",
-    "mrs x9, cntfrq_el0",
-    "movz x10, #8",
-    "mrs x11, cntpct_el0",
-    "mrs x12, cntpct_el0",
-    "b.hs",
-    "yield",
-    "smc #0",
-    "wfe",
+    (r"\bmsr\s+daifset,\s+#0xf\b", "DAIF mask"),
+    (r"\bmrs\s+x9,\s+cntfrq_el0\b", "CNTFRQ_EL0 frequency read"),
+    (r"\b(movz|mov)\s+x10,\s+#(0x8|8)\b", "8s delay constant"),
+    (r"\bmrs\s+x11,\s+cntpct_el0\b", "CNTPCT_EL0 start sample"),
+    (r"\bmrs\s+x12,\s+cntpct_el0\b", "CNTPCT_EL0 poll sample"),
+    (r"\bb\.hs\b", "delay compare branch"),
+    (r"\byield\b", "poll yield"),
+    (r"\bsmc\s+#(0x)?0\b", "PSCI smc"),
+    (r"\bwfe\b", "terminal wait"),
 )
 PROBE_OPS_FID_RE = (
-    re.compile(r"\bmovz\s+w0,\s+#(0x9|9)\b"),
+    re.compile(r"\b(movz|mov)\s+w0,\s+#(0x9|9)\b"),
     re.compile(r"\bmovk\s+w0,\s+#(0x8400|33792),\s+lsl\s+#16\b"),
 )
 
 
 def gate_probe_ops_semantics(ops: str) -> None:
-    for tok in PROBE_OPS_REQUIRED:
-        if tok not in ops:
+    for pattern, label in PROBE_OPS_REQUIRED:
+        if not re.search(pattern, ops):
             fail("PANIC_ENTRY_CORE_IDENTITY_FAILED",
-                 f"probe disassembly lacks {tok!r}")
+                 f"probe disassembly lacks {label} ({pattern!r})")
     for rx in PROBE_OPS_FID_RE:
         if not rx.search(ops):
             fail("PANIC_ENTRY_PSCI_FAILED",
                  f"probe disassembly lacks PSCI FID half {rx.pattern!r}")
     for bad in ("panic_timeout", "mdelay", "udelay", "loops_per_jiffy",
-                "mrs x0", "cntvct"):
+                "mrs x0", "cntvct", "reboot"):
         if bad in ops:
             fail("PANIC_ENTRY_DIAGNOSTIC_INDEPENDENT_FAILED",
                  f"probe disassembly mentions {bad!r}")
@@ -1023,7 +1029,11 @@ def cmd_panic_entry(args: argparse.Namespace) -> None:
     head_text = (LINUX / "arch" / "arm64" / "kernel" / "head.S").read_text()
     t3.gate_no_early_counter_trap(
         head_text,
-        (LINUX / "arch/arm64/kernel/hyp-stub.S").read_text())
+        (LINUX / "arch/arm64/kernel/hyp-stub.S").read_text(),
+        (LINUX / "arch/arm64/kernel/idreg-override.c").read_text(),
+        (LINUX / "init" / "main.c").read_text().split(
+            "void start_kernel(void)", 1)[-1].split("calibrate_delay", 1)[0],
+        (LINUX / "arch/arm64/kernel/smp.c").read_text())
     t3.gate_cnppct_safety(PE_CNTPCT_SAFE_REASON, True)
     t3.gate_psci_safety(PE_PSCI_SAFE_REASON, True)
     print("PANIC_ENTRY_CNTPCT_SAFE=YES")
