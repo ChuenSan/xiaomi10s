@@ -128,7 +128,6 @@ jobs:
           test -s panic-entry-artifact/thyme-r3-p1b-panic-entry1-kernel-payload.bin
           test -s panic-entry-artifact/p1b-panic-entry1-checkpoint.bin
           test -s panic-entry-artifact/p1b-t1-core-reference.bin
-          test -s panic-entry-artifact/p1b-t2-probe-reference.bin
           test -s panic-entry-artifact/p1b-panic-entry1-manifest.json
           test -s panic-entry-artifact/p1b-panic-entry1-gates.txt
           ( cd panic-entry-artifact && sha256sum -c SHA256SUMS )
@@ -144,9 +143,7 @@ jobs:
 
           payload = Path("panic-entry-artifact/thyme-r3-p1b-panic-entry1-kernel-payload.bin")
           ckbin = Path("panic-entry-artifact/p1b-panic-entry1-checkpoint.bin")
-          t2probe_p = Path("panic-entry-artifact/p1b-t2-probe-reference.bin")
           t1core_p = Path("panic-entry-artifact/p1b-t1-core-reference.bin")
-          t3probe_p = Path("panic-entry-artifact/p1b-t3-probe-reference.bin")
           m = json.loads(Path("panic-entry-artifact/p1b-panic-entry1-manifest.json").read_text())
           data = payload.read_bytes()
           if sha(data) != sys.argv[1]:
@@ -158,21 +155,43 @@ jobs:
           if sha(probe) != sys.argv[3]:
               raise SystemExit("PANIC_ENTRY_PRIVATE_CHECKPOINT_SHA_MISMATCH")
           t1core = t1core_p.read_bytes()
-          t2probe = t2probe_p.read_bytes()
           if len(t1core) != 76:
               raise SystemExit(
                   f"PANIC_ENTRY_PRIVATE_CORE_SIZE t1={len(t1core)}")
           if len(probe) not in (76, 80):
               raise SystemExit(f"PANIC_ENTRY_PRIVATE_PROBE_SIZE {len(probe)}")
           core = probe if len(probe) == 76 else probe[4:]
-          if core != t1core:
-              raise SystemExit("PANIC_ENTRY_PRIVATE_CORE_NOT_T1_IDENTICAL")
-          if core != t2probe[4:]:
-              raise SystemExit("PANIC_ENTRY_PRIVATE_CORE_NOT_T2_SLICE")
-          if t3probe_p.is_file():
-              t3probe = t3probe_p.read_bytes()
-              if core != t3probe[4:]:
-                  raise SystemExit("PANIC_ENTRY_PRIVATE_CORE_NOT_T3_SLICE")
+          # PAIR SEMANTICS: PENTRY1 must be byte-identical to the frozen 8s
+          # reference core EXCEPT for the single delay immediate (word 3).
+          # That one word is what makes the pair a delay-only experiment.
+          W_DELAY_8S = 0xD280010A
+          W_DELAY_1S = 0xD280002A
+          w1 = struct.unpack_from("<19I", t1core, 0)
+          wc = struct.unpack_from("<19I", core, 0)
+          if w1[3] != W_DELAY_8S:
+              raise SystemExit(f"PANIC_ENTRY_PRIVATE_REF_DELAY {w1[3]:#010x}")
+          if wc[3] != W_DELAY_1S:
+              raise SystemExit(
+                  f"PANIC_ENTRY_PRIVATE_PENTRY1_DELAY {wc[3]:#010x}")
+          for _i in range(19):
+              if _i == 3:
+                  continue
+              if w1[_i] != wc[_i]:
+                  raise SystemExit(
+                      "PANIC_ENTRY_PRIVATE_CORE_DELAY_ONLY_VIOLATION "
+                      f"word {_i}")
+          print('PANIC_ENTRY_PRIVATE_CORE_DELAY_ONLY_DIFF=PASS')
+          if m.get("pentry_pair_delay_only_attribution") is not True:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_PAIR_ATTRIBUTION_MISSING")
+          if str(m.get("pentry1_delay_word", "")).lower() != "0xd280002a":
+              raise SystemExit(
+                  "PANIC_ENTRY_PRIVATE_PAIR_DELAY_WORD "
+                  f"{m.get('pentry1_delay_word')!r}")
+          if int(m.get("pentry_pair_member_a_delay_seconds", -1)) != 8:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_PAIR_MEMBER_A_DELAY")
+          if m.get("pentry_pair_member_a_payload_sha256") != (
+                  "1988ee22806cba6129f7c3bb34def9667ec39c60f029c622f60341374cc35469"):
+              raise SystemExit("PANIC_ENTRY_PRIVATE_PAIR_MEMBER_A_PAYLOAD")
           PACIASP_LE = bytes.fromhex("3f2303d5")
           PACIASP = 0xD503233F
           BTI_C = 0xD503245F
@@ -220,8 +239,8 @@ jobs:
               raise SystemExit("PANIC_ENTRY_PRIVATE_INLINE_REGION_MISMATCH")
           if data[off_c6:off_c6 + plen] == probe:
               raise SystemExit("PANIC_ENTRY_PRIVATE_T4_PROBE_STILL_PRESENT")
-          if data[off_ps:off_ps + len(t2probe)] == t2probe:
-              raise SystemExit("PANIC_ENTRY_PRIVATE_T2_PROBE_STILL_PRESENT")
+          if data[off_ps:off_ps + plen] == probe:
+              raise SystemExit("PANIC_ENTRY_PRIVATE_PROBE_AT_PRIMARY_SWITCHED")
           if data[off_sk:off_sk + 4] != PACIASP_LE:
               raise SystemExit("PANIC_ENTRY_PRIVATE_START_KERNEL_ENTRY_NOT_PACIASP")
           if struct.unpack_from("<I", data, off_sk)[0] != PACIASP:
