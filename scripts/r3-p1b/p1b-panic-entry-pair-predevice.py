@@ -1889,8 +1889,9 @@ def _emit_isolation_audits(args: argparse.Namespace) -> None:
     for name, cls in sorted(RESET_PATH_EVIDENCE.items()):
         if name not in stages and name not in oops:
             print(f"PANIC_ALTERNATIVE_RESET_PATH_UNMAPPED={name} ({cls})")
-    print(f"PANIC_ALTERNATIVE_RESET_PATH_MAP=PASS "
-          f"({len(alt)} paths, {len(stages)} staged)")
+    print("PANIC_ALTERNATIVE_RESET_PATH_MAP=PASS")
+    print(f"PANIC_ALTERNATIVE_RESET_PATH_MAP_DETAIL=paths:{len(alt)} "
+          f"staged:{len(stages)} (SOURCE_MAP_ONLY)")
     after = sorted(k for k, v in stages.items()
                    if str(v.get("after_c_delay", "")).startswith("YES"))
     print(f"PANIC_ALTERNATIVE_RESET_PATHS_AFTER_C_DELAY={len(after)}")
