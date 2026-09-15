@@ -8,8 +8,8 @@ Round: CI ONLY. `DEVICE_OPERATION=NO`, `ADB_DEVICE_OPERATION=NO`,
 This round does **not** execute
 `MAINLINE_V2_R3_P1B_C_DELAY_TRUE_DEVICE_CONTROL`. The fail-closed opposite of
 a completed public+private gate remains `R3_P1B_C_DELAY_PREDEVICE_NOT_READY`.
-After public GHA + private pack + independent reverify + observer FULL-SHA
-fixtures close, `READY_FOR_R3_P1B_C_DELAY_DEVICE_CONTROL=YES`.
+Public GHA + private pack + independent reverify + observer FULL-SHA
+fixtures closed. Final gate: `READY_FOR_R3_P1B_C_DELAY_DEVICE_CONTROL=YES`.
 WAIT FOR USER APPROVAL.
 
 ## 1. T4 proof (frozen predecessor)
@@ -83,21 +83,24 @@ checkpoint path.
 ## 6. Callsite
 
 GHA objdump of `start_kernel`: unique `BL calibrate_delay`. Frozen FIX8
-payload BL decode must match nm. Outputs:
-`CALIBRATE_DELAY_CALLSITE_VA`, `CALIBRATE_DELAY_CALLSITE_OFFSET`,
-`CALIBRATE_DELAY_CALL_INSN=BL`, `CALIBRATE_DELAY_CALL_BYTES`,
-`CALIBRATE_DELAY_TARGET_VA`, `CALIBRATE_DELAY_TARGET_SYMBOL=calibrate_delay`,
-`CALIBRATE_DELAY_POSTCALL_VA`, `CALIBRATE_DELAY_POSTCALL_OFFSET`.
+payload BL decode must match nm. This round independently re-derived:
+`CALIBRATE_DELAY_CALLSITE_VA=0xffff800081b30624`
+`CALIBRATE_DELAY_CALLSITE_OFFSET=0x1b30624`
+`CALIBRATE_DELAY_CALL_INSN=BL`
+`CALIBRATE_DELAY_CALL_BYTES=9793904f`
+`CALIBRATE_DELAY_TARGET_VA=0xffff800080014760`
+`CALIBRATE_DELAY_TARGET_SYMBOL=calibrate_delay`
+`CALIBRATE_DELAY_POSTCALL_VA=0xffff800081b30628`
+`CALIBRATE_DELAY_POSTCALL_OFFSET=0x1b30628`.
+Map C_DELAY COMPLETE `0xffff800081b30628` MATCHED the independent
+re-derivation. `C_DELAY_CHECKPOINT_IS_POSTCALL=YES`.
+`C_DELAY_POSTCALL_CONTROL_FLOW_PROVEN=YES`.
 
 ## 7. Postcall checkpoint
 
 Checkpoint = first insn after that BL (`callsite+4`). Never before the call.
-Never inside `calibrate_delay`. `C_DELAY_CHECKPOINT_IS_POSTCALL=YES`.
-`C_DELAY_POSTCALL_CONTROL_FLOW_PROVEN=YES`. Executing the checkpoint means
+Never inside `calibrate_delay`. Executing the checkpoint means
 `calibrate_delay` has returned.
-
-Navigation-only map C_DELAY COMPLETE `0xffff800081b30628` / `0x1b30628` is
-cross-checked, not trusted as the sole gate.
 
 ## 8. Exact panic → mdelay implementation audit
 
@@ -195,6 +198,8 @@ RT-D keeps `panic=5` `rdinit=/init`.
 
 `C_DELAY_RUNTIME_SEMANTIC_DELTA=POST_CALIBRATE_DELAY_CHECKPOINT_ONLY`.
 `C_DELAY_PAYLOAD_DIFF_ATTRIBUTED=POST_CALIBRATE_DELAY_CHECKPOINT_ONLY`.
+This round: `C_DELAY_DIFF_BYTE_COUNT=73` in `[0x1b30628,0x1b30674)`.
+C6 window `[0x1b304a8,0x1b304f4)` identical to FIX8 (T4 probe removed).
 Outside the checkpoint window: 0 changed bytes.
 
 Geometry from FINAL BINARY HEADER (`IMAGE_HEADER_IMAGE_SIZE_REDERIVED`):
@@ -203,23 +208,30 @@ payload 37369041, boot 37380096.
 
 ## 18. Private packaging
 
-PUBLIC GHA: source audit, panic mdelay chain, checkpoint, CFG, diff,
-negative fixtures, observer fixtures. No OEM boot.img.
+PUBLIC GHA run `34913482023` commit `35f976f7dd4f816524ce43c69b999b5468b98c40`:
+source audit, panic mdelay chain, checkpoint, CFG, diff, negative fixtures,
+observer fixtures. No OEM boot.img.
+`C_DELAY_PAYLOAD_SHA256=372724921ff922dfbf95dcf5081d8527096732a7b402bb63efc01d14f029c52d`
+`C_DELAY_CHECKPOINT_SHA256=4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611`
+(byte-identical T1/T4 76-byte core).
 
-PRIVATE GHA: FIX8/M5D envelope + ONE C_DELAY boot.img.
+PRIVATE GHA pack run `34915314009`: FIX8/M5D envelope + ONE C_DELAY boot.img.
+`C_DELAY_BOOT_SHA256=d9f01bff4a7ff0d2fe580867a72a47c4a3d15930c388a99f2402835912847b02`
+`C_DELAY_BOOT_SIZE=37380096`.
 Staging: `artifacts/p1b-c-delay-private-workflow-staging.yml`.
 
 ## 19. Reverify
 
-Independent private reverify-only: no repack. Boot SHA, payload extract SHA,
-checkpoint bytes, T4 probe removed, RT-D, geometry, envelope.
-`C_DELAY_PRIVATE_IDENTITY_REVERIFIED=YES` after that run.
+Independent private reverify-only run `34915464385`: no repack. Boot SHA,
+payload extract SHA, checkpoint bytes, T4 probe removed, RT-D, geometry,
+envelope. `C_DELAY_PRIVATE_IDENTITY_REVERIFIED=YES`.
 
 ## 20. Observer
 
-Prepared, **not run**. FULL C_DELAY boot SHA before any fastboot.
-Refuses T4/T3/T2/T1/T0/FIX8/PANIC30/other images.
-`C_DELAY_NOT_REACHED_LICENSE=NO`. Failures →
+Prepared, **not run**. FULL C_DELAY boot SHA
+`d9f01bff4a7ff0d2fe580867a72a47c4a3d15930c388a99f2402835912847b02`
+before any fastboot. Fixtures PASS (refuses T4/T3/T2/T1/T0/FIX8/PANIC30/
+old INIT8/entry-state probe). `C_DELAY_NOT_REACHED_LICENSE=NO`. Failures →
 `MAINLINE_V2_R3_P1B_C_DELAY_FAILURE_ISOLATION_CI`. Never auto PANIC30.
 
 ## 21. Future timing window
@@ -268,3 +280,4 @@ geometry mismatch.
 
 Public path: `.github/workflows/thyme-r3-p1b-c-delay-predevice.yml`.
 Current B: M5D+M5H+M5M-B UNCHANGED. FIX24 FROZEN. M5N FROZEN.
+Final gate: `READY_FOR_R3_P1B_C_DELAY_DEVICE_CONTROL=YES`.
