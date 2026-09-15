@@ -153,10 +153,12 @@ PAIR_PRIMARY_ABS_SANITY_S = 20.0  # secondary signature only
 # programs 1s by design, so the delay token is re-parameterised here. The
 # frozen PENTRY8 script runs in a separate process and is unaffected.
 t3.ORDER_TOKENS = [
-    (rf"(movz|mov) x10, #(0x{PE_DELAY_S:x}|{PE_DELAY_S})\b"
+    ((rf"(movz|mov) x10, #(0x{PE_DELAY_S:x}|{PE_DELAY_S})\b", True)
      if (isinstance(tok, tuple) and isinstance(tok[0], str)
          and "x10" in tok[0]) else tok)
     for tok in t3.ORDER_TOKENS]
+if not all(isinstance(t, tuple) and len(t) == 2 for t in t3.ORDER_TOKENS):
+    fail("PANIC_ENTRY_BUILD_FAILED", "ORDER_TOKENS arity after delay retarget")
 PE_CLOBBER_REGISTERS = "w0/x0(PSCI FID),x9,x10,x11,x12,x13,NZCV"
 
 STATUS_KV_BEGIN = t3.STATUS_KV_BEGIN
