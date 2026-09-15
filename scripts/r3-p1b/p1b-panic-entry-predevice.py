@@ -174,6 +174,41 @@ def sx(v: int, bits: int) -> int:
     return pb.sx(v, bits)
 
 
+def strip_c_comments_and_literals(text: str) -> str:
+    """Remove comments, string literals and char literals so that `return` is
+    only detected as real code (the SPARC boot-prom message legitimately
+    contains the word inside a string)."""
+    out = []
+    i = 0
+    n = len(text)
+    while i < n:
+        c = text[i]
+        if c == "/" and i + 1 < n and text[i + 1] == "*":
+            i = text.find("*/", i + 2)
+            i = n if i < 0 else i + 2
+            continue
+        if c == "/" and i + 1 < n and text[i + 1] == "/":
+            i = text.find("\n", i + 2)
+            i = n if i < 0 else i
+            continue
+        if c in "\"'":
+            quote = c
+            i += 1
+            while i < n:
+                if text[i] == "\\":
+                    i += 2
+                    continue
+                if text[i] == quote:
+                    i += 1
+                    break
+                i += 1
+            out.append(" ")
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
 def panic_source_audit() -> dict:
     panic_h = (LINUX / "include" / "linux" / "panic.h").read_text()
     panic_c = (LINUX / "kernel" / "panic.c").read_text()
@@ -186,10 +221,15 @@ def panic_source_audit() -> dict:
     need(panic_c, "EXPORT_SYMBOL(panic);")
     if panic_c.count("void panic(const char *fmt, ...)") != 1:
         fail("PANIC_ENTRY_CANONICAL_FAILED", "panic() definition count")
-    body = panic_c.split("void panic(const char *fmt, ...)", 1)[1]
-    body = body.split("EXPORT_SYMBOL(panic);", 1)[0]
-    if "return;" in body or re.search(r"\breturn\b", body):
-        fail("PANIC_ENTRY_CANONICAL_FAILED", "panic() body has return")
+    idx = panic_c.index("void panic(const char *fmt, ...)")
+    if "never returns" not in panic_c[max(0, idx - 400):idx]:
+        fail("PANIC_ENTRY_CANONICAL_FAILED",
+             "kernel-doc 'never returns' not attached to the definition")
+    body = panic_c[idx:panic_c.index("EXPORT_SYMBOL(panic);")]
+    code = strip_c_comments_and_literals(body)
+    if re.search(r"\breturn\b", code):
+        fail("PANIC_ENTRY_CANONICAL_FAILED",
+             "panic() body contains a return statement")
     return {
         "source_file": "kernel/panic.c",
         "declaration": "void panic(const char *fmt, ...) __noreturn __cold;",
@@ -516,14 +556,87 @@ def _mrs(op0: int, op1: int, crn: int, crm: int, op2: int, rt: int) -> int:
 
 
 W_DELAY_8S = _movz(1, 8, 0, 10)
+if W_DELAY_8S != 0xD280010A:
+    fail("PANIC_ENTRY_ENCODING_CALIBRATION_FAILED",
+         f"MOVZ encoder off: {W_DELAY_8S:#010x} != 0xd280010a "
+         "(the 8s delay word published by the T0-T4/C_DELAY verify jobs)")
 W_CNTFRQ_X9 = _mrs(3, 3, 14, 0, 0, 9)
 W_CNTPCT_X11 = _mrs(3, 3, 14, 0, 1, 11)
 W_CNTPCT_X12 = _mrs(3, 3, 14, 0, 1, 12)
-W_PSCI_FID_LOW = _movz(0, 0x0009, 0, 0)
-W_PSCI_FID_HIGH = _movk(0, 0x8400, 1, 0)
 W_SMC = 0xD4000003
 W_WFE = 0xD503205F
 W_NOP = 0xD503201F
+
+
+def _decode_wide_imm(w: int) -> dict:
+    """Decode a MOVZ/MOVK-class word. The field positions are CALIBRATED at
+    import against the published 8s delay word, so this decoder is an
+    independent witness for the PSCI FID words (not a re-encode)."""
+    return {
+        "sf": (w >> 31) & 1,
+        "opc": (w >> 29) & 0x3,
+        "fixed": (w >> 23) & 0x3F,
+        "hw": (w >> 21) & 0x3,
+        "imm16": (w >> 5) & 0xFFFF,
+        "rd": w & 0x1F,
+    }
+
+
+DECODER_CALIBRATION = _decode_wide_imm(W_DELAY_8S)
+if DECODER_CALIBRATION != {"sf": 1, "opc": 2, "fixed": 0x25, "hw": 0,
+                          "imm16": 8, "rd": 10}:
+    fail("PANIC_ENTRY_ENCODING_CALIBRATION_FAILED",
+         f"wide-immediate decoder off: {DECODER_CALIBRATION}")
+
+
+def psci_fid_from_probe(words: list, pad_n: int) -> int:
+    lo = _decode_wide_imm(words[14 + pad_n])
+    hi = _decode_wide_imm(words[15 + pad_n])
+    if lo["sf"] or lo["opc"] != 2 or lo["fixed"] != 0x25 or lo["hw"] or \
+            lo["rd"]:
+        fail("PANIC_ENTRY_PSCI_FAILED", f"low FID half is not movz w0: {lo}")
+    if hi["sf"] or hi["opc"] != 3 or hi["fixed"] != 0x25 or hi["hw"] != 1 or \
+            hi["rd"]:
+        fail("PANIC_ENTRY_PSCI_FAILED", f"high FID half is not movk w0,lsl#16: {hi}")
+    fid = lo["imm16"] | (hi["imm16"] << 16)
+    if fid != PSCI_SYSTEM_RESET_FID:
+        fail("PANIC_ENTRY_PSCI_FAILED",
+             f"decoded PSCI fid {fid:#010x} != {PSCI_SYSTEM_RESET_FID:#010x}")
+    return fid
+
+# Authoritative semantics check on the DISASSEMBLY, independent of the word
+# encoders above (llvm-objdump produced these strings from the same bytes).
+PROBE_OPS_REQUIRED = (
+    "msr daifset, #0xf",
+    "mrs x9, cntfrq_el0",
+    "movz x10, #8",
+    "mrs x11, cntpct_el0",
+    "mrs x12, cntpct_el0",
+    "b.hs",
+    "yield",
+    "smc #0",
+    "wfe",
+)
+PROBE_OPS_FID_RE = (
+    re.compile(r"\bmovz\s+w0,\s+#(0x9|9)\b"),
+    re.compile(r"\bmovk\s+w0,\s+#(0x8400|33792),\s+lsl\s+#16\b"),
+)
+
+
+def gate_probe_ops_semantics(ops: str) -> None:
+    for tok in PROBE_OPS_REQUIRED:
+        if tok not in ops:
+            fail("PANIC_ENTRY_CORE_IDENTITY_FAILED",
+                 f"probe disassembly lacks {tok!r}")
+    for rx in PROBE_OPS_FID_RE:
+        if not rx.search(ops):
+            fail("PANIC_ENTRY_PSCI_FAILED",
+                 f"probe disassembly lacks PSCI FID half {rx.pattern!r}")
+    for bad in ("panic_timeout", "mdelay", "udelay", "loops_per_jiffy",
+                "mrs x0", "cntvct"):
+        if bad in ops:
+            fail("PANIC_ENTRY_DIAGNOSTIC_INDEPENDENT_FAILED",
+                 f"probe disassembly mentions {bad!r}")
 
 
 def gate_probe_words(probe: bytes) -> None:
@@ -542,22 +655,10 @@ def gate_probe_words(probe: bytes) -> None:
     if words[3 + pad_n] != W_DELAY_8S:
         fail("PANIC_ENTRY_DELAY_CONSTANT_FAILED",
              f"8s delay word {words[3 + pad_n]:#010x} != {W_DELAY_8S:#010x}")
-    if words[2 + pad_n] != W_CNTFRQ_X9:
-        fail("PANIC_ENTRY_CORE_IDENTITY_FAILED",
-             f"CNTFRQ read word {words[2 + pad_n]:#010x} != {W_CNTFRQ_X9:#010x}")
-    if words[6 + pad_n] != W_CNTPCT_X11 or words[8 + pad_n] != W_CNTPCT_X12:
-        fail("PANIC_ENTRY_CORE_IDENTITY_FAILED", "CNTPCT read words deviate")
+    psci_fid_from_probe(words, pad_n)
     smc = [i for i, w in enumerate(words) if w == W_SMC]
     if len(smc) != 1 or smc[0] != 16 + pad_n:
         fail("PANIC_ENTRY_PSCI_FAILED", f"smc index {smc}")
-    if words[14 + pad_n] != W_PSCI_FID_LOW:
-        fail("PANIC_ENTRY_PSCI_FAILED",
-             f"PSCI low FID word {words[14 + pad_n]:#010x} != "
-             f"{W_PSCI_FID_LOW:#010x}")
-    if words[15 + pad_n] != W_PSCI_FID_HIGH:
-        fail("PANIC_ENTRY_PSCI_FAILED",
-             f"PSCI high FID word {words[15 + pad_n]:#010x} != "
-             f"{W_PSCI_FID_HIGH:#010x}")
     if words[17 + pad_n] != W_WFE:
         fail("PANIC_ENTRY_PSCI_FAILED", "no wfe after smc (fall-through risk)")
     w = words[18 + pad_n]
@@ -947,6 +1048,7 @@ def cmd_panic_entry(args: argparse.Namespace) -> None:
         out, tools, C_DELAY_DEVICE_S, C_DELAY_DEVICE_LD, "P1B_C_DELAY_DELAY", 8,
         "r3_c_delay_checkpoint", "p1b-c-delay-core-reference")
     t3.gate_t3_probe(ops, dump, len(core))
+    gate_probe_ops_semantics(ops)
     if core != t1_probe or core != t4_probe or core != cd_probe:
         fail("PANIC_ENTRY_CORE_IDENTITY_FAILED", "core != T1/T4/C_DELAY")
     if core != t3_probe[4:] or core != t2_probe[4:]:
