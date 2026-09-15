@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thyme.local/r3-p1b/alternative-reset-source-map.schema.json",
+  "title": "R3 P1B alternative reset source map",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "round",
+    "linux_commit",
+    "frozen",
+    "restart_chain",
+    "chokepoint",
+    "watchdog",
+    "rtd",
+    "oops_die",
+    "init_failure",
+    "psci_classes",
+    "candidates",
+    "ranking",
+    "decision",
+    "binary"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "const": "1" },
+    "round": {
+      "type": "string",
+      "const": "MAINLINE_V2_R3_P1B_ALTERNATIVE_RESET_SOURCE_ISOLATION_CI"
+    },
+    "linux_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "frozen": { "type": "object" },
+    "restart_chain": { "type": "object" },
+    "chokepoint": { "type": "object" },
+    "watchdog": { "type": "object" },
+    "rtd": { "type": "object" },
+    "oops_die": { "type": "object" },
+    "init_failure": { "type": "object" },
+    "psci_classes": { "type": "object" },
+    "candidates": {
+      "type": "array",
+      "minItems": 8,
+      "items": { "$ref": "#/$defs/candidate" }
+    },
+    "ranking": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "$ref": "#/$defs/rank_row" }
+    },
+    "decision": { "type": "object" },
+    "binary": { "type": "object" }
+  },
+  "$defs": {
+    "confidence": {
+      "type": "string",
+      "enum": ["SOURCE_PROVEN", "SOURCE_SUPPORTED", "INFERRED", "UNKNOWN"]
+    },
+    "yn": { "type": "string", "enum": ["YES", "NO", "PARTIAL", "INLINED", "PENDING"] },
+    "explain": {
+      "type": "string",
+      "enum": ["SOURCE_YES", "INFERRED", "UNKNOWN"]
+    },
+    "candidate": {
+      "type": "object",
+      "required": [
+        "candidate_id",
+        "class",
+        "symbol",
+        "source_file",
+        "trigger",
+        "reachable_after_c_delay",
+        "passes_canonical_panic",
+        "common_restart_chokepoint",
+        "requires_driver_probe",
+        "requires_DT_node",
+        "relevant_config",
+        "runtime_patch_risk",
+        "source_timing_bound",
+        "can_explain_23_28s",
+        "confidence_class",
+        "recommended_next_probe"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "candidate_id": { "type": "string", "minLength": 1 },
+        "class": {
+          "type": "string",
+          "enum": [
+            "A_LINUX_SOFTWARE_RESTART",
+            "B_LINUX_WATCHDOG",
+            "C_FIRMWARE_WATCHDOG",
+            "D_DIE_OOPS_BUG",
+            "E_ARCH_PSCI_RESTART",
+            "F_OTHER",
+            "Z_DIAGNOSTIC_PSCI_NOT_NATURAL"
+          ]
+        },
+        "symbol": { "type": "string" },
+        "source_file": { "type": "string" },
+        "trigger": { "type": "string" },
+        "reachable_after_c_delay": { "$ref": "#/$defs/yn" },
+        "passes_canonical_panic": { "$ref": "#/$defs/yn" },
+        "common_restart_chokepoint": { "type": "string" },
+        "requires_driver_probe": { "$ref": "#/$defs/yn" },
+        "requires_DT_node": { "$ref": "#/$defs/yn" },
+        "relevant_config": { "type": "string" },
+        "runtime_patch_risk": {
+          "type": "string",
+          "enum": ["NONE", "LOW", "HIGH", "FORBIDDEN"]
+        },
+        "source_timing_bound": { "type": "string" },
+        "can_explain_23_28s": { "$ref": "#/$defs/explain" },
+        "confidence_class": { "$ref": "#/$defs/confidence" },
+        "recommended_next_probe": { "type": "string" }
+      }
+    },
+    "rank_row": {
+      "type": "object",
+      "required": [
+        "rank",
+        "candidate",
+        "class",
+        "why_plausible",
+        "evidence_supports",
+        "evidence_contradicts",
+        "passes_panic_entry",
+        "can_explain_stable_26s",
+        "next_causal_probe"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "rank": { "type": "integer", "minimum": 1 },
+        "candidate": { "type": "string" },
+        "class": { "type": "string" },
+        "why_plausible": { "type": "string" },
+        "evidence_supports": { "type": "string" },
+        "evidence_contradicts": { "type": "string" },
+        "passes_panic_entry": { "$ref": "#/$defs/yn" },
+        "can_explain_stable_26s": { "$ref": "#/$defs/explain" },
+        "next_causal_probe": { "type": "string" }
+      }
+    }
+  }
+}

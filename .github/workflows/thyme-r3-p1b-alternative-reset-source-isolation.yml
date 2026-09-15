@@ -1,0 +1,323 @@
+name: thyme-r3-p1b-alternative-reset-source-isolation
+
+# MAINLINE_V2_R3_P1B_ALTERNATIVE_RESET_SOURCE_ISOLATION_CI
+# SOURCE AUDIT / STATIC RESET-PATH MAP / NEXT-DIAGNOSTIC DESIGN ONLY.
+# No device operation, no private pack, no device-ready boot, no *.img.
+# Deliverables:
+#   source-audit   linux-6.6 restart/oops/init/watchdog-driver audit +
+#                  frozen-config watchdog classes + RT-D node enumeration +
+#                  JSON map + schema + negative fixtures
+#   binary-audit   authoritative vmlinux rebuild, exact symbol/callsite/
+#                  section/landing derivation, FIX8 prologue cross-check
+#   merge-verdict  combine maps, ranking, final isolation gate
+# Never READY_FOR_*_DEVICE_CONTROL. Next stage is a PREDEVICE recommendation
+# only.
+on:
+  push:
+    branches: [route-b-v3, route-b-v3-panic-entry-integration]
+    paths:
+      - '.github/workflows/thyme-r3-p1b-alternative-reset-source-isolation.yml'
+      - 'scripts/r3-p1b/p1b-alternative-reset-source-isolation.py'
+      - 'scripts/r3-p1b/alternative-reset-source-map.schema.json'
+      - 'scripts/r3-p1b/p1b-build.py'
+      - 'scripts/r3-p1b/p1b-init.c'
+      - 'configs/thyme-r3-p1b.config'
+      - 'configs/thyme-route-b.config'
+      - 'docs/route-r3-p1b-alternative-reset-source-isolation.md'
+      - 'docs/route-r3-current-status.md'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-p1b-alternative-reset-source-isolation.yml'
+      - 'scripts/r3-p1b/p1b-alternative-reset-source-isolation.py'
+      - 'scripts/r3-p1b/alternative-reset-source-map.schema.json'
+      - 'docs/route-r3-p1b-alternative-reset-source-isolation.md'
+  workflow_dispatch:
+    inputs:
+      rt_d_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-runtime-dtb
+        required: false
+        default: "34678001413"
+      fix8_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-p1b-fix8-fix24
+        required: false
+        default: "34741153230"
+
+concurrency:
+  group: thyme-r3-p1b-alternative-reset-source-isolation-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: R3 P1B alternative-reset source/config/RT-D audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-r3-p1b-alternative-reset-source-isolation.yml
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          base=$(git -C linux-6.6 rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base"
+          test "$base" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+      - name: Install kconfig host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make gcc bison flex bc python3
+
+      - name: Parse isolation scripts
+        run: |
+          python3 -m py_compile scripts/r3-p1b/p1b-alternative-reset-source-isolation.py
+          python3 -m py_compile scripts/r3-p1b/p1b-build.py
+
+      - name: Source-gate
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 scripts/r3-p1b/p1b-alternative-reset-source-isolation.py \
+            --mode source-gate
+
+      - name: Download frozen RT-D
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RT_D_RUN_ID: ${{ inputs.rt_d_run_id || '34678001413' }}
+        run: |
+          set -euo pipefail
+          gh run download "$RT_D_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-runtime-dtb --dir rt-d
+          printf '%s  rt-d/rt-d.dtb\n' \
+            4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327 \
+            | sha256sum -c -
+
+      - name: Source + config + RT-D audit + schema + negative fixtures
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          mkdir -p out-ars
+          python3 scripts/r3-p1b/p1b-alternative-reset-source-isolation.py \
+            --mode source-audit --out out-ars --rt-d rt-d/rt-d.dtb \
+            | tee out-ars/source-audit.txt
+          for k in \
+            'ARS_SOURCE_AUDIT=PASS' \
+            'ARS_NEGATIVE_FIXTURES=PASS' \
+            'KERNEL_RESTART_CHAIN_AUDITED=YES' \
+            'EMERGENCY_RESTART_CHAIN_AUDITED=YES' \
+            'ARM64_RESTART_CHAIN_AUDITED=YES' \
+            'PSCI_RESTART_CHAIN_AUDITED=YES' \
+            'WATCHDOG_CONFIG_AUDIT_COMPLETE=YES' \
+            'RUNTIME_DTB_WATCHDOG_AUDIT_COMPLETE=YES' \
+            'OOPS_DIE_RESET_MAP_COMPLETE=YES' \
+            'INIT_FAILURE_RESET_SEMANTICS_AUDITED=YES' \
+            'PSCI_RESET_PATH_CLASSES_COMPLETE=YES' \
+            'WATCHDOG_TIMEOUT_SOURCE_DERIVABLE=NO' \
+            'TIMEOUT=UNKNOWN' \
+            'FIRMWARE_WATCHDOG_STATE=UNKNOWN' \
+            'ANDROID_BOOTREASON_SOURCE_DIAGNOSTIC=NO' \
+            'PANIC_TIMEOUT_BRANCH_PRIORITY=LOW_UNTIL_PANIC_ENTRY_EVIDENCE' \
+            'PANIC30_RERUN=FROZEN' \
+            'DEVICE_READY=NO' \
+            'READY_FOR_DEVICE=NO' ; do
+            grep -Fxq "$k" out-ars/source-audit.txt
+          done
+          grep -Eq '^LINUX_SOFTWARE_RESET_COMMON_CHOKEPOINT=.+$' out-ars/source-audit.txt
+          grep -Eq '^QCOM_WDT_RTD_NODE_PRESENT=(YES|NO|DISABLED)$' out-ars/source-audit.txt
+          grep -Eq '^QCOM_WDT_DRIVER_WOULD_PROBE=(YES|NO)$' out-ars/source-audit.txt
+          grep -Eq '^BOOTLOADER_WATCHDOG_HANDOFF_GAP=(SOURCE_PLAUSIBLE|PROBE_WOULD_TAKEOVER)$' \
+            out-ars/source-audit.txt
+          grep -Eq '^DECISION_CASE=[ABC]$' out-ars/source-audit.txt
+          grep -Eq '^NEXT_PREDEVICE_STAGE=MAINLINE_V2_R3_P1B_' out-ars/source-audit.txt
+          test -s out-ars/alternative-reset-source-map.json
+          test -s out-ars/early/alternative-reset-source-map.json
+
+      - name: Assert no device image
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          echo 'LOCAL_BUILD=NO'
+          echo 'GHA_ONLY=YES'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'READY_FOR_DEVICE=NO'
+
+      - name: Upload source-audit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-ars-source
+          if-no-files-found: error
+          path: |
+            out-ars/source-audit.txt
+            out-ars/alternative-reset-source-map.json
+            out-ars/early/alternative-reset-source-map.json
+            out-ars/p1b-ars-merged.config
+
+  binary-audit:
+    name: R3 P1B alternative-reset vmlinux/callsite audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    needs: [source-audit]
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install pinned LLVM 18.1.3 toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang lld llvm make gcc bc bison flex libssl-dev libelf-dev \
+            cpio file python3 gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu
+          clang --version | head -1 | tee clang-version.txt
+          grep -F '18.1.3' clang-version.txt
+          echo "TOOLCHAIN_PINNED=$(clang --version | head -1)"
+
+      - name: Fetch pinned linux-6.6
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = \
+            8b73de7da85fde281a385e0b26eda9bffd3ca477
+
+      - name: Download frozen FIX8 payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FIX8_RUN_ID: ${{ inputs.fix8_run_id || '34741153230' }}
+        run: |
+          set -euo pipefail
+          gh run download "$FIX8_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-fix8-fix24 --dir fix8
+          printf '%s  fix8/thyme-r3-p1b-fix8-kernel-payload.bin\n' \
+            4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 \
+            | sha256sum -c -
+
+      - name: Rebuild vmlinux and derive restart choke point
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          mkdir -p out-ars-bin
+          python3 scripts/r3-p1b/p1b-alternative-reset-source-isolation.py \
+            --mode binary-audit --out out-ars-bin --jobs "$(nproc)" \
+            --fix8-payload fix8/thyme-r3-p1b-fix8-kernel-payload.bin \
+            | tee out-ars-bin/binary-audit.txt
+          grep -Fxq 'ARS_BINARY_AUDIT=PASS' out-ars-bin/binary-audit.txt
+          grep -Eq '^SYM_machine_restart_VA=0x[0-9a-f]+$' out-ars-bin/binary-audit.txt
+          grep -Eq '^SYM_do_kernel_restart_VA=0x[0-9a-f]+$' out-ars-bin/binary-audit.txt
+          grep -Eq '^SYM_emergency_restart_VA=0x[0-9a-f]+$' out-ars-bin/binary-audit.txt
+          grep -Eq '^RESTART_CHOKEPOINT_INSTRUMENTABLE=' out-ars-bin/binary-audit.txt
+          grep -Fxq 'DEVICE_OPERATION=NO' out-ars-bin/binary-audit.txt
+          grep -Fxq 'READY_FOR_DEVICE=NO' out-ars-bin/binary-audit.txt
+          test -s out-ars-bin/p1b-ars-binary.json
+
+      - name: Assert no device image
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+
+      - name: Upload binary-audit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-ars-binary
+          if-no-files-found: error
+          path: |
+            out-ars-bin/binary-audit.txt
+            out-ars-bin/p1b-ars-binary.json
+            out-ars-bin/p1b-ars-nm-excerpt.txt
+            out-ars-bin/p1b-ars-vmlinux-sections.txt
+            out-ars-bin/p1b-ars-machine_restart-disasm.txt
+            out-ars-bin/p1b-ars-do_kernel_restart-disasm.txt
+            out-ars-bin/p1b-ars-emergency_restart-disasm.txt
+
+  merge-verdict:
+    name: R3 P1B alternative-reset isolation verdict
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: [source-audit, binary-audit]
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Download source-audit artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: thyme-r3-p1b-ars-source
+          path: src
+
+      - name: Download binary-audit artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: thyme-r3-p1b-ars-binary
+          path: bin
+
+      - name: Check downloaded maps
+        run: |
+          test -s src/alternative-reset-source-map.json
+          test -s bin/p1b-ars-binary.json
+
+      - name: Merge maps + schema + final gate
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          mkdir -p out-ars-final
+          python3 scripts/r3-p1b/p1b-alternative-reset-source-isolation.py \
+            --mode merge-verdict --out out-ars-final \
+            --source-json src/alternative-reset-source-map.json \
+            --binary-json bin/p1b-ars-binary.json \
+            | tee out-ars-final/verdict.txt
+          grep -Fxq 'ARS_MERGE_VERDICT=PASS' out-ars-final/verdict.txt
+          grep -Fxq 'ALTERNATIVE_RESET_SOURCE_MAP_STATUS=COMPLETE' \
+            out-ars-final/verdict.txt
+          grep -Fxq 'MAINLINE_V2_R3_P1B_ALTERNATIVE_RESET_SOURCE_ISOLATION_COMPLETE=YES' \
+            out-ars-final/verdict.txt
+          grep -Fxq 'DEVICE_READY=NO' out-ars-final/verdict.txt
+          grep -Fxq 'READY_FOR_DEVICE=NO' out-ars-final/verdict.txt
+          grep -Fxq 'PANIC30_RERUN=FROZEN' out-ars-final/verdict.txt
+          test -s out-ars-final/early/alternative-reset-source-map.json
+
+      - name: Assert constraints + summary
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          {
+            echo "MAINLINE_V2_R3_P1B_ALTERNATIVE_RESET_SOURCE_ISOLATION_CI"
+            echo "DEVICE_OPERATION=NO"
+            echo "PARTITION_WRITES=0"
+            echo "SLOT_A_WRITTEN=NO"
+            echo "DEVICE_READY=NO"
+            echo "--- verdict ---"
+            cat out-ars-final/verdict.txt
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload final map
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-alternative-reset-source-map
+          if-no-files-found: error
+          path: |
+            out-ars-final/**
+            src/source-audit.txt
+            bin/binary-audit.txt
