@@ -310,3 +310,72 @@ round and are not reused here.
 
 `NO_LINUX_PANIC` is never a licensed conclusion from this round or the next
 one. WAIT FOR USER APPROVAL.
+
+## 21. CI / artifact readiness result (this round, all gates closed)
+
+`DEVICE_OPERATION=NO` throughout; `PARTITION_WRITES=0`; `SLOT_A_WRITTEN=NO`;
+`LOCAL_BUILD=NO` (every build, binary check and fixture ran in GitHub Actions
+only). mem0 read at the start of the round.
+
+Public pair CI `34953614443` (attempt 2) on commit
+`f23bb8fe5e6b26b8601f1e5695399efba72eaceb`:
+
+| job | result |
+| --- | --- |
+| `source-audit` (workflow/source/doc gate + isolation audits) | PASS |
+| `panic-entry1-build` (PENTRY1 + pair audit + all fixtures) | PASS |
+| `independent re-verification` | PASS |
+
+PENTRY1 candidate identity (built from the frozen FIX8 payload, never by
+patching the packed PENTRY8 image):
+
+| key | value |
+| --- | --- |
+| payload | `5fb893c6f990b23a26fe0aba7439852ff5991b59794f4ee4ab1fa7691b8328ee` / `37369041` |
+| checkpoint | `61b963d460568edd8ae2e3be9b99badde8d2c96cf863fdd5bf9154c99e1df260` / `80 B` |
+| window | `[0x10b99bc, 0x10b9a0c)`, entry0 `paciasp` preserved |
+| vs FIX8 | `74` diff bytes, all inside the window, `0` outside → `PANIC_ENTRY_CHECKPOINT_ONLY` |
+| vs PENTRY8 | `2` bytes at `[0x10b99cc, 0x10b99ce)`, one instruction (index 4), `0xd280010a -> 0xd280002a` → `DELAY_CONSTANT_ONLY` |
+| timer / reset / entry / branch / placement | all identical to PENTRY8 |
+| `/init` + initramfs | frozen FIX8 identity (`DELAY_SECONDS=8`) - a second, unintended variable was explicitly rejected |
+| `PANIC_CANONICAL_ENTRY_UNIQUE` / aliases / direct `BL` | `YES` / `0` / `204` (`PANIC_CANONICAL_ENTRY_AUDIT_STILL_VALID=YES`) |
+| geometry | `IMAGE_FILE_SIZE=35166720`, `IMAGE_HEADER_IMAGE_SIZE=0x2230000`, `DTB_OFFSET=0x2380000`, boot `37380096` |
+
+Private packaging (ONE PENTRY1 boot v3 image, no PENTRY8 repack, no PANIC30 and
+no timeout-branch artifact): pack run `34956313932`,
+`PENTRY1_PRIVATE_PACK_GATES=PASS`,
+`PANIC_ENTRY_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY`,
+`PANIC_ENTRY_RT_D_TRAILER_SHA_EXACT=PASS`,
+`PANIC_ENTRY_PRIVATE_CORE_DELAY_ONLY_DIFF=PASS`:
+
+```
+PENTRY1_BOOT_SHA256=370bc83f746b8e9459022effb07caf6e1a01fb17b1dd33b07c8b8f286f74f2c6
+PENTRY1_BOOT_SIZE=37380096
+```
+
+Independent private reverify-only run `34956416465` (no repack, no rebuild):
+`PANIC_ENTRY_PRIVATE_IDENTITY_REVERIFIED=YES`,
+`PANIC_ENTRY_PRIVATE_BOOT_IDENTITY_RECONFIRMED=YES`,
+`PANIC_ENTRY_ARTIFACT_REBUILD_REQUIRED=NO`,
+`PANIC_ENTRY_PAYLOAD_EXTRACTED_SHA256` = the frozen payload SHA,
+`PANIC_ENTRY_INLINE_WINDOW=[0x10b99bc,0x10b9a0c)`,
+`PANIC_ENTRY_RT_D_TRAILER_SHA256=4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327`,
+`PANIC_ENTRY_TRAMP_SHA256=362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623`,
+`PANIC_ENTRY_GEOMETRY_GATES=PASS`.
+
+Observer `observe-r3-p1b-panic-entry-pair.py` is prepared and its FULL-SHA
+identity gate plus misboot refusal list (`PENTRY8` / `C_DELAY` / `T0` / `T1` /
+`T2` / `T3` / `T4` / `FIX8` / `PANIC30` / old INIT8 / entry-state probe) pass
+their fixtures. It was **not run**.
+
+Final gate:
+
+```
+READY_FOR_R3_P1B_PANIC_ENTRY_DELAY_PAIR_DEVICE_CONTROL=YES
+```
+
+(fail-closed opposite: `R3_P1B_PANIC_ENTRY_FAILURE_ISOLATION_NOT_READY`).
+`PANIC_TIMEOUT_BRANCH=NOT_AUTHORIZED`, `PANIC30_RERUN=NO/FROZEN`,
+`FIX24_STATUS=FROZEN`, `M5N_STATUS=FROZEN`. Recommended next:
+`MAINLINE_V2_R3_P1B_PANIC_ENTRY_DELAY_PAIR_TRUE_DEVICE_CONTROL` - WAIT FOR
+USER APPROVAL.
