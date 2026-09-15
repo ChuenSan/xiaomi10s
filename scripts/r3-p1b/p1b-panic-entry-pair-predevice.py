@@ -824,11 +824,17 @@ def run_pair_decoder_fixtures() -> list:
         panic_entry_delay_pair(19.829 - 1.5, a)["verdict"] == "SUPPORTED")
     chk("SUPPORTED_HIGH_EDGE",
         panic_entry_delay_pair(19.829 + 1.5, a)["verdict"] == "SUPPORTED")
-    chk("JUST_OUTSIDE_SUPPORTED_LOW",
-        panic_entry_delay_pair(19.829 - 2.5, a)["pair_signature"]
-        == "SHIFT_NOT_OBSERVED")
-    chk("JUST_OUTSIDE_SUPPORTED_HIGH",
-        panic_entry_delay_pair(19.829 + 2.5, a)["pair_signature"]
+    # A pair deviation that lands OUTSIDE the natural band is not "no shift":
+    # something moved, but not by the programmed amount -> AMBIGUOUS. The
+    # SHIFT_NOT_OBSERVED class requires the natural 23-28s band.
+    chk("JUST_OUTSIDE_SUPPORTED_LOW_OUT_OF_BAND",
+        panic_entry_delay_pair(19.829 - 2.5, a)["case"]
+        == "PENTRY1_PAIR_TIMING_AMBIGUOUS")
+    chk("JUST_OUTSIDE_SUPPORTED_HIGH_OUT_OF_BAND",
+        panic_entry_delay_pair(19.829 + 2.5, a)["case"]
+        == "PENTRY1_PAIR_TIMING_AMBIGUOUS")
+    chk("IN_BAND_FAR_DELTA_IS_NO_SHIFT",
+        panic_entry_delay_pair(24.0, a)["pair_signature"]
         == "SHIFT_NOT_OBSERVED")
     # natural class, no shift
     chk("NATURAL_23S_NO_SHIFT",
