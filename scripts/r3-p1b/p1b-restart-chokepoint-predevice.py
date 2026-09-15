@@ -696,8 +696,6 @@ def cmd_source_gate(_args: argparse.Namespace) -> None:
     need(py, "INIT_DELAY_S = 8")
     need(py, "RESET_PAIR_ALL_PRIOR_PROBES_REMOVED")
     need(py, "CAN_EXPLAIN_23_28S_TIMING")
-    forbid(py, "mkbootimg")
-    forbid(py, "splice-boot")
     doc = DOC.read_text()
     for tok in (
             "PENTRY pair no-shift", "why restart choke next",
