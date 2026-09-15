@@ -1,15 +1,16 @@
 # thyme R3 current status (single source of truth for the current round)
 
-Continuation 2026-09-16: `route-b-slot-b-continuation` consumed the completed
-RESET device-gate artifacts below. B now contains the verified stock V14
-vendor_boot/dtbo + Actions-built P15 recovery boot. Only these three B
-partitions were flashed; protected A and firmware/vbmeta hashes matched on
-readback. The B recovery control returned to Fastboot in 25.908s. ONE RESET8
-RAM boot on confirmed B was accepted but returned no transport within 120s.
-RESET1 was NOT executed. ADB/Fastboot/USB are unavailable; physical
-Volume-Down+Power recovery is required. No Linux boot success is claimed.
-`docs/slot-b-continuation.md` is the current detailed record; the older
-A-return timing records below are historical, not this round's baseline.
+Continuation 2026-09-16: physical recovery is COMPLETE. Recovered Fastboot
+was B with retry count still 6. The untouched Android A is running with ADB
+root; all 16 recorded A/B boot-chain hashes and the P15 prefix are unchanged.
+B remains stock V14 vendor_boot/dtbo + the proven P15 recovery boot. No new
+partition write or experimental boot occurred during recovery. RESET8 remains
+NO_RETURN_WITHIN_120S; RESET1 was NOT executed. Oops contains the stock P15
+record only; pstore is empty and logdump/rawdump remain unchanged.
+Next is the audited rest_init entry checkpoint, public Actions `35036419486`;
+source tests passed, kernel audit build pending. No Linux boot success is
+claimed. Details: `docs/slot-b-rest-init.md` and `docs/slot-b-continuation.md`.
+Older A-return timing records below are historical, not this B baseline.
 
 Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
@@ -434,11 +435,15 @@ SLOT_B_RESET8_STATUS=NO_RETURN_WITHIN_120S
 SLOT_B_RESET8_EXPERIMENTAL_BOOTS=1
 SLOT_B_RESET1_EXPERIMENTAL_BOOTS=0
 SLOT_B_RESET_PAIR_VERDICT=NOT_EVALUABLE
-LAST_CONFIRMED_ACTIVE_SLOT=B
-POST_RESET8_LIVE_SLOT=UNOBSERVABLE
-DEVICE_TRANSPORT=ADB_FASTBOOT_USB_ABSENT
-DEVICE_RECOVERY=PHYSICAL_FASTBOOT_REQUIRED
-NEXT_DEVICE_ACTION=READ_ONLY_RECOVERY_AND_LOG_CAPTURE
+LAST_CONFIRMED_ACTIVE_SLOT=A
+RECOVERY_FASTBOOT_SLOT=B
+RECOVERY_B_RETRY_COUNT=6
+POST_RESET8_PARTITION_HASHES=ALL_RECORDED_UNCHANGED
+DEVICE_TRANSPORT=ADB_ROOT_ANDROID_A
+DEVICE_RECOVERY=COMPLETE
+NEXT_DEVICE_ACTION=REST_INIT_CHECKPOINT_AFTER_CI_GATES
+REST_INIT_PUBLIC_CI_RUN=35036419486
+REST_INIT_PUBLIC_CI_STATUS=IN_PROGRESS
 LOCAL_BUILD=NO
 <!-- R3-STATUS-KV:END -->
 
@@ -1450,10 +1455,11 @@ Side evidence kept behavioral-only (never upgrades E1/E2):
 Stock V14 vendor_boot/dtbo + proven stock P15 recovery boot, installed and
 readback-verified in the Slot B continuation. Original M5D+M5H+M5M-B full
 partition backups are retained privately in the continuation worktree.
-Three B partition writes; no A/vbmeta/firmware writes. Last confirmed active
-slot B; transport is unavailable after the one RESET8 RAM boot. See the
-continuation summary above. Older frozen-round descriptions below do not
-represent current partition contents.
+Three B partition writes in the previous preparation; none during recovery.
+No A/vbmeta/firmware writes. After manual Fastboot recovery (B, retry 6),
+Android A was selected for read-only collection. Every recorded partition
+hash matches the preparation baseline. Older frozen-round descriptions below
+do not represent current B partition contents.
 
 ## Frozen branches / items
 

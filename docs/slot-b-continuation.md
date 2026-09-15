@@ -1,5 +1,10 @@
 # Slot B continuation — 2026-09-16
 
+Recovery update: the user restored Fastboot. B retry remained 6; Android A
+returned with root, and all recorded partition hashes remained unchanged.
+The previous physical-recovery blocker below is resolved. RESET8 is not
+retried; the next controlled checkpoint is documented in `slot-b-rest-init.md`.
+
 Source baseline: `5139927` on `route-b-v3-panic-entry-integration`.
 The original dirty worktree at `5550dc2` and the previous integration worktree
 are untouched. Work continues on `route-b-slot-b-continuation`.
