@@ -5,18 +5,18 @@ name: thyme-r3-p1b-c-delay-predevice
 # repository never emits a device-installable image (pack v3 is private
 # only).
 # Deliverables:
-#   source-audit   boundary gate over the T4 INLINE post-stage C diagnostic
-#                  source (fail-closed: any smc return -> wfe forever, no
-#                  start_kernel continuation), T4 observer + fixtures, T4
-#                  scripts, c-stage-map, this workflow
+#   source-audit   boundary gate over the C_DELAY INLINE post-calibrate_delay
+#                  diagnostic source (fail-closed: any smc return -> wfe forever,
+#                  no start_kernel continuation), C_DELAY observer + fixtures,
+#                  C_DELAY scripts, c-stage-map, this workflow
 #   map-reverify   re-run Agent B c-stage-map source-identity / source-audit
 #                  / negative-fixtures on this tree (no vmlinux rebuild)
-#   c-delay-build       frozen-FIX8-anchored T4-8 candidate: authoritative kernel
-#                  rebuild, selected C-stage checkpoint, T3/T2 probe removal,
+#   c-delay-build  frozen-FIX8-anchored C_DELAY-8 candidate: authoritative kernel
+#                  rebuild, post-calibrate_delay checkpoint, T4 C6 probe removal,
 #                  T1-core identity, geometry, negative/decoder/observer
 #                  fixtures; uploads artifact thyme-r3-p1b-c-delay
-#   verify         independent structural re-verification of the uploaded T4
-#                  payload against the frozen FIX8 payload + RT-D trailer
+#   verify         independent structural re-verification of the uploaded
+#                  C_DELAY payload against the frozen FIX8 payload + RT-D trailer
 on:
   push:
     branches: [route-b-v3, route-b-v3-c-delay-integration]
@@ -81,7 +81,7 @@ jobs:
         with:
           args: -color .github/workflows/thyme-r3-p1b-c-delay-predevice.yml
 
-      - name: Parse T4 scripts + c-stage-map
+      - name: Parse C_DELAY scripts + c-stage-map
         run: |
           python3 -m py_compile scripts/r3-p1b/p1b-c-delay-predevice.py
           python3 -m py_compile scripts/r3-p1b/p1b-t3-predevice.py
@@ -90,7 +90,7 @@ jobs:
           python3 -m py_compile scripts/r3-c-stage-audit/c-stage-map.py
           python3 -m py_compile scripts/r3-p1b/p1b-build.py
 
-      - name: T4 predevice source-gate
+      - name: C_DELAY predevice source-gate
         env:
           GITHUB_ACTIONS: "true"
         run: |
@@ -231,7 +231,7 @@ jobs:
             | sha256sum -c -
           echo 'FIX8_PAYLOAD_BASE=PUBLIC_GHA_RUN_34741153230'
 
-      - name: Build fail-closed T4-8 + run all gates
+      - name: Build fail-closed C_DELAY-8 + run all gates
         env:
           GITHUB_ACTIONS: "true"
         run: |
@@ -301,13 +301,13 @@ jobs:
           grep -Fxq 'PANIC_MDELAY_DEPENDS_ON_ARCH_TIMER=YES' "$G"
           grep -Fxq 'CALIBRATE_DELAY_AFFECTS_PANIC_MDELAY=YES' "$G"
 
-      - name: T4 observer fixtures
+      - name: C_DELAY observer fixtures
         env:
           GITHUB_ACTIONS: "true"
         run: |
           python3 scripts/r3-p1b/p1b-c-delay-predevice.py \
             --mode observer-fixtures --out out-c-delay
-          F=out-c-delay/p1b-t4-observer-fixtures.txt
+          F=out-c-delay/p1b-c-delay-observer-fixtures.txt
           grep -Fxq 'OBSERVER_C_DELAY_AST_DEADLOCK_GATE=PASS' "$F"
           grep -Fxq 'OBSERVER_C_DELAY_IDENTITY_T0_BOOT_MISBOOT_REFUSED=PASS' "$F"
           grep -Fxq 'OBSERVER_C_DELAY_IDENTITY_T1_BOOT_MISBOOT_REFUSED=PASS' "$F"
@@ -330,11 +330,11 @@ jobs:
             echo 'device image emitted' >&2
             exit 1
           fi
-          echo 'PUBLIC_R3_P1B_T4_NO_DEVICE_IMAGE=PASS'
+          echo 'PUBLIC_R3_P1B_C_DELAY_NO_DEVICE_IMAGE=PASS'
           echo 'DEVICE_OPERATION=NO'
           echo 'SLOT_A_WRITTEN=NO'
 
-      - name: Stage T4 release inputs
+      - name: Stage C_DELAY release inputs
         run: |
           mkdir -p out-c-delay-release
           cp out-c-delay/thyme-r3-p1b-c-delay-kernel-payload.bin out-c-delay-release/
@@ -344,7 +344,7 @@ jobs:
           cp out-c-delay/p1b-t3-probe-reference.bin out-c-delay-release/
           cp out-c-delay/p1b-c-delay-manifest.json out-c-delay-release/
           cp out-c-delay/p1b-c-delay-gates.txt out-c-delay-release/
-          cp out-c-delay/p1b-t4-observer-fixtures.txt out-c-delay-release/
+          cp out-c-delay/p1b-c-delay-observer-fixtures.txt out-c-delay-release/
           if test -e out-c-delay/early-c-stage-map.json; then
             cp out-c-delay/early-c-stage-map.json out-c-delay-release/
           fi
@@ -352,13 +352,13 @@ jobs:
                    p1b-t1-core-reference-disasm.txt \
                    p1b-t2-probe-reference-disasm.txt \
                    p1b-t3-probe-reference-disasm.txt \
-                   p1b-t4-payload-diff-report.txt \
-                   p1b-t4-negative-fixtures.txt \
-                   p1b-t4-decoder-fixtures.txt \
-                   p1b-t4-report.txt \
-                   p1b-t4-vmlinux-sections.txt \
-                   p1b-t4-vmlinux-relocations.txt \
-                   p1b-t4-sysmap-excerpt.txt; do
+                   p1b-c-delay-payload-diff-report.txt \
+                   p1b-c-delay-negative-fixtures.txt \
+                   p1b-c-delay-decoder-fixtures.txt \
+                   p1b-c-delay-report.txt \
+                   p1b-c-delay-vmlinux-sections.txt \
+                   p1b-c-delay-vmlinux-relocations.txt \
+                   p1b-c-delay-sysmap-excerpt.txt; do
             if test -e "out-c-delay/$f"; then
               cp "out-c-delay/$f" out-c-delay-release/
             fi
@@ -376,7 +376,7 @@ jobs:
           fi
           cat out-c-delay-release/SHA256SUMS
 
-      - name: Upload T4 artifacts
+      - name: Upload C_DELAY artifacts
         uses: actions/upload-artifact@v4
         with:
           name: thyme-r3-p1b-c-delay
@@ -460,18 +460,18 @@ jobs:
           if len(t1core) != 76:
               raise SystemExit(f"C_DELAY_VERIFY_FAILED t1 core size {len(t1core)}")
           if ckbin != t1core:
-              raise SystemExit("C_DELAY_VERIFY_FAILED t4 probe != T1 core")
+              raise SystemExit("C_DELAY_VERIFY_FAILED C_DELAY probe != T1 core")
           if len(t2probe) < 80:
               raise SystemExit(f"C_DELAY_VERIFY_FAILED t2 probe size {len(t2probe)}")
           if ckbin != t2probe[4:]:
-              raise SystemExit("C_DELAY_VERIFY_FAILED t4 probe != t2_probe[4:]")
+              raise SystemExit("C_DELAY_VERIFY_FAILED C_DELAY probe != t2_probe[4:]")
           if t3probe is not None:
               if len(t3probe) != 80:
                   raise SystemExit(
                       f"C_DELAY_VERIFY_FAILED t3 probe size {len(t3probe)}")
               if ckbin != t3probe[4:]:
                   raise SystemExit(
-                      "C_DELAY_VERIFY_FAILED t4 probe != t3_probe[4:]")
+                      "C_DELAY_VERIFY_FAILED C_DELAY probe != t3_probe[4:]")
           if struct.unpack_from("<I", ckbin, 0)[0] == PACIASP:
               raise SystemExit(
                   "C_DELAY_VERIFY_FAILED unexpected paciasp pad on 76-byte core")
@@ -551,6 +551,15 @@ jobs:
           print("C_DELAY_VERIFY_T3_PROBE_REMOVED=YES")
           print("C_DELAY_VERIFY_START_KERNEL_ENTRY_RESTORED_TO_FIX8=YES")
           print(f"C_DELAY_VERIFY_START_KERNEL_ENTRY_WORD={PACIASP:#010x}")
+          off_c6 = int(m["c6_image_offset"], 16)
+          if off_ck == off_c6:
+              raise SystemExit("C_DELAY_VERIFY_FAILED checkpoint still at C6")
+          if t4[off_c6:off_c6 + plen] != fix8[off_c6:off_c6 + plen]:
+              raise SystemExit("C_DELAY_VERIFY_FAILED C6 region != FIX8")
+          if t4[off_c6:off_c6 + plen] == ckbin:
+              raise SystemExit("C_DELAY_VERIFY_FAILED T4 probe still at C6")
+          print("C_DELAY_VERIFY_T4_PROBE_REMOVED=YES")
+          print("C_DELAY_VERIFY_C6_REGION_IDENTICAL_TO_FIX8=YES")
 
           t2_window = fix8[off_ps:off_ps + 80]
           if t4[off_ps:off_ps + 80] != t2_window:

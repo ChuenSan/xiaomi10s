@@ -1003,7 +1003,7 @@ def cmd_c_delay(args: argparse.Namespace) -> None:
     print("START_KERNEL_ENTRY_RESTORED_TO_FIX8=YES "
           f"(FIX8/T4 entry word {word0:#010x} paciasp; T3 probe not used)")
     print("T3_PROBE_REMOVED_FROM_C_DELAY=YES")
-    print("C_DELAY_PROBE_REMOVED_FROM_C_DELAY=PENDING_WINDOW_CHECK")
+    print("T4_PROBE_REMOVED_FROM_C_DELAY=PENDING_WINDOW_CHECK")
 
     sk_stop = min(sk_extent or sk_va + 0x4000, sk_va + 0x4000)
     dump_sk = pb.run([
@@ -1107,6 +1107,8 @@ def cmd_c_delay(args: argparse.Namespace) -> None:
     target_va = cal_va
     selected = "C_DELAY_CALIBRATE_DELAY_COMPLETE"
     semantic = "POST_CALIBRATE_DELAY_CHECKPOINT_ONLY"
+    reason = ("unique post-calibrate_delay fallthrough INLINE scans pass; "
+              "C6 region left as FIX8")
     try:
         audit = audit_window(
             ck_va, C_DELAY_PROBE_SIZE, sections=sections, symbol_vas=symbol_vas,
@@ -1236,7 +1238,7 @@ def cmd_c_delay(args: argparse.Namespace) -> None:
         fail("C_DELAY_IDENTITY_FAILED", "T4 probe still present at C6")
     if off_ck == off_c6:
         fail("C_DELAY_IDENTITY_FAILED", "checkpoint is still the C6 window")
-    print("C_DELAY_PROBE_REMOVED_FROM_C_DELAY=YES")
+    print("T4_PROBE_REMOVED_FROM_C_DELAY=YES")
     print("C6_REGION_IDENTICAL_TO_FIX8=YES")
     print("C6_REGION_RESTORED=YES")
     t3.gate_tramp_identity(cand)
@@ -1273,20 +1275,22 @@ def cmd_c_delay(args: argparse.Namespace) -> None:
     print("C_DELAY_DEVICE_OPERATION=NO")
 
     (out / "p1b-c-delay-payload-diff-report.txt").write_text(
-        "T4_PAYLOAD_DIFF_REPORT\n"
+        "C_DELAY_PAYLOAD_DIFF_REPORT\n"
         f"FROZEN_FIX8_PAYLOAD_SHA256={FIX8_PAYLOAD_SHA}\n"
         f"C_DELAY_PAYLOAD_SHA256={sha(cand)}\n"
         f"REGION_A=[{off_ck:#x},{off_ck + plen:#x}) inline {selected} "
         f"overwrite ({len(diffs)} diff bytes)\n"
         f"DIFF_BYTES={len(diffs)}\n"
-        f"T4_DIFF_BYTE_COUNT={len(diffs)}\n"
-        f"T4_DIFF_RANGES=[{off_ck:#x},{off_ck + plen:#x})\n"
-        "DIFF_ATTRIBUTION=SELECTED_C_STAGE_CHECKPOINT_ONLY\n"
-        "T4_PAYLOAD_DIFF_ATTRIBUTED=SELECTED_C_STAGE_CHECKPOINT_ONLY\n"
-        f"T4_RUNTIME_SEMANTIC_DELTA={semantic}\n"
-        "T3_PROBE_REMOVED_FROM_T4=YES\n"
+        f"C_DELAY_DIFF_BYTE_COUNT={len(diffs)}\n"
+        f"C_DELAY_DIFF_RANGES=[{off_ck:#x},{off_ck + plen:#x})\n"
+        "DIFF_ATTRIBUTION=POST_CALIBRATE_DELAY_CHECKPOINT_ONLY\n"
+        "C_DELAY_PAYLOAD_DIFF_ATTRIBUTED=POST_CALIBRATE_DELAY_CHECKPOINT_ONLY\n"
+        f"C_DELAY_RUNTIME_SEMANTIC_DELTA={semantic}\n"
+        "T3_PROBE_REMOVED_FROM_C_DELAY=YES\n"
+        "T4_PROBE_REMOVED_FROM_C_DELAY=YES\n"
+        "C6_REGION_IDENTICAL_TO_FIX8=YES\n"
         "START_KERNEL_ENTRY_RESTORED_TO_FIX8=YES\n"
-        f"T4_TRAMPOLINE_IDENTICAL=YES sha={TRAMP_SHA}\n")
+        f"C_DELAY_TRAMPOLINE_IDENTICAL=YES sha={TRAMP_SHA}\n")
 
     neg_lines = run_negative_fixtures({
         "ops": ops, "dump": dump, "probe_len": plen, "frozen": frozen,
@@ -1308,7 +1312,7 @@ def cmd_c_delay(args: argparse.Namespace) -> None:
 
     sec = audit["sec"]
     manifest = {
-        "stage": "MAINLINE_V2_R3_P1B_T4_PREDEVICE_READINESS_CI",
+        "stage": "MAINLINE_V2_R3_P1B_C_DELAY_PREDEVICE_READINESS_CI",
         "linux_base": LINUX_BASE,
         "baseline": "FROZEN_FIX8 (public run 34741153230)",
         "c_delay_true_device_run": "NOT_EXECUTED",
@@ -1331,6 +1335,7 @@ def cmd_c_delay(args: argparse.Namespace) -> None:
         "start_kernel_image_offset": hex(off_sk),
         "start_kernel_entry_word": hex(PACIASP),
         "parse_args_va": hex(pa_va),
+        "c6_image_offset": hex(off_c6),
         "setup_arch_va": hex(sa_va),
         "c_delay_selected_stage": selected,
         "c_delay_selection_reason": reason,
@@ -1352,7 +1357,9 @@ def cmd_c_delay(args: argparse.Namespace) -> None:
         "c_delay_diagnostic_core_matches_t1": True,
         "c_delay_diagnostic_core_matches_t3": True,
         "c_delay_t1_core_sha256": sha(t1_probe),
-        "t3_probe_removed_from_t4": True,
+        "t3_probe_removed_from_c_delay": True,
+        "t4_probe_removed_from_c_delay": True,
+        "c6_region_identical_to_fix8": True,
         "start_kernel_entry_restored_to_fix8": True,
         "c_delay_payload_sha256": sha(cand),
         "c_delay_payload_size": len(cand),
@@ -1380,9 +1387,9 @@ def cmd_c_delay(args: argparse.Namespace) -> None:
         "c6_rdinit_parameter_effective_by_stage": True,
         "parse_early_param_effective_inside_setup_arch": True,
         "loglevel_early_parameter_stage": "C5",
-        "candidate_c6": "SAFE" if c6_ok else "UNSAFE",
-        "candidate_c3": "SAFE" if c3_ok else "UNSAFE",
-        "candidate_c_delay": "FUTURE",
+        "candidate_c6": "NOT_SELECTED",
+        "candidate_c3": "NOT_SELECTED",
+        "candidate_c_delay": "SAFE",
         "decoder": {
             "kind": "T3_MATCHED_CONTROL_PRIMARY",
             "t3_reference_total_s": T3_REFERENCE_TOTAL_S,
@@ -1420,9 +1427,9 @@ def cmd_c_delay(args: argparse.Namespace) -> None:
         "C_DELAY_PADDING_MAPPING_USED=NO",
         "C_DELAY_DEVICE_CANDIDATE_DELAY=8s",
         "C_DELAY_TIMER_PRIMITIVE=CNTPCT_REGISTER_ONLY",
-        "C_DELAY_CNTPCT_ACCESS_SAFE=YES",
+        "C_DELAY_CNTPCT_SAFE=YES",
         "C_DELAY_RESET_PRIMITIVE=PSCI_SYSTEM_RESET_0x84000009_SMC",
-        "C_DELAY_PSCI_SYSTEM_RESET_SAFE=YES",
+        "C_DELAY_PSCI_SAFE=YES",
         "C_DELAY_FAIL_CLOSED=YES",
         "C_DELAY_STACK_USAGE=NO",
         "C_DELAY_NO_MEMORY_READS=YES",
@@ -1430,7 +1437,9 @@ def cmd_c_delay(args: argparse.Namespace) -> None:
         "C_DELAY_DIAGNOSTIC_CORE_MATCHES_T3=YES",
         "C_DELAY_DIAGNOSTIC_CORE_MATCHES_T1=YES",
         "C_DELAY_RUNTIME_RELOCATIONS=0",
-        "T3_PROBE_REMOVED_FROM_T4=YES",
+        "T3_PROBE_REMOVED_FROM_C_DELAY=YES",
+        "T4_PROBE_REMOVED_FROM_C_DELAY=YES",
+        "C6_REGION_IDENTICAL_TO_FIX8=YES",
         "START_KERNEL_ENTRY_RESTORED_TO_FIX8=YES",
         "C_DELAY_PRECHECKPOINT_NORMAL_PATH_IDENTICAL_TO_FIX8=YES",
         "C_DELAY_TRAMPOLINE_IDENTICAL=YES",
@@ -1502,7 +1511,7 @@ def cmd_c_delay(args: argparse.Namespace) -> None:
     (out / "p1b-c-delay-gates.txt").write_text("\n".join(gates) + "\n")
     print("\n".join(gates))
     (out / "p1b-c-delay-report.txt").write_text(
-        "T4_PREDEVICE_REPORT\n" + "\n".join(gates) + "\n")
+        "C_DELAY_PREDEVICE_REPORT\n" + "\n".join(gates) + "\n")
 
 
 def cmd_observer_fixtures(args: argparse.Namespace) -> None:
@@ -1532,9 +1541,9 @@ def cmd_c_delay_pack_gates(args: argparse.Namespace) -> None:
         fail("C_DELAY_PACK_FAILED", f"checkpoint sha={sha(probe)}")
     if len(probe) != C_DELAY_PROBE_SIZE:
         fail("C_DELAY_PACK_FAILED", f"checkpoint size {len(probe)}")
-    hdr = pb.parse_image_hdr(payload, "t4-payload")
+    hdr = pb.parse_image_hdr(payload, "c-delay-payload")
     image_size = hdr["image_size"]
-    t3.gate_image_size_rederived(image_size, "t4-packed-payload")
+    t3.gate_image_size_rederived(image_size, "c-delay-packed-payload")
     if struct.unpack_from("<I", payload, CODE1_OFFSET)[0] != CODE1_B_0X40:
         fail("C_DELAY_PACK_FAILED", "code1 not b 0x40")
     dtb_offset, _gap = pb.calc_dtb_offset(image_size)
@@ -1546,7 +1555,7 @@ def cmd_c_delay_pack_gates(args: argparse.Namespace) -> None:
     if sha(tramp) != TRAMP_SHA:
         fail("C_DELAY_PACK_FAILED", "embedded trampoline != frozen FIX8")
     if payload[off_ck:off_ck + len(probe)] != probe:
-        fail("C_DELAY_PACK_FAILED", "checkpoint region != built T4 probe")
+        fail("C_DELAY_PACK_FAILED", "checkpoint region != built C_DELAY probe")
     off_sk = int(args.start_kernel_offset, 16)
     if struct.unpack_from("<I", payload, off_sk)[0] != PACIASP:
         fail("C_DELAY_PACK_FAILED", "start_kernel entry not paciasp")
@@ -1554,9 +1563,9 @@ def cmd_c_delay_pack_gates(args: argparse.Namespace) -> None:
     if sha(trailer) != RT_D_SHA or trailer[:4] != struct.pack(">I", FDT_MAGIC):
         fail("C_DELAY_PACK_FAILED", "trailer != frozen RT-D")
     ref = pb.parse_boot_v3(m5d, "m5d")
-    cand = pb.parse_boot_v3(boot, "t4-candidate")
+    cand = pb.parse_boot_v3(boot, "c-delay-candidate")
     if cand["kernel"] != payload:
-        fail("C_DELAY_PACK_FAILED", "candidate kernel != T4 payload")
+        fail("C_DELAY_PACK_FAILED", "candidate kernel != C_DELAY payload")
     if cand["ramdisk"] != ref["ramdisk"]:
         fail("C_DELAY_PACK_FAILED", "ramdisk bytes differ from M5D")
     if cand["cmdline"] != ref["cmdline"]:

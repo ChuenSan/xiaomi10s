@@ -190,6 +190,7 @@ jobs:
           off_sk = int(m["start_kernel_image_offset"], 16)
           off_ps = int(m["primary_switched_image_offset"], 16)
           off_primary = int(m["primary_entry_offset"], 16)
+          off_c6 = int(m["c6_image_offset"], 16)
           file_size = int(m["image_file_size"])
           image_size = int(m["image_header_image_size"], 16) \
               if isinstance(m["image_header_image_size"], str) \
@@ -200,10 +201,14 @@ jobs:
               raise SystemExit("C_DELAY_PRIVATE_WINDOW_ORDER")
           if off_ck == off_sk:
               raise SystemExit("C_DELAY_PRIVATE_CHECKPOINT_IS_START_KERNEL_ENTRY")
+          if off_ck == off_c6:
+              raise SystemExit("C_DELAY_PRIVATE_CHECKPOINT_IS_C6")
           if (off_ck + plen) > min(file_size, image_size):
               raise SystemExit("C_DELAY_PRIVATE_WINDOW_OUTSIDE_TEXT")
           if data[off_ck:off_ck + plen] != probe:
               raise SystemExit("C_DELAY_PRIVATE_INLINE_REGION_MISMATCH")
+          if data[off_c6:off_c6 + plen] == probe:
+              raise SystemExit("C_DELAY_PRIVATE_T4_PROBE_STILL_PRESENT")
           if data[off_ps:off_ps + len(t2probe)] == t2probe:
               raise SystemExit("C_DELAY_PRIVATE_T2_PROBE_STILL_PRESENT")
           if data[off_sk:off_sk + 4] != PACIASP_LE:
@@ -215,13 +220,15 @@ jobs:
           print('C_DELAY_PRIVATE_PAYLOAD_IDENTITY_EXACT=PASS')
           print(f"C_DELAY_PRIVATE_IMAGE_HEADER_IMAGE_SIZE={image_size:#x}")
           print(f"C_DELAY_PRIVATE_INLINE_WINDOW=[{off_ck:#x},{off_ck+plen:#x})")
+          print(f"C_DELAY_PRIVATE_C6_WINDOW=[{off_c6:#x},{off_c6+plen:#x})")
           print(f"C_DELAY_PRIVATE_SELECTED_STAGE={stage}")
           print("C_DELAY_PRIVATE_T2_PROBE_REMOVED=YES")
           print("C_DELAY_PRIVATE_T3_PROBE_REMOVED=YES")
+          print("C_DELAY_PRIVATE_T4_PROBE_REMOVED=YES")
           print("C_DELAY_PRIVATE_START_KERNEL_ENTRY_WORD=3f2303d5")
           PY
 
-      - name: Pack T4 payload into M5D envelope
+      - name: Pack C_DELAY payload into M5D envelope
         working-directory: source
         env:
           GITHUB_ACTIONS: "true"
@@ -234,7 +241,7 @@ jobs:
             --boot "$GITHUB_WORKSPACE/c-delay-out/thyme-r3-p1b-c-delay-boot.img" \
             | tee "$GITHUB_WORKSPACE/pack-c-delay.txt"
 
-      - name: Resolve T4 offsets from the public manifest
+      - name: Resolve C_DELAY offsets from the public manifest
         run: |
           set -euo pipefail
           python3 - <<'PY' >> "$GITHUB_ENV"
@@ -246,6 +253,7 @@ jobs:
           print(f"C_DELAY_START_KERNEL_OFFSET={m['start_kernel_image_offset']}")
           print(f"C_DELAY_PRIMARY_SWITCHED_OFFSET={m['primary_switched_image_offset']}")
           print(f"C_DELAY_PRIMARY_ENTRY_OFFSET={m['primary_entry_offset']}")
+          print(f"C_DELAY_C6_OFFSET={m['c6_image_offset']}")
           print(f"C_DELAY_BOOT_SIZE_EST={m['c_delay_boot_size_est']}")
           print(f"C_DELAY_SELECTED_STAGE={m['c_delay_selected_stage']}")
           print(f"C_DELAY_CHECKPOINT_SIZE={m['c_delay_checkpoint_size']}")
@@ -253,7 +261,7 @@ jobs:
           PY
           tail -8 "$GITHUB_ENV"
 
-      - name: T4 pack gates
+      - name: C_DELAY pack gates
         working-directory: source
         env:
           GITHUB_ACTIONS: "true"
@@ -262,7 +270,7 @@ jobs:
           C_DELAY_CHECKPOINT_SHA: ${{ inputs.c_delay_checkpoint_sha }}
         run: |
           set -euo pipefail
-          python3 scripts/r3-p1b/p1b-t4-predevice.py \
+          python3 scripts/r3-p1b/p1b-c-delay-predevice.py \
             --mode c-delay-pack-gates \
             --m5d-boot "$GITHUB_WORKSPACE/m5d-artifact/$M5D_BOOT_NAME" \
             --payload "$GITHUB_WORKSPACE/c-delay-artifact/thyme-r3-p1b-c-delay-kernel-payload.bin" \
@@ -303,13 +311,13 @@ jobs:
           print('C_DELAY_PRIVATE_BOOT_SIZE_CROSS_CHECK=PASS')
           PY
 
-      - name: Record T4 boot identity + verdict
+      - name: Record C_DELAY boot identity + verdict
         run: |
           set -euo pipefail
-          T4_BOOT_SHA=$(sha256sum c-delay-out/thyme-r3-p1b-c-delay-boot.img | cut -d' ' -f1)
+          C_DELAY_BOOT_SHA=$(sha256sum c-delay-out/thyme-r3-p1b-c-delay-boot.img | cut -d' ' -f1)
           {
             echo "MAINLINE_V2_R3_P1B_C_DELAY_PREDEVICE_READINESS_CI (PRIVATE PACK)"
-            echo "C_DELAY_BOOT_SHA256=$T4_BOOT_SHA"
+            echo "C_DELAY_BOOT_SHA256=$C_DELAY_BOOT_SHA"
             echo "C_DELAY_BOOT_SIZE=$(stat -c%s c-delay-out/thyme-r3-p1b-c-delay-boot.img)"
             echo "C_DELAY_PAYLOAD_SHA256=${{ inputs.c_delay_payload_sha }}"
             echo "C_DELAY_TRAMP_SHA256=${{ inputs.c_delay_tramp_sha }}"
@@ -318,12 +326,13 @@ jobs:
             echo "C_DELAY_START_KERNEL_OFFSET=$C_DELAY_START_KERNEL_OFFSET"
             echo "C_DELAY_PRIMARY_SWITCHED_OFFSET=$C_DELAY_PRIMARY_SWITCHED_OFFSET"
             echo "C_DELAY_PRIMARY_ENTRY_OFFSET=$C_DELAY_PRIMARY_ENTRY_OFFSET"
+            echo "C_DELAY_C6_OFFSET=$C_DELAY_C6_OFFSET"
             echo "C_DELAY_CHECKPOINT_SIZE=$C_DELAY_CHECKPOINT_SIZE"
             echo "C_DELAY_SELECTED_STAGE=$C_DELAY_SELECTED_STAGE"
             echo "C_DELAY_RUNTIME_SEMANTIC_DELTA=$C_DELAY_RUNTIME_SEMANTIC_DELTA"
             echo "C_DELAY_PROBE_ARCHITECTURE=INLINE"
-            echo "T4_DIAGNOSTIC_ONLY=YES"
-            echo "T4_NORMAL_KERNEL_BOOT_CANDIDATE=NO"
+            echo "C_DELAY_DIAGNOSTIC_ONLY=YES"
+            echo "C_DELAY_NORMAL_KERNEL_BOOT_CANDIDATE=NO"
             echo "DEVICE_OPERATION=NO"
             echo "PARTITION_WRITES=0"
             echo "SLOT_A_WRITTEN=NO"
@@ -346,7 +355,7 @@ jobs:
           echo 'SLOT_A_WRITTEN=NO'
           echo 'READY_FOR_DEVICE=NO'
 
-      - name: Upload private T4 boot artifact
+      - name: Upload private C_DELAY boot artifact
         uses: actions/upload-artifact@v4
         with:
           name: thyme-r3-p1b-c-delay-boot
@@ -381,7 +390,7 @@ jobs:
           echo 'PARTITION_WRITES=0'
           echo 'HOST_DEVICE_INTERFACE=UNUSED'
 
-      - name: Download authoritative T4 boot artifact (no rebuild)
+      - name: Download authoritative C_DELAY boot artifact (no rebuild)
         env:
           GH_TOKEN: ${{ github.token }}
           REVERIFY_RUN_ID: ${{ inputs.reverify_run_id }}
@@ -394,9 +403,9 @@ jobs:
           test -s auth-boot/c-delay-out/thyme-r3-p1b-c-delay-boot.img
           test -s auth-boot/c-delay-out/p1b-c-delay-pack-gates.txt
           test -s auth-boot/c-delay-identity.txt
-          echo 'T4_BOOT_ARTIFACT_SOURCE=AUTHORITATIVE_PRIVATE_RUN'
+          echo 'C_DELAY_BOOT_ARTIFACT_SOURCE=AUTHORITATIVE_PRIVATE_RUN'
 
-      - name: T4 boot identity gates (extract + re-hash, no repack)
+      - name: C_DELAY boot identity gates (extract + re-hash, no repack)
         env:
           EXPECTED_BOOT_SHA256: ${{ inputs.expected_boot_sha256 }}
           EXPECTED_PAYLOAD_SHA256: ${{ inputs.c_delay_payload_sha }}
@@ -437,6 +446,7 @@ jobs:
           off_sk = int(ident["C_DELAY_START_KERNEL_OFFSET"], 16)
           off_ps = int(ident["C_DELAY_PRIMARY_SWITCHED_OFFSET"], 16)
           off_pe = int(ident["C_DELAY_PRIMARY_ENTRY_OFFSET"], 16)
+          off_c6 = int(ident["C_DELAY_C6_OFFSET"], 16)
           window = int(ident.get("C_DELAY_CHECKPOINT_SIZE", "76"))
           if window != 76:
               raise SystemExit(f"C_DELAY_REVERIFY_WINDOW {window}")
@@ -487,11 +497,15 @@ jobs:
           if sha(ps_win) == T2_PROBE_SHA:
               raise SystemExit("C_DELAY_REVERIFY_T2_PROBE_STILL_PRESENT")
           if sha(ps_win) == exp_ck:
-              raise SystemExit("C_DELAY_REVERIFY_T4_PROBE_AT_PRIMARY_SWITCHED")
+              raise SystemExit("C_DELAY_REVERIFY_PROBE_AT_PRIMARY_SWITCHED")
           if struct.unpack_from("<I", ps_win, 0)[0] != BTI_C:
               raise SystemExit("C_DELAY_REVERIFY_PRIMARY_SWITCHED_NOT_FIX8_BTI_C")
           if struct.unpack_from("<I", payload, off_pe)[0] >> 26 != 0b100101:
               raise SystemExit("C_DELAY_REVERIFY_PRIMARY_ENTRY_NOT_BL")
+          if off_ck == off_c6:
+              raise SystemExit("C_DELAY_REVERIFY_CHECKPOINT_IS_C6")
+          if payload[off_c6:off_c6 + window] == ck_win:
+              raise SystemExit("C_DELAY_REVERIFY_T4_PROBE_STILL_AT_C6")
           trailer = payload[DTB_OFFSET:]
           if len(payload) != DTB_OFFSET + RT_D_SIZE:
               raise SystemExit("C_DELAY_REVERIFY_PAYLOAD_GEOMETRY")
@@ -506,20 +520,22 @@ jobs:
           print("C_DELAY_PRIVATE_IDENTITY_REVERIFIED=YES")
           print(f"C_DELAY_BOOT_SHA256={sha(boot)}")
           print(f"C_DELAY_BOOT_SIZE={len(boot)}")
-          print(f"T4_PAYLOAD_EXTRACTED_SHA256={sha(payload)}")
-          print(f"T4_INLINE_WINDOW=[{off_ck:#x},{off_ck + window:#x})")
+          print(f"C_DELAY_PAYLOAD_EXTRACTED_SHA256={sha(payload)}")
+          print(f"C_DELAY_INLINE_WINDOW=[{off_ck:#x},{off_ck + window:#x})")
           print(f"C_DELAY_CHECKPOINT_SHA256={sha(ck_win)}")
           print(f"C_DELAY_TRAMP_SHA256={sha(tramp)}")
-          print(f"T4_RT_D_TRAILER_SHA256={sha(trailer)}")
+          print(f"C_DELAY_RT_D_TRAILER_SHA256={sha(trailer)}")
           print(f"C_DELAY_START_KERNEL_OFFSET={off_sk:#x}")
+          print(f"C_DELAY_C6_OFFSET={off_c6:#x}")
           print(f"C_DELAY_SELECTED_STAGE={ident.get('C_DELAY_SELECTED_STAGE')}")
           print("IMAGE_FILE_SIZE=35166720")
           print(f"IMAGE_HEADER_IMAGE_SIZE={image_size:#x}")
           print(f"DTB_OFFSET={DTB_OFFSET:#x}")
           print(f"payload_size={len(payload)}")
           print("boot_size_expected=37380096")
-          print("T4_GEOMETRY_GATES=PASS")
-          print("T4_ARTIFACT_REBUILD_REQUIRED=NO")
+          print("C_DELAY_GEOMETRY_GATES=PASS")
+          print("C_DELAY_ARTIFACT_REBUILD_REQUIRED=NO")
+          print("C_DELAY_REVERIFY_T4_PROBE_REMOVED=YES")
           PY
           G=auth-boot/c-delay-out/p1b-c-delay-pack-gates.txt
           grep -Fxq 'C_DELAY_PACK_GATES=PASS' "$G"
@@ -532,7 +548,7 @@ jobs:
           grep -Fxq 'C_DELAY_INLINE_REGION_IN_KERNEL_TEXT=YES' "$G"
           grep -Fxq 'C_DELAY_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY' "$G"
           echo 'C_DELAY_PRIVATE_BOOT_IDENTITY_RECONFIRMED=YES'
-          echo 'T4_ARTIFACT_REBUILD_REQUIRED=NO (extracted from frozen boot, never re-packed)'
+          echo 'C_DELAY_ARTIFACT_REBUILD_REQUIRED=NO (extracted from frozen boot, never re-packed)'
           echo 'C_DELAY_PRIVATE_IDENTITY_REVERIFY=PASS'
           echo 'DEVICE_OPERATION=NO'
 
@@ -543,13 +559,13 @@ jobs:
             echo "AUTHORITATIVE_PRIVATE_RUN=${{ inputs.reverify_run_id }}"
             echo "C_DELAY_BOOT_SHA256=${{ inputs.expected_boot_sha256 }}"
             echo "C_DELAY_BOOT_SIZE=37380096"
-            echo "T4_PAYLOAD_EXTRACTED_SHA256=${{ inputs.c_delay_payload_sha }}"
+            echo "C_DELAY_PAYLOAD_EXTRACTED_SHA256=${{ inputs.c_delay_payload_sha }}"
             echo "C_DELAY_PRIVATE_IDENTITY_REVERIFIED=YES"
             echo "C_DELAY_PROBE_ARCHITECTURE=INLINE"
-            echo "T4_DIAGNOSTIC_ONLY=YES"
-            echo "T4_NORMAL_KERNEL_BOOT_CANDIDATE=NO"
+            echo "C_DELAY_DIAGNOSTIC_ONLY=YES"
+            echo "C_DELAY_NORMAL_KERNEL_BOOT_CANDIDATE=NO"
             echo "DEVICE_OPERATION=NO"
             echo "PARTITION_WRITES=0"
             echo "SLOT_A_WRITTEN=NO"
-            echo "T4_DEVICE_OPERATION=NO"
+            echo "C_DELAY_DEVICE_OPERATION=NO"
           } | tee "$GITHUB_STEP_SUMMARY"
