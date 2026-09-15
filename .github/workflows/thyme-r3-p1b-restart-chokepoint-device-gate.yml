@@ -1,0 +1,154 @@
+name: thyme-r3-p1b-restart-chokepoint-device-gate
+
+# MAINLINE_V2_R3_P1B_RESTART_CHOKEPOINT_DEVICE_GATE_FINALIZATION_CI
+# PUBLIC: observer fixtures + public payload SHA reprint. No kernel rebuild,
+# no splice, no *.img, no device operation. Private pack lives in private-ci.
+on:
+  push:
+    branches: [route-b-v3, route-b-v3-panic-entry-integration]
+    paths:
+      - '.github/workflows/thyme-r3-p1b-restart-chokepoint-device-gate.yml'
+      - 'scripts/r3-p1b/observe-r3-p1b-reset8.py'
+      - 'scripts/r3-p1b/observe-r3-p1b-reset1.py'
+      - 'scripts/r3-p1b/observer-reset-pair-fixtures.py'
+      - 'scripts/r3-p1b/p1b-reset-pair-device-gate.py'
+      - 'docs/route-r3-p1b-restart-chokepoint-predevice-readiness.md'
+      - 'docs/route-r3-current-status.md'
+  pull_request:
+    paths:
+      - '.github/workflows/thyme-r3-p1b-restart-chokepoint-device-gate.yml'
+      - 'scripts/r3-p1b/observe-r3-p1b-reset8.py'
+      - 'scripts/r3-p1b/observe-r3-p1b-reset1.py'
+      - 'scripts/r3-p1b/observer-reset-pair-fixtures.py'
+      - 'scripts/r3-p1b/p1b-reset-pair-device-gate.py'
+  workflow_dispatch:
+    inputs:
+      public_run_id:
+        description: Public GHA run id carrying artifact thyme-r3-p1b-reset-pair
+        required: false
+        default: "34980859158"
+
+concurrency:
+  group: thyme-r3-p1b-restart-chokepoint-device-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    name: R3 P1B RESET pair device-gate source + observer fixtures
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Lint workflow in Actions
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-r3-p1b-restart-chokepoint-device-gate.yml
+
+      - name: Parse scripts
+        run: |
+          python3 -m py_compile scripts/r3-p1b/observe-r3-p1b-reset8.py
+          python3 -m py_compile scripts/r3-p1b/observe-r3-p1b-reset1.py
+          python3 -m py_compile scripts/r3-p1b/observer-reset-pair-fixtures.py
+          python3 -m py_compile scripts/r3-p1b/p1b-reset-pair-device-gate.py
+
+      - name: Device-gate source-gate
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          python3 scripts/r3-p1b/p1b-reset-pair-device-gate.py \
+            --mode source-gate | tee reset-device-gate-source.txt
+          for k in \
+            'RESET_DEVICE_GATE_SOURCE=PASS' \
+            'RESET_PAIR_DEVICE_EXECUTION_SPLIT=REQUIRED' \
+            'RESET_PAIR_EXECUTION_ORDER=RESET8_THEN_RESET1' \
+            'DEVICE_OPERATION=NO' \
+            'SLOT_A_WRITTEN=NO' \
+            'LOCAL_BUILD=NO' ; do
+            grep -Fxq "$k" reset-device-gate-source.txt
+          done
+
+      - name: RESET pair observer fixtures
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -o pipefail
+          python3 scripts/r3-p1b/observer-reset-pair-fixtures.py \
+            | tee reset-pair-observer-fixtures.txt
+          for k in \
+            'RESET_PAIR_OBSERVER_FIXTURES=PASS' \
+            'RESET8_OBSERVER_FULL_SHA_GATE=PASS' \
+            'RESET1_OBSERVER_FULL_SHA_GATE=PASS' \
+            'OBSERVER_RESET8_IDENTITY_EXACT_MATCH_ACCEPTED=PASS' \
+            'OBSERVER_RESET1_IDENTITY_EXACT_MATCH_ACCEPTED=PASS' \
+            'OBSERVER_RESET8_IDENTITY_RESET1_BOOT_MISBOOT_REFUSED=PASS' \
+            'OBSERVER_RESET1_IDENTITY_RESET8_BOOT_MISBOOT_REFUSED=PASS' \
+            'OBSERVER_RESET8_IDENTITY_WRONG_SIZE_REJECTED=PASS' \
+            'OBSERVER_RESET8_IDENTITY_1BYTE_MUTATED_BOOT_REJECTED=PASS' \
+            'OBSERVER_RESET8_IDENTITY_PAYLOAD_SWAP_REJECTED=PASS' \
+            'OBSERVER_RESET8_IDENTITY_PENTRY8_BOOT_MISBOOT_REFUSED=PASS' \
+            'OBSERVER_RESET8_IDENTITY_PENTRY1_BOOT_MISBOOT_REFUSED=PASS' \
+            'OBSERVER_RESET8_IDENTITY_C_DELAY_BOOT_MISBOOT_REFUSED=PASS' \
+            'OBSERVER_RESET8_IDENTITY_FIX8_BOOT_MISBOOT_REFUSED=PASS' \
+            'OBSERVER_RESET8_IDENTITY_PANIC30_BOOT_MISBOOT_REFUSED=PASS' \
+            'OBSERVER_RESET_PAIR_RESET8_ACCEPT_CASE=PASS' \
+            'OBSERVER_RESET_PAIR_RESET8_MANUAL_NOT_PROOF_CASE=PASS' \
+            'OBSERVER_RESET_PAIR_RESET1_PAIR_A_STRONG_CASE=PASS' \
+            'OBSERVER_RESET_PAIR_RESET1_PAIR_C_NO_SHIFT_CASE=PASS' ; do
+            grep -Fxq "$k" reset-pair-observer-fixtures.txt
+          done
+
+      - name: Assert no device image
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          echo 'PUBLIC_RESET_DEVICE_GATE_NO_DEVICE_IMAGE=PASS'
+          echo 'DEVICE_OPERATION=NO'
+          echo 'SLOT_A_WRITTEN=NO'
+          echo 'LOCAL_BUILD=NO'
+
+      - name: Upload device-gate source artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-r3-p1b-reset-device-gate-source
+          if-no-files-found: error
+          path: |
+            reset-device-gate-source.txt
+            reset-pair-observer-fixtures.txt
+
+  public-payload-reprint:
+    name: Reprint public RESET8/RESET1 payload FULL SHA
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Download public RESET pair artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLIC_RUN_ID: ${{ inputs.public_run_id || '34980859158' }}
+        run: |
+          set -euo pipefail
+          gh run download "$PUBLIC_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name thyme-r3-p1b-reset-pair --dir art
+          ( cd art && sha256sum -c SHA256SUMS )
+          echo '--- FULL SHA reprint ---'
+          sha256sum art/thyme-r3-p1b-reset8-kernel-payload.bin
+          sha256sum art/thyme-r3-p1b-reset1-kernel-payload.bin
+          printf '%s  art/thyme-r3-p1b-reset8-kernel-payload.bin\n' \
+            6254b87baae801e373b7142d45f2469c0bc9122c27004d5fec954da6a9208b8b \
+            | sha256sum -c -
+          printf '%s  art/thyme-r3-p1b-reset1-kernel-payload.bin\n' \
+            68c41b5dcfdbf97e3271fdf4ff156b59ee10aee9c475944b0629e56ef8716856 \
+            | sha256sum -c -
+          echo 'RESET8_PUBLIC_PAYLOAD_SHA_REPRINT=PASS'
+          echo 'RESET1_PUBLIC_PAYLOAD_SHA_REPRINT=PASS'
+          echo 'DEVICE_OPERATION=NO'
