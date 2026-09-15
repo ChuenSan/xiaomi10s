@@ -73,6 +73,14 @@ jobs:
       - name: Checkout project
         uses: actions/checkout@v4
 
+      - name: Fetch pinned linux-6.6 for the source-level isolation audits
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          base=$(git -C linux-6.6 rev-parse HEAD)
+          echo "LINUX_BASE_COMMIT=$base"
+          test "$base" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+
       - name: Lint workflow in Actions
         uses: docker://rhysd/actionlint:latest
         with:
