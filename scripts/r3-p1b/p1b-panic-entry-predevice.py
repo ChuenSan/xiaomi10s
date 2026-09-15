@@ -443,10 +443,11 @@ def landing_plan(word0: int, refs: dict, cfg: dict) -> dict:
             "requirement": "PRESERVE_ENTRY_WORD_ADDRESS_TAKEN_NO_BTI_PAD",
             "satisfied": True,
             "probe_size": CORE_SIZE + 4,
-            "reason": "entry0 is the PAC prologue, not a BTI pad, while the "
-                      "symbol is address-taken (exported): the original entry "
-                      "word is re-emitted verbatim; canonical uniqueness is "
-                      "reported PARTIAL and no BTI landing claim is made",
+            "reason": "entry0 is the PAC prologue, not a BTI landing pad, while "
+                      "the symbol is address-taken (exported): the original "
+                      "entry word is re-emitted verbatim and NO BTI landing-pad "
+                      "claim is made; canonical ENTRY uniqueness is reported "
+                      "separately as PANIC_CANONICAL_ENTRY_UNIQUE",
         }
     return {
         "prefix": word0,

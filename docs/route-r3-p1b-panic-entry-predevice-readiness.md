@@ -356,6 +356,67 @@ alternative reset map above.
 `PANIC_ENTRY_NEGATIVE_MDELAY_USED_BY_DIAGNOSTIC_REJECT`. All must be rejected
 by the real gates.
 
+## 26. CI RESULT (frozen values, public run)
+
+Primary public run `34928593489` at commit `2de1452` — source-audit PASS,
+panic-entry build PASS (14m15s), independent verify PASS. Verdict
+`PANIC_ENTRY_PREDEVICE_READINESS_CI_VERDICT=CI_PASS`.
+
+Canonical symbol (re-derived from this round's authoritative vmlinux):
+
+| item | value |
+| --- | --- |
+| symbol | `panic` (`kernel/panic.c`) |
+| link VA | `0xffff8000810b99bc` |
+| Image/file offset | `0x10b99bc` |
+| section / flags | `.text` / `AX` |
+| size | `0x344` |
+| entry0 | `paciasp` (`0xd503233f`) |
+| following insns | `sub`, `stp`, `str` (never executed by the probe) |
+
+References: `PANIC_DIRECT_CALLSITE_COUNT=204`, `PANIC_DIRECT_B_COUNT=0`,
+`PANIC_ADRP_PAGE_REF_COUNT=0`, `PANIC_ALIAS_COUNT=0`,
+`PANIC_FRAGMENT_COUNT=0`, `PANIC_CLONE_ENTRY_COUNT=0`,
+`PANIC_ENTRY_BRANCH_TYPES=DIRECT_BL,EXPORT_SYMBOL_ADDRESS_TAKEN`,
+`PANIC_CANONICAL_ENTRY_UNIQUE=YES`.
+
+Landing: `PANIC_ENTRY_LANDING_REQUIREMENT=PRESERVE_ENTRY_WORD_ADDRESS_TAKEN_NO_BTI_PAD`,
+`PANIC_ENTRY_PREFIX_PRESERVED=paciasp`, satisfied, with
+`CONFIG_ARM64_BTI_KERNEL=y` and no CFI/SCS/KASAN/KCOV/ftrace.
+
+Runtime rewrite: none in window — `__ex_table` 994 entries, `.altinstructions`
+37287, `__jump_table` / `.static_call_sites` / `.kcfi_traps` absent;
+`PANIC_ENTRY_RUNTIME_REWRITE_TARGETS=NONE_IN_WINDOW`,
+`PANIC_ENTRY_INLINE_OVERWRITE_SAFE=YES`.
+
+Probe: `PANIC_ENTRY_PROBE_ARCHITECTURE=INLINE`, 80 bytes
+(`paciasp` + the 76-byte T0-T4/C_DELAY core, byte-identical),
+sha256 `dbeb828e753ba18d3e451551cd9a59eeff705831425ad5d2b0f5e11aa05edad8`
+(byte-identical to the T3 device-proven probe),
+`PANIC_ENTRY_DIAGNOSTIC_INDEPENDENT_OF_PANIC_TIMEOUT=YES`.
+
+Payload: `1988ee22806cba6129f7c3bb34def9667ec39c60f029c622f60341374cc35469`,
+37369041 bytes, `74` diff bytes in the single window
+`[0x10b99bc,0x10b9a0c)`, everything else byte-identical to the frozen FIX8
+payload (`17537468` bytes before and `80` bytes after the window).
+`PANIC_ENTRY_RUNTIME_SEMANTIC_DELTA=PANIC_ENTRY_CHECKPOINT_ONLY`.
+
+Identity: `ALL_PRIOR_DIAGNOSTIC_PROBES_REMOVED=YES`,
+`PANIC_ENTRY_BASELINE_NORMAL_PATH_IDENTICAL_TO_FIX8=YES`,
+`C6_REGION_IDENTICAL_TO_FIX8=YES`,
+`C_DELAY_REGION_IDENTICAL_TO_FIX8=YES`,
+`START_KERNEL_ENTRY_RESTORED_TO_FIX8=YES`,
+`PANIC_ENTRY_TRAMPOLINE_IDENTICAL=YES`,
+`PANIC_ENTRY_RT_D_IDENTITY=YES` (keeps `panic=5`),
+`PANIC_ENTRY_INIT_IDENTITY=YES`, `PANIC_ENTRY_INITRAMFS_IDENTITY=YES`.
+Geometry from the FINAL BINARY HEADER: `IMAGE_HEADER_IMAGE_SIZE=0x2230000`,
+`IMAGE_FILE_SIZE=35166720`, `DTB_OFFSET=0x2380000`, boot 37380096.
+
+`PANIC_ENTRY_NEGATIVE_FIXTURES=PASS`, `PANIC_ENTRY_DECODER_FIXTURES=PASS`,
+`OBSERVER fixtures PASS`, `PANIC_ENTRY_MANIFEST_KEY_CONSISTENCY=PASS` (92 keys).
+A confirmation run is performed on the frozen commit; the payload SHA above is
+the gate it must reproduce.
+
 Public path: `.github/workflows/thyme-r3-p1b-panic-entry-predevice.yml`.
 Private staging: `artifacts/p1b-panic-entry-private-workflow-staging.yml`.
 Current B: `M5D+M5H+M5M-B` UNCHANGED. `PANIC30_RERUN=FROZEN`,
