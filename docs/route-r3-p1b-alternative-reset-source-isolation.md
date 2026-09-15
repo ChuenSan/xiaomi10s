@@ -122,9 +122,19 @@ OTHER_RESTART_HANDLER_CALLERS: psci_sys_reset (prio 129);
   msm pshold (prio 128, if probed); watchdog .restart ops (if probed)
 ```
 
-`RESTART_CHOKEPOINT_INSTRUMENTABLE` is derived from vmlinux (VA, Image
-offset, section AX, entry PAC/BTI, callers, FIX8 prologue match). This
-round only **designs** a future probe. No device-ready artifact.
+`RESTART_CHOKEPOINT_INSTRUMENTABLE=YES` (GHA `34966848565`).
+
+| symbol | VA | Image offset | section | landing | BL callers |
+| --- | --- | --- | --- | --- | --- |
+| `machine_restart` | `0xffff80008001849c` | `0x1849c` | `.text AX` | `paciasp` | 3 |
+| `do_kernel_restart` | `0xffff8000800bd474` | `0xbd474` | `.text AX` | `paciasp` | 1 (from `machine_restart`) |
+| `emergency_restart` | `0xffff8000800bd28c` | `0xbd28c` | `.text AX` | `paciasp` | 2 (incl. inside `panic`) |
+| `kernel_restart` | `0xffff8000800bd534` | `0xbd534` | `.text AX` | `paciasp` | 5 |
+| `psci_sys_reset` | `0xffff800080e18f90` | `0xe18f90` | `.text AX` | `bti c` | 0 (notifier, not BL) |
+
+`FIX8_MACHINE_RESTART_PROLOGUE_MATCH=YES`. `machine_emergency_restart`
+has no vmlinux symbol (inlined). This round only **designs** a future
+probe. No device-ready artifact.
 
 Future pair (DESIGN only): same choke, RESET8 vs RESET1, programmed
 diagnostic delay 8s vs 1s, expected delta `-7.000s`, register-only CNTPCT,
@@ -173,6 +183,20 @@ The CI enumerates `watchdog` / `wdt` / `timer-reset` / `restart` / PSCI /
 power-reset nodes from **this** blob only. Stock DT presence is never
 used. Missing nodes are recorded `ABSENT`.
 
+Live (GHA `34966848565`):
+
+| path | compatible | status |
+| --- | --- | --- |
+| `/psci` | `arm,psci-1.0` | okay |
+| `/soc@0/watchdog@17c10000` | `qcom,apss-wdt-sm8250`, `qcom,kpss-wdt` | okay (reg/irq/clocks PRESENT) |
+| `.../pmic@0/pon@800` | `qcom,pm8998-pon` | okay |
+| `.../pmic@4/pon@800` | `qcom,pm8916-pon` | disabled |
+| `qcom,pshold` | — | ABSENT |
+| `arm,smc-wdt` | — | ABSENT |
+
+`QCOM_WDT_RTD_NODE_PRESENT=YES` `PSCI_RTD_NODE_PRESENT=YES`
+`QCOM_PSHOLD_RTD_NODE_PRESENT=NO`.
+
 ## 11. Qualcomm watchdog
 
 In-tree `drivers/watchdog/qcom-wdt.c` is present.
@@ -184,10 +208,14 @@ If no probe: inherited state is untouched.
 
 ```
 QCOM_WDT_DRIVER_PRESENT=YES
-QCOM_WDT_RTD_NODE_PRESENT=<live>
-QCOM_WDT_DRIVER_WOULD_PROBE=<BUILTIN and RT-D node okay, else NO>
-QCOM_WDT_INHERITED_STATE_HANDLING=<see JSON>
+QCOM_WDT_RTD_NODE_PRESENT=YES
+QCOM_WDT_DRIVER_WOULD_PROBE=NO
+CONFIG_QCOM_WDT=MODULE
 ```
+
+The DT node is present and `okay`, but the driver is a module and this
+boot never loads modules, so probe does not run and inherited WDT is
+not taken over.
 
 The 30s figure is **not** a timeout identity for the current boot unless
 probe is proven. Seeing ~26s does **not** license "30s watchdog".
@@ -278,8 +306,20 @@ Ranking uses source evidence **and** the pair result: a panic-required
 candidate cannot outrank an equal-evidence panic-bypassing candidate.
 Pair negative does **not** auto-rank watchdog first.
 
-Live table is in the JSON. Source-supported order of the dominant-path
-question:
+Live table is in `early/alternative-reset-source-map.json` (GHA
+`34966848565`). Top rows:
+
+| rank | candidate | passes panic | can explain ~26s |
+| --- | --- | --- | --- |
+| 1 | ARS-SW-001 `machine_restart` / `do_kernel_restart` | NO | SOURCE_YES |
+| 2 | ARS-SW-003 `kernel_restart` | NO | SOURCE_YES |
+| 3 | ARS-SW-005 `psci_sys_reset` | NO | SOURCE_YES |
+| 4 | ARS-SW-002 `emergency_restart` (non-panic callers) | NO | INFERRED |
+| 8 | ARS-WD-001 qcom-wdt (DT yes, driver `m`, would-probe NO) | NO | UNKNOWN |
+| 12 | ARS-EXT-001 inherited APSS WDT | NO | UNKNOWN |
+| 15 | ARS-PANIC-TO panic→emergency_restart | YES | INFERRED (`DEPRIORITIZED_BY_PENTRY_PAIR`) |
+
+Source-supported order of the dominant-path question:
 
 1. Linux software restart through `machine_restart` / `do_kernel_restart`
    / PSCI handler (panic-bypassing, reachable after C_DELAY,

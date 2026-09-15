@@ -1,0 +1,1425 @@
+{
+  "schema_version": "1",
+  "round": "MAINLINE_V2_R3_P1B_ALTERNATIVE_RESET_SOURCE_ISOLATION_CI",
+  "linux_commit": "8b73de7da85fde281a385e0b26eda9bffd3ca477",
+  "frozen": {
+    "PENTRY8_TOTAL": 26.829,
+    "PENTRY1_TOTAL": 26.301,
+    "PENTRY_PAIR_DELTA": -0.528,
+    "PENTRY_PAIR_EXPECTED_DELTA": -7.0,
+    "PENTRY_PAIR_ERROR": 6.472,
+    "PANIC_ENTRY_DELAY_CONTROL_REFLECTED": "NO",
+    "PANIC_ENTRY_REACHED": "NOT_PROVEN",
+    "PANIC_ENTRY_HYPOTHESIS_PRIORITY": "REDUCED",
+    "NO_LINUX_PANIC": "NOT_LICENSED",
+    "C6": "PROVEN",
+    "C_DELAY": "PROVEN",
+    "C_DELAY_TOTAL": 14.464,
+    "PENTRY8_PAYLOAD_SHA": "1988ee22806cba6129f7c3bb34def9667ec39c60f029c622f60341374cc35469",
+    "PENTRY1_PAYLOAD_SHA": "5fb893c6f990b23a26fe0aba7439852ff5991b59794f4ee4ab1fa7691b8328ee",
+    "PENTRY1_BOOT_SHA": "370bc83f746b8e9459022effb07caf6e1a01fb17b1dd33b07c8b8f286f74f2c6",
+    "RT_D_SHA": "4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327",
+    "analysis_baseline": "FIX8_NORMAL_PATH",
+    "pstore_empty": "AUXILIARY_NOT_NEGATIVE",
+    "ANDROID_BOOTREASON_SOURCE_DIAGNOSTIC": "NO"
+  },
+  "restart_chain": {
+    "KERNEL_RESTART_CHAIN_AUDITED": "YES",
+    "EMERGENCY_RESTART_CHAIN_AUDITED": "YES",
+    "ARM64_RESTART_CHAIN_AUDITED": "YES",
+    "PSCI_RESTART_CHAIN_AUDITED": "YES",
+    "machine_emergency_restart": "INLINED_TO_machine_restart_NULL",
+    "weak_machine_restart": "ABSENT",
+    "kernel_restart": "kernel_restart_prepare -> machine_restart",
+    "emergency_restart": "kmsg_dump + machine_emergency_restart",
+    "machine_restart": "irq_disable + smp_send_stop + optional efi_reboot + do_kernel_restart + halt-loop",
+    "do_kernel_restart": "atomic_notifier_call_chain(restart_handler_list)",
+    "psci_sys_reset": "priority 129, PSCI SYSTEM_RESET / RESET2",
+    "psci_registered_when": "psci_0_2_set_functions via psci_dt_init (setup_arch, before C_DELAY if /psci present)",
+    "register_restart_handler": "kernel/reboot.c"
+  },
+  "chokepoint": {
+    "LINUX_SOFTWARE_RESET_COMMON_CHOKEPOINT": "machine_restart",
+    "handler_dispatch": "do_kernel_restart",
+    "machine_emergency_restart": "INLINED",
+    "LINUX_SOFTWARE_RESET_CHOKEPOINT_COVERAGE": {
+      "NORMAL_RESTART": "YES",
+      "EMERGENCY_RESTART": "YES",
+      "PANIC_TIMEOUT_RESTART": "YES",
+      "OTHER_RESTART_HANDLER_CALLERS": "psci_sys_reset (prio 129); msm pshold (prio 128, if probed); watchdog .restart ops (if probed)"
+    },
+    "efi_reboot_before_dispatch": "RUNTIME_CONDITIONAL",
+    "RESTART_CHOKEPOINT_INSTRUMENTABLE": "YES",
+    "future_pair": {
+      "RESET8_delay_s": 8,
+      "RESET1_delay_s": 1,
+      "expected_delta_s": -7.0,
+      "style": "register-only CNTPCT + PSCI SYSTEM_RESET fail-closed",
+      "device_ready_this_round": "NO"
+    },
+    "binary_symbol": {
+      "va": "0xffff80008001849c",
+      "image_offset": "0x1849c",
+      "file_offset": "0x1849c",
+      "section": ".text",
+      "section_flags": "AX",
+      "entry_word": "0xd503233f",
+      "landing": "paciasp",
+      "entry_insns": [
+        {
+          "va": "ffff80008001849c",
+          "bytes": "d503233f",
+          "mnemonic": "paciasp",
+          "ops": ""
+        },
+        {
+          "va": "ffff8000800184a0",
+          "bytes": "a9be7bfd",
+          "mnemonic": "stp",
+          "ops": "x29, x30, [sp, #-0x20]!"
+        },
+        {
+          "va": "ffff8000800184a4",
+          "bytes": "f9000bf3",
+          "mnemonic": "str",
+          "ops": "x19, [sp, #0x10]"
+        },
+        {
+          "va": "ffff8000800184a8",
+          "bytes": "910003fd",
+          "mnemonic": "mov",
+          "ops": "x29, sp"
+        },
+        {
+          "va": "ffff8000800184ac",
+          "bytes": "d50343df",
+          "mnemonic": "msr",
+          "ops": "DAIFSet, #0x3"
+        },
+        {
+          "va": "ffff8000800184b0",
+          "bytes": "aa0003f3",
+          "mnemonic": "mov",
+          "ops": "x19, x0"
+        },
+        {
+          "va": "ffff8000800184b4",
+          "bytes": "94003773",
+          "mnemonic": "bl",
+          "ops": "0xffff800080026280 <smp_send_stop>"
+        },
+        {
+          "va": "ffff8000800184b8",
+          "bytes": "f000e9a8",
+          "mnemonic": "adrp",
+          "ops": "x8, 0xffff800081d4f000 <ci_ehci_hc_driver+0x40>"
+        }
+      ],
+      "direct_callers": [
+        {
+          "va": "0xffff8000800bd2b0",
+          "offset": "0xbd2b0",
+          "kind": "BL"
+        },
+        {
+          "va": "0xffff8000800bd62c",
+          "offset": "0xbd62c",
+          "kind": "BL"
+        },
+        {
+          "va": "0xffff8000800be4fc",
+          "offset": "0xbe4fc",
+          "kind": "BL"
+        }
+      ],
+      "direct_caller_count": 3
+    }
+  },
+  "watchdog": {
+    "WATCHDOG_CONFIG_AUDIT_COMPLETE": "YES",
+    "classes": {
+      "CONFIG_WATCHDOG": "BUILTIN",
+      "CONFIG_WATCHDOG_CORE": "BUILTIN",
+      "CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED": "BUILTIN",
+      "CONFIG_WATCHDOG_NOWAYOUT": "ABSENT",
+      "CONFIG_QCOM_WDT": "MODULE",
+      "CONFIG_PM8916_WATCHDOG": "MODULE",
+      "CONFIG_ARM_SP805_WATCHDOG": "BUILTIN",
+      "CONFIG_ARM_SBSA_WATCHDOG": "BUILTIN",
+      "CONFIG_ARM_SMC_WATCHDOG": "BUILTIN",
+      "CONFIG_SOFT_WATCHDOG": "ABSENT",
+      "CONFIG_LOCKUP_DETECTOR": "ABSENT",
+      "CONFIG_SOFTLOCKUP_DETECTOR": "ABSENT",
+      "CONFIG_HARDLOCKUP_DETECTOR": "ABSENT",
+      "CONFIG_DETECT_HUNG_TASK": "ABSENT",
+      "CONFIG_HANGCHECK_TIMER": "ABSENT",
+      "CONFIG_POWER_RESET_MSM": "BUILTIN",
+      "CONFIG_POWER_RESET_QCOM_PON": "MODULE",
+      "CONFIG_ARM_PSCI_FW": "BUILTIN",
+      "CONFIG_EFI": "BUILTIN",
+      "CONFIG_EFI_RUNTIME_SERVICES": "ABSENT",
+      "CONFIG_MODULES": "BUILTIN",
+      "CONFIG_ARCH_QCOM": "BUILTIN",
+      "CONFIG_PANIC_ON_OOPS": "ABSENT",
+      "CONFIG_PANIC_TIMEOUT": "OTHER:0",
+      "CONFIG_QCOM_SCM": "BUILTIN",
+      "CONFIG_MFD_SPMI_PMIC": "BUILTIN"
+    },
+    "QCOM_WDT_DRIVER_PRESENT": "YES",
+    "QCOM_WDT_RTD_NODE_PRESENT": "YES",
+    "QCOM_WDT_DRIVER_WOULD_PROBE": "NO",
+    "QCOM_WDT_INHERITED_STATE_HANDLING": "IF probe AND already running: stop+reprogram default 30s (or timeout-sec) + WDOG_HW_RUNNING so core pets. IF no probe: inherited state UNTOUCHED.",
+    "PMIC_WDT_RTD_NODE_PRESENT": "YES",
+    "FIRMWARE_WATCHDOG_STATE": "UNKNOWN",
+    "WATCHDOG_TIMEOUT_SOURCE_DERIVABLE": "NO",
+    "TIMEOUT": "UNKNOWN",
+    "BOOTLOADER_WATCHDOG_HANDOFF_GAP": "SOURCE_PLAUSIBLE",
+    "do_not_infer_30s_from_26s": "YES"
+  },
+  "rtd": {
+    "RUNTIME_DTB_WATCHDOG_AUDIT_COMPLETE": "YES",
+    "rtd_sha256": "4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327",
+    "rtd_size": 144593,
+    "interesting_nodes": [
+      {
+        "path": "/psci",
+        "compatible": [
+          "arm,psci-1.0"
+        ],
+        "status": "okay",
+        "reg": "ABSENT",
+        "interrupts": "ABSENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/psci/power-domain-cpu-cluster0",
+        "compatible": [],
+        "status": "okay",
+        "reg": "ABSENT",
+        "interrupts": "ABSENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/psci/power-domain-cpu0",
+        "compatible": [],
+        "status": "okay",
+        "reg": "ABSENT",
+        "interrupts": "ABSENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/psci/power-domain-cpu1",
+        "compatible": [],
+        "status": "okay",
+        "reg": "ABSENT",
+        "interrupts": "ABSENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/psci/power-domain-cpu2",
+        "compatible": [],
+        "status": "okay",
+        "reg": "ABSENT",
+        "interrupts": "ABSENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/psci/power-domain-cpu3",
+        "compatible": [],
+        "status": "okay",
+        "reg": "ABSENT",
+        "interrupts": "ABSENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/psci/power-domain-cpu4",
+        "compatible": [],
+        "status": "okay",
+        "reg": "ABSENT",
+        "interrupts": "ABSENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/psci/power-domain-cpu5",
+        "compatible": [],
+        "status": "okay",
+        "reg": "ABSENT",
+        "interrupts": "ABSENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/psci/power-domain-cpu6",
+        "compatible": [],
+        "status": "okay",
+        "reg": "ABSENT",
+        "interrupts": "ABSENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/psci/power-domain-cpu7",
+        "compatible": [],
+        "status": "okay",
+        "reg": "ABSENT",
+        "interrupts": "ABSENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/soc@0/spmi@c440000/pmic@0/pon@800",
+        "compatible": [
+          "qcom,pm8998-pon"
+        ],
+        "status": "okay",
+        "reg": "PRESENT",
+        "interrupts": "ABSENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/soc@0/spmi@c440000/pmic@0/pon@800/pwrkey",
+        "compatible": [
+          "qcom,pm8941-pwrkey"
+        ],
+        "status": "disabled",
+        "reg": "ABSENT",
+        "interrupts": "PRESENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/soc@0/spmi@c440000/pmic@0/pon@800/resin",
+        "compatible": [
+          "qcom,pm8941-resin"
+        ],
+        "status": "disabled",
+        "reg": "ABSENT",
+        "interrupts": "PRESENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/soc@0/spmi@c440000/pmic@4/pon@800",
+        "compatible": [
+          "qcom,pm8916-pon"
+        ],
+        "status": "disabled",
+        "reg": "PRESENT",
+        "interrupts": "ABSENT",
+        "clocks": "ABSENT",
+        "resets": "ABSENT"
+      },
+      {
+        "path": "/soc@0/watchdog@17c10000",
+        "compatible": [
+          "qcom,apss-wdt-sm8250",
+          "qcom,kpss-wdt"
+        ],
+        "status": "okay",
+        "reg": "PRESENT",
+        "interrupts": "PRESENT",
+        "clocks": "PRESENT",
+        "resets": "ABSENT"
+      }
+    ],
+    "QCOM_WDT_RTD_NODE_PRESENT": "YES",
+    "PMIC_WDT_RTD_NODE_PRESENT": "YES",
+    "QCOM_PSHOLD_RTD_NODE_PRESENT": "NO",
+    "PSCI_RTD_NODE_PRESENT": "YES",
+    "ARM_SMC_WDT_RTD_NODE_PRESENT": "NO",
+    "stock_dt_not_used": "YES"
+  },
+  "oops_die": {
+    "OOPS_DIE_RESET_MAP_COMPLETE": "YES",
+    "die": {
+      "calls_panic": "conditional (in_interrupt OR panic_on_oops)",
+      "else": "make_task_dead(SIGSEGV)",
+      "direct_restart": "NO"
+    },
+    "oops_enter": {
+      "calls_panic": "only via panic_on_oops",
+      "direct_restart": "NO"
+    },
+    "bug_warn": {
+      "calls_panic": "conditional panic_on_warn / warn_limit",
+      "direct_restart": "NO"
+    },
+    "panic_timeout_restart": {
+      "calls_panic": "YES (is inside panic())",
+      "then": "emergency_restart if panic_timeout != 0"
+    },
+    "OOPS_DIE_DIRECT_RESTART_WITHOUT_PANIC": "NO_IN_TREE",
+    "paths_requiring_panic": [
+      "die+panic_on_oops",
+      "die+in_interrupt",
+      "check_panic_on_warn",
+      "PID1 death",
+      "no working init"
+    ],
+    "panic_bypassing_paths": [
+      "die -> make_task_dead (hang/kill, no restart)",
+      "WARN without panic_on_warn"
+    ]
+  },
+  "init_failure": {
+    "INIT_FAILURE_RESET_SEMANTICS_AUDITED": "YES",
+    "rdinit_failure": "pr_err then fall through (NOT panic)",
+    "execute_command_failure": "panic (requires canonical panic)",
+    "no_working_init": "panic (requires canonical panic)",
+    "pid1_death": "panic Attempted to kill init (requires canonical panic)",
+    "p1b_init_sleep_failure": "exit 111 -> PID1 death -> panic",
+    "p1b_init_reboot_syscall": "SYS_reboot RESTART -> kernel_restart (does NOT pass panic)",
+    "requires_panic": "PARTIAL",
+    "init_reached": "NOT_PROVEN"
+  },
+  "callers": {
+    "emergency_restart_source_callers": [
+      "kernel/panic.c",
+      "kernel/reboot.c",
+      "kernel/debug/kdb/kdb_main.c",
+      "drivers/tty/sysrq.c",
+      "drivers/watchdog/softdog.c",
+      "drivers/char/hangcheck-timer.c"
+    ],
+    "kernel_restart_source_callers": [
+      "kernel/reboot.c",
+      "kernel/power/hibernate.c",
+      "drivers/watchdog/softdog.c"
+    ],
+    "POST_C_DELAY_EMERGENCY_RESTART_CALLERS": [
+      "panic_timeout_branch (inside panic; DEPRIORITIZED_BY_PENTRY_PAIR)",
+      "sysrq reboot (needs tty/sysrq; not proven in this boot)",
+      "kdb (needs kgdb; not proven)",
+      "softdog (CONFIG_SOFT_WATCHDOG typically ABSENT)",
+      "hangcheck-timer (typically ABSENT)",
+      "hw_failure_emergency_poweroff (thermal; needs driver)"
+    ],
+    "kernel_restart_classes": {
+      "userspace_reboot_syscall": "kernel/reboot.c LINUX_REBOOT_CMD_RESTART",
+      "orderly_reboot_fallback": "kernel_restart after /sbin/reboot fail",
+      "ctrl_alt_del": "deferred kernel_restart",
+      "priority_userspace": "LOW_INFERENCE (/init NOT_PROVEN)"
+    }
+  },
+  "psci_classes": {
+    "PSCI_RESET_PATH_CLASSES_COMPLETE": "YES",
+    "A_DIAGNOSTIC_PROBE_DIRECT": {
+      "what": "T0/T1/T2/T3/T4/C_DELAY/PENTRY inline CNTPCT + SMC PSCI SYSTEM_RESET 0x84000009",
+      "natural_26s_source": "NO (pair delay-control not reflected; analysis uses FIX8 normal baseline)"
+    },
+    "B_LINUX_RESTART_FRAMEWORK": {
+      "what": "do_kernel_restart -> psci_sys_reset notifier -> invoke_psci_fn(SYSTEM_RESET)",
+      "natural_26s_source": "PLAUSIBLE_IF_SOFTWARE_RESTART"
+    },
+    "C_SECURE_FIRMWARE_AUTONOMOUS": {
+      "what": "EL3/TZ/ABL/PMIC reset without Linux call",
+      "natural_26s_source": "UNKNOWN SOURCE_NOT_OBSERVABLE"
+    },
+    "must_not_merge": "YES"
+  },
+  "candidates": [
+    {
+      "candidate_id": "ARS-SW-001",
+      "symbol": "machine_restart / do_kernel_restart",
+      "source_file": "arch/arm64/kernel/process.c + kernel/reboot.c",
+      "trigger": "any Linux software restart after C_DELAY",
+      "reachable_after_c_delay": "YES",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "YES",
+      "requires_driver_probe": "NO",
+      "requires_DT_node": "NO",
+      "relevant_config": "none (core)",
+      "runtime_patch_risk": "LOW",
+      "source_timing_bound": "NOT_SOURCE_DERIVABLE",
+      "can_explain_23_28s": "SOURCE_YES",
+      "confidence_class": "SOURCE_SUPPORTED",
+      "recommended_next_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO",
+      "class": "A_LINUX_SOFTWARE_RESTART"
+    },
+    {
+      "candidate_id": "ARS-SW-002",
+      "symbol": "emergency_restart",
+      "source_file": "kernel/reboot.c",
+      "trigger": "non-panic callers (sysrq/kdb/hangcheck/hw_failure)",
+      "reachable_after_c_delay": "YES",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "YES",
+      "requires_driver_probe": "PARTIAL",
+      "requires_DT_node": "NO",
+      "relevant_config": "caller-dependent",
+      "runtime_patch_risk": "LOW",
+      "source_timing_bound": "NOT_SOURCE_DERIVABLE",
+      "can_explain_23_28s": "INFERRED",
+      "confidence_class": "SOURCE_SUPPORTED",
+      "recommended_next_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO",
+      "class": "A_LINUX_SOFTWARE_RESTART"
+    },
+    {
+      "candidate_id": "ARS-SW-003",
+      "symbol": "kernel_restart",
+      "source_file": "kernel/reboot.c",
+      "trigger": "reboot syscall / orderly_reboot / CAD",
+      "reachable_after_c_delay": "YES",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "YES",
+      "requires_driver_probe": "NO",
+      "requires_DT_node": "NO",
+      "relevant_config": "none (core)",
+      "runtime_patch_risk": "LOW",
+      "source_timing_bound": "NOT_SOURCE_DERIVABLE",
+      "can_explain_23_28s": "SOURCE_YES",
+      "confidence_class": "SOURCE_SUPPORTED",
+      "recommended_next_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO",
+      "note": "userspace reboot priority LOW because /init NOT_PROVEN",
+      "class": "A_LINUX_SOFTWARE_RESTART"
+    },
+    {
+      "candidate_id": "ARS-SW-004",
+      "symbol": "p1b /init SYS_reboot",
+      "source_file": "scripts/r3-p1b/p1b-init.c",
+      "trigger": "/init reached, sleep completes, reboot syscall",
+      "reachable_after_c_delay": "YES",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "YES",
+      "requires_driver_probe": "NO",
+      "requires_DT_node": "NO",
+      "relevant_config": "rdinit=/init",
+      "runtime_patch_risk": "NONE",
+      "source_timing_bound": "C_DELAY + remaining kernel_init + 8s (/init NOT_PROVEN)",
+      "can_explain_23_28s": "INFERRED",
+      "confidence_class": "INFERRED",
+      "recommended_next_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO",
+      "class": "A_LINUX_SOFTWARE_RESTART"
+    },
+    {
+      "candidate_id": "ARS-SW-005",
+      "symbol": "psci_sys_reset",
+      "source_file": "drivers/firmware/psci/psci.c",
+      "trigger": "restart_handler_list from do_kernel_restart",
+      "reachable_after_c_delay": "YES",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "YES",
+      "requires_driver_probe": "NO",
+      "requires_DT_node": "YES",
+      "relevant_config": "CONFIG_ARM_PSCI_FW",
+      "runtime_patch_risk": "LOW",
+      "source_timing_bound": "NOT_SOURCE_DERIVABLE",
+      "can_explain_23_28s": "SOURCE_YES",
+      "confidence_class": "SOURCE_SUPPORTED",
+      "recommended_next_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO",
+      "rtd_node": "YES",
+      "class": "E_ARCH_PSCI_RESTART"
+    },
+    {
+      "candidate_id": "ARS-SW-006",
+      "symbol": "msm_restart deassert_pshold",
+      "source_file": "drivers/power/reset/msm-poweroff.c",
+      "trigger": "restart handler prio 128 after PSCI 129",
+      "reachable_after_c_delay": "NO",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "YES",
+      "requires_driver_probe": "YES",
+      "requires_DT_node": "YES",
+      "relevant_config": "CONFIG_POWER_RESET_MSM=BUILTIN",
+      "runtime_patch_risk": "HIGH",
+      "source_timing_bound": "NOT_SOURCE_DERIVABLE",
+      "can_explain_23_28s": "UNKNOWN",
+      "confidence_class": "SOURCE_SUPPORTED",
+      "recommended_next_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO",
+      "rtd_node": "NO",
+      "would_probe": "NO",
+      "class": "A_LINUX_SOFTWARE_RESTART"
+    },
+    {
+      "candidate_id": "ARS-PANIC-TO",
+      "symbol": "panic -> emergency_restart",
+      "source_file": "kernel/panic.c",
+      "trigger": "canonical panic() then panic_timeout != 0",
+      "reachable_after_c_delay": "YES",
+      "passes_canonical_panic": "YES",
+      "common_restart_chokepoint": "YES",
+      "requires_driver_probe": "NO",
+      "requires_DT_node": "NO",
+      "relevant_config": "panic=5 in RT-D",
+      "runtime_patch_risk": "NONE",
+      "source_timing_bound": "NOT_SOURCE_DERIVABLE",
+      "can_explain_23_28s": "INFERRED",
+      "confidence_class": "SOURCE_SUPPORTED",
+      "recommended_next_probe": "NOT_AUTHORIZED_UNTIL_PANIC_ENTRY_EVIDENCE",
+      "deprioritized_by_pentry_pair": "YES",
+      "class": "A_LINUX_SOFTWARE_RESTART"
+    },
+    {
+      "candidate_id": "ARS-WD-001",
+      "symbol": "qcom_wdt_probe / qcom_wdt_start",
+      "source_file": "drivers/watchdog/qcom-wdt.c",
+      "trigger": "DT probe then bite, or inherited WDT if probe",
+      "reachable_after_c_delay": "NO",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "NO",
+      "requires_driver_probe": "YES",
+      "requires_DT_node": "YES",
+      "relevant_config": "CONFIG_QCOM_WDT=MODULE",
+      "runtime_patch_risk": "FORBIDDEN",
+      "source_timing_bound": "30s default ONLY if probe; otherwise UNKNOWN",
+      "can_explain_23_28s": "UNKNOWN",
+      "confidence_class": "SOURCE_SUPPORTED",
+      "recommended_next_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "NO",
+      "rtd_node": "YES",
+      "would_probe": "NO",
+      "inherited": "IF probe AND already running: stop+reprogram default 30s (or timeout-sec) + WDOG_HW_RUNNING so core pets. IF no probe: inherited state UNTOUCHED.",
+      "class": "B_LINUX_WATCHDOG"
+    },
+    {
+      "candidate_id": "ARS-WD-002",
+      "symbol": "pm8916_wdt",
+      "source_file": "drivers/watchdog/pm8916_wdt.c",
+      "trigger": "SPMI PMIC PON watchdog probe",
+      "reachable_after_c_delay": "NO",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "NO",
+      "requires_driver_probe": "YES",
+      "requires_DT_node": "YES",
+      "relevant_config": "CONFIG_PM8916_WATCHDOG=MODULE",
+      "runtime_patch_risk": "FORBIDDEN",
+      "source_timing_bound": "32s default ONLY if probe; otherwise UNKNOWN",
+      "can_explain_23_28s": "UNKNOWN",
+      "confidence_class": "SOURCE_SUPPORTED",
+      "recommended_next_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "NO",
+      "rtd_node": "YES",
+      "would_probe": "NO",
+      "class": "B_LINUX_WATCHDOG"
+    },
+    {
+      "candidate_id": "ARS-WD-003",
+      "symbol": "watchdog_hardlockup_check / softlockup",
+      "source_file": "kernel/watchdog.c",
+      "trigger": "lockup detector after SMP/timers",
+      "reachable_after_c_delay": "PARTIAL",
+      "passes_canonical_panic": "PARTIAL",
+      "common_restart_chokepoint": "NO",
+      "requires_driver_probe": "NO",
+      "requires_DT_node": "NO",
+      "relevant_config": "CONFIG_LOCKUP_DETECTOR=ABSENT",
+      "runtime_patch_risk": "NONE",
+      "source_timing_bound": "NOT_SOURCE_DERIVABLE",
+      "can_explain_23_28s": "UNKNOWN",
+      "confidence_class": "INFERRED",
+      "recommended_next_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "PARTIAL",
+      "class": "B_LINUX_WATCHDOG"
+    },
+    {
+      "candidate_id": "ARS-WD-004",
+      "symbol": "softdog",
+      "source_file": "drivers/watchdog/softdog.c",
+      "trigger": "soft watchdog timer -> kernel_restart/emergency_restart",
+      "reachable_after_c_delay": "NO",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "YES",
+      "requires_driver_probe": "YES",
+      "requires_DT_node": "NO",
+      "relevant_config": "CONFIG_SOFT_WATCHDOG=ABSENT",
+      "runtime_patch_risk": "NONE",
+      "source_timing_bound": "NOT_SOURCE_DERIVABLE",
+      "can_explain_23_28s": "UNKNOWN",
+      "confidence_class": "SOURCE_SUPPORTED",
+      "recommended_next_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO",
+      "class": "B_LINUX_WATCHDOG"
+    },
+    {
+      "candidate_id": "ARS-WD-005",
+      "symbol": "smcwd_probe",
+      "source_file": "drivers/watchdog/arm_smc_wdt.c",
+      "trigger": "arm,smc-wdt DT probe",
+      "reachable_after_c_delay": "NO",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "NO",
+      "requires_driver_probe": "YES",
+      "requires_DT_node": "YES",
+      "relevant_config": "CONFIG_ARM_SMC_WATCHDOG=BUILTIN",
+      "runtime_patch_risk": "FORBIDDEN",
+      "source_timing_bound": "UNKNOWN",
+      "can_explain_23_28s": "UNKNOWN",
+      "confidence_class": "SOURCE_SUPPORTED",
+      "recommended_next_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "NO",
+      "rtd_node": "NO",
+      "would_probe": "NO",
+      "class": "B_LINUX_WATCHDOG"
+    },
+    {
+      "candidate_id": "ARS-EXT-001",
+      "symbol": "bootloader-inherited APSS WDT",
+      "source_file": "NOT_IN_TREE (ABL/XBL/TZ)",
+      "trigger": "armed pre-Linux watchdog expires; Linux never pets",
+      "reachable_after_c_delay": "YES",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "NO",
+      "requires_driver_probe": "NO",
+      "requires_DT_node": "NO",
+      "relevant_config": "n/a",
+      "runtime_patch_risk": "FORBIDDEN",
+      "source_timing_bound": "UNKNOWN",
+      "can_explain_23_28s": "UNKNOWN",
+      "confidence_class": "UNKNOWN",
+      "recommended_next_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "NO",
+      "BOOTLOADER_WATCHDOG_HANDOFF_GAP": "SOURCE_PLAUSIBLE",
+      "FIRMWARE_WATCHDOG_STATE": "UNKNOWN",
+      "class": "C_FIRMWARE_WATCHDOG"
+    },
+    {
+      "candidate_id": "ARS-EXT-002",
+      "symbol": "TZ/secure-world / PMIC autonomous WDT",
+      "source_file": "NOT_IN_TREE",
+      "trigger": "secure firmware or PMIC hardware timeout",
+      "reachable_after_c_delay": "YES",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "NO",
+      "requires_driver_probe": "NO",
+      "requires_DT_node": "NO",
+      "relevant_config": "n/a",
+      "runtime_patch_risk": "FORBIDDEN",
+      "source_timing_bound": "UNKNOWN",
+      "can_explain_23_28s": "UNKNOWN",
+      "confidence_class": "UNKNOWN",
+      "recommended_next_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "NO",
+      "FIRMWARE_WATCHDOG_STATE": "UNKNOWN",
+      "class": "C_FIRMWARE_WATCHDOG"
+    },
+    {
+      "candidate_id": "ARS-EXT-003",
+      "symbol": "ABL automatic fallback reset",
+      "source_file": "NOT_IN_TREE",
+      "trigger": "bootloader policy after kernel handoff failure",
+      "reachable_after_c_delay": "YES",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "NO",
+      "requires_driver_probe": "NO",
+      "requires_DT_node": "NO",
+      "relevant_config": "n/a",
+      "runtime_patch_risk": "FORBIDDEN",
+      "source_timing_bound": "UNKNOWN",
+      "can_explain_23_28s": "UNKNOWN",
+      "confidence_class": "UNKNOWN",
+      "recommended_next_probe": "ALTERNATIVE_RESET_DIAGNOSTIC_DESIGN",
+      "deprioritized_by_pentry_pair": "NO",
+      "class": "C_FIRMWARE_WATCHDOG"
+    },
+    {
+      "candidate_id": "ARS-OOPS-001",
+      "symbol": "die",
+      "source_file": "arch/arm64/kernel/traps.c",
+      "trigger": "oops with panic_on_oops or in_interrupt",
+      "reachable_after_c_delay": "YES",
+      "passes_canonical_panic": "YES",
+      "common_restart_chokepoint": "YES",
+      "requires_driver_probe": "NO",
+      "requires_DT_node": "NO",
+      "relevant_config": "CONFIG_PANIC_ON_OOPS",
+      "runtime_patch_risk": "NONE",
+      "source_timing_bound": "NOT_SOURCE_DERIVABLE",
+      "can_explain_23_28s": "INFERRED",
+      "confidence_class": "SOURCE_SUPPORTED",
+      "recommended_next_probe": "NOT_AUTHORIZED_UNTIL_PANIC_ENTRY_EVIDENCE",
+      "deprioritized_by_pentry_pair": "YES",
+      "class": "D_DIE_OOPS_BUG"
+    },
+    {
+      "candidate_id": "ARS-OOPS-002",
+      "symbol": "die -> make_task_dead",
+      "source_file": "arch/arm64/kernel/traps.c",
+      "trigger": "oops without panic_on_oops; hang unless firmware WDT",
+      "reachable_after_c_delay": "YES",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "NO",
+      "requires_driver_probe": "NO",
+      "requires_DT_node": "NO",
+      "relevant_config": "panic_on_oops default 0",
+      "runtime_patch_risk": "NONE",
+      "source_timing_bound": "NOT_SOURCE_DERIVABLE",
+      "can_explain_23_28s": "UNKNOWN",
+      "confidence_class": "SOURCE_SUPPORTED",
+      "recommended_next_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "NO",
+      "class": "D_DIE_OOPS_BUG"
+    },
+    {
+      "candidate_id": "ARS-INIT-001",
+      "symbol": "do_exit is_global_init",
+      "source_file": "kernel/exit.c + init/main.c",
+      "trigger": "PID1 death / no working init / /init exit 111",
+      "reachable_after_c_delay": "YES",
+      "passes_canonical_panic": "YES",
+      "common_restart_chokepoint": "YES",
+      "requires_driver_probe": "NO",
+      "requires_DT_node": "NO",
+      "relevant_config": "rdinit=/init panic=5",
+      "runtime_patch_risk": "NONE",
+      "source_timing_bound": "NOT_SOURCE_DERIVABLE",
+      "can_explain_23_28s": "INFERRED",
+      "confidence_class": "SOURCE_SUPPORTED",
+      "recommended_next_probe": "NOT_AUTHORIZED_UNTIL_PANIC_ENTRY_EVIDENCE",
+      "deprioritized_by_pentry_pair": "YES",
+      "class": "D_DIE_OOPS_BUG"
+    },
+    {
+      "candidate_id": "ARS-DIAG-001",
+      "symbol": "PENTRY/T0-T4/C_DELAY probe SMC",
+      "source_file": "scripts/r3-p1b/p1b-*-device.S",
+      "trigger": "diagnostic probe if checkpoint executes",
+      "reachable_after_c_delay": "NO",
+      "passes_canonical_panic": "NO",
+      "common_restart_chokepoint": "NO",
+      "requires_driver_probe": "NO",
+      "requires_DT_node": "NO",
+      "relevant_config": "n/a",
+      "runtime_patch_risk": "NONE",
+      "source_timing_bound": "programmed delay; pair showed NO shift",
+      "can_explain_23_28s": "UNKNOWN",
+      "confidence_class": "SOURCE_PROVEN",
+      "recommended_next_probe": "DO_NOT_TREAT_AS_NATURAL_RESET",
+      "deprioritized_by_pentry_pair": "YES",
+      "note": "FIX8 baseline is the logical natural path",
+      "class": "Z_DIAGNOSTIC_PSCI_NOT_NATURAL"
+    }
+  ],
+  "ranking": [
+    {
+      "rank": 1,
+      "candidate": "ARS-SW-001 machine_restart / do_kernel_restart",
+      "class": "A_LINUX_SOFTWARE_RESTART",
+      "why_plausible": "any Linux software restart after C_DELAY",
+      "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=YES; choke=YES",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "SOURCE_YES",
+      "next_causal_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 2,
+      "candidate": "ARS-SW-003 kernel_restart",
+      "class": "A_LINUX_SOFTWARE_RESTART",
+      "why_plausible": "reboot syscall / orderly_reboot / CAD",
+      "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=YES; choke=YES",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "SOURCE_YES",
+      "next_causal_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 3,
+      "candidate": "ARS-SW-005 psci_sys_reset",
+      "class": "E_ARCH_PSCI_RESTART",
+      "why_plausible": "restart_handler_list from do_kernel_restart",
+      "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=YES; choke=YES",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "SOURCE_YES",
+      "next_causal_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 4,
+      "candidate": "ARS-SW-002 emergency_restart",
+      "class": "A_LINUX_SOFTWARE_RESTART",
+      "why_plausible": "non-panic callers (sysrq/kdb/hangcheck/hw_failure)",
+      "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=YES; choke=YES",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "INFERRED",
+      "next_causal_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 5,
+      "candidate": "ARS-SW-006 msm_restart deassert_pshold",
+      "class": "A_LINUX_SOFTWARE_RESTART",
+      "why_plausible": "restart handler prio 128 after PSCI 129",
+      "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=NO; choke=YES",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "UNKNOWN",
+      "next_causal_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 6,
+      "candidate": "ARS-WD-004 softdog",
+      "class": "B_LINUX_WATCHDOG",
+      "why_plausible": "soft watchdog timer -> kernel_restart/emergency_restart",
+      "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=NO; choke=YES",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "UNKNOWN",
+      "next_causal_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 7,
+      "candidate": "ARS-SW-004 p1b /init SYS_reboot",
+      "class": "A_LINUX_SOFTWARE_RESTART",
+      "why_plausible": "/init reached, sleep completes, reboot syscall",
+      "evidence_supports": "INFERRED; after_c_delay=YES; choke=YES",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "INFERRED",
+      "next_causal_probe": "RESET_CHOKEPOINT_MATCHED_DELAY_PAIR",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 8,
+      "candidate": "ARS-WD-001 qcom_wdt_probe / qcom_wdt_start",
+      "class": "B_LINUX_WATCHDOG",
+      "why_plausible": "DT probe then bite, or inherited WDT if probe",
+      "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=NO; choke=NO",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "UNKNOWN",
+      "next_causal_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 9,
+      "candidate": "ARS-WD-002 pm8916_wdt",
+      "class": "B_LINUX_WATCHDOG",
+      "why_plausible": "SPMI PMIC PON watchdog probe",
+      "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=NO; choke=NO",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "UNKNOWN",
+      "next_causal_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 10,
+      "candidate": "ARS-WD-005 smcwd_probe",
+      "class": "B_LINUX_WATCHDOG",
+      "why_plausible": "arm,smc-wdt DT probe",
+      "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=NO; choke=NO",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "UNKNOWN",
+      "next_causal_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 11,
+      "candidate": "ARS-OOPS-002 die -> make_task_dead",
+      "class": "D_DIE_OOPS_BUG",
+      "why_plausible": "oops without panic_on_oops; hang unless firmware WDT",
+      "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=YES; choke=NO",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "UNKNOWN",
+      "next_causal_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 12,
+      "candidate": "ARS-EXT-001 bootloader-inherited APSS WDT",
+      "class": "C_FIRMWARE_WATCHDOG",
+      "why_plausible": "armed pre-Linux watchdog expires; Linux never pets",
+      "evidence_supports": "UNKNOWN; after_c_delay=YES; choke=NO",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "UNKNOWN",
+      "next_causal_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 13,
+      "candidate": "ARS-EXT-002 TZ/secure-world / PMIC autonomous WDT",
+      "class": "C_FIRMWARE_WATCHDOG",
+      "why_plausible": "secure firmware or PMIC hardware timeout",
+      "evidence_supports": "UNKNOWN; after_c_delay=YES; choke=NO",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "UNKNOWN",
+      "next_causal_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 14,
+      "candidate": "ARS-EXT-003 ABL automatic fallback reset",
+      "class": "C_FIRMWARE_WATCHDOG",
+      "why_plausible": "bootloader policy after kernel handoff failure",
+      "evidence_supports": "UNKNOWN; after_c_delay=YES; choke=NO",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "NO",
+      "can_explain_stable_26s": "UNKNOWN",
+      "next_causal_probe": "ALTERNATIVE_RESET_DIAGNOSTIC_DESIGN",
+      "deprioritized_by_pentry_pair": "NO"
+    },
+    {
+      "rank": 15,
+      "candidate": "ARS-PANIC-TO panic -> emergency_restart",
+      "class": "A_LINUX_SOFTWARE_RESTART",
+      "why_plausible": "canonical panic() then panic_timeout != 0",
+      "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=YES; choke=YES",
+      "evidence_contradicts": "PENTRY pair no-shift deprioritizes panic-required path",
+      "passes_panic_entry": "YES",
+      "can_explain_stable_26s": "INFERRED",
+      "next_causal_probe": "NOT_AUTHORIZED_UNTIL_PANIC_ENTRY_EVIDENCE",
+      "deprioritized_by_pentry_pair": "YES"
+    },
+    {
+      "rank": 16,
+      "candidate": "ARS-OOPS-001 die",
+      "class": "D_DIE_OOPS_BUG",
+      "why_plausible": "oops with panic_on_oops or in_interrupt",
+      "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=YES; choke=YES",
+      "evidence_contradicts": "PENTRY pair no-shift deprioritizes panic-required path",
+      "passes_panic_entry": "YES",
+      "can_explain_stable_26s": "INFERRED",
+      "next_causal_probe": "NOT_AUTHORIZED_UNTIL_PANIC_ENTRY_EVIDENCE",
+      "deprioritized_by_pentry_pair": "YES"
+    },
+    {
+      "rank": 17,
+      "candidate": "ARS-INIT-001 do_exit is_global_init",
+      "class": "D_DIE_OOPS_BUG",
+      "why_plausible": "PID1 death / no working init / /init exit 111",
+      "evidence_supports": "SOURCE_SUPPORTED; after_c_delay=YES; choke=YES",
+      "evidence_contradicts": "PENTRY pair no-shift deprioritizes panic-required path",
+      "passes_panic_entry": "YES",
+      "can_explain_stable_26s": "INFERRED",
+      "next_causal_probe": "NOT_AUTHORIZED_UNTIL_PANIC_ENTRY_EVIDENCE",
+      "deprioritized_by_pentry_pair": "YES"
+    },
+    {
+      "rank": 18,
+      "candidate": "ARS-WD-003 watchdog_hardlockup_check / softlockup",
+      "class": "B_LINUX_WATCHDOG",
+      "why_plausible": "lockup detector after SMP/timers",
+      "evidence_supports": "INFERRED; after_c_delay=PARTIAL; choke=NO",
+      "evidence_contradicts": "no runtime proof this path fired; timing not source-derivable",
+      "passes_panic_entry": "PARTIAL",
+      "can_explain_stable_26s": "UNKNOWN",
+      "next_causal_probe": "WATCHDOG_HANDOFF_MINIMAL_CAUSAL_EXPERIMENT",
+      "deprioritized_by_pentry_pair": "PARTIAL"
+    }
+  ],
+  "decision": {
+    "DECISION_CASE": "A",
+    "NEXT_PREDEVICE_STAGE": "MAINLINE_V2_R3_P1B_RESTART_CHOKEPOINT_PREDEVICE_READINESS_CI",
+    "TOP_RESET_SOURCE_CANDIDATE": "ARS-SW-001 machine_restart / do_kernel_restart",
+    "PANIC_TIMEOUT_BRANCH_PRIORITY": "LOW_UNTIL_PANIC_ENTRY_EVIDENCE",
+    "PANIC30_RERUN": "FROZEN",
+    "DEVICE_READY": "NO"
+  },
+  "binary": {
+    "status": "COMPLETE",
+    "vmlinux_sha256": "baaf84e1f34c83f157f5d3405e9441232aeaabc5b6dd5f6188078321abd702ac",
+    "image_sha256": "7da55aa875f36caabe2353c2439415f7565e144ae6e3b98932ff9357ccc7991e",
+    "sysmap_sha256": "1eeba3cd5e3fd03deeae64839f0e6e475dd6d34ab507eaf651dbcce998bdf165",
+    "text_addr": "0xffff800080000000",
+    "image_header_image_size": "0x2220000",
+    "symbols": {
+      "machine_restart": {
+        "va": "0xffff80008001849c",
+        "image_offset": "0x1849c",
+        "file_offset": "0x1849c",
+        "section": ".text",
+        "section_flags": "AX",
+        "entry_word": "0xd503233f",
+        "landing": "paciasp",
+        "entry_insns": [
+          {
+            "va": "ffff80008001849c",
+            "bytes": "d503233f",
+            "mnemonic": "paciasp",
+            "ops": ""
+          },
+          {
+            "va": "ffff8000800184a0",
+            "bytes": "a9be7bfd",
+            "mnemonic": "stp",
+            "ops": "x29, x30, [sp, #-0x20]!"
+          },
+          {
+            "va": "ffff8000800184a4",
+            "bytes": "f9000bf3",
+            "mnemonic": "str",
+            "ops": "x19, [sp, #0x10]"
+          },
+          {
+            "va": "ffff8000800184a8",
+            "bytes": "910003fd",
+            "mnemonic": "mov",
+            "ops": "x29, sp"
+          },
+          {
+            "va": "ffff8000800184ac",
+            "bytes": "d50343df",
+            "mnemonic": "msr",
+            "ops": "DAIFSet, #0x3"
+          },
+          {
+            "va": "ffff8000800184b0",
+            "bytes": "aa0003f3",
+            "mnemonic": "mov",
+            "ops": "x19, x0"
+          },
+          {
+            "va": "ffff8000800184b4",
+            "bytes": "94003773",
+            "mnemonic": "bl",
+            "ops": "0xffff800080026280 <smp_send_stop>"
+          },
+          {
+            "va": "ffff8000800184b8",
+            "bytes": "f000e9a8",
+            "mnemonic": "adrp",
+            "ops": "x8, 0xffff800081d4f000 <ci_ehci_hc_driver+0x40>"
+          }
+        ],
+        "direct_callers": [
+          {
+            "va": "0xffff8000800bd2b0",
+            "offset": "0xbd2b0",
+            "kind": "BL"
+          },
+          {
+            "va": "0xffff8000800bd62c",
+            "offset": "0xbd62c",
+            "kind": "BL"
+          },
+          {
+            "va": "0xffff8000800be4fc",
+            "offset": "0xbe4fc",
+            "kind": "BL"
+          }
+        ],
+        "direct_caller_count": 3
+      },
+      "do_kernel_restart": {
+        "va": "0xffff8000800bd474",
+        "image_offset": "0xbd474",
+        "file_offset": "0xbd474",
+        "section": ".text",
+        "section_flags": "AX",
+        "entry_word": "0xd503233f",
+        "landing": "paciasp",
+        "entry_insns": [
+          {
+            "va": "ffff8000800bd474",
+            "bytes": "d503233f",
+            "mnemonic": "paciasp",
+            "ops": ""
+          },
+          {
+            "va": "ffff8000800bd478",
+            "bytes": "a9bf7bfd",
+            "mnemonic": "stp",
+            "ops": "x29, x30, [sp, #-0x10]!"
+          },
+          {
+            "va": "ffff8000800bd47c",
+            "bytes": "910003fd",
+            "mnemonic": "mov",
+            "ops": "x29, sp"
+          },
+          {
+            "va": "ffff8000800bd480",
+            "bytes": "f0010648",
+            "mnemonic": "adrp",
+            "ops": "x8, 0xffff800082188000 <panic.buf+0x198>"
+          },
+          {
+            "va": "ffff8000800bd484",
+            "bytes": "aa0003e2",
+            "mnemonic": "mov",
+            "ops": "x2, x0"
+          },
+          {
+            "va": "ffff8000800bd488",
+            "bytes": "f0010640",
+            "mnemonic": "adrp",
+            "ops": "x0, 0xffff800082188000 <panic.buf+0x198>"
+          },
+          {
+            "va": "ffff8000800bd48c",
+            "bytes": "9130e000",
+            "mnemonic": "add",
+            "ops": "x0, x0, #0xc38"
+          },
+          {
+            "va": "ffff8000800bd490",
+            "bytes": "b98c3101",
+            "mnemonic": "ldrsw",
+            "ops": "x1, [x8, #0xc30]"
+          }
+        ],
+        "direct_callers": [
+          {
+            "va": "0xffff8000800184d8",
+            "offset": "0x184d8",
+            "kind": "BL"
+          }
+        ],
+        "direct_caller_count": 1
+      },
+      "emergency_restart": {
+        "va": "0xffff8000800bd28c",
+        "image_offset": "0xbd28c",
+        "file_offset": "0xbd28c",
+        "section": ".text",
+        "section_flags": "AX",
+        "entry_word": "0xd503233f",
+        "landing": "paciasp",
+        "entry_insns": [
+          {
+            "va": "ffff8000800bd28c",
+            "bytes": "d503233f",
+            "mnemonic": "paciasp",
+            "ops": ""
+          },
+          {
+            "va": "ffff8000800bd290",
+            "bytes": "a9bf7bfd",
+            "mnemonic": "stp",
+            "ops": "x29, x30, [sp, #-0x10]!"
+          },
+          {
+            "va": "ffff8000800bd294",
+            "bytes": "910003fd",
+            "mnemonic": "mov",
+            "ops": "x29, sp"
+          },
+          {
+            "va": "ffff8000800bd298",
+            "bytes": "52800060",
+            "mnemonic": "mov",
+            "ops": "w0, #0x3        // =3"
+          },
+          {
+            "va": "ffff8000800bd29c",
+            "bytes": "9400ff26",
+            "mnemonic": "bl",
+            "ops": "0xffff8000800fcf34 <kmsg_dump>"
+          },
+          {
+            "va": "ffff8000800bd2a0",
+            "bytes": "9000e468",
+            "mnemonic": "adrp",
+            "ops": "x8, 0xffff800081d49000 <folio_wait_table+0x14c0>"
+          },
+          {
+            "va": "ffff8000800bd2a4",
+            "bytes": "528000c9",
+            "mnemonic": "mov",
+            "ops": "w9, #0x6        // =6"
+          },
+          {
+            "va": "ffff8000800bd2a8",
+            "bytes": "aa1f03e0",
+            "mnemonic": "mov",
+            "ops": "x0, xzr"
+          }
+        ],
+        "direct_callers": [
+          {
+            "va": "0xffff800080845db8",
+            "offset": "0x845db8",
+            "kind": "BL"
+          },
+          {
+            "va": "0xffff8000810b9c54",
+            "offset": "0x10b9c54",
+            "kind": "BL"
+          }
+        ],
+        "direct_caller_count": 2
+      },
+      "kernel_restart": {
+        "va": "0xffff8000800bd534",
+        "image_offset": "0xbd534",
+        "file_offset": "0xbd534",
+        "section": ".text",
+        "section_flags": "AX",
+        "entry_word": "0xd503233f",
+        "landing": "paciasp",
+        "entry_insns": [
+          {
+            "va": "ffff8000800bd534",
+            "bytes": "d503233f",
+            "mnemonic": "paciasp",
+            "ops": ""
+          },
+          {
+            "va": "ffff8000800bd538",
+            "bytes": "a9be7bfd",
+            "mnemonic": "stp",
+            "ops": "x29, x30, [sp, #-0x20]!"
+          },
+          {
+            "va": "ffff8000800bd53c",
+            "bytes": "a9014ff4",
+            "mnemonic": "stp",
+            "ops": "x20, x19, [sp, #0x10]"
+          },
+          {
+            "va": "ffff8000800bd540",
+            "bytes": "910003fd",
+            "mnemonic": "mov",
+            "ops": "x29, sp"
+          },
+          {
+            "va": "ffff8000800bd544",
+            "bytes": "aa0003f3",
+            "mnemonic": "mov",
+            "ops": "x19, x0"
+          },
+          {
+            "va": "ffff8000800bd548",
+            "bytes": "b000e500",
+            "mnemonic": "adrp",
+            "ops": "x0, 0xffff800081d5e000 <init_struct_pid+0x48>"
+          },
+          {
+            "va": "ffff8000800bd54c",
+            "bytes": "91038000",
+            "mnemonic": "add",
+            "ops": "x0, x0, #0xe0"
+          },
+          {
+            "va": "ffff8000800bd550",
+            "bytes": "52800021",
+            "mnemonic": "mov",
+            "ops": "w1, #0x1        // =1"
+          }
+        ],
+        "direct_callers": [
+          {
+            "va": "0xffff8000800be0b8",
+            "offset": "0xbe0b8",
+            "kind": "BL"
+          },
+          {
+            "va": "0xffff8000800be0e8",
+            "offset": "0xbe0e8",
+            "kind": "BL"
+          },
+          {
+            "va": "0xffff8000800be240",
+            "offset": "0xbe240",
+            "kind": "BL"
+          },
+          {
+            "va": "0xffff8000800be4b4",
+            "offset": "0xbe4b4",
+            "kind": "BL"
+          },
+          {
+            "va": "0xffff8000800ef470",
+            "offset": "0xef470",
+            "kind": "BL"
+          }
+        ],
+        "direct_caller_count": 5
+      },
+      "psci_sys_reset": {
+        "va": "0xffff800080e18f90",
+        "image_offset": "0xe18f90",
+        "file_offset": "0xe18f90",
+        "section": ".text",
+        "section_flags": "AX",
+        "entry_word": "0xd503245f",
+        "landing": "bti c",
+        "entry_insns": [
+          {
+            "va": "ffff800080e18f90",
+            "bytes": "d503245f",
+            "mnemonic": "bti",
+            "ops": "c"
+          },
+          {
+            "va": "ffff800080e18f94",
+            "bytes": "90009b88",
+            "mnemonic": "adrp",
+            "ops": "x8, 0xffff800082188000 <panic.buf+0x198>"
+          },
+          {
+            "va": "ffff800080e18f98",
+            "bytes": "b94c3108",
+            "mnemonic": "ldr",
+            "ops": "w8, [x8, #0xc30]"
+          },
+          {
+            "va": "ffff800080e18f9c",
+            "bytes": "121e7908",
+            "mnemonic": "and",
+            "ops": "w8, w8, #0xfffffffd"
+          },
+          {
+            "va": "ffff800080e18fa0",
+            "bytes": "7100051f",
+            "mnemonic": "cmp",
+            "ops": "w8, #0x1"
+          },
+          {
+            "va": "ffff800080e18fa4",
+            "bytes": "540000e1",
+            "mnemonic": "b.ne",
+            "ops": "0xffff800080e18fc0 <psci_sys_reset+0x30>"
+          },
+          {
+            "va": "ffff800080e18fa8",
+            "bytes": "90009f88",
+            "mnemonic": "adrp",
+            "ops": "x8, 0xffff800082208000 <efi_x_array+0xb68>"
+          },
+          {
+            "va": "ffff800080e18fac",
+            "bytes": "39571108",
+            "mnemonic": "ldrb",
+            "ops": "w8, [x8, #0x5c4]"
+          }
+        ],
+        "direct_callers": [],
+        "direct_caller_count": 0
+      }
+    },
+    "machine_emergency_restart_symbol": "ABSENT_INLINED",
+    "do_kernel_restart_callers": [
+      {
+        "va": "0xffff8000800184d8",
+        "offset": "0x184d8",
+        "kind": "BL"
+      }
+    ],
+    "FIX8_MACHINE_RESTART_PROLOGUE_MATCH": "YES",
+    "RESTART_CHOKEPOINT_INSTRUMENTABLE": "YES",
+    "recommended_instrument_symbol": "machine_restart",
+    "PAC_BTI": "paciasp"
+  },
+  "pstore_empty_implies_no_panic": false,
+  "bootreason_is_reset_identity": false,
+  "diagnostic_psci_merged_with_natural": false,
+  "panic30_authorized": false,
+  "timeout_branch_authorized": false,
+  "mmio_experiment_invented": false,
+  "ANDROID_BOOTREASON_SOURCE_DIAGNOSTIC": "NO"
+}
