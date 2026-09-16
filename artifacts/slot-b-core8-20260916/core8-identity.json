@@ -1,0 +1,21 @@
+{
+  "member": "core8",
+  "public_run": "35102390662",
+  "public_payload_head": "da3228714baa9d4739d3035dc99643dd9b5bb90c",
+  "private_pack_run": "35105559604",
+  "private_reverify_run": "35105810959",
+  "observer_run": "35107904900",
+  "boot_sha256": "5d7d5b88668e1925e3a79c677c2b630bb81d66135fec2761016de1da52fd7272",
+  "boot_size": 37380096,
+  "payload_sha256": "1e35411ba4d9bdeb48af47c0269a96b63a9214be5483601a9dfa5f8bdcfcc0a8",
+  "total_s": 34.961135332999994,
+  "status": "AUTOMATIC_FASTBOOT_RETURN",
+  "retry_pre": "7",
+  "retry_post": "6",
+  "core8_member_a_completed": true,
+  "core_initcalls_completed": "NOT_PROVEN",
+  "first_postcore_initcall_entry": "NOT_PROVEN",
+  "core1_executed": false,
+  "partition_writes": 0,
+  "slot_a_written": false
+}

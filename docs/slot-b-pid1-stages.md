@@ -303,3 +303,33 @@ approval before CORE1. A positive future STRONG pair may prove core-level
 completion and first postcore entry, never `debug_monitors_init` body or
 later levels. `READY_FOR_R3_SLOT_B_CORE8_DEVICE_CONTROL=YES`.
 `READY_FOR_R3_SLOT_B_CORE1_DEVICE_CONTROL=NO`. `DEVICE_OPERATION=NO`.
+
+## CORE8 true-device member A
+
+Observer CI `35107904900` remained the frozen CORE8 full-SHA gate. Healthy
+Android A (`_a`, `boot_completed=1`, Magisk su) was confirmed, then
+`adb reboot bootloader`, `current-slot=a`, `set_active b`,
+`current-slot=b`. Exactly one RAM-only `fastboot boot` of CORE8
+`5d7d5b88668e1925e3a79c677c2b630bb81d66135fec2761016de1da52fd7272`
+(37380096) ran at 14:45:42.613 UTC. Sending OKAY 0.943s, Booting OKAY
+0.220s. Automatic Fastboot B return in `34.961135333s`, retry 7→6.
+CORE1 was not placed in any fallback and was not executed.
+
+This freezes `CORE8_MEMBER_A_COMPLETED=YES` and `CORE8_TOTAL=34.961135333s`
+only. It does not prove `CORE_INITCALLS_COMPLETED` or
+`FIRST_POSTCORE_INITCALL_ENTRY`. Pair delta remains unavailable until a
+separately approved CORE1 member. Absolute ~35s must not be treated as a
+core-complete hard gate.
+
+Fastboot fetch is unsupported on this bootloader, so Current B 16-chain
+hashes and the P15 prefix were re-read from restored Android A. All 16
+hashes and prefix `133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34`
+matched the pre-CORE8 record. Zero partition flashes; Slot A untouched.
+Android A is healthy after `set_active a` + `fastboot reboot`. pstore is
+empty (Mainline defconfig has no `CONFIG_PSTORE`; empty is not
+counter-evidence). Stock 4.19 later reports `hw_reset reason1 is 0x2`;
+that is not a Mainline checkpoint proof.
+
+Evidence: `artifacts/slot-b-core8-20260916/`. Do not rerun CORE8. CORE1
+waits for `MAINLINE_V2_R3_SLOT_B_CORE1_DEVICE_GATE_REVIEW` plus separate
+user approval. PURE and CONSOLE reruns remain forbidden.

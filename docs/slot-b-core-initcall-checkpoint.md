@@ -190,12 +190,39 @@ boot_b / vendor_boot_b / dtbo_b / vbmeta / firmware. Current B remains
 
 `CORE_PAIR_DEVICE_EXECUTION_SPLIT=REQUIRED`
 
-`READY_FOR_R3_SLOT_B_CORE8_DEVICE_CONTROL=YES`
+`READY_FOR_R3_SLOT_B_CORE8_DEVICE_CONTROL=COMPLETED`
 
 `READY_FOR_R3_SLOT_B_CORE1_DEVICE_CONTROL=NO`
 
-This is not CORE8 or CORE1 device authorization. `CORE_DEVICE_OPERATION=NO`,
-`PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`. Recommended next:
-`MAINLINE_V2_R3_SLOT_B_CORE8_TRUE_DEVICE_CONTROL` — one CORE8 RAM-only boot.
-CORE1 waits for CORE8 freeze plus separate user approval. PURE and CONSOLE
-reruns remain forbidden.
+This CI freeze is retained. CORE8 true-device member A is recorded below.
+
+## CORE8 true-device member A
+
+Exactly one identity-gated RAM-only `fastboot boot` of frozen CORE8
+`5d7d5b88668e1925e3a79c677c2b630bb81d66135fec2761016de1da52fd7272`
+(37380096) ran from healthy Android A → ADB bootloader → verified B.
+Sending OKAY 0.943s, Booting OKAY 0.220s. Automatic Fastboot B return in
+`34.961135333s`, retry 7→6. Observer identity PASS. `PARTITION_WRITES=0`,
+`SLOT_A_WRITTEN=NO`, `EXPERIMENTAL_BOOTS=1`, CORE1 not executed.
+Current B 16-chain hashes and P15 prefix MATCH before/after. Android A
+restored healthy. pstore empty; stock `hw_reset reason1=0x2` is not
+Mainline proof.
+
+`CORE8_MEMBER_A_COMPLETED=YES`
+
+`CORE8_TOTAL=34.961135333s`
+
+`CORE8_BEHAVIOR_CLASS=AUTOMATIC_FASTBOOT_RETURN`
+
+`CORE_INITCALLS_COMPLETED=NOT_PROVEN`
+
+`FIRST_POSTCORE_INITCALL_ENTRY=NOT_PROVEN`
+
+`CORE1_TOTAL=NOT_RUN`
+
+`PAIR_VERDICT=PENDING_CORE1`
+
+Do not rerun CORE8. Recommended next:
+`MAINLINE_V2_R3_SLOT_B_CORE1_DEVICE_GATE_REVIEW`. CORE1 waits for this
+freeze plus separate user approval. PURE and CONSOLE reruns remain
+forbidden.
