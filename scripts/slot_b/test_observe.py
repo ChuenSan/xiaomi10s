@@ -127,6 +127,48 @@ class SafetyTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         observe.pair_verdict(invalid, result)
 
+    def test_core_pair_proof_boundary_and_no_shift_route(self):
+        baseline = {**self.record("core8", 35.0),
+                    "bootloader_origin": observe.REST_ORIGIN}
+        strong = {**self.record("core1", 28.0),
+                  "bootloader_origin": observe.REST_ORIGIN}
+        verdict = observe.pair_verdict(baseline, strong)
+        self.assertEqual(verdict["verdict"], "STRONG")
+        self.assertEqual(verdict["core_initcalls_completed"], "PROVEN")
+        self.assertEqual(verdict["first_postcore_initcall_entry"], "PROVEN")
+        self.assertEqual(verdict["first_postcore_initcall_body"], "NOT_PROVEN")
+        self.assertEqual(verdict["postcore_initcalls_completed"], "NOT_PROVEN")
+        self.assertEqual(verdict["console_on_rootfs_entry"], "NOT_PROVEN")
+        supported = {**self.record("core1", 29.0),
+                     "bootloader_origin": observe.REST_ORIGIN}
+        self.assertEqual(observe.pair_verdict(baseline, supported)["verdict"],
+                         "SUPPORTED")
+        no_shift = {**self.record("core1", 35.0),
+                    "bootloader_origin": observe.REST_ORIGIN}
+        miss = observe.pair_verdict(baseline, no_shift)
+        self.assertEqual(miss["core_initcalls_completed"], "NOT_PROVEN")
+        self.assertEqual(miss["core_initcalls_checkpoint_shift_not_observed"], "YES")
+        self.assertEqual(miss["next"], "CORE_INITCALLS_FAILURE_ISOLATION_CI")
+        self.assertNotIn("core_initcalls_completed", baseline)
+
+        with self.assertRaisesRegex(ValueError, "PAIR_TIMING_INVALID"):
+            observe.pair_verdict({**baseline, "total_s": True}, strong)
+        with self.assertRaisesRegex(ValueError, "PAIR_TIMING_INVALID"):
+            observe.pair_verdict(baseline, {**strong, "total_s": False})
+
+    def test_core_member_full_sha_gates_are_distinct(self):
+        size8, sha8 = observe.IMAGES["core8"]
+        size1, sha1 = observe.IMAGES["core1"]
+        self.assertEqual(size8, size1)
+        self.assertEqual(sha8, "5d7d5b88668e1925e3a79c677c2b630bb81d66135fec2761016de1da52fd7272")
+        self.assertEqual(sha1, "a66c3f7a95e05905f5f65d96cb7f378ccdad9edf33814271425829ce10fe3e6c")
+        observe.validate_identity("core8", size8, sha8)
+        observe.validate_identity("core1", size1, sha1)
+        for case, size, digest in (("core8", size1, sha1),
+                                   ("core1", size8, sha8)):
+            with self.assertRaisesRegex(ValueError, "IMAGE_IDENTITY_MISMATCH"):
+                observe.validate_identity(case, size, digest)
+
     def test_pair_delta_not_old_slot_a_absolute_timing(self):
         baseline = self.record("reset8", 50.0)
         strong = observe.pair_verdict(baseline, self.record("reset1", 43.1))

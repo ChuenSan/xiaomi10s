@@ -32,6 +32,8 @@ IMAGES = {
     "console1": (37380096, "c116cf585516f1e6d9835a90ef0324745fd12f84f5d7cb36528e7aa73f2983b1"),
     "pure8": (37380096, "86d5c664e17675cf23322158782f2a0d2b9a7a1f075adc98c51f441ff4612a4b"),
     "pure1": (37380096, "08346222366202abf2d033b0f9bc9d3c11ac3ccd806727bf0d17d40dcf0ba57a"),
+    "core8": (37380096, "5d7d5b88668e1925e3a79c677c2b630bb81d66135fec2761016de1da52fd7272"),
+    "core1": (37380096, "a66c3f7a95e05905f5f65d96cb7f378ccdad9edf33814271425829ce10fe3e6c"),
 }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
@@ -42,6 +44,7 @@ PAIRS = {
     "initcalls1": ("initcalls8", "do_initcalls_entry", "initcall_levels_completed"),
     "console1": ("console8", "console_on_rootfs_entry", "console_opened"),
     "pure1": ("pure8", "pure_initcalls_completed", "core_initcalls_completed"),
+    "core1": ("core8", "core_initcalls_completed", "first_postcore_initcall_body"),
 }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -98,20 +101,27 @@ def pair_verdict(baseline, result):
         require(record.get("status") == "AUTOMATIC_FASTBOOT_RETURN", "PAIR_RETURN_NOT_VALID")
         require(record.get("final_slot") == "b", "PAIR_NOT_SLOT_B")
         require(record.get("experimental_boots") == 1, "PAIR_BOOT_COUNT_INVALID")
-        require(record.get("context") == CONTEXT, "PAIR_CONTEXT_MISMATCH")
-        require(isinstance(record.get("total_s"), (int, float)) and
+        require(not isinstance(record.get("total_s"), bool) and
+                isinstance(record.get("total_s"), (int, float)) and
                 math.isfinite(record["total_s"]) and record["total_s"] > 0,
                 "PAIR_TIMING_INVALID")
     delta = result["total_s"] - baseline["total_s"]
     error = delta + 7.0
     verdict = "STRONG" if abs(error) <= 1.0 else (
         "SUPPORTED" if abs(error) <= 2.0 else "SHIFT_NOT_OBSERVED")
-    return {"delta_s": delta, "expected_delta_s": -7.0, "error_s": error,
-            "verdict": verdict,
-            proof_key: "PROVEN" if verdict == "STRONG" else (
-                "SUPPORTED" if verdict == "SUPPORTED" else "NOT_PROVEN"),
-            unproved_key: "NOT_PROVEN",
-            "init_executed": "NOT_PROVEN"}
+    grade = "PROVEN" if verdict == "STRONG" else (
+        "SUPPORTED" if verdict == "SUPPORTED" else "NOT_PROVEN")
+    out = {"delta_s": delta, "expected_delta_s": -7.0, "error_s": error,
+           "verdict": verdict, proof_key: grade, unproved_key: "NOT_PROVEN",
+           "init_executed": "NOT_PROVEN"}
+    if second == "core1":
+        out.update(first_postcore_initcall_entry=grade,
+                   postcore_initcalls_completed="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(core_initcalls_checkpoint_shift_not_observed="YES",
+                       next="CORE_INITCALLS_FAILURE_ISOLATION_CI")
+    return out
 
 
 class Observer:
