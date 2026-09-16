@@ -188,7 +188,7 @@ class CheckpointTests(unittest.TestCase):
             image = Path(directory) / 'vmlinux'
             image.write_bytes(data)
             result = checkpoint.resolve_initcall_boundary(
-                image, [{'vma': base, 'size': len(data), 'file_off': 0}], nm,
+                image, [{'name': '.init.data', 'vma': base, 'size': len(data), 'file_off': 0}], nm,
                 '__initcall1_start')
         self.assertEqual(result['target_va'], target)
         self.assertEqual(result['target_aliases'], ['first_core_init'])
@@ -200,7 +200,7 @@ class CheckpointTests(unittest.TestCase):
             image.write_bytes(duplicate)
             with self.assertRaises(ValueError):
                 checkpoint.resolve_initcall_boundary(
-                    image, [{'vma': base, 'size': len(data), 'file_off': 0}], nm,
+                    image, [{'name': '.init.data', 'vma': base, 'size': len(data), 'file_off': 0}], nm,
                     '__initcall1_start')
 
     def test_core_checkpoint_negative_fixtures(self):
