@@ -175,3 +175,18 @@ call targets. No blanket string/address normalization is allowed. Negative
 fixtures cover extra code changes and wrong text/addresses; private wrapping
 independently verifies the frozen literals. The initrd-source gate now runs
 before window auditing and exports its result even if a window is rejected.
+
+Public console audit `35055586198` and private pack/independent verification
+`35055709127` passed. CI proved both literal identities, all original window
+safety gates, and `runtime_dtb_external_initrd=false`: `/chosen` has only
+`bootargs` and `stdout-path`. The external-ramdisk override hypothesis is not
+applicable to the R3 DTB path; no packaging workaround is required.
+
+| member | boot SHA256 (37380096 B each) |
+| --- | --- |
+| CONSOLE8 | `9892a58c7627df78f5fc3acd64926aa054a2c9b6ca1f05ef65e2c0d289fd445d` |
+| CONSOLE1 | `c116cf585516f1e6d9835a90ef0324745fd12f84f5d7cb36528e7aa73f2983b1` |
+
+The same B-only 8s/1s protocol applies, with unchanged −7s delta and error
+thresholds. A valid first automatic return and unchanged partition readback
+are prerequisites for the second member. This is not a USB or userspace test.
