@@ -8,6 +8,12 @@ on:
       - 'scripts/slot_b/test_checkpoint.py'
       - '.github/workflows/thyme-slot-b-kernel-init.yml'
   workflow_dispatch:
+    inputs:
+      symbol:
+        description: Audited PID1 stage, built from the frozen normal payload
+        type: choice
+        options: [kernel_init_freeable, smp_init, kernel_init]
+        default: kernel_init_freeable
 
 permissions:
   contents: read
@@ -17,6 +23,8 @@ jobs:
   audit-pair:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      CHECKPOINT_SYMBOL: ${{ inputs.symbol || 'kernel_init_freeable' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,12 +52,7 @@ jobs:
           grep -q 'There are no relocations in this file' kernel-init-compact-relocations.log
           llvm-objcopy-18 -O binary --only-section=.text compact.o compact.bin
           llvm-objdump-18 -d compact.o | tee kernel-init-compact-disassembly.log
-      - name: Preserve rejected-window disassembly evidence
-        run: |
-          set -euo pipefail
-          llvm-objdump-18 -d --start-address=0xffff8000810c2030 \
-            --stop-address=0xffff8000810c21f0 kernel-bundle/vmlinux | tee kernel-init-disassembly.log
-      - name: Audit kernel_init and compose matched pair
+      - name: Audit selected PID1 stage and compose matched pair
         run: |
           set -euo pipefail
           for delay in 8 1; do
@@ -58,7 +61,7 @@ jobs:
               reference=(--reference-sha "$(jq -r .payload_sha256 out-pair/8/checkpoint/manifest.json)")
             fi
             python3 -u -B scripts/slot_b/checkpoint.py \
-              --symbol kernel_init --delay "$delay" --compact-core compact.bin \
+              --symbol "$CHECKPOINT_SYMBOL" --delay "$delay" --compact-core compact.bin \
               --bundle kernel-bundle \
               --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
               --core proven-core/p1b-t1-core-reference.bin \
@@ -72,16 +75,18 @@ jobs:
           b = json.loads((root/'1/checkpoint/manifest.json').read_text())
           p8 = (root/'8/checkpoint/payload.bin').read_bytes()
           p1 = (root/'1/checkpoint/payload.bin').read_bytes()
-          assert a['symbol'] == b['symbol'] == 'kernel_init'
+          symbol = os.environ['CHECKPOINT_SYMBOL']
+          targets = {'kernel_init': 0x10c2030, 'kernel_init_freeable': 0x1b3103c, 'smp_init': 0x1b466e0}
+          assert a['symbol'] == b['symbol'] == symbol
           assert a['delay_seconds'] == 8 and b['delay_seconds'] == 1
-          assert a['offset'] == b['offset'] == 0x10c2030
+          assert a['offset'] == b['offset'] == targets[symbol]
           assert a['checkpoint_size'] == b['checkpoint_size'] == 72
           assert a['core_variant'] == b['core_variant'] == 'compact_b_lo'
           assert len(p8) == len(p1) == a['payload_size'] == b['payload_size']
           changed = [i for i, (x, y) in enumerate(zip(p8, p1)) if x != y]
           assert changed == [a['offset'] + 16, a['offset'] + 17]
           assert b['pair_reference_sha256'] == a['payload_sha256']
-          pair = {'symbol': 'kernel_init', 'source_commit': os.environ['GITHUB_SHA'],
+          pair = {'symbol': symbol, 'source_commit': os.environ['GITHUB_SHA'],
                   'public_run': os.environ['GITHUB_RUN_ID'], 'bundle_run': '35040148509',
                   'payload_shas': {'8': a['payload_sha256'], '1': b['payload_sha256']},
                   'changed_offsets': changed, 'expected_delta_s': -7,
@@ -102,4 +107,5 @@ jobs:
           path: |
             kernel-init-*.log
             out-pair/*/checkpoint/original-window.txt
+            out-pair/*/checkpoint/original-function.txt
           if-no-files-found: warn

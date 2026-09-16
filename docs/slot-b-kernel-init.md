@@ -76,3 +76,26 @@ delay-only diff. The reconciled kernel bundle was reused, not rebuilt.
 Both boots are 37380096 bytes. The inline window is `[0x10c2030,0x10c2078)`;
 284143 relocation sites and all present rewrite tables were checked. The
 observer must pass its new full-SHA/origin/pair regression gates before use.
+
+## True-device result (2026-09-16 UTC)
+
+Observer safety run `35047262648` passed before either device boot. Each
+member was RAM-booted once with active B checked immediately before launch.
+
+| member | Booting OKAY (UTC) | automatic Fastboot return total |
+| --- | --- | --- |
+| KINIT8 | 02:18:37.378 | 35.345397459s |
+| KINIT1 | 02:20:45.517 | 28.375281834s |
+
+Delta `-6.970115625s`, expected `-7s`, error `+0.029884375s`: **STRONG**.
+`KERNEL_INIT_ENTRY=PROVEN`, `PID1_CREATED_AND_SCHEDULED=PROVEN`.
+`KTHREADD_DONE_WAIT_COMPLETED=NOT_PROVEN`, `/init=NOT_PROVEN`.
+Both automatic returns remained B and consumed one P15 recovery boot
+(retry 7→6). All 16 recorded boot-chain partition hashes and the P15 prefix
+matched before/between/after. Android A is healthy; pstore remains empty.
+No partition was flashed. The completed pair must not be rerun blindly.
+
+Next source-ordered diagnostic: `kernel_init_freeable` entry after the
+`kthreadd_done` wait. Then `smp_init` entry can bound the pre-SMP setup path.
+Both reuse the same audit bundle and frozen normal payload; device progression
+remains conditional on each preceding actual result, never an automatic matrix.

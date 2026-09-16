@@ -6,6 +6,7 @@ on:
       - 'docs/**'
       - '**.md'
       - 'scripts/slot_b/**'
+      - 'artifacts/slot-b-*/**'
       - '.github/workflows/thyme-slot-b-*.yml'
   workflow_dispatch:
 

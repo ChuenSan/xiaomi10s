@@ -11,9 +11,14 @@ REST_INIT Slot B matched pair is now COMPLETE: REST8 35.392403s, REST1
 28.218802s, delta -7.173600s (expected -7s), STRONG. rest_init entry and the
 preceding normal start_kernel path are PROVEN; rest_init body and /init are
 not. All recorded partition hashes remain unchanged and Android A is healthy.
-Next is a kernel_init entry checkpoint using the reconciled bundle from
-Actions `35040148509`, not a rebuild. No Linux boot success is claimed.
-Details: `docs/slot-b-rest-init.md`. Older A-return timing records below are
+KERNEL_INIT Slot B matched pair is also COMPLETE: KINIT8 35.345397459s,
+KINIT1 28.375281834s, delta -6.970115625s (expected -7s), STRONG. PID1
+creation/scheduling and kernel_init entry are PROVEN; kthreadd_done wait
+completion and /init remain NOT_PROVEN. All recorded partition hashes are
+unchanged, Android A is healthy, and no new partition write occurred.
+Next is kernel_init_freeable entry, using the reconciled bundle from Actions
+`35040148509`, not a rebuild. No Linux boot success is claimed.
+Details: `docs/slot-b-kernel-init.md`. Older A-return timing records below are
 historical, not this B baseline.
 
 Maintained rule: this file is the ONLY current-state entry. Older docs keep
@@ -445,7 +450,7 @@ RECOVERY_B_RETRY_COUNT=6
 POST_RESET8_PARTITION_HASHES=ALL_RECORDED_UNCHANGED
 DEVICE_TRANSPORT=ADB_ROOT_ANDROID_A
 DEVICE_RECOVERY=COMPLETE
-NEXT_DEVICE_ACTION=KERNEL_INIT_CHECKPOINT_AFTER_CI_GATES
+NEXT_DEVICE_ACTION=KERNEL_INIT_FREEABLE_CHECKPOINT_AFTER_CI_GATES
 REST_INIT_PUBLIC_CI_RUN=35036419486
 REST_INIT_PUBLIC_CI_STATUS=PASS
 REST_INIT_CORRECTED_AUDIT_RUN=35040148509
@@ -458,6 +463,19 @@ REST_INIT_PAIR_VERDICT=STRONG
 REST_INIT_ENTRY=PROVEN
 REST_INIT_BODY=NOT_PROVEN
 REST_INIT_PAIR_POSTTEST_HASHES=ALL_RECORDED_UNCHANGED
+KERNEL_INIT_PUBLIC_RUN=35046645947
+KERNEL_INIT_PRIVATE_RUN=35046737851
+KERNEL_INIT_OBSERVER_CI_RUN=35047262648
+KERNEL_INIT_ENTRY=PROVEN
+PID1_CREATED_AND_SCHEDULED=PROVEN
+KTHREADD_DONE_WAIT_COMPLETED=NOT_PROVEN
+KERNEL_INIT_FREEABLE_ENTRY=NOT_PROVEN
+KERNEL_INIT_8_TOTAL_S=35.345397459
+KERNEL_INIT_1_TOTAL_S=28.375281834
+KERNEL_INIT_PAIR_DELTA_S=-6.970115625
+KERNEL_INIT_PAIR_ERROR_S=0.029884375
+KERNEL_INIT_PAIR_VERDICT=STRONG
+KERNEL_INIT_PAIR_POSTTEST_HASHES=ALL_RECORDED_UNCHANGED
 LOCAL_BUILD=NO
 <!-- R3-STATUS-KV:END -->
 

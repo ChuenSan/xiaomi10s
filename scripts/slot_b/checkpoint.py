@@ -23,7 +23,18 @@ pb = t3.pb
 TOOLS = {"nm": "llvm-nm-18", "objdump": "llvm-objdump-18", "readelf": "llvm-readelf-18",
          "objcopy": "llvm-objcopy-18", "clang": "clang-18", "lld": "ld.lld-18"}
 CORE_SHA = "4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611"
-TARGETS = {"rest_init": 0x10C1F48, "kernel_init": 0x10C2030}
+TARGETS = {"rest_init": 0x10C1F48, "kernel_init": 0x10C2030,
+           "kernel_init_freeable": 0x1B3103C, "smp_init": 0x1B466E0}
+PROOF_BOUNDARIES = {
+    "rest_init": ("rest_init entry and preceding normal start_kernel path",
+                  "rest_init body, scheduler, SMP or /init"),
+    "kernel_init": ("PID1 initialization task created and scheduled at kernel_init entry",
+                    "kthreadd_done wait completed, kernel_init_freeable, SMP or /init"),
+    "kernel_init_freeable": ("PID1 kthreadd_done wait completed and kernel_init_freeable entered",
+                             "kernel_init_freeable body, SMP, driver initcalls or /init"),
+    "smp_init": ("PID1 reached smp_init after pre-SMP initialization",
+                 "SMP bring-up completed, driver initcalls, initramfs readiness or /init"),
+}
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
 
 
@@ -174,7 +185,7 @@ def compose(args, bundle):
     core = args.core.read_bytes()
     require(digest(frozen) == t3.FIX8_PAYLOAD_SHA, "FROZEN_PAYLOAD_MISMATCH")
     require(len(core) == 76 and digest(core) == CORE_SHA, "CHECKPOINT_CORE_MISMATCH")
-    if args.symbol == "kernel_init":
+    if args.symbol != "rest_init":
         core = compact_core(core)
         require(args.compact_core is not None and args.compact_core.read_bytes() == core,
                 "COMPACT_CORE_ASSEMBLY_MISMATCH")
@@ -200,6 +211,9 @@ def compose(args, bundle):
     dump = pb.run([TOOLS["objdump"], "-d", f"--start-address={target_va:#x}",
                    f"--stop-address={target_va + length:#x}", str(vmlinux)])
     (out / "original-window.txt").write_text(dump)
+    (out / "original-function.txt").write_text(pb.run(
+        [TOOLS["objdump"], "-d", f"--start-address={target_va:#x}",
+         f"--stop-address={extent:#x}", str(vmlinux)]))
     t3.gate_window_bytes_agree(target_va, offset, dump, frozen, length // 4)
     sections = t3.section_map(out, TOOLS, vmlinux)
     section = t3.gate_window_section_scan(target_va, length, sections)
@@ -237,7 +251,7 @@ def compose(args, bundle):
                 "payload_sha256": digest(candidate), "payload_size": len(candidate),
                 "checkpoint_sha256": digest(probe), "core_sha256": digest(core),
                 "reference_core_sha256": CORE_SHA, "delay_seconds": args.delay,
-                "core_variant": "compact_b_lo" if args.symbol == "kernel_init" else "original_b_hs",
+                "core_variant": "original_b_hs" if args.symbol == "rest_init" else "compact_b_lo",
                 "pair_reference_sha256": digest(reference),
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
                 "frozen_sha256": digest(frozen), "changed_bytes": len(changed),
@@ -245,12 +259,8 @@ def compose(args, bundle):
                 "relocation_sites_checked": len(sites), "audit_elf_unchanged": True,
                 "source_commit": os.environ["GITHUB_SHA"], "run_id": os.environ["GITHUB_RUN_ID"],
                 "bundle": metadata, "normal_boot_candidate": False,
-                "positive_proves": ("PID1 initialization task created and scheduled at kernel_init entry"
-                                    if args.symbol == "kernel_init" else
-                                    "rest_init entry and preceding normal start_kernel path"),
-                "positive_does_not_prove": ("kthreadd_done wait completed, kernel_init_freeable, SMP or /init"
-                                           if args.symbol == "kernel_init" else
-                                           "rest_init body, scheduler, SMP or /init"),
+                "positive_proves": PROOF_BOUNDARIES[args.symbol][0],
+                "positive_does_not_prove": PROOF_BOUNDARIES[args.symbol][1],
                 "init_symbols": {name: hex(t3.nm_symbol(nm, name)) for name in
                                  ("rest_init", "kernel_init", "kernel_init_freeable", "smp_init")},
                 "device_operation": False}
