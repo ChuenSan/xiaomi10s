@@ -125,3 +125,17 @@ terminates in its WFE loop; six unreachable NOP words fill the expanded prefix.
 All bytes outside the prefix remain frozen. The incoming-branch guard itself
 is unchanged, and a regression fixture still rejects a branch from outside
 the expanded window. The two pair members differ only in their timer immediate.
+
+INITCALLS public audit `35051568196` and private pack/independent verification
+`35051853455` passed. Both boot images are 37380096 B:
+
+| member | boot SHA256 |
+| --- | --- |
+| INITCALLS8 | `15a9c504d4a44b8596c5d73d002bb8d5e9c5cf50c44fcc0c2a53da89f2cb2fe5` |
+| INITCALLS1 | `b07810cf2d8d17b7518d63033c650a8272f89dccee73d2a03e278455a2e6e65f` |
+
+The same preregistered B-only matched-pair protocol applies: 8s first, then
+1s only after a valid return and unchanged protected hashes, expected delta
+−7s, STRONG <=1s error, SUPPORTED <=2s. A positive proves `smp_init` returned
+and driver-core initialization reached main initcall entry; the online CPU
+count and initcall completion are not inferred. Freeze observer CI before use.
