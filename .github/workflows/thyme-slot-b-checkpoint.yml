@@ -13,7 +13,7 @@ on:
       bundle_run_id:
         description: Reuse this audit kernel; no kernel rebuild
         required: false
-        default: '35036419486'
+        default: '35040148509'
       delay:
         description: Matched checkpoint delay in seconds
         type: choice
@@ -53,7 +53,7 @@ jobs:
       - name: Download immutable inputs
         env:
           GH_TOKEN: ${{ github.token }}
-          BUNDLE_RUN: ${{ inputs.bundle_run_id || '35036419486' }}
+          BUNDLE_RUN: ${{ inputs.bundle_run_id || '35040148509' }}
         run: |
           set -euo pipefail
           gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen

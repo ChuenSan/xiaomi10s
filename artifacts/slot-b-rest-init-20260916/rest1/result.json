@@ -1,0 +1,31 @@
+{
+  "protocol": "slot-b-p15-fastboot-return-v1",
+  "case": "rest1",
+  "image_sha256": "e4b06d5785e010aa4b340f72f65974cf03c09b6e9654249d41cab6b1808226b4",
+  "context": {
+    "boot_b_prefix": "133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34",
+    "vendor_boot_b": "aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972",
+    "dtbo_b": "018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634"
+  },
+  "ci_run": "35041014819",
+  "bootloader_origin": "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B",
+  "normal_boot_candidate": false,
+  "slot_a_written": false,
+  "partition_writes": 0,
+  "status": "AUTOMATIC_FASTBOOT_RETURN",
+  "final_slot": "b",
+  "total_s": 28.218802167,
+  "b_retries": "6",
+  "host_boot_commands": 1,
+  "experimental_boots": 1,
+  "recovery_control_boots": 0,
+  "pair": {
+    "delta_s": -7.173600415999999,
+    "expected_delta_s": -7.0,
+    "error_s": -0.1736004159999993,
+    "verdict": "STRONG",
+    "rest_init_entry": "PROVEN",
+    "rest_init_body": "NOT_PROVEN",
+    "init_executed": "NOT_PROVEN"
+  }
+}

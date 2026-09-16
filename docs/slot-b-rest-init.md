@@ -113,4 +113,26 @@ The corrected REST1 audit also reconstructs and checks the exact REST8
 reference; it does not replace the already privately verified REST8 image.
 The B observer pins both full boot SHAs, requires the declared Android-A-to-
 bootloader-to-B origin, and cannot run the second member without a valid first
-record. Device execution remains pending the observer CI gate.
+record. Observer CI `35041014819` passed before device execution.
+
+## True-device result (2026-09-16 UTC)
+
+Two different RAM-only Slot B boots, each launched from the preregistered
+Android-A → Bootloader → B route; no partition flash occurred this round.
+
+| member | Booting OKAY | automatic Fastboot return total |
+| --- | --- | --- |
+| REST8 | 00:44:56.387 | 35.392402583s |
+| REST1 | 00:48:34.703 | 28.218802167s |
+
+`DELTA=-7.173600416s`, expected `-7s`, error `-0.173600416s`: **STRONG**.
+`REST_INIT_ENTRY=PROVEN`; the preceding normal start_kernel path is proven.
+`REST_INIT_BODY=NOT_PROVEN`, `INIT_EXECUTED=NOT_PROVEN`. This is not a normal
+Linux boot-success claim. Both returns remained on B and consumed one P15
+recovery boot (retry 7→6). All 16 recorded A/B boot-chain hashes and the P15
+prefix matched before, between and after the pair. Android A is healthy again.
+
+Next: audit `kernel_init()` entry (`init/main.c`), the PID1 initialization task
+created by `user_mode_thread`. A positive there proves the task was created
+and scheduled, not that its initial `kthreadd_done` wait completed or `/init`
+ran. Reuse the reconciled kernel bundle; do not rebuild or rerun REST8/REST1.

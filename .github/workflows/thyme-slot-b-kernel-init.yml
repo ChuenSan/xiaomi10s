@@ -1,0 +1,87 @@
+name: thyme-slot-b-kernel-init
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/checkpoint.py'
+      - '.github/workflows/thyme-slot-b-kernel-init.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit-pair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Source and guard tests
+        run: python3 -B -m unittest discover -s scripts/slot_b -p 'test_*.py' -v
+      - name: Install binary inspection tools (no compiler build)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm-18
+      - name: Reuse pinned kernel audit bundle and immutable payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          gh run download 34980859158 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-reset-pair -D proven-core
+      - name: Audit kernel_init and compose matched pair
+        run: |
+          set -euo pipefail
+          for delay in 8 1; do
+            reference=()
+            if [ "$delay" = 1 ]; then
+              reference=(--reference-sha "$(jq -r .payload_sha256 out-pair/8/checkpoint/manifest.json)")
+            fi
+            python3 -u -B scripts/slot_b/checkpoint.py \
+              --symbol kernel_init --delay "$delay" \
+              --bundle kernel-bundle \
+              --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+              --core proven-core/p1b-t1-core-reference.bin \
+              --out "out-pair/$delay" "${reference[@]}" | tee "kernel-init-$delay.log"
+          done
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path('out-pair')
+          a = json.loads((root/'8/checkpoint/manifest.json').read_text())
+          b = json.loads((root/'1/checkpoint/manifest.json').read_text())
+          p8 = (root/'8/checkpoint/payload.bin').read_bytes()
+          p1 = (root/'1/checkpoint/payload.bin').read_bytes()
+          assert a['symbol'] == b['symbol'] == 'kernel_init'
+          assert a['delay_seconds'] == 8 and b['delay_seconds'] == 1
+          assert a['offset'] == b['offset'] == 0x10c2030
+          assert len(p8) == len(p1) == a['payload_size'] == b['payload_size']
+          changed = [i for i, (x, y) in enumerate(zip(p8, p1)) if x != y]
+          assert changed == [a['offset'] + 16, a['offset'] + 17]
+          assert b['pair_reference_sha256'] == a['payload_sha256']
+          pair = {'symbol': 'kernel_init', 'source_commit': os.environ['GITHUB_SHA'],
+                  'public_run': os.environ['GITHUB_RUN_ID'], 'bundle_run': '35040148509',
+                  'payload_shas': {'8': a['payload_sha256'], '1': b['payload_sha256']},
+                  'changed_offsets': changed, 'expected_delta_s': -7,
+                  'device_operation': False, 'kernel_rebuilt': False}
+          (root/'pair.json').write_text(json.dumps(pair, indent=2)+'\n')
+          print(json.dumps(pair, indent=2))
+          print('KERNEL_INIT_PAIR_AUDIT=PASS')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-checkpoint-pair
+          path: out-pair/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-slot-b-kernel-init-logs
+          path: kernel-init-*.log
+          if-no-files-found: warn

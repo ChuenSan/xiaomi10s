@@ -23,7 +23,7 @@ pb = t3.pb
 TOOLS = {"nm": "llvm-nm-18", "objdump": "llvm-objdump-18", "readelf": "llvm-readelf-18",
          "objcopy": "llvm-objcopy-18", "clang": "clang-18", "lld": "ld.lld-18"}
 CORE_SHA = "4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611"
-TARGETS = {"rest_init": 0x10C1F48}
+TARGETS = {"rest_init": 0x10C1F48, "kernel_init": 0x10C2030}
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
 
 
@@ -208,7 +208,10 @@ def compose(args, bundle):
     t3.gate_window_inside_image_size(offset, length, image_size)
     candidate = patch_window(frozen, offset, probe)
     reference = patch_window(frozen, offset, probe[:4] + reference_core)
-    require(digest(reference) == REST8_SHA, "FROZEN_REST8_REFERENCE_MISMATCH")
+    expected_reference = args.reference_sha or (REST8_SHA if args.symbol == "rest_init" else None)
+    require(args.delay == 8 or expected_reference is not None, "MATCHED_8S_REFERENCE_REQUIRED")
+    if expected_reference is not None:
+        require(digest(reference) == expected_reference, "FROZEN_8S_REFERENCE_MISMATCH")
     pair_diff = [i for i, (a, b) in enumerate(zip(reference_core, core)) if a != b]
     require(pair_diff == ([12, 13] if args.delay == 1 else []), "PAIR_NOT_DELAY_ONLY")
     t3.gate_tail_identity(frozen, candidate, (offset, offset + length))
@@ -223,21 +226,27 @@ def compose(args, bundle):
                 "payload_sha256": digest(candidate), "payload_size": len(candidate),
                 "checkpoint_sha256": digest(probe), "core_sha256": digest(core),
                 "reference_core_sha256": CORE_SHA, "delay_seconds": args.delay,
-                "pair_reference_sha256": REST8_SHA,
+                "pair_reference_sha256": digest(reference),
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
                 "frozen_sha256": digest(frozen), "changed_bytes": len(changed),
                 "outside_window_changed_bytes": 0, "runtime_rewrites": rewrites,
                 "relocation_sites_checked": len(sites), "audit_elf_unchanged": True,
                 "source_commit": os.environ["GITHUB_SHA"], "run_id": os.environ["GITHUB_RUN_ID"],
                 "bundle": metadata, "normal_boot_candidate": False,
-                "positive_proves": "rest_init entry and preceding normal start_kernel path",
-                "positive_does_not_prove": "rest_init body, scheduler, SMP or /init",
+                "positive_proves": ("PID1 initialization task created and scheduled at kernel_init entry"
+                                    if args.symbol == "kernel_init" else
+                                    "rest_init entry and preceding normal start_kernel path"),
+                "positive_does_not_prove": ("kthreadd_done wait completed, kernel_init_freeable, SMP or /init"
+                                           if args.symbol == "kernel_init" else
+                                           "rest_init body, scheduler, SMP or /init"),
+                "init_symbols": {name: hex(t3.nm_symbol(nm, name)) for name in
+                                 ("rest_init", "kernel_init", "kernel_init_freeable", "smp_init")},
                 "device_operation": False}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     (out / "SHA256SUMS").write_text("".join(f"{digest((out / n).read_bytes())}  {n}\n"
                                            for n in ("payload.bin", "checkpoint.bin", "manifest.json")))
     print(json.dumps(manifest, indent=2), flush=True)
-    print("REST_INIT_INLINE_AUDIT=PASS\nDEVICE_OPERATION=NO\nLOCAL_BUILD=NO", flush=True)
+    print(f"{args.symbol.upper()}_INLINE_AUDIT=PASS\nDEVICE_OPERATION=NO\nLOCAL_BUILD=NO", flush=True)
 
 
 def main():
@@ -246,6 +255,7 @@ def main():
     parser.add_argument("--core", type=Path, required=True)
     parser.add_argument("--symbol", choices=TARGETS, default="rest_init")
     parser.add_argument("--delay", type=int, choices=(1, 8), default=8)
+    parser.add_argument("--reference-sha")
     parser.add_argument("--bundle", type=Path)
     parser.add_argument("--out", type=Path, default=Path("out-slot-b-checkpoint"))
     args = parser.parse_args()

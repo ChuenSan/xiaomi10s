@@ -7,10 +7,14 @@ B remains stock V14 vendor_boot/dtbo + the proven P15 recovery boot. No new
 partition write or experimental boot occurred during recovery. RESET8 remains
 NO_RETURN_WITHIN_120S; RESET1 was NOT executed. Oops contains the stock P15
 record only; pstore is empty and logdump/rawdump remain unchanged.
-Next is the audited rest_init entry checkpoint, public Actions `35036419486`;
-source tests passed, kernel audit build pending. No Linux boot success is
-claimed. Details: `docs/slot-b-rest-init.md` and `docs/slot-b-continuation.md`.
-Older A-return timing records below are historical, not this B baseline.
+REST_INIT Slot B matched pair is now COMPLETE: REST8 35.392403s, REST1
+28.218802s, delta -7.173600s (expected -7s), STRONG. rest_init entry and the
+preceding normal start_kernel path are PROVEN; rest_init body and /init are
+not. All recorded partition hashes remain unchanged and Android A is healthy.
+Next is a kernel_init entry checkpoint using the reconciled bundle from
+Actions `35040148509`, not a rebuild. No Linux boot success is claimed.
+Details: `docs/slot-b-rest-init.md`. Older A-return timing records below are
+historical, not this B baseline.
 
 Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
@@ -107,7 +111,7 @@ T3_VERDICT=STRONG
 T3_FINAL_GATE=MAINLINE_V2_R3_P1B_T3_REACHABILITY_PROVEN
 T3_TRUE_DEVICE_STATUS=PROVEN
 R4_START_KERNEL_ADDRESS=PROVEN
-NORMAL_START_KERNEL_BODY=NOT_PROVEN
+NORMAL_START_KERNEL_BODY=PROVEN
 EARLY_C_STAGE_MAP_INTEGRATED=YES
 EARLY_C_STAGE_MAP_SOURCE_BRANCH=route-b-r3-c-stage-map
 EARLY_C_STAGE_MAP_SOURCE_HEAD=d47bf58
@@ -441,9 +445,19 @@ RECOVERY_B_RETRY_COUNT=6
 POST_RESET8_PARTITION_HASHES=ALL_RECORDED_UNCHANGED
 DEVICE_TRANSPORT=ADB_ROOT_ANDROID_A
 DEVICE_RECOVERY=COMPLETE
-NEXT_DEVICE_ACTION=REST_INIT_CHECKPOINT_AFTER_CI_GATES
+NEXT_DEVICE_ACTION=KERNEL_INIT_CHECKPOINT_AFTER_CI_GATES
 REST_INIT_PUBLIC_CI_RUN=35036419486
-REST_INIT_PUBLIC_CI_STATUS=IN_PROGRESS
+REST_INIT_PUBLIC_CI_STATUS=PASS
+REST_INIT_CORRECTED_AUDIT_RUN=35040148509
+REST_INIT_OBSERVER_CI_RUN=35041014819
+REST_INIT_8_TOTAL_S=35.392402583
+REST_INIT_1_TOTAL_S=28.218802167
+REST_INIT_PAIR_DELTA_S=-7.173600416
+REST_INIT_PAIR_ERROR_S=-0.173600416
+REST_INIT_PAIR_VERDICT=STRONG
+REST_INIT_ENTRY=PROVEN
+REST_INIT_BODY=NOT_PROVEN
+REST_INIT_PAIR_POSTTEST_HASHES=ALL_RECORDED_UNCHANGED
 LOCAL_BUILD=NO
 <!-- R3-STATUS-KV:END -->
 
