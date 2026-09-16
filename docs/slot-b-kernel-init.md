@@ -30,6 +30,23 @@ members. Public Actions emit payloads and a pair manifest; private Actions
 wrap and independently verify both boot images, including the complete
 boot-image two-byte diff. No local compilation, packing or binary validation.
 
+## Rejected window and corrected layout
+
+The first audit `35043423643` rejected the 80-byte entry window. Diagnostic
+run `35046350175` confirms a real branch from `kernel_init+0x16c` to `+0x48`
+in the `rodata_enabled=false` path. No device test ran; the safety gate stays
+unchanged.
+
+The candidate now preserves the original landing word and uses a 68-byte
+core, ending exactly before `+0x48`. The original `b.hs reset; yield; b poll`
+sequence becomes `b.lo poll`, then falls through to the identical PSCI reset
+and terminal WFE loop. Timer reads, barriers, registers and interrupt masking
+are unchanged. Actions independently assembles the source and requires exact
+byte agreement; private verification reconstructs the original 76-byte core
+and requires its frozen SHA. The incoming-branch regression covers the actual
+rejected branch. This is a compact equivalent diagnostic, not a claim that its
+new layout is already device-proven.
+
 ## Device contract (before any kernel_init test)
 
 The B partitions stay stock V14 vendor/DTBO plus the proven P15 recovery boot.

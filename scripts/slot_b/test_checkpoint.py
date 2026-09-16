@@ -26,6 +26,34 @@ class CheckpointTests(unittest.TestCase):
         struct.pack_into('<I', image, 60, 0x14000000 | (-5 & 0x03FFFFFF))
         self.assertEqual(checkpoint.incoming_branches(image, [(0, 64)], base, window), [(base + 60, base + 40)])
 
+    def test_compact_poll_preserves_timer_and_terminal_reset(self):
+        core = bytearray(range(76))
+        struct.pack_into('<III', core, 44, 0x54000062, 0xD503203F, 0x17FFFFFA)
+        compact = checkpoint.compact_core(bytes(core))
+        self.assertEqual(len(compact), 68)
+        self.assertEqual(compact[:44], core[:44])
+        self.assertEqual(compact[48:], core[56:])
+        word = struct.unpack_from('<I', compact, 44)[0]
+        self.assertEqual(word & 15, 3)  # unsigned LO is the complement of HS
+        self.assertEqual(checkpoint.branch_target(word, 44), 28)
+        self.assertEqual(checkpoint.branch_target(0x54000062, 44), 56)
+        self.assertEqual(checkpoint.branch_target(0x17FFFFFA, 52), 28)
+        for elapsed in (0, 1, 8, 0xFFFFFFFFFFFFFFFF):
+            for limit in (1, 8, 0xFFFFFFFFFFFFFFFF):
+                self.assertEqual(not elapsed >= limit, elapsed < limit)
+        for bad in (bytes(76), bytes(68)):
+            with self.assertRaises(ValueError):
+                checkpoint.compact_core(bad)
+
+    def test_compact_window_preserves_real_kernel_init_branch_landing(self):
+        base = 0xFFFF8000810C2030
+        image = bytearray(struct.pack('<I', 0xD503201F) * 100)
+        struct.pack_into('<I', image, 0x16C, 0x17FFFFB7)
+        ranges = [(0, len(image))]
+        self.assertEqual(checkpoint.incoming_branches(image, ranges, base, (base, base + 80)),
+                         [(base + 0x16C, base + 0x48)])
+        self.assertEqual(checkpoint.incoming_branches(image, ranges, base, (base, base + 72)), [])
+
     def test_relr_advances_all_63_bitmap_positions(self):
         base = 0xFFFF800081234000
         data = struct.pack('<QQQ', base, 3, 3)

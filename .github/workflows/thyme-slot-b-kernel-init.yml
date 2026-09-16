@@ -4,7 +4,8 @@ on:
   push:
     branches: [route-b-slot-b-continuation]
     paths:
-      - 'scripts/slot_b/checkpoint.py'
+      - 'scripts/slot_b/checkpoint*'
+      - 'scripts/slot_b/test_checkpoint.py'
       - '.github/workflows/thyme-slot-b-kernel-init.yml'
   workflow_dispatch:
 
@@ -23,10 +24,10 @@ jobs:
           persist-credentials: false
       - name: Source and guard tests
         run: python3 -B -m unittest discover -s scripts/slot_b -p 'test_*.py' -v
-      - name: Install binary inspection tools (no compiler build)
+      - name: Install binary inspection tools and diagnostic assembler
         run: |
           sudo apt-get update
-          sudo apt-get install -y llvm-18
+          sudo apt-get install -y llvm-18 clang-18
       - name: Reuse pinned kernel audit bundle and immutable payload
         env:
           GH_TOKEN: ${{ github.token }}
@@ -35,6 +36,14 @@ jobs:
           gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
           gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
           gh run download 34980859158 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-reset-pair -D proven-core
+      - name: Assemble compact diagnostic for independent byte agreement
+        run: |
+          set -euo pipefail
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-compact.S -o compact.o
+          llvm-readelf-18 -r compact.o | tee kernel-init-compact-relocations.log
+          grep -q 'There are no relocations in this file' kernel-init-compact-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text compact.o compact.bin
+          llvm-objdump-18 -d compact.o | tee kernel-init-compact-disassembly.log
       - name: Preserve rejected-window disassembly evidence
         run: |
           set -euo pipefail
@@ -49,7 +58,7 @@ jobs:
               reference=(--reference-sha "$(jq -r .payload_sha256 out-pair/8/checkpoint/manifest.json)")
             fi
             python3 -u -B scripts/slot_b/checkpoint.py \
-              --symbol kernel_init --delay "$delay" \
+              --symbol kernel_init --delay "$delay" --compact-core compact.bin \
               --bundle kernel-bundle \
               --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
               --core proven-core/p1b-t1-core-reference.bin \
@@ -66,6 +75,8 @@ jobs:
           assert a['symbol'] == b['symbol'] == 'kernel_init'
           assert a['delay_seconds'] == 8 and b['delay_seconds'] == 1
           assert a['offset'] == b['offset'] == 0x10c2030
+          assert a['checkpoint_size'] == b['checkpoint_size'] == 72
+          assert a['core_variant'] == b['core_variant'] == 'compact_b_lo'
           assert len(p8) == len(p1) == a['payload_size'] == b['payload_size']
           changed = [i for i, (x, y) in enumerate(zip(p8, p1)) if x != y]
           assert changed == [a['offset'] + 16, a['offset'] + 17]

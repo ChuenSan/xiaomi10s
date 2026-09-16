@@ -36,8 +36,15 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def compact_core(core):
+    require(len(core) == 76, "INVALID_REFERENCE_CORE_SIZE")
+    require(struct.unpack_from("<III", core, 44) == (0x54000062, 0xD503203F, 0x17FFFFFA),
+            "REFERENCE_POLL_LOOP_MISMATCH")
+    return core[:44] + struct.pack("<I", 0x54FFFF83) + core[56:]
+
+
 def delay_core(core, delay):
-    require(delay in (1, 8) and len(core) == 76, "INVALID_DELAY_CORE")
+    require(delay in (1, 8) and len(core) in (68, 76), "INVALID_DELAY_CORE")
     require(struct.unpack_from("<I", core, 12)[0] == 0xD280010A, "REFERENCE_DELAY_NOT_8")
     return core[:12] + struct.pack("<I", 0xD280000A | (delay << 5)) + core[16:]
 
@@ -167,6 +174,10 @@ def compose(args, bundle):
     core = args.core.read_bytes()
     require(digest(frozen) == t3.FIX8_PAYLOAD_SHA, "FROZEN_PAYLOAD_MISMATCH")
     require(len(core) == 76 and digest(core) == CORE_SHA, "CHECKPOINT_CORE_MISMATCH")
+    if args.symbol == "kernel_init":
+        core = compact_core(core)
+        require(args.compact_core is not None and args.compact_core.read_bytes() == core,
+                "COMPACT_CORE_ASSEMBLY_MISMATCH")
     reference_core = core
     core = delay_core(core, args.delay)
     image = (bundle / "Image").read_bytes()
@@ -198,7 +209,7 @@ def compose(args, bundle):
     ranges = [(s["vma"] - text_va, s["vma"] - text_va + s["size"])
               for s in sections if s["code"] and s["alloc"]]
     incoming = incoming_branches(frozen[:len(image)], ranges, text_va, window)
-    require(not incoming, f"BRANCH_INTO_OVERWRITE_INTERIOR:{incoming[:8]}")
+    require(not incoming, f"BRANCH_INTO_OVERWRITE_INTERIOR:{[(hex(a), hex(b)) for a, b in incoming[:8]]}")
     t3.gate_window_literal_scan(target_va, length, frozen[:len(image)])
     sites = relocation_sites(vmlinux, sections)
     t3.gate_window_relocation_scan(target_va, length, sites)
@@ -226,6 +237,7 @@ def compose(args, bundle):
                 "payload_sha256": digest(candidate), "payload_size": len(candidate),
                 "checkpoint_sha256": digest(probe), "core_sha256": digest(core),
                 "reference_core_sha256": CORE_SHA, "delay_seconds": args.delay,
+                "core_variant": "compact_b_lo" if args.symbol == "kernel_init" else "original_b_hs",
                 "pair_reference_sha256": digest(reference),
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
                 "frozen_sha256": digest(frozen), "changed_bytes": len(changed),
@@ -256,6 +268,7 @@ def main():
     parser.add_argument("--symbol", choices=TARGETS, default="rest_init")
     parser.add_argument("--delay", type=int, choices=(1, 8), default=8)
     parser.add_argument("--reference-sha")
+    parser.add_argument("--compact-core", type=Path)
     parser.add_argument("--bundle", type=Path)
     parser.add_argument("--out", type=Path, default=Path("out-slot-b-checkpoint"))
     args = parser.parse_args()
