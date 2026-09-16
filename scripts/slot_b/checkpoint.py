@@ -30,6 +30,7 @@ TARGETS = {"rest_init": 0x10C1F48, "kernel_init": 0x10C2030,
            "kernel_init_freeable": 0x1B3103C, "smp_init": 0x1B466E0,
            "do_basic_setup": 0x1B311A8, "do_initcalls": 0x1B311D0,
            "console_on_rootfs": 0x1B30DA4}
+INITCALL_BOUNDARIES = {"pure_complete": "__initcall1_start"}
 PROOF_BOUNDARIES = {
     "rest_init": ("rest_init entry and preceding normal start_kernel path",
                   "rest_init body, scheduler, SMP or /init"),
@@ -45,6 +46,8 @@ PROOF_BOUNDARIES = {
                      "secondary CPU count, main initcall levels completed, initramfs readiness or /init"),
     "console_on_rootfs": ("main initcall path and wait_for_initramfs returned before console open",
                           "successful device probes, console open, executable /init or userspace entry"),
+    "pure_complete": ("all pure initcalls completed and the first core initcall entry was reached",
+                      "the first core initcall body, later initcall levels, initramfs readiness or /init"),
 }
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
 
@@ -219,6 +222,36 @@ def relocation_sites(vmlinux, sections):
     return sorted(set(sites))
 
 
+def vmlinux_bytes_at(vmlinux, sections, va, size):
+    section = next((s for s in sections if s["vma"] <= va and va + size <= s["vma"] + s["size"]), None)
+    require(section is not None, "VMLINUX_ADDRESS_OUTSIDE_SECTION")
+    with vmlinux.open("rb") as stream:
+        stream.seek(section["file_off"] + va - section["vma"])
+        data = stream.read(size)
+    require(len(data) == size, "VMLINUX_ADDRESS_READ_SHORT")
+    return data
+
+
+def resolve_initcall_boundary(vmlinux, sections, nm, boundary):
+    entry_va = t3.nm_symbol(nm, boundary)
+    relative = struct.unpack("<i", vmlinux_bytes_at(vmlinux, sections, entry_va, 4))[0]
+    target_va = entry_va + relative
+    aliases = sorted(name for va, name in t3.symbol_table(nm) if va == target_va)
+    require(aliases, "INITCALL_TARGET_SYMBOL_MISSING")
+    start = t3.nm_symbol(nm, "__initcall_start")
+    end = t3.nm_symbol(nm, "__initcall_end")
+    require(start <= entry_va < end and not (start | entry_va | end) & 3,
+            "INITCALL_TABLE_BOUNDARY_INVALID")
+    entries = []
+    for va in range(start, end, 4):
+        rel = struct.unpack("<i", vmlinux_bytes_at(vmlinux, sections, va, 4))[0]
+        entries.append(va + rel)
+    require(entries.count(target_va) == 1, "INITCALL_TARGET_NOT_UNIQUE_IN_TABLE")
+    return {"boundary_symbol": boundary, "entry_va": entry_va, "relative": relative,
+            "target_va": target_va, "target_aliases": aliases,
+            "table_entries_checked": len(entries)}
+
+
 def audit_rewrites(out, vmlinux, sections, window):
     report = {}
     for name, tag, decoder in t3.RUNTIME_REWRITE_SECTIONS:
@@ -271,10 +304,25 @@ def compose(args, bundle):
     vmlinux = bundle / "vmlinux"
     nm = pb.run([TOOLS["nm"], str(vmlinux)])
     text_va = t3.nm_symbol(nm, "_text")
-    target_va, extent = t3.symbol_extent(nm, args.symbol)
+    sections = t3.section_map(out, TOOLS, vmlinux)
+    initcall_boundary = None
+    if args.symbol in INITCALL_BOUNDARIES:
+        initcall_boundary = resolve_initcall_boundary(
+            vmlinux, sections, nm, INITCALL_BOUNDARIES[args.symbol])
+        target_va = initcall_boundary["target_va"]
+        target_symbol = initcall_boundary["target_aliases"][0]
+        next_va = min(va for va, _ in t3.symbol_table(nm) if va > target_va)
+        extent = next_va
+        require(t3.sysmap_symbol(bundle / "System.map", target_symbol) == target_va,
+                "SYMBOL_MAP_MISMATCH")
+    else:
+        target_symbol = args.symbol
+        target_va, extent = t3.symbol_extent(nm, target_symbol)
+        require(target_va - text_va == TARGETS[args.symbol],
+                "TARGET_OFFSET_DIFFERS_FROM_FROZEN_MAP")
+        require(t3.sysmap_symbol(bundle / "System.map", target_symbol) == target_va,
+                "SYMBOL_MAP_MISMATCH")
     offset = target_va - text_va
-    require(offset == TARGETS[args.symbol], "TARGET_OFFSET_DIFFERS_FROM_FROZEN_MAP")
-    require(t3.sysmap_symbol(bundle / "System.map", args.symbol) == target_va, "SYMBOL_MAP_MISMATCH")
     cfg = t3.config_symbols((bundle / "kernel.config").read_text())
     word0, word1 = struct.unpack_from("<II", frozen, offset)
     pad = t3.gate_sk_entry_insn(word0, word1, word0)
@@ -322,7 +370,6 @@ def compose(args, bundle):
     finally:
         (out / "window-agreement.json").write_text(json.dumps(agreement, indent=2) + "\n")
     t3.gate_window_bytes_agree(target_va, offset, dump, image, length // 4)
-    sections = t3.section_map(out, TOOLS, vmlinux)
     section = t3.gate_window_section_scan(target_va, length, sections)
     t3.gate_function_extent_scan(target_va, length, extent)
     t3.gate_window_symbol_scan(target_va, length, [va for va, _ in t3.symbol_table(nm)])
@@ -351,8 +398,10 @@ def compose(args, bundle):
     pb.gate_rt_d(candidate[dtb_offset:])
     (out / "payload.bin").write_bytes(candidate)
     (out / "checkpoint.bin").write_bytes(probe)
-    manifest = {"symbol": args.symbol, "target_va": hex(target_va), "offset": offset,
+    manifest = {"symbol": args.symbol, "target_symbol": target_symbol,
+                "target_va": hex(target_va), "offset": offset,
                 "checkpoint_size": length, "entry": pad, "section": section["name"],
+                "initcall_boundary": initcall_boundary,
                 "core_size": len(core), "terminal_nop_padding_size": length - 4 - len(core),
                 "payload_sha256": digest(candidate), "payload_size": len(candidate),
                 "checkpoint_sha256": digest(probe), "core_sha256": digest(core),
@@ -383,7 +432,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--frozen", type=Path, required=True)
     parser.add_argument("--core", type=Path, required=True)
-    parser.add_argument("--symbol", choices=TARGETS, default="rest_init")
+    parser.add_argument("--symbol", choices=tuple(TARGETS) + tuple(INITCALL_BOUNDARIES),
+                        default="rest_init")
     parser.add_argument("--delay", type=int, choices=(1, 8), default=8)
     parser.add_argument("--reference-sha")
     parser.add_argument("--compact-core", type=Path)

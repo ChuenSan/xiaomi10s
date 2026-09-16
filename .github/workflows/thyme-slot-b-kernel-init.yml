@@ -12,7 +12,7 @@ on:
       symbol:
         description: Audited PID1 stage, built from the frozen normal payload
         type: choice
-        options: [kernel_init_freeable, smp_init, kernel_init, do_basic_setup, do_initcalls, console_on_rootfs]
+        options: [pure_complete, kernel_init_freeable, smp_init, kernel_init, do_basic_setup, do_initcalls, console_on_rootfs]
         default: kernel_init_freeable
 
 permissions:
@@ -82,7 +82,15 @@ jobs:
                      'do_initcalls': 0x1b311d0, 'console_on_rootfs': 0x1b30da4}
           assert a['symbol'] == b['symbol'] == symbol
           assert a['delay_seconds'] == 8 and b['delay_seconds'] == 1
-          assert a['offset'] == b['offset'] == targets[symbol]
+          assert a['offset'] == b['offset']
+          if symbol in targets:
+              assert a['offset'] == targets[symbol]
+          else:
+              assert symbol == 'pure_complete'
+              assert a['target_symbol'] == b['target_symbol']
+              assert a['initcall_boundary'] == b['initcall_boundary']
+              assert a['initcall_boundary']['boundary_symbol'] == '__initcall1_start'
+              assert a['initcall_boundary']['target_va'] == int(a['target_va'], 16)
           assert a['checkpoint_size'] == b['checkpoint_size'] == (96 if symbol == 'do_initcalls' else 72)
           assert a['core_variant'] == b['core_variant'] == 'compact_b_lo'
           assert len(p8) == len(p1) == a['payload_size'] == b['payload_size']

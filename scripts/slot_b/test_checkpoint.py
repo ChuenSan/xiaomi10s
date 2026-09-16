@@ -1,5 +1,7 @@
 import struct
+import tempfile
 import unittest
+from pathlib import Path
 
 import checkpoint
 
@@ -133,6 +135,38 @@ class CheckpointTests(unittest.TestCase):
             checkpoint.decode_relr(struct.pack('<Q', 3))
         with self.assertRaises(ValueError):
             checkpoint.decode_relr(b'bad')
+
+    def test_initcall_boundary_resolves_unique_prel32_target(self):
+        base = 0x10000000
+        target = 0x10000100
+        data = bytearray(0x200)
+        for index, resolved in enumerate((base + 0x80, target, base + 0x180)):
+            struct.pack_into('<i', data, index * 4, resolved - (base + index * 4))
+        nm = '\n'.join((
+            f'{base:016x} d __initcall_start',
+            f'{base + 4:016x} d __initcall1_start',
+            f'{base + 12:016x} d __initcall_end',
+            f'{target:016x} t first_core_init',
+            f'{target + 0x80:016x} t next_function',
+        ))
+        with tempfile.TemporaryDirectory() as directory:
+            image = Path(directory) / 'vmlinux'
+            image.write_bytes(data)
+            result = checkpoint.resolve_initcall_boundary(
+                image, [{'vma': base, 'size': len(data), 'file_off': 0}], nm,
+                '__initcall1_start')
+        self.assertEqual(result['target_va'], target)
+        self.assertEqual(result['target_aliases'], ['first_core_init'])
+        self.assertEqual(result['table_entries_checked'], 3)
+        duplicate = bytearray(data)
+        struct.pack_into('<i', duplicate, 8, target - (base + 8))
+        with tempfile.TemporaryDirectory() as directory:
+            image = Path(directory) / 'vmlinux'
+            image.write_bytes(duplicate)
+            with self.assertRaises(ValueError):
+                checkpoint.resolve_initcall_boundary(
+                    image, [{'vma': base, 'size': len(data), 'file_off': 0}], nm,
+                    '__initcall1_start')
 
     def test_pair_changes_only_delay_immediate(self):
         core = bytearray(76)
