@@ -1,0 +1,22 @@
+{
+  "protocol": "slot-b-p15-fastboot-return-v1",
+  "case": "free8",
+  "image_sha256": "9c294a544cf1e178b7f638a40901fbddf97e3556ff57f18646114cd2d921be93",
+  "context": {
+    "boot_b_prefix": "133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34",
+    "vendor_boot_b": "aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972",
+    "dtbo_b": "018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634"
+  },
+  "ci_run": "35048049205",
+  "bootloader_origin": "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B",
+  "normal_boot_candidate": false,
+  "slot_a_written": false,
+  "partition_writes": 0,
+  "status": "AUTOMATIC_FASTBOOT_RETURN",
+  "final_slot": "b",
+  "total_s": 35.151693707999996,
+  "b_retries": "6",
+  "host_boot_commands": 1,
+  "experimental_boots": 1,
+  "recovery_control_boots": 0
+}

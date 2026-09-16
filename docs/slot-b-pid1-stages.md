@@ -38,3 +38,23 @@ hashes. Primary delta is FREE1−FREE8 = −7s; abs(error)<=1s STRONG, <=2s
 SUPPORTED. No return/manual recovery invalidates the pair and stops automatic
 progression. Absolute timing alone is not proof. A positive proves the
 `kthreadd_done` wait completed, not SMP or `/init`.
+
+## FREE pair true-device result
+
+Observer CI `35048364342` passed. FREE8 booted once at 02:34:06.397 UTC and
+returned in 35.151693708s. FREE1 booted once at 02:36:24.425 UTC and returned
+in 28.236296167s. Delta `-6.915397541s`, error `+0.084602459s`: **STRONG**.
+`KERNEL_INIT_FREEABLE_ENTRY=PROVEN`; `KTHREADD_DONE_WAIT_COMPLETED=PROVEN`.
+Its body, SMP and `/init` remain unproven. Both returns stayed B (retry 7→6).
+All 16 protected boot-chain hashes and P15 prefix matched before/between/after;
+zero partition flashes. Android A is healthy. Do not rerun this completed pair.
+
+## SMP entry audit hold
+
+Run `35048719320` rejected `smp_init` before producing a payload:
+`TARGET_WINDOW_DIFFERS_FROM_AUDIT_IMAGE`. The bundle and frozen payload agree
+at earlier checkpoints, but not this proposed overwrite window. The cause
+must be resolved from exported disassembly and exact word differences, not
+by disabling the identity gate. No SMP device test or private pack ran.
+Automatic old-stage composition is now disabled; explicit Actions dispatch
+selects each new diagnostic while source/observer regression CI stays active.

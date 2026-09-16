@@ -21,6 +21,7 @@ permissions:
 
 jobs:
   audit-pair:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
@@ -108,4 +109,5 @@ jobs:
             kernel-init-*.log
             out-pair/*/checkpoint/original-window.txt
             out-pair/*/checkpoint/original-function.txt
+            out-pair/*/checkpoint/window-agreement.json
           if-no-files-found: warn

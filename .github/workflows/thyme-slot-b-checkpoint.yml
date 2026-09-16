@@ -36,6 +36,7 @@ jobs:
       - run: python3 -B -m unittest discover -s scripts/slot_b -p 'test_*.py' -v
 
   checkpoint:
+    if: github.event_name == 'workflow_dispatch'
     needs: source-tests
     runs-on: ubuntu-24.04
     timeout-minutes: 150

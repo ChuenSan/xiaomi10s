@@ -206,14 +206,21 @@ def compose(args, bundle):
     t3.gate_instrumentation_audit(cfg, pad.split()[0], word0)
     probe = frozen[offset:offset + 4] + core
     length = len(probe)
-    require(image[offset:offset + length] == frozen[offset:offset + length],
-            "TARGET_WINDOW_DIFFERS_FROM_AUDIT_IMAGE")
     dump = pb.run([TOOLS["objdump"], "-d", f"--start-address={target_va:#x}",
                    f"--stop-address={target_va + length:#x}", str(vmlinux)])
     (out / "original-window.txt").write_text(dump)
     (out / "original-function.txt").write_text(pb.run(
         [TOOLS["objdump"], "-d", f"--start-address={target_va:#x}",
          f"--stop-address={extent:#x}", str(vmlinux)]))
+    differences = [{"offset": hex(i), "bundle": hex(struct.unpack_from("<I", image, i)[0]),
+                    "frozen": hex(struct.unpack_from("<I", frozen, i)[0])}
+                   for i in range(offset, offset + length, 4)
+                   if image[i:i + 4] != frozen[i:i + 4]]
+    agreement = {"symbol": args.symbol, "offset": hex(offset), "size": length,
+                 "bundle_image_sha256": digest(image), "frozen_payload_sha256": digest(frozen),
+                 "differing_words": differences}
+    (out / "window-agreement.json").write_text(json.dumps(agreement, indent=2) + "\n")
+    require(not differences, f"TARGET_WINDOW_DIFFERS_FROM_AUDIT_IMAGE:{differences}")
     t3.gate_window_bytes_agree(target_va, offset, dump, frozen, length // 4)
     sections = t3.section_map(out, TOOLS, vmlinux)
     section = t3.gate_window_section_scan(target_va, length, sections)
