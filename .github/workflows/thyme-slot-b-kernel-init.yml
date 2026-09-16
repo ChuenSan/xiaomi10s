@@ -12,7 +12,7 @@ on:
       symbol:
         description: Audited PID1 stage, built from the frozen normal payload
         type: choice
-        options: [kernel_init_freeable, smp_init, kernel_init, do_basic_setup]
+        options: [kernel_init_freeable, smp_init, kernel_init, do_basic_setup, do_initcalls]
         default: kernel_init_freeable
 
 permissions:
@@ -78,7 +78,7 @@ jobs:
           p1 = (root/'1/checkpoint/payload.bin').read_bytes()
           symbol = os.environ['CHECKPOINT_SYMBOL']
           targets = {'kernel_init': 0x10c2030, 'kernel_init_freeable': 0x1b3103c,
-                     'smp_init': 0x1b466e0, 'do_basic_setup': 0x1b311a8}
+                     'smp_init': 0x1b466e0, 'do_basic_setup': 0x1b311a8, 'do_initcalls': 0x1b311d0}
           assert a['symbol'] == b['symbol'] == symbol
           assert a['delay_seconds'] == 8 and b['delay_seconds'] == 1
           assert a['offset'] == b['offset'] == targets[symbol]

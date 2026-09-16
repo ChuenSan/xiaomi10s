@@ -106,3 +106,13 @@ The matching `kernel_init_freeable` disassembly calls it after `smp_init`,
 A positive proves these functions returned, NOT that all secondary CPUs
 came online. Driver initcalls, initramfs readiness and `/init` remain separate.
 Use the same 8s/1s pair protocol, safety/context gates and unchanged thresholds.
+
+Audit `35050781222` rejected `do_basic_setup`: it is only 40 bytes, so a
+72-byte probe would cross into `do_initcalls`. Window bytes matched exactly;
+this was a diagnostic geometry rejection, not a device failure. The extent
+gate remains unchanged. Its disassembly shows `cpuset_init_smp`, `driver_init`
+and `init_irq_proc` followed by `bl do_initcalls` at `0x1b311c0`.
+
+The next candidate is therefore `do_initcalls` entry at `0x1b311d0`. A positive
+proves the preceding SMP/topology and driver-core setup returned, not the main
+initcall levels, initramfs or `/init`. No do_basic_setup device test occurred.

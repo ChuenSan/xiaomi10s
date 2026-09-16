@@ -22,8 +22,10 @@ PROVEN. All recorded hashes remain unchanged; Android A is healthy.
 SMP entry matched pair also passed: 35.174554375s / 28.200887000s, delta
 -6.973667375s, STRONG. Pre-SMP initialization reached smp_init; its body and
 secondary CPU count are not yet proven. All recorded hashes are unchanged
-and Android A is healthy. Next is do_basic_setup entry after SMP/topology
-setup returns, using the same frozen payload and GHA-only audit bundle.
+and Android A is healthy. do_basic_setup's 40-byte extent rejected the
+72-byte probe in CI, without any device test. Next is its do_initcalls callee
+entry after SMP/topology and driver-core setup, using the same frozen payload
+and GHA-only audit bundle.
 No Linux boot success is claimed. Details: `docs/slot-b-pid1-stages.md`.
 Older A-return timing records below are historical, not this B baseline.
 
@@ -456,7 +458,8 @@ RECOVERY_B_RETRY_COUNT=6
 POST_RESET8_PARTITION_HASHES=ALL_RECORDED_UNCHANGED
 DEVICE_TRANSPORT=ADB_ROOT_ANDROID_A
 DEVICE_RECOVERY=COMPLETE
-NEXT_DEVICE_ACTION=DO_BASIC_SETUP_PAIR_AFTER_CI_GATES
+NEXT_DEVICE_ACTION=DO_INITCALLS_ENTRY_PAIR_AFTER_CI_GATES
+DO_BASIC_SETUP_DIAGNOSTIC=REJECTED_FUNCTION_TOO_SHORT
 REST_INIT_PUBLIC_CI_RUN=35036419486
 REST_INIT_PUBLIC_CI_STATUS=PASS
 REST_INIT_CORRECTED_AUDIT_RUN=35040148509

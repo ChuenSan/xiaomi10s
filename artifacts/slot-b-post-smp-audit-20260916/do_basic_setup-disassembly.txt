@@ -1,0 +1,16 @@
+
+kernel-bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .init.text:
+
+ffff800081b311a8 <do_basic_setup>:
+ffff800081b311a8: d503233f     	paciasp
+ffff800081b311ac: a9bf7bfd     	stp	x29, x30, [sp, #-0x10]!
+ffff800081b311b0: 910003fd     	mov	x29, sp
+ffff800081b311b4: 94005c20     	bl	0xffff800081b48234 <cpuset_init_smp>
+ffff800081b311b8: 9401748c     	bl	0xffff800081b8e3e8 <driver_init>
+ffff800081b311bc: 97976c72     	bl	0xffff80008010c384 <init_irq_proc>
+ffff800081b311c0: 94000004     	bl	0xffff800081b311d0 <do_initcalls>
+ffff800081b311c4: a8c17bfd     	ldp	x29, x30, [sp], #0x10
+ffff800081b311c8: d50323bf     	autiasp
+ffff800081b311cc: d65f03c0     	ret

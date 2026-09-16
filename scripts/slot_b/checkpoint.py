@@ -25,7 +25,7 @@ TOOLS = {"nm": "llvm-nm-18", "objdump": "llvm-objdump-18", "readelf": "llvm-read
 CORE_SHA = "4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611"
 TARGETS = {"rest_init": 0x10C1F48, "kernel_init": 0x10C2030,
            "kernel_init_freeable": 0x1B3103C, "smp_init": 0x1B466E0,
-           "do_basic_setup": 0x1B311A8}
+           "do_basic_setup": 0x1B311A8, "do_initcalls": 0x1B311D0}
 PROOF_BOUNDARIES = {
     "rest_init": ("rest_init entry and preceding normal start_kernel path",
                   "rest_init body, scheduler, SMP or /init"),
@@ -37,6 +37,8 @@ PROOF_BOUNDARIES = {
                  "SMP bring-up completed, driver initcalls, initramfs readiness or /init"),
     "do_basic_setup": ("smp_init and subsequent scheduler/workqueue topology setup returned",
                        "secondary CPU count, driver initcalls, initramfs readiness or /init"),
+    "do_initcalls": ("SMP/topology and driver-core setup returned before main initcall levels",
+                     "secondary CPU count, main initcall levels completed, initramfs readiness or /init"),
 }
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
 
