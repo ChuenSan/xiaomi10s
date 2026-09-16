@@ -139,7 +139,7 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(verdict["first_postcore_initcall_body"], "NOT_PROVEN")
         self.assertEqual(verdict["postcore_initcalls_completed"], "NOT_PROVEN")
         self.assertEqual(verdict["console_on_rootfs_entry"], "NOT_PROVEN")
-        supported = {**self.record("core1", 29.0),
+        supported = {**self.record("core1", 26.5),
                      "bootloader_origin": observe.REST_ORIGIN}
         self.assertEqual(observe.pair_verdict(baseline, supported)["verdict"],
                          "SUPPORTED")

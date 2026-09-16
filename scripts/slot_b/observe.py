@@ -101,6 +101,7 @@ def pair_verdict(baseline, result):
         require(record.get("status") == "AUTOMATIC_FASTBOOT_RETURN", "PAIR_RETURN_NOT_VALID")
         require(record.get("final_slot") == "b", "PAIR_NOT_SLOT_B")
         require(record.get("experimental_boots") == 1, "PAIR_BOOT_COUNT_INVALID")
+        require(record.get("context") == CONTEXT, "PAIR_CONTEXT_MISMATCH")
         require(not isinstance(record.get("total_s"), bool) and
                 isinstance(record.get("total_s"), (int, float)) and
                 math.isfinite(record["total_s"]) and record["total_s"] > 0,
