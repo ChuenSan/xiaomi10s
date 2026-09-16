@@ -30,6 +30,8 @@ IMAGES = {
     "initcalls1": (37380096, "b07810cf2d8d17b7518d63033c650a8272f89dccee73d2a03e278455a2e6e65f"),
     "console8": (37380096, "9892a58c7627df78f5fc3acd64926aa054a2c9b6ca1f05ef65e2c0d289fd445d"),
     "console1": (37380096, "c116cf585516f1e6d9835a90ef0324745fd12f84f5d7cb36528e7aa73f2983b1"),
+    "pure8": (37380096, "86d5c664e17675cf23322158782f2a0d2b9a7a1f075adc98c51f441ff4612a4b"),
+    "pure1": (37380096, "08346222366202abf2d033b0f9bc9d3c11ac3ccd806727bf0d17d40dcf0ba57a"),
 }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
@@ -39,6 +41,7 @@ PAIRS = {
     "smp1": ("smp8", "smp_init_entry", "smp_bringup_completed"),
     "initcalls1": ("initcalls8", "do_initcalls_entry", "initcall_levels_completed"),
     "console1": ("console8", "console_on_rootfs_entry", "console_opened"),
+    "pure1": ("pure8", "pure_initcalls_completed", "core_initcalls_completed"),
 }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}

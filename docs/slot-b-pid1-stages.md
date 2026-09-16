@@ -211,3 +211,31 @@ between that entry and `console_on_rootfs`: initcall levels `pure`→`late`,
 then `wait_for_initramfs`. Keep the same frozen FIX8 payload, compact core,
 GHA-only composition and B-only RAM protocol. USB, BusyBox userspace and
 INITRAMFS_FORCE remain frozen until a later proven boundary requires them.
+
+## First post-pure checkpoint readiness
+
+Public audit `35095344774` resolved `__initcall1_start`'s PREL32 entry to the
+unique `fpsimd_init` target at `0xffff800081b33d74` (Image `0x1b33d74`). This
+is the first core initcall: a positive pair proves all pure initcalls completed
+and this entry was reached, not its body or core-level completion. The target
+is 128 bytes, so the 72-byte compact probe stays within the function.
+
+The audit found one word delta at `0x1b33d9c`: ADD `0x913b7421` in the audit
+Image versus `0x913b9421` in FIX8. Both ADRP/ADD pairs resolve to the exact
+NUL-terminated `arm64/fpsimd:dead` cpuhp state name (`0x1940edd` versus
+`0x1940ee5`), and the following call resolves to `__cpuhp_setup_state`.
+Only this exact address delta is admitted; all other identity, branch,
+relocation and runtime-rewrite gates remain active. Verdict:
+`INITCALL_NAME_LITERAL_ADDRESS_DELTA_VERIFIED`.
+
+Private pack and independent verification `35095564792` passed without a
+kernel rebuild. Both boots are 37380096 bytes:
+
+| member | boot SHA256 |
+| --- | --- |
+| PURE8 | `86d5c664e17675cf23322158782f2a0d2b9a7a1f075adc98c51f441ff4612a4b` |
+| PURE1 | `08346222366202abf2d033b0f9bc9d3c11ac3ccd806727bf0d17d40dcf0ba57a` |
+
+The observer identity update must pass CI before device use. The unchanged
+B-only 8s/1s protocol and thresholds apply. No device operation has occurred
+for this pair yet.
