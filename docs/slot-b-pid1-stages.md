@@ -116,3 +116,12 @@ and `init_irq_proc` followed by `bl do_initcalls` at `0x1b311c0`.
 The next candidate is therefore `do_initcalls` entry at `0x1b311d0`. A positive
 proves the preceding SMP/topology and driver-core setup returned, not the main
 initcall levels, initramfs or `/init`. No do_basic_setup device test occurred.
+
+`35051089708` then rejected the 72-byte do_initcalls prefix because its loop
+backedge at `+0x5c` jumps into `+0x3c`. The candidate window is expanded only
+to 96 bytes, covering that original branch source as well as its destination,
+while staying within the 148-byte function. The same device-proven core still
+terminates in its WFE loop; six unreachable NOP words fill the expanded prefix.
+All bytes outside the prefix remain frozen. The incoming-branch guard itself
+is unchanged, and a regression fixture still rejects a branch from outside
+the expanded window. The two pair members differ only in their timer immediate.

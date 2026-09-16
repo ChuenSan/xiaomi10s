@@ -82,7 +82,7 @@ jobs:
           assert a['symbol'] == b['symbol'] == symbol
           assert a['delay_seconds'] == 8 and b['delay_seconds'] == 1
           assert a['offset'] == b['offset'] == targets[symbol]
-          assert a['checkpoint_size'] == b['checkpoint_size'] == 72
+          assert a['checkpoint_size'] == b['checkpoint_size'] == (96 if symbol == 'do_initcalls' else 72)
           assert a['core_variant'] == b['core_variant'] == 'compact_b_lo'
           assert len(p8) == len(p1) == a['payload_size'] == b['payload_size']
           changed = [i for i, (x, y) in enumerate(zip(p8, p1)) if x != y]

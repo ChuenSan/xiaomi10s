@@ -100,6 +100,25 @@ class CheckpointTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             checkpoint.delay_core(bytes(76), 1)
 
+    def test_initcall_prefix_covers_backedge_without_ignoring_external_entries(self):
+        base = 0xFFFF800081B311D0
+        image = bytearray(struct.pack('<I', 0xD503201F) * 40)
+        struct.pack_into('<I', image, 0x5C, 0x54FFFF01)
+        ranges = [(0, len(image))]
+        self.assertEqual(checkpoint.incoming_branches(image, ranges, base, (base, base + 72)),
+                         [(base + 0x5C, base + 0x3C)])
+        self.assertEqual(checkpoint.incoming_branches(image, ranges, base, (base, base + 96)), [])
+        struct.pack_into('<I', image, 0x98, 0x14000000 | ((0x3C - 0x98) // 4 & 0x3FFFFFF))
+        self.assertEqual(checkpoint.incoming_branches(image, ranges, base, (base, base + 96)),
+                         [(base + 0x98, base + 0x3C)])
+        probe = bytes(72)
+        self.assertEqual(checkpoint.pad_probe(probe, 96), probe + struct.pack('<I', 0xD503201F) * 6)
+        for bad in (68, 73):
+            with self.assertRaises(ValueError):
+                checkpoint.pad_probe(probe, bad)
+        with self.assertRaises(ValueError):
+            checkpoint.pad_probe(bytes(73), 96)
+
     def test_composition_changes_only_authorized_window(self):
         before = bytes(range(100))
         after = checkpoint.patch_window(before, 20, b'ABCD')

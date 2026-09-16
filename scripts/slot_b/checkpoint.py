@@ -102,6 +102,12 @@ def incoming_branches(image, ranges, text_va, window):
     return hits
 
 
+def pad_probe(probe, length):
+    require(len(probe) % 4 == 0 and len(probe) <= length and length % 4 == 0,
+            "INVALID_PROBE_WINDOW_LENGTH")
+    return probe + struct.pack("<I", 0xD503201F) * ((length - len(probe)) // 4)
+
+
 def patch_window(frozen, offset, probe):
     require(0 <= offset and offset + len(probe) <= len(frozen), "WINDOW_OUT_OF_BOUNDS")
     return frozen[:offset] + probe + frozen[offset + len(probe):]
@@ -223,6 +229,7 @@ def compose(args, bundle):
     pad = t3.gate_sk_entry_insn(word0, word1, word0)
     t3.gate_instrumentation_audit(cfg, pad.split()[0], word0)
     probe = frozen[offset:offset + 4] + core
+    probe = pad_probe(probe, 96 if args.symbol == "do_initcalls" else len(probe))
     length = len(probe)
     dump = pb.run([TOOLS["objdump"], "-d", f"--start-address={target_va:#x}",
                    f"--stop-address={target_va + length:#x}", str(vmlinux)])
@@ -276,7 +283,7 @@ def compose(args, bundle):
     image_size = pb.parse_image_hdr(frozen, "FIX8")["image_size"]
     t3.gate_window_inside_image_size(offset, length, image_size)
     candidate = patch_window(frozen, offset, probe)
-    reference = patch_window(frozen, offset, probe[:4] + reference_core)
+    reference = patch_window(frozen, offset, probe[:4] + reference_core + probe[4 + len(core):])
     expected_reference = args.reference_sha or (REST8_SHA if args.symbol == "rest_init" else None)
     require(args.delay == 8 or expected_reference is not None, "MATCHED_8S_REFERENCE_REQUIRED")
     if expected_reference is not None:
@@ -292,6 +299,7 @@ def compose(args, bundle):
     (out / "checkpoint.bin").write_bytes(probe)
     manifest = {"symbol": args.symbol, "target_va": hex(target_va), "offset": offset,
                 "checkpoint_size": length, "entry": pad, "section": section["name"],
+                "core_size": len(core), "terminal_nop_padding_size": length - 4 - len(core),
                 "payload_sha256": digest(candidate), "payload_size": len(candidate),
                 "checkpoint_sha256": digest(probe), "core_sha256": digest(core),
                 "reference_core_sha256": CORE_SHA, "delay_seconds": args.delay,
