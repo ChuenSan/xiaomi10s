@@ -1,0 +1,17 @@
+{
+  "symbol": "smp_init",
+  "source_commit": "59623b1a18811aba81221bba8df57522a28c50e2",
+  "public_run": "35049745503",
+  "bundle_run": "35040148509",
+  "payload_shas": {
+    "8": "319249f50a1b7096679d9906a508269f1b26f212c416cdf8dde34a93ee6902c0",
+    "1": "5da17832b0bf4f6ec4d6c03f878f2c9d5ba07e915321ed99b3b2a507f437152d"
+  },
+  "changed_offsets": [
+    28600048,
+    28600049
+  ],
+  "expected_delta_s": -7,
+  "device_operation": false,
+  "kernel_rebuilt": false
+}

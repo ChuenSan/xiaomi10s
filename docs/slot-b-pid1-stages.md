@@ -88,3 +88,21 @@ FREE. SMP1 is conditional on a valid SMP8 return plus unchanged protected
 partition hashes. A positive proves pre-SMP initialization reached the
 `smp_init` entry, not secondary CPU bring-up or `/init`. The updated observer
 must pass CI before either device operation.
+
+## SMP pair true-device result
+
+Observer CI `35050078930` passed before testing. SMP8 booted once at
+03:01:04.771 UTC and returned in 35.174554375s; SMP1 booted once at
+03:03:12.758 UTC and returned in 28.200887000s. Delta `-6.973667375s`,
+error `+0.026332625s`: **STRONG**. `SMP_INIT_ENTRY=PROVEN`.
+Pre-SMP setup and its initcalls reached this boundary. The SMP body and
+secondary CPU count remain unproven. All 16 recorded A/B boot-chain hashes
+and P15 prefix matched before/between/after; no partition writes. Both
+returns were B, retry 7→6, and Android A is healthy after readback.
+
+Next is `do_basic_setup` entry (`0xffff800081b311a8`), rederived in Actions.
+The matching `kernel_init_freeable` disassembly calls it after `smp_init`,
+`sched_init_smp`, `workqueue_init_topology` and `page_alloc_init_late`.
+A positive proves these functions returned, NOT that all secondary CPUs
+came online. Driver initcalls, initramfs readiness and `/init` remain separate.
+Use the same 8s/1s pair protocol, safety/context gates and unchanged thresholds.
