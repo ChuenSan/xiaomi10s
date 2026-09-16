@@ -280,8 +280,26 @@ and CORE1 payload
 `4ccf9e26edc0a37d2eade6a29c8dd73947b17dde57c0630dc1562616e3cf0704`
 differ only at `[0x1b338b5,0x1b338b7)`, instruction 3's delay encoding.
 The frozen FIX8 baseline, RT-D, `/init` and initramfs match; all prior probes
-are absent. `MAINLINE_V2_R3_SLOT_B_CORE_INITCALLS_CHECKPOINT_CI_READY`, but
-private pack and device operation remain NO. Runtime evidence remains
-`CORE_INITCALLS_COMPLETED=NOT_PROVEN` and
+are absent. Runtime evidence remains `CORE_INITCALLS_COMPLETED=NOT_PROVEN` and
 `FIRST_POSTCORE_INITCALL_ENTRY=NOT_PROVEN`. See
 `docs/slot-b-core-initcall-checkpoint.md`.
+
+## Core-initcall private gate freeze
+
+Private pack `35105559604` and independent reverify `35105810959` froze two
+boot identities without kernel rebuild. Observer fixtures `35107904900` and
+regression `35107904896` passed. Both boots are 37380096 bytes:
+
+| member | boot SHA256 |
+| --- | --- |
+| CORE8 | `5d7d5b88668e1925e3a79c677c2b630bb81d66135fec2761016de1da52fd7272` |
+| CORE1 | `a66c3f7a95e05905f5f65d96cb7f378ccdad9edf33814271425829ce10fe3e6c` |
+
+Extracted payloads match the public pair. Private diff remains 2 bytes at
+`[0x1b338b5,0x1b338b7)`, DELAY_CONSTANT_ONLY. Geometry is identical. Each
+observer accepts only its full boot SHA and refuses the sibling plus all
+older images. Device execution is split: CORE8 first, then wait for user
+approval before CORE1. A positive future STRONG pair may prove core-level
+completion and first postcore entry, never `debug_monitors_init` body or
+later levels. `READY_FOR_R3_SLOT_B_CORE8_DEVICE_CONTROL=YES`.
+`READY_FOR_R3_SLOT_B_CORE1_DEVICE_CONTROL=NO`. `DEVICE_OPERATION=NO`.

@@ -137,21 +137,65 @@ all prior REST/KINIT/FREE/SMP/INITCALLS/PURE/CONSOLE probes are absent. RT-D is
 with only `bootargs` and `stdout-path` under `/chosen`; external initrd remains
 false and `/init` is unchanged.
 
+## Private identities
+
+Private pack `35105559604` wrapped the frozen public payloads into the current
+Slot B / P15 OEM envelope without rebuilding the kernel. Independent reverify
+`35105810959` extracted both boots and reconfirmed payload SHA, 60-byte window,
+`paciasp`, delay encodings, PSCI/SMC/WFE, the exact literal-delta narrow gate,
+prior-probe absence, RT-D, `/init`, initramfs and geometry. Observer fixtures
+`35107904900` bind distinct full boot SHAs.
+
+| member | boot SHA256 | size | extracted payload SHA256 |
+| --- | --- | --- | --- |
+| CORE8 | `5d7d5b88668e1925e3a79c677c2b630bb81d66135fec2761016de1da52fd7272` | 37380096 | `1e35411ba4d9bdeb48af47c0269a96b63a9214be5483601a9dfa5f8bdcfcc0a8` |
+| CORE1 | `a66c3f7a95e05905f5f65d96cb7f378ccdad9edf33814271425829ce10fe3e6c` | 37380096 | `4ccf9e26edc0a37d2eade6a29c8dd73947b17dde57c0630dc1562616e3cf0704` |
+
+`PRIVATE_CORE_PAIR_DIFF_REVERIFIED=YES` DELAY_CONSTANT_ONLY, 2 bytes at
+`[0x1b338b5,0x1b338b7)`. `CORE_PAIR_GEOMETRY_IDENTICAL=YES`.
+`CORE_PAIR_ONLY_ACTIVE_DIAGNOSTIC=FIRST_POSTCORE_ENTRY`.
+`CORE_PAIR_DEVICE_EXECUTION_SPLIT=REQUIRED` with order CORE8 then CORE1.
+A CORE8 automatic return may record `CORE8_MEMBER_A_COMPLETED` only; it may
+not claim `CORE_INITCALLS_COMPLETED=PROVEN`. Future pair windows stay frozen:
+STRONG `abs(PAIR_ERROR)<=1.000s`, SUPPORTED `<=2.000s`. No shift routes to
+`CORE_INITCALLS_FAILURE_ISOLATION_CI`, never `CORE_INITCALLS_NOT_COMPLETED`.
+
+Future RAM-only protocol, one member per stage: healthy Android A, `adb reboot
+bootloader`, verify `current-slot=a`, `set_active b`, immediately verify
+`current-slot=b`, then `fastboot boot` the exact frozen member. No flash of
+boot_b / vendor_boot_b / dtbo_b / vbmeta / firmware. Current B remains
+`STOCK_V14_VENDOR_DTBO_PLUS_PROVEN_P15_RECOVERY`.
+
 ## Gate
 
-`CORE_CHECKPOINT_SOURCE_AUDIT=PASS`
+`CORE_PUBLIC_PAIR_PASS=YES`
 
-`CORE_CHECKPOINT_BINARY_AUDIT=PASS`
+`CORE8_PRIVATE_PACK_PASS=YES`
 
-`CORE_CHECKPOINT_PROBE_SAFE=YES`
+`CORE1_PRIVATE_PACK_PASS=YES`
 
-`CORE_PAIR_PUBLIC_READY=YES`
+`CORE8_PRIVATE_REVERIFY_PASS=YES`
 
-`READY_FOR_CORE_INITCALLS_PRIVATE_GATE=YES`
+`CORE1_PRIVATE_REVERIFY_PASS=YES`
 
-`MAINLINE_V2_R3_SLOT_B_CORE_INITCALLS_CHECKPOINT_CI_READY`
+`PRIVATE_CORE_PAIR_DIFF_REVERIFIED=YES`
 
-This is not device authorization. `CORE_PRIVATE_PACK=NO`,
-`CORE_DEVICE_OPERATION=NO`, `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`.
-Recommended next round:
-`MAINLINE_V2_R3_SLOT_B_CORE_INITCALLS_PRIVATE_GATE_FINALIZATION_CI`.
+`CORE_PAIR_GEOMETRY_IDENTICAL=YES`
+
+`CORE8_OBSERVER_READY=YES`
+
+`CORE1_OBSERVER_READY=YES`
+
+`CORE_PAIR_OBSERVER_FIXTURES=PASS`
+
+`CORE_PAIR_DEVICE_EXECUTION_SPLIT=REQUIRED`
+
+`READY_FOR_R3_SLOT_B_CORE8_DEVICE_CONTROL=YES`
+
+`READY_FOR_R3_SLOT_B_CORE1_DEVICE_CONTROL=NO`
+
+This is not CORE8 or CORE1 device authorization. `CORE_DEVICE_OPERATION=NO`,
+`PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`. Recommended next:
+`MAINLINE_V2_R3_SLOT_B_CORE8_TRUE_DEVICE_CONTROL` — one CORE8 RAM-only boot.
+CORE1 waits for CORE8 freeze plus separate user approval. PURE and CONSOLE
+reruns remain forbidden.
