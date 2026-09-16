@@ -26,9 +26,30 @@ from frozen FIX8, not from the RESET8-instrumented payload. Only the audited
 entry window changes; trampoline, RT-D, initramfs and all other bytes remain
 frozen. All compilation, composition and binary checks are GitHub Actions only.
 
-A positive shows entry reachability and the preceding normal start_kernel
-path, not rest_init's body or a completed Linux boot. A missing return is
-inconclusive and requires recovery; never execute a second blind boot.
+A positive matched pair shows entry reachability and the preceding normal
+start_kernel path, not rest_init's body or a completed Linux boot. A missing
+return is inconclusive and requires recovery; never execute a second blind boot.
+
+## Preregistered device pair
+
+REST8 is already audited by public run `35036419486` and privately packed and
+independently verified by `35038457905`. REST1 is composed using that preserved
+audit bundle: only the timer immediate changes 8→1 (two bytes at
+`[0x10c1f58,0x10c1f5a)`). It does not rebuild the kernel.
+
+Both tests must originate from a normal Android A boot followed by
+`adb reboot bootloader`, then verified selection of B. A is never flashed.
+Do not mix this route with the preceding P15-origin RESET8 experiment.
+The P15 recovery partition and stock B vendor/DTBO must stay byte-identical.
+Run REST8 once. Only after a valid automatic Fastboot return and a read-only
+post-test context check may REST1 execute once. A single return only records
+a reference; it does not establish the checkpoint's reachability.
+
+Primary equation: `REST1_TOTAL - REST8_TOTAL = -7s`, same Fastboot endpoint
+as the B observer. Absolute error <=1s is STRONG, <=2s SUPPORTED; otherwise
+NOT_CONFIRMED. Manual recovery, transport loss, wrong slot/origin/identity or
+changed recovery context invalidates the pair. Never use old A-return totals
+or tune these thresholds after seeing results.
 
 ## Audit and reuse
 

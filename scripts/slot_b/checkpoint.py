@@ -24,6 +24,7 @@ TOOLS = {"nm": "llvm-nm-18", "objdump": "llvm-objdump-18", "readelf": "llvm-read
          "objcopy": "llvm-objcopy-18", "clang": "clang-18", "lld": "ld.lld-18"}
 CORE_SHA = "4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611"
 TARGETS = {"rest_init": 0x10C1F48}
+REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
 
 
 def require(condition, message):
@@ -33,6 +34,12 @@ def require(condition, message):
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def delay_core(core, delay):
+    require(delay in (1, 8) and len(core) == 76, "INVALID_DELAY_CORE")
+    require(struct.unpack_from("<I", core, 12)[0] == 0xD280010A, "REFERENCE_DELAY_NOT_8")
+    return core[:12] + struct.pack("<I", 0xD280000A | (delay << 5)) + core[16:]
 
 
 def branch_target(word, pc):
@@ -128,6 +135,8 @@ def compose(args, bundle):
     core = args.core.read_bytes()
     require(digest(frozen) == t3.FIX8_PAYLOAD_SHA, "FROZEN_PAYLOAD_MISMATCH")
     require(len(core) == 76 and digest(core) == CORE_SHA, "CHECKPOINT_CORE_MISMATCH")
+    reference_core = core
+    core = delay_core(core, args.delay)
     image = (bundle / "Image").read_bytes()
     require(len(image) == t3.FIX8_IMAGE_FILE_SIZE, "AUDIT_IMAGE_SIZE_DRIFT")
     vmlinux = bundle / "vmlinux"
@@ -164,6 +173,10 @@ def compose(args, bundle):
     image_size = pb.parse_image_hdr(frozen, "FIX8")["image_size"]
     t3.gate_window_inside_image_size(offset, length, image_size)
     candidate = patch_window(frozen, offset, probe)
+    reference = patch_window(frozen, offset, probe[:4] + reference_core)
+    require(digest(reference) == REST8_SHA, "FROZEN_REST8_REFERENCE_MISMATCH")
+    pair_diff = [i for i, (a, b) in enumerate(zip(reference_core, core)) if a != b]
+    require(pair_diff == ([12, 13] if args.delay == 1 else []), "PAIR_NOT_DELAY_ONLY")
     t3.gate_tail_identity(frozen, candidate, (offset, offset + length))
     changed = t3.gate_payload_diff(frozen, candidate, (offset, offset + length))
     t3.gate_tramp_identity(candidate)
@@ -174,7 +187,10 @@ def compose(args, bundle):
     manifest = {"symbol": args.symbol, "target_va": hex(target_va), "offset": offset,
                 "checkpoint_size": length, "entry": pad, "section": section["name"],
                 "payload_sha256": digest(candidate), "payload_size": len(candidate),
-                "checkpoint_sha256": digest(probe), "core_sha256": CORE_SHA,
+                "checkpoint_sha256": digest(probe), "core_sha256": digest(core),
+                "reference_core_sha256": CORE_SHA, "delay_seconds": args.delay,
+                "pair_reference_sha256": REST8_SHA,
+                "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
                 "frozen_sha256": digest(frozen), "changed_bytes": len(changed),
                 "outside_window_changed_bytes": 0, "runtime_rewrites": rewrites,
                 "source_commit": os.environ["GITHUB_SHA"], "run_id": os.environ["GITHUB_RUN_ID"],
@@ -194,6 +210,7 @@ def main():
     parser.add_argument("--frozen", type=Path, required=True)
     parser.add_argument("--core", type=Path, required=True)
     parser.add_argument("--symbol", choices=TARGETS, default="rest_init")
+    parser.add_argument("--delay", type=int, choices=(1, 8), default=8)
     parser.add_argument("--bundle", type=Path)
     parser.add_argument("--out", type=Path, default=Path("out-slot-b-checkpoint"))
     args = parser.parse_args()

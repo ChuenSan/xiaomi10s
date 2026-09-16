@@ -26,6 +26,19 @@ class CheckpointTests(unittest.TestCase):
         struct.pack_into('<I', image, 60, 0x14000000 | (-5 & 0x03FFFFFF))
         self.assertEqual(checkpoint.incoming_branches(image, [(0, 64)], base, window), [(base + 60, base + 40)])
 
+    def test_pair_changes_only_delay_immediate(self):
+        core = bytearray(76)
+        struct.pack_into('<I', core, 12, 0xD280010A)
+        self.assertEqual(checkpoint.delay_core(bytes(core), 8), core)
+        short = checkpoint.delay_core(bytes(core), 1)
+        self.assertEqual([i for i, (a, b) in enumerate(zip(core, short)) if a != b], [12, 13])
+        self.assertEqual(struct.unpack_from('<I', short, 12)[0], 0xD280002A)
+        for bad in (0, 2, 24):
+            with self.assertRaises(ValueError):
+                checkpoint.delay_core(bytes(core), bad)
+        with self.assertRaises(ValueError):
+            checkpoint.delay_core(bytes(76), 1)
+
     def test_composition_changes_only_authorized_window(self):
         before = bytes(range(100))
         after = checkpoint.patch_window(before, 20, b'ABCD')

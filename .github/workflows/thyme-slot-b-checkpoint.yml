@@ -10,9 +10,14 @@ on:
   workflow_dispatch:
     inputs:
       bundle_run_id:
-        description: Prior successful kernel bundle run; empty builds the audit kernel once
+        description: Reuse this audit kernel; no kernel rebuild
         required: false
-        default: ''
+        default: '35036419486'
+      delay:
+        description: Matched checkpoint delay in seconds
+        type: choice
+        options: ['1', '8']
+        default: '1'
 
 permissions:
   contents: read
@@ -44,44 +49,25 @@ jobs:
           sudo apt-get install -y clang-18 llvm-18 lld-18 make gcc bc bison flex libssl-dev libelf-dev gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
           clang-18 --version | grep -F '18.1.3'
           echo '/usr/lib/llvm-18/bin' >> "$GITHUB_PATH"
-      - name: Fetch pinned kernel source only when bundle absent
-        if: inputs.bundle_run_id == ''
-        run: git submodule update --init --depth 1 linux-6.6
       - name: Download immutable inputs
         env:
           GH_TOKEN: ${{ github.token }}
-          BUNDLE_RUN: ${{ inputs.bundle_run_id }}
+          BUNDLE_RUN: ${{ inputs.bundle_run_id || '35036419486' }}
         run: |
           set -euo pipefail
           gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
           gh run download 34980859158 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-reset-pair -D proven-core
-          if [ -n "$BUNDLE_RUN" ]; then
-            gh run download "$BUNDLE_RUN" -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
-          fi
-      - name: Audit and compose rest_init checkpoint
+          gh run download "$BUNDLE_RUN" -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+      - name: Reuse audit kernel and compose matched checkpoint
         env:
-          BUNDLE_RUN: ${{ inputs.bundle_run_id }}
-          KBUILD_BUILD_USER: thyme-ci
-          KBUILD_BUILD_HOST: github-actions
-          KBUILD_BUILD_TIMESTAMP: '2026-09-13 00:00:00 UTC'
-          KBUILD_BUILD_VERSION: '1'
+          DELAY: ${{ inputs.delay || '1' }}
         run: |
           set -euo pipefail
-          args=()
-          if [ -n "$BUNDLE_RUN" ]; then args+=(--bundle kernel-bundle); fi
           python3 -u -B scripts/slot_b/checkpoint.py \
             --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
             --core proven-core/p1b-t1-core-reference.bin \
-            --out out-slot-b-checkpoint "${args[@]}" | tee checkpoint-build.log
-      - name: Preserve audit kernel even if checkpoint is rejected
-        if: always() && inputs.bundle_run_id == ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: thyme-slot-b-kernel-audit-bundle
-          path: out-slot-b-checkpoint/kernel-bundle/
-          if-no-files-found: warn
-          compression-level: 1
-          retention-days: 90
+            --bundle kernel-bundle --delay "$DELAY" \
+            --out out-slot-b-checkpoint | tee checkpoint-build.log
       - name: Upload audited public payload (no OEM boot image)
         uses: actions/upload-artifact@v4
         with:
