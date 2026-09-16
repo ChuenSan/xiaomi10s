@@ -259,9 +259,11 @@ checkpoint. The literal exception remains narrowly limited to
 `0x9132b421`, offsets `0x1a23ca5` / `0x1a23cad`, exact
 `arm64/debug_monitors:starting\0`, call `__cpuhp_setup_state`).
 
-Observer fixtures `35107904900` and observer-safety regression `35107904896`
-passed after the last functional observer change. Later commits modify docs
-and captured CORE8 evidence only. The CORE1 exact full-SHA/size whitelist
+Observer fixtures `35163693773` and observer-safety regression `35163693772`
+passed at `8249c145b0bc7932cb1f893733e11d9fca7e3ae8` after the final protocol
+review. The CORE1 SUPPORTED path now emits `STRONGLY_SUPPORTED` for core
+completion and first postcore entry while preserving body/later-stage
+`NOT_PROVEN`. The CORE1 exact full-SHA/size whitelist
 accepts only CORE1 and therefore rejects CORE8, PURE8/PURE1,
 CONSOLE8/CONSOLE1, INITCALLS8/INITCALLS1, SMP8/SMP1, FREE8/FREE1,
 KINIT8/KINIT1, REST8/REST1, FIX8, wrong size, any one-byte CORE1 mutation,

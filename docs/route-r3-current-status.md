@@ -56,9 +56,11 @@ public payload `4ccf9e26edc0a37d2eade6a29c8dd73947b17dde57c0630dc1562616e3cf0704
 private boot `a66c3f7a95e05905f5f65d96cb7f378ccdad9edf33814271425829ce10fe3e6c`
 (37380096), extracted payload, checkpoint, 1-second encoding, PSCI, geometry,
 RT-D, `/init` and initramfs. The pair remains a two-byte delay-only change at
-`[0x1b338b5,0x1b338b7)`. Observer fixtures `35107904900` and regression
-`35107904896` cover the latest functional observer state. The frozen primary
-equation is `CORE1_TOTAL-34.961135333s`, expected `-7.000000000s`, with STRONG
+`[0x1b338b5,0x1b338b7)`. Observer fixtures `35163693773` and regression
+`35163693772` passed at `8249c145b0bc7932cb1f893733e11d9fca7e3ae8`, including
+CORE1-specific mutation/checkpoint/delay rejection and the frozen
+`STRONGLY_SUPPORTED` semantics. The primary equation is
+`CORE1_TOTAL-34.961135333s`, expected `-7.000000000s`, with STRONG
 `±1.000s` and SUPPORTED `±2.000s`. `READY_FOR_R3_SLOT_B_CORE1_DEVICE_CONTROL=YES`.
 This review performed no device operation and does not auto-run CORE1. Do not
 rerun CORE8, PURE or CONSOLE. No Linux boot success is claimed.
@@ -666,8 +668,9 @@ CORE1_CHECKPOINT_IDENTITY=PASS
 CORE1_ONLY_ACTIVE_DIAGNOSTIC=YES
 CORE1_OBSERVER_IDENTITY_GATE_READY=YES
 CORE1_OBSERVER_REGRESSION_SAFE=YES
-CORE1_OBSERVER_FIXTURES_RUN=35107904900
-CORE1_OBSERVER_REGRESSION_RUN=35107904896
+CORE1_OBSERVER_FIXTURES_RUN=35163693773
+CORE1_OBSERVER_REGRESSION_RUN=35163693772
+CORE1_OBSERVER_REVIEW_HEAD=8249c145b0bc7932cb1f893733e11d9fca7e3ae8
 PAIR_EQUATION=CORE1_TOTAL-34.961135333s
 PAIR_EXPECTED_DELTA_S=-7.000000000
 PAIR_STRONG_TOLERANCE_S=1.000

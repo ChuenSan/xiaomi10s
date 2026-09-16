@@ -346,9 +346,10 @@ and initramfs remain verified. No new mismatch was admitted.
 The pair still differs only by 2 bytes at `[0x1b338b5,0x1b338b7)`, instruction
 3, for `8s → 1s`. CORE1 contains only the first-postcore-entry diagnostic; all
 historical probes and the CORE8 delay member are absent. Observer fixtures
-`35107904900` and safety regression `35107904896` cover the final functional
-observer state; later changes are documentation and frozen CORE8 evidence only.
-The CORE1 full-SHA gate rejects the sibling, all historical candidates, wrong
+`35163693773` and safety regression `35163693772` passed at
+`8249c145b0bc7932cb1f893733e11d9fca7e3ae8`; the SUPPORTED branch emits
+`STRONGLY_SUPPORTED` without upgrading body or later-stage evidence. The CORE1
+full-SHA gate rejects the sibling, all historical candidates, wrong
 size, mutations, wrong checkpoint and wrong delay.
 
 The frozen future primary equation is
