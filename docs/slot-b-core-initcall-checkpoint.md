@@ -3,7 +3,7 @@
 ## Scope and frozen evidence
 
 This round is CI/source/binary audit and public payload preparation only. Public
-GHA run `35101182120` at `d4fad781ddf3f449fcc46172ed2fa47deb854949`
+GHA run `35102390662` at `da3228714baa9d4739d3035dc99643dd9b5bb90c`
 reused authoritative kernel bundle `35040148509`; it did not rebuild the kernel,
 pack a boot image, access a device or write a partition.
 

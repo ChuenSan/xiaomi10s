@@ -37,7 +37,7 @@ and independently verified the first post-pure pair at the first core initcall
 27.909857042s gave delta -7.107612000s, error -0.107612000s: STRONG. All pure
 initcalls completed and first core initcall entry are PROVEN; core completion
 and later levels remain NOT_PROVEN. Both returned to B, all recorded hashes
-stayed unchanged, and Android A is healthy. Public GHA `35101182120` has now
+stayed unchanged, and Android A is healthy. Public GHA `35102390662` has now
 completed the CI-only next-boundary audit: exact PREL32 `__initcall2_start`
 decodes uniquely to first postcore initcall `debug_monitors_init` at
 `0xffff800081b338a8` / Image `0x1b338a8`. Its 60-byte function safely contains
@@ -575,7 +575,7 @@ FIRST_POSTCORE_INITCALL_VA=0xffff800081b338a8
 FIRST_POSTCORE_INITCALL_OFFSET=0x1b338a8
 FIRST_POSTCORE_INITCALL_SIZE=60
 FIRST_POSTCORE_INITCALL_SOURCE=arch/arm64/kernel/debug-monitors.c
-CORE_CHECKPOINT_PUBLIC_RUN=35101182120
+CORE_CHECKPOINT_PUBLIC_RUN=35102390662
 CORE_CHECKPOINT_SOURCE_AUDIT=PASS
 CORE_CHECKPOINT_BINARY_AUDIT=PASS
 CORE_CHECKPOINT_ENTRY_AUDIT=PASS

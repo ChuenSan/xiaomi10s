@@ -254,7 +254,7 @@ inferred from the PURE result.
 
 ## Core-initcall completion checkpoint CI readiness
 
-Public GHA `35101182120` completed the new source/binary audit and independent
+Public GHA `35102390662` completed the new source/binary audit and independent
 reverify without rebuilding the kernel. Exact Linux 6.6.156 source maps pure,
 core and postcore to `__initcall0_start..__initcall1_start`,
 `__initcall1_start..__initcall2_start` and
