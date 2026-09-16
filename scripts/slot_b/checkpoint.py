@@ -85,6 +85,26 @@ def literal_ref_pair(image, frozen, add_offset, page_offset):
     return refs
 
 
+def adrp_add_literal_ref_pair(image, frozen, text_va, adrp_offset, add_offset):
+    refs = {}
+    for name, data in (("bundle", image), ("frozen", frozen)):
+        adrp = struct.unpack_from("<I", data, adrp_offset)[0]
+        add = struct.unpack_from("<I", data, add_offset)[0]
+        require(adrp & 0x9F000000 == 0x90000000, "LITERAL_ADRP_INVALID")
+        require(add & 0xFF000000 == 0x91000000 and not add & (1 << 22),
+                "LITERAL_ADD_INVALID")
+        imm21 = ((adrp >> 5) & 0x7FFFF) << 2 | ((adrp >> 29) & 3)
+        page = ((text_va + adrp_offset) & ~0xFFF) + (pb.sx(imm21, 21) << 12)
+        literal = page + ((add >> 10) & 0xFFF) - text_va
+        require(0 <= literal < len(data), "LITERAL_OUTSIDE_IMAGE")
+        end = data.find(b"\0", literal, literal + 128)
+        refs[name] = {"offset": hex(literal), "va": hex(text_va + literal),
+                      "adrp_word": hex(adrp), "add_word": hex(add),
+                      "bytes_hex": data[literal:end + 1].hex() if end >= 0 else None,
+                      "text": data[literal:end].decode("ascii", "backslashreplace") if end >= 0 else None}
+    return refs
+
+
 def gate_console_literal_deltas(bundle, frozen, refs):
     require(len(bundle) == len(frozen) == 72, "CONSOLE_LITERAL_WINDOW_SIZE")
     normalized = bytearray(frozen)
@@ -349,6 +369,9 @@ def compose(args, bundle):
         agreement["console_literal_refs"] = {
             "path": literal_ref_pair(image, frozen, offset + 20, 0x19BE000),
             "warning": literal_ref_pair(image, frozen, offset + 48, 0x19D8000)}
+    elif args.symbol == "pure_complete":
+        agreement["initcall_name_literal_refs"] = adrp_add_literal_ref_pair(
+            image, frozen, text_va, offset + 36, offset + 40)
     agreement["verdict"] = "EXACT" if not differences else "UNRESOLVED"
     try:
         if differences and args.symbol == "smp_init":

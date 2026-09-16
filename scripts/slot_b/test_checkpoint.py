@@ -75,6 +75,19 @@ class CheckpointTests(unittest.TestCase):
         self.assertEqual(refs['bundle']['bytes_hex'], text.hex())
         self.assertEqual(refs['frozen']['bytes_hex'], text.hex())
 
+    def test_adrp_add_literal_collection_derives_each_linked_address(self):
+        bundle, frozen = bytearray(512), bytearray(512)
+        struct.pack_into('<II', bundle, 0x100, 0x90000000, 0x91010000)
+        struct.pack_into('<II', frozen, 0x100, 0x90000000, 0x91012000)
+        bundle[0x40:0x45] = b'core\0'
+        frozen[0x48:0x4d] = b'core\0'
+        refs = checkpoint.adrp_add_literal_ref_pair(
+            bundle, frozen, 0x10000000, 0x100, 0x104)
+        self.assertEqual(refs['bundle']['offset'], '0x40')
+        self.assertEqual(refs['frozen']['offset'], '0x48')
+        self.assertEqual(refs['bundle']['bytes_hex'], b'core\0'.hex())
+        self.assertEqual(refs['frozen']['bytes_hex'], b'core\0'.hex())
+
     def test_console_literal_deltas_are_two_exact_source_references_only(self):
         bundle = bytearray(72)
         struct.pack_into('<II', bundle, 16, 0xD0FFF460, 0x912C3000)
