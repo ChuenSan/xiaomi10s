@@ -177,6 +177,7 @@ class CheckpointTests(unittest.TestCase):
         for index, resolved in enumerate((base + 0x80, target, base + 0x180)):
             struct.pack_into('<i', data, index * 4, resolved - (base + index * 4))
         nm = '\n'.join((
+            f'{base:016x} T _text',
             f'{base:016x} d __initcall_start',
             f'{base + 4:016x} d __initcall1_start',
             f'{base + 12:016x} d __initcall_end',
