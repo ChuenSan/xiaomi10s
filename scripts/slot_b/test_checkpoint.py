@@ -5,6 +5,12 @@ import checkpoint
 
 
 class CheckpointTests(unittest.TestCase):
+    def test_runtime_dtb_cannot_advertise_an_external_initrd(self):
+        checkpoint.gate_builtin_initramfs_source({'bootargs': b'rdinit=/init'})
+        for key in ('linux,initrd-start', 'linux,initrd-end'):
+            with self.subTest(property=key), self.assertRaises(ValueError):
+                checkpoint.gate_builtin_initramfs_source({key: bytes(8)})
+
     def test_all_direct_branch_families_use_virtual_pc(self):
         pc = 0xFFFF800080001000
         for word in (0x14000002, 0x94000002, 0x54000040, 0xB4000040, 0x35000040, 0x36000040):

@@ -20,12 +20,16 @@ _spec = importlib.util.spec_from_file_location("checkpoint_t3", ROOT / "scripts/
 t3 = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(t3)
 pb = t3.pb
+_rt_spec = importlib.util.spec_from_file_location("runtime_dtb", ROOT / "scripts/r3-p1/r3-runtime-dtb.py")
+rt = importlib.util.module_from_spec(_rt_spec)
+_rt_spec.loader.exec_module(rt)
 TOOLS = {"nm": "llvm-nm-18", "objdump": "llvm-objdump-18", "readelf": "llvm-readelf-18",
          "objcopy": "llvm-objcopy-18", "clang": "clang-18", "lld": "ld.lld-18"}
 CORE_SHA = "4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611"
 TARGETS = {"rest_init": 0x10C1F48, "kernel_init": 0x10C2030,
            "kernel_init_freeable": 0x1B3103C, "smp_init": 0x1B466E0,
-           "do_basic_setup": 0x1B311A8, "do_initcalls": 0x1B311D0}
+           "do_basic_setup": 0x1B311A8, "do_initcalls": 0x1B311D0,
+           "console_on_rootfs": 0x1B30DA4}
 PROOF_BOUNDARIES = {
     "rest_init": ("rest_init entry and preceding normal start_kernel path",
                   "rest_init body, scheduler, SMP or /init"),
@@ -39,6 +43,8 @@ PROOF_BOUNDARIES = {
                        "secondary CPU count, driver initcalls, initramfs readiness or /init"),
     "do_initcalls": ("SMP/topology and driver-core setup returned before main initcall levels",
                      "secondary CPU count, main initcall levels completed, initramfs readiness or /init"),
+    "console_on_rootfs": ("main initcall path and wait_for_initramfs returned before console open",
+                          "successful device probes, console open, executable /init or userspace entry"),
 }
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
 
@@ -50,6 +56,11 @@ def require(condition, message):
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def gate_builtin_initramfs_source(chosen):
+    require(not {"linux,initrd-start", "linux,initrd-end"}.intersection(chosen),
+            "EXTERNAL_INITRD_IN_RUNTIME_DTB")
 
 
 def compact_core(core):
@@ -295,6 +306,8 @@ def compose(args, bundle):
     t3.gate_tramp_identity(candidate)
     dtb_offset, _ = pb.calc_dtb_offset(image_size)
     pb.gate_rt_d(candidate[dtb_offset:])
+    chosen = rt.parse_fdt(candidate[dtb_offset:])["/chosen"]
+    gate_builtin_initramfs_source(chosen)
     (out / "payload.bin").write_bytes(candidate)
     (out / "checkpoint.bin").write_bytes(probe)
     manifest = {"symbol": args.symbol, "target_va": hex(target_va), "offset": offset,
@@ -312,6 +325,7 @@ def compose(args, bundle):
                 "relocation_sites_checked": len(sites), "audit_elf_unchanged": True,
                 "source_commit": os.environ["GITHUB_SHA"], "run_id": os.environ["GITHUB_RUN_ID"],
                 "bundle": metadata, "normal_boot_candidate": False,
+                "runtime_dtb_external_initrd": False, "chosen_properties": sorted(chosen),
                 "positive_proves": PROOF_BOUNDARIES[args.symbol][0],
                 "positive_does_not_prove": PROOF_BOUNDARIES[args.symbol][1],
                 "init_symbols": {name: hex(t3.nm_symbol(nm, name)) for name in

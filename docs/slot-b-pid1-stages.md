@@ -139,3 +139,28 @@ The same preregistered B-only matched-pair protocol applies: 8s first, then
 −7s, STRONG <=1s error, SUPPORTED <=2s. A positive proves `smp_init` returned
 and driver-core initialization reached main initcall entry; the online CPU
 count and initcall completion are not inferred. Freeze observer CI before use.
+
+## INITCALLS pair true-device result
+
+Observer CI `35053398445` passed. INITCALLS8 booted once at 03:53:34.925 UTC
+and returned in 35.356176458s; INITCALLS1 booted once at 03:56:49.346 UTC
+and returned in 28.379876083s. Delta `-6.976300375s`, error `+0.023699625s`:
+**STRONG**. `DO_INITCALLS_ENTRY=PROVEN`; the preceding SMP/topology and
+`driver_init` core setup returned. CPU count and actual device-probe success
+remain unobserved. Both returns stayed B with retry 7→6. All 16 protected
+boot-chain hashes and P15 prefix remained unchanged, and Android A is healthy.
+No partition was flashed; each member ran once in RAM.
+
+Next candidate: `console_on_rootfs` entry (`0x1b30da4`), after the main initcall
+path and `wait_for_initramfs` returned. This does not prove console opening,
+that every driver succeeded, or `/init` execution. The second source caller
+is legacy `init_linuxrc`, reached only from later initrd root preparation;
+the main PID1 console call precedes `prepare_namespace` in the normal path.
+
+The external-P15-ramdisk override hypothesis was checked before changing any
+image: R3 uses its dedicated, embedded RT-D, not the ABL-updated DTB. Linux
+unpacks an external initrd only when `initrd_start` is nonzero. The new CI gate
+checks the exact frozen DTB's `/chosen` for absence of BOTH initrd address
+properties. An external ramdisk in the boot envelope alone is not evidence
+that Linux consumes it. No INITRAMFS_FORCE or packing change is made on that
+unconfirmed hypothesis.

@@ -22,10 +22,12 @@ PROVEN. All recorded hashes remain unchanged; Android A is healthy.
 SMP entry matched pair also passed: 35.174554375s / 28.200887000s, delta
 -6.973667375s, STRONG. Pre-SMP initialization reached smp_init; its body and
 secondary CPU count are not yet proven. All recorded hashes are unchanged
-and Android A is healthy. do_basic_setup's 40-byte extent rejected the
-72-byte probe in CI, without any device test. Next is its do_initcalls callee
-entry after SMP/topology and driver-core setup, using the same frozen payload
-and GHA-only audit bundle.
+and Android A is healthy. The INITCALLS entry pair now also passed:
+35.356176458s / 28.379876083s, delta -6.976300375s, STRONG. SMP/topology
+and driver-core setup returned. Main initcall completion, device-probe
+success and /init remain unproven. All recorded hashes remain unchanged.
+Next is console_on_rootfs entry after main initcalls and initramfs waiting,
+using the same frozen payload and GHA-only audit bundle.
 No Linux boot success is claimed. Details: `docs/slot-b-pid1-stages.md`.
 Older A-return timing records below are historical, not this B baseline.
 
@@ -458,7 +460,7 @@ RECOVERY_B_RETRY_COUNT=6
 POST_RESET8_PARTITION_HASHES=ALL_RECORDED_UNCHANGED
 DEVICE_TRANSPORT=ADB_ROOT_ANDROID_A
 DEVICE_RECOVERY=COMPLETE
-NEXT_DEVICE_ACTION=DO_INITCALLS_ENTRY_PAIR_AFTER_CI_GATES
+NEXT_DEVICE_ACTION=CONSOLE_ON_ROOTFS_ENTRY_AFTER_CI_GATES
 DO_BASIC_SETUP_DIAGNOSTIC=REJECTED_FUNCTION_TOO_SHORT
 REST_INIT_PUBLIC_CI_RUN=35036419486
 REST_INIT_PUBLIC_CI_STATUS=PASS
@@ -491,7 +493,19 @@ FREEABLE_PAIR_POSTTEST_HASHES=ALL_RECORDED_UNCHANGED
 SMP_ENTRY_DEVICE_TEST=COMPLETED
 SMP_ENTRY_PREDEVICE=PRIVATE_VERIFIED
 SMP_INIT_ENTRY=PROVEN
-SMP_INIT_RETURNED=NOT_PROVEN
+SMP_INIT_RETURNED=PROVEN
+DRIVER_CORE_SETUP_RETURNED=PROVEN
+DO_INITCALLS_ENTRY=PROVEN
+MAIN_INITCALL_LEVELS_COMPLETED=NOT_PROVEN
+INITCALLS_PUBLIC_RUN=35051568196
+INITCALLS_PRIVATE_RUN=35051853455
+INITCALLS_OBSERVER_CI_RUN=35053398445
+INITCALLS_8_TOTAL_S=35.356176458
+INITCALLS_1_TOTAL_S=28.379876083
+INITCALLS_PAIR_DELTA_S=-6.976300375
+INITCALLS_PAIR_ERROR_S=0.023699625
+INITCALLS_PAIR_VERDICT=STRONG
+INITCALLS_POSTTEST_HASHES=ALL_RECORDED_UNCHANGED
 SECONDARY_CPU_COUNT=NOT_OBSERVED
 SMP_ENTRY_OBSERVER_CI_RUN=35050078930
 SMP_ENTRY_8_TOTAL_S=35.174554375
