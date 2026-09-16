@@ -101,6 +101,39 @@ def build_bundle(out):
     return bundle
 
 
+def section_bytes(vmlinux, section):
+    with vmlinux.open("rb") as stream:
+        stream.seek(section["file_off"])
+        data = stream.read(section["size"])
+    require(len(data) == section["size"], f"INCOMPLETE_SECTION:{section['name']}")
+    return data
+
+
+def decode_relr(data):
+    require(len(data) % 8 == 0, "INVALID_RELR_SIZE")
+    where = None
+    sites = []
+    for (entry,) in struct.iter_unpack("<Q", data):
+        if not entry & 1:
+            sites.append(entry)
+            where = entry + 8
+        else:
+            require(where is not None, "RELR_BITMAP_WITHOUT_BASE")
+            sites.extend(where + bit * 8 for bit in range(63) if entry & (1 << (bit + 1)))
+            where += 63 * 8
+    return sites
+
+
+def relocation_sites(vmlinux, sections):
+    text = pb.run([TOOLS["readelf"], "-r", "--wide", str(vmlinux)])
+    sites = [int(match.group(1), 16) for line in text.splitlines()
+             if (match := t3.RELOC_OFF_RE.match(line.strip()))]
+    relr = next((s for s in sections if s["name"] == ".relr.dyn"), None)
+    if relr is not None:
+        sites.extend(decode_relr(section_bytes(vmlinux, relr)))
+    return sorted(set(sites))
+
+
 def audit_rewrites(out, vmlinux, sections, window):
     report = {}
     for name, tag, decoder in t3.RUNTIME_REWRITE_SECTIONS:
@@ -109,9 +142,8 @@ def audit_rewrites(out, vmlinux, sections, window):
             report[tag] = "ABSENT"
             continue
         path = out / ("table-" + tag + ".bin")
-        pb.run([TOOLS["objcopy"], "--dump-section", f"{name}={path}", str(vmlinux)])
-        data = path.read_bytes()
-        require(len(data) == section["size"], f"INCOMPLETE_REWRITE_TABLE:{name}")
+        data = section_bytes(vmlinux, section)
+        path.write_bytes(data)
         entries = decoder(data, section["vma"])
         t3.gate_table_entries(tag, entries, window)
         if name == ".altinstructions":
@@ -168,8 +200,10 @@ def compose(args, bundle):
     incoming = incoming_branches(frozen[:len(image)], ranges, text_va, window)
     require(not incoming, f"BRANCH_INTO_OVERWRITE_INTERIOR:{incoming[:8]}")
     t3.gate_window_literal_scan(target_va, length, frozen[:len(image)])
-    t3.gate_window_relocation_scan(target_va, length, t3.relocation_offsets(out, TOOLS, vmlinux))
+    sites = relocation_sites(vmlinux, sections)
+    t3.gate_window_relocation_scan(target_va, length, sites)
     rewrites = audit_rewrites(out, vmlinux, sections, window)
+    require(digest(vmlinux.read_bytes()) == metadata["files"]["vmlinux"], "AUDIT_MUTATED_VMLINUX")
     image_size = pb.parse_image_hdr(frozen, "FIX8")["image_size"]
     t3.gate_window_inside_image_size(offset, length, image_size)
     candidate = patch_window(frozen, offset, probe)
@@ -193,6 +227,7 @@ def compose(args, bundle):
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
                 "frozen_sha256": digest(frozen), "changed_bytes": len(changed),
                 "outside_window_changed_bytes": 0, "runtime_rewrites": rewrites,
+                "relocation_sites_checked": len(sites), "audit_elf_unchanged": True,
                 "source_commit": os.environ["GITHUB_SHA"], "run_id": os.environ["GITHUB_RUN_ID"],
                 "bundle": metadata, "normal_boot_candidate": False,
                 "positive_proves": "rest_init entry and preceding normal start_kernel path",

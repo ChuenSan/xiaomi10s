@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/slot_b/checkpoint.py'
       - 'scripts/slot_b/test_checkpoint.py'
+      - 'scripts/slot_b/reconcile_bundle.py'
       - '.github/workflows/thyme-slot-b-checkpoint.yml'
   workflow_dispatch:
     inputs:
@@ -58,6 +59,22 @@ jobs:
           gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
           gh run download 34980859158 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-reset-pair -D proven-core
           gh run download "$BUNDLE_RUN" -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          if [ "$BUNDLE_RUN" = 35036419486 ]; then
+            python3 -B scripts/slot_b/reconcile_bundle.py --input kernel-bundle --output reconciled-bundle
+            echo 'BUNDLE_PATH=reconciled-bundle' >> "$GITHUB_ENV"
+            echo 'BUNDLE_RECONCILED=true' >> "$GITHUB_ENV"
+          else
+            echo 'BUNDLE_PATH=kernel-bundle' >> "$GITHUB_ENV"
+          fi
+      - name: Preserve reconciled bundle with executable identity proof
+        if: env.BUNDLE_RECONCILED == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-kernel-audit-bundle
+          path: reconciled-bundle/
+          if-no-files-found: error
+          compression-level: 1
+          retention-days: 90
       - name: Reuse audit kernel and compose matched checkpoint
         env:
           DELAY: ${{ inputs.delay || '1' }}
@@ -66,7 +83,7 @@ jobs:
           python3 -u -B scripts/slot_b/checkpoint.py \
             --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
             --core proven-core/p1b-t1-core-reference.bin \
-            --bundle kernel-bundle --delay "$DELAY" \
+            --bundle "$BUNDLE_PATH" --delay "$DELAY" \
             --out out-slot-b-checkpoint | tee checkpoint-build.log
       - name: Upload audited public payload (no OEM boot image)
         uses: actions/upload-artifact@v4

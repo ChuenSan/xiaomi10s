@@ -26,6 +26,16 @@ class CheckpointTests(unittest.TestCase):
         struct.pack_into('<I', image, 60, 0x14000000 | (-5 & 0x03FFFFFF))
         self.assertEqual(checkpoint.incoming_branches(image, [(0, 64)], base, window), [(base + 60, base + 40)])
 
+    def test_relr_advances_all_63_bitmap_positions(self):
+        base = 0xFFFF800081234000
+        data = struct.pack('<QQQ', base, 3, 3)
+        self.assertEqual(checkpoint.decode_relr(data), [base, base + 8, base + 512])
+        self.assertEqual(checkpoint.decode_relr(struct.pack('<QQQ', base, 1, 3)), [base, base + 512])
+        with self.assertRaises(ValueError):
+            checkpoint.decode_relr(struct.pack('<Q', 3))
+        with self.assertRaises(ValueError):
+            checkpoint.decode_relr(b'bad')
+
     def test_pair_changes_only_delay_immediate(self):
         core = bytearray(76)
         struct.pack_into('<I', core, 12, 0xD280010A)

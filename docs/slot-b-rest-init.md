@@ -71,3 +71,24 @@ exception/alternative/jump/static-call records are checked before emission.
 OEM boot wrapping stays in private Actions. Slot B retains stock V14 + P15
 recovery. Before a device test, freeze the new boot SHA and extend the B-only
 observer allowlist in CI. No Slot A, vbmeta or firmware flash is involved.
+
+## Reusable ELF export correction
+
+REST1 run `35038941457` was correctly rejected by `BUNDLE_HASH_MISMATCH:vmlinux`.
+The first audit used inherited `llvm-objcopy --dump-section` calls with no
+output ELF. LLVM documents that omission as an in-place rewrite; the dump
+file does not disable normal object-copy operations. The bundle manifest was
+written before these calls, so its ELF-container hash preceded the rewrite.
+
+The new audit reads sections by their ELF file offsets and checks the ELF hash
+again at exit. RELR bitmap advancement also now matches arm64 `head.S`: every
+bitmap advances 63 words, including trailing zero bits. Regression tests cover
+that case. No old mutable extraction helper is used for the new audit.
+
+`reconcile_bundle.py` accepts only the known original export and exact original
+manifest. It requires unchanged Image/config/System.map, exact Image
+reproduction using `arch/arm64/boot/Makefile` flags, and a match for every
+System.map symbol before exporting reconciled provenance. The old and archived
+ELF hashes are retained. A mismatch stops the workflow; no kernel rebuild or
+unconditional hash replacement is permitted. This reconciliation runs in
+Actions, never locally.
