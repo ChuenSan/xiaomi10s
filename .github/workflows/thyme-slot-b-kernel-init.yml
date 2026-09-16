@@ -35,6 +35,11 @@ jobs:
           gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
           gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
           gh run download 34980859158 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-reset-pair -D proven-core
+      - name: Preserve rejected-window disassembly evidence
+        run: |
+          set -euo pipefail
+          llvm-objdump-18 -d --start-address=0xffff8000810c2030 \
+            --stop-address=0xffff8000810c21f0 kernel-bundle/vmlinux | tee kernel-init-disassembly.log
       - name: Audit kernel_init and compose matched pair
         run: |
           set -euo pipefail
@@ -83,5 +88,7 @@ jobs:
         if: always()
         with:
           name: thyme-slot-b-kernel-init-logs
-          path: kernel-init-*.log
+          path: |
+            kernel-init-*.log
+            out-pair/*/checkpoint/original-window.txt
           if-no-files-found: warn

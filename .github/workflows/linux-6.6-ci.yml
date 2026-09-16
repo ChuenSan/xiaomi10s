@@ -5,6 +5,8 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
+      - 'scripts/slot_b/**'
+      - '.github/workflows/thyme-slot-b-*.yml'
   workflow_dispatch:
 
 concurrency:
