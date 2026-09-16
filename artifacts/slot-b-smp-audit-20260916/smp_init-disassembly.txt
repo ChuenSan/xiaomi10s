@@ -1,0 +1,42 @@
+
+kernel-bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .init.text:
+
+ffff800081b466e0 <smp_init>:
+ffff800081b466e0: d503233f     	paciasp
+ffff800081b466e4: a9be7bfd     	stp	x29, x30, [sp, #-0x20]!
+ffff800081b466e8: f9000bf3     	str	x19, [sp, #0x10]
+ffff800081b466ec: 910003fd     	mov	x29, sp
+ffff800081b466f0: 97ffe868     	bl	0xffff800081b40890 <idle_threads_init>
+ffff800081b466f4: 97ffdf6f     	bl	0xffff800081b3e4b0 <cpuhp_threads_init>
+ffff800081b466f8: d0fff740     	adrp	x0, 0xffff800081a30000 <k_cur.cur_chars+0x1198a>
+ffff800081b466fc: 912dc000     	add	x0, x0, #0xb70
+ffff800081b46700: 97d5cd80     	bl	0xffff8000810b9d00 <_printk>
+ffff800081b46704: f00014f3     	adrp	x19, 0xffff800081de5000 <clocksource_subsys>
+ffff800081b46708: b94cba60     	ldr	w0, [x19, #0xcb8]
+ffff800081b4670c: 97ffdfba     	bl	0xffff800081b3e5f4 <bringup_nonboot_cpus>
+ffff800081b46710: f0001088     	adrp	x8, 0xffff800081d59000 <folio_wait_table+0x14c0>
+ffff800081b46714: 7957f100     	ldrh	w0, [x8, #0xbf8]
+ffff800081b46718: 97a84983     	bl	0xffff800080558d24 <__sw_hweight64>
+ffff800081b4671c: f0001088     	adrp	x8, 0xffff800081d59000 <folio_wait_table+0x14c0>
+ffff800081b46720: aa0003e1     	mov	x1, x0
+ffff800081b46724: b0fff169     	adrp	x9, 0xffff800081973000 <task_index_to_char.state_char+0x254a0>
+ffff800081b46728: 912c4129     	add	x9, x9, #0xb10
+ffff800081b4672c: b948e103     	ldr	w3, [x8, #0x8e0]
+ffff800081b46730: f0fff088     	adrp	x8, 0xffff800081959000 <task_index_to_char.state_char+0xb4a0>
+ffff800081b46734: 9132f108     	add	x8, x8, #0xcbc
+ffff800081b46738: 7100043f     	cmp	w1, #0x1
+ffff800081b4673c: d0fff800     	adrp	x0, 0xffff800081a48000 <k_cur.cur_chars+0x2998a>
+ffff800081b46740: 91342c00     	add	x0, x0, #0xd0b
+ffff800081b46744: 9a88c122     	csel	x2, x9, x8, gt
+ffff800081b46748: 7100047f     	cmp	w3, #0x1
+ffff800081b4674c: 9a88c124     	csel	x4, x9, x8, gt
+ffff800081b46750: 97d5cd6c     	bl	0xffff8000810b9d00 <_printk>
+ffff800081b46754: b94cba60     	ldr	w0, [x19, #0xcb8]
+ffff800081b46758: 97ffbc27     	bl	0xffff800081b357f4 <smp_cpus_done>
+ffff800081b4675c: f9400bf3     	ldr	x19, [sp, #0x10]
+ffff800081b46760: a8c27bfd     	ldp	x29, x30, [sp], #0x20
+ffff800081b46764: d50323bf     	autiasp
+ffff800081b46768: d65f03c0     	ret
+ffff800081b4676c: d53cd048     	mrs	x8, TPIDR_EL2

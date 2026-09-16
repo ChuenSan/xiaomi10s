@@ -1,0 +1,28 @@
+{
+  "symbol": "smp_init",
+  "offset": "0x1b466e0",
+  "size": 72,
+  "bundle_image_sha256": "43fb1c9128bdf37a2a77eb88cfff234381340b098ebf1aea1eabb2741180cebb",
+  "frozen_payload_sha256": "4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41",
+  "differing_words": [
+    {
+      "offset": "0x1b466fc",
+      "bundle": "0x912dc000",
+      "frozen": "0x912de000"
+    }
+  ],
+  "log_literal_refs": {
+    "bundle": {
+      "offset": "0x1a30b70",
+      "add_word": "0x912dc000",
+      "bytes_hex": "0136736d703a204272696e67696e67207570207365636f6e646172792043505573202e2e2e0a00",
+      "text": "\u00016smp: Bringing up secondary CPUs ...\n"
+    },
+    "frozen": {
+      "offset": "0x1a30b78",
+      "add_word": "0x912de000",
+      "bytes_hex": "0136736d703a204272696e67696e67207570207365636f6e646172792043505573202e2e2e0a00",
+      "text": "\u00016smp: Bringing up secondary CPUs ...\n"
+    }
+  }
+}

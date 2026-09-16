@@ -1,0 +1,14 @@
+{
+  "symbol": "smp_init",
+  "offset": "0x1b466e0",
+  "size": 72,
+  "bundle_image_sha256": "43fb1c9128bdf37a2a77eb88cfff234381340b098ebf1aea1eabb2741180cebb",
+  "frozen_payload_sha256": "4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41",
+  "differing_words": [
+    {
+      "offset": "0x1b466fc",
+      "bundle": "0x912dc000",
+      "frozen": "0x912de000"
+    }
+  ]
+}

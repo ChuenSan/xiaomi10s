@@ -58,3 +58,19 @@ must be resolved from exported disassembly and exact word differences, not
 by disabling the identity gate. No SMP device test or private pack ran.
 Automatic old-stage composition is now disabled; explicit Actions dispatch
 selects each new diagnostic while source/observer regression CI stays active.
+
+Actions `35049158504` isolated exactly one ADD-immediate word at `0x1b466fc`:
+bundle `0x912dc000`, frozen `0x912de000`. `35049462400` confirmed that the
+ADRP/ADD pair points to `0x1a30b70` versus `0x1a30b78`, respectively, and BOTH
+addresses hold exactly `\\x016smp: Bringing up secondary CPUs ...\\n\\0`.
+The difference is the log string's linked address, not different SMP logic.
+
+The new audit accepts only this exact pair of ADD encodings, unchanged
+surrounding instructions, the exact source string at both derived addresses,
+and the independently resolved `_printk` call. Every other window must remain
+byte-exact. The manifest explicitly records
+`SMP_PRINTK_LITERAL_ADDRESS_DELTA_VERIFIED`, never claims byte equality.
+Negative fixtures reject any other instruction, offset or string drift;
+private verification also checks the frozen literal. Incoming branches,
+relocations and runtime rewrite gates remain mandatory. This does not change
+any runtime code outside the new diagnostic window or rebuild the kernel.

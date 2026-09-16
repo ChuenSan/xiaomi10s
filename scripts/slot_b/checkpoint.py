@@ -54,6 +54,19 @@ def compact_core(core):
     return core[:44] + struct.pack("<I", 0x54FFFF83) + core[56:]
 
 
+def gate_smp_literal_delta(bundle, frozen, refs):
+    require(len(bundle) == len(frozen) == 72, "SMP_LITERAL_WINDOW_SIZE")
+    require(bundle[:28] == frozen[:28] and bundle[32:] == frozen[32:],
+            "SMP_LITERAL_ADDITIONAL_CODE_DRIFT")
+    require(struct.unpack_from("<III", bundle, 24) == (0xD0FFF740, 0x912DC000, 0x97D5CD80)
+            and struct.unpack_from("<III", frozen, 24) == (0xD0FFF740, 0x912DE000, 0x97D5CD80),
+            "SMP_LITERAL_INSTRUCTION_CONTEXT")
+    expected = b"\x016smp: Bringing up secondary CPUs ...\n\0".hex()
+    for name, offset in (("bundle", "0x1a30b70"), ("frozen", "0x1a30b78")):
+        require(refs[name]["offset"] == offset and refs[name]["bytes_hex"] == expected,
+                "SMP_LITERAL_SOURCE_STRING_MISMATCH")
+
+
 def delay_core(core, delay):
     require(delay in (1, 8) and len(core) in (68, 76), "INVALID_DELAY_CORE")
     require(struct.unpack_from("<I", core, 12)[0] == 0xD280010A, "REFERENCE_DELAY_NOT_8")
@@ -229,9 +242,18 @@ def compose(args, bundle):
                 "offset": hex(literal), "add_word": hex(add),
                 "bytes_hex": data[literal:end + 1].hex() if end >= 0 else None,
                 "text": data[literal:end].decode("ascii", "backslashreplace") if end >= 0 else None}
-    (out / "window-agreement.json").write_text(json.dumps(agreement, indent=2) + "\n")
-    require(not differences, f"TARGET_WINDOW_DIFFERS_FROM_AUDIT_IMAGE:{differences}")
-    t3.gate_window_bytes_agree(target_va, offset, dump, frozen, length // 4)
+    agreement["verdict"] = "EXACT" if not differences else "UNRESOLVED"
+    try:
+        if differences:
+            require(args.symbol == "smp_init", f"TARGET_WINDOW_DIFFERS_FROM_AUDIT_IMAGE:{differences}")
+            gate_smp_literal_delta(image[offset:offset + length], frozen[offset:offset + length],
+                                   agreement["log_literal_refs"])
+            require(branch_target(struct.unpack_from("<I", frozen, offset + 32)[0], target_va + 32)
+                    == t3.nm_symbol(nm, "_printk"), "SMP_LITERAL_CALL_NOT_PRINTK")
+            agreement["verdict"] = "SMP_PRINTK_LITERAL_ADDRESS_DELTA_VERIFIED"
+    finally:
+        (out / "window-agreement.json").write_text(json.dumps(agreement, indent=2) + "\n")
+    t3.gate_window_bytes_agree(target_va, offset, dump, image, length // 4)
     sections = t3.section_map(out, TOOLS, vmlinux)
     section = t3.gate_window_section_scan(target_va, length, sections)
     t3.gate_function_extent_scan(target_va, length, extent)
@@ -273,6 +295,7 @@ def compose(args, bundle):
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
                 "frozen_sha256": digest(frozen), "changed_bytes": len(changed),
                 "outside_window_changed_bytes": 0, "runtime_rewrites": rewrites,
+                "window_agreement": agreement,
                 "relocation_sites_checked": len(sites), "audit_elf_unchanged": True,
                 "source_commit": os.environ["GITHUB_SHA"], "run_id": os.environ["GITHUB_RUN_ID"],
                 "bundle": metadata, "normal_boot_candidate": False,

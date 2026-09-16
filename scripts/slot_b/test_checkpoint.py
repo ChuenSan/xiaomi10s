@@ -54,6 +54,29 @@ class CheckpointTests(unittest.TestCase):
                          [(base + 0x16C, base + 0x48)])
         self.assertEqual(checkpoint.incoming_branches(image, ranges, base, (base, base + 72)), [])
 
+    def test_smp_literal_delta_requires_exact_code_and_source_text(self):
+        bundle = bytearray(72)
+        struct.pack_into('<III', bundle, 24, 0xD0FFF740, 0x912DC000, 0x97D5CD80)
+        frozen = bytearray(bundle)
+        struct.pack_into('<I', frozen, 28, 0x912DE000)
+        text = b'\x016smp: Bringing up secondary CPUs ...\n\0'.hex()
+        refs = {'bundle': {'offset': '0x1a30b70', 'bytes_hex': text},
+                'frozen': {'offset': '0x1a30b78', 'bytes_hex': text}}
+        checkpoint.gate_smp_literal_delta(bundle, frozen, refs)
+        for off in (0, 4, 24, 28, 32, 68):
+            changed = bytearray(frozen)
+            changed[off] ^= 1
+            with self.subTest(offset=off), self.assertRaises(ValueError):
+                checkpoint.gate_smp_literal_delta(bundle, changed, refs)
+        for name in refs:
+            for key in ('offset', 'bytes_hex'):
+                changed = {n: dict(value) for n, value in refs.items()}
+                changed[name][key] = 'wrong'
+                with self.subTest(image=name, field=key), self.assertRaises(ValueError):
+                    checkpoint.gate_smp_literal_delta(bundle, frozen, changed)
+        with self.assertRaises(ValueError):
+            checkpoint.gate_smp_literal_delta(bundle[:-4], frozen[:-4], refs)
+
     def test_relr_advances_all_63_bitmap_positions(self):
         base = 0xFFFF800081234000
         data = struct.pack('<QQQ', base, 3, 3)
