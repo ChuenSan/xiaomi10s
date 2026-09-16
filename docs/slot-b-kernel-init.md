@@ -61,3 +61,18 @@ delta: `KINIT1_TOTAL - KINIT8_TOTAL = -7s`. STRONG abs(error)<=1s; SUPPORTED
 automatic second trial. Absolute timing alone does not prove entry.
 
 REST8/REST1 and old RESET8/RESET1 are not rerun as part of this stage.
+
+## Frozen candidate identities
+
+Public audit/assembly/pair run `35046645947` passed. Private pack and independent
+verification `35046737851` passed, including the complete boot-image two-byte
+delay-only diff. The reconciled kernel bundle was reused, not rebuilt.
+
+| member | payload SHA256 | boot SHA256 |
+| --- | --- | --- |
+| KINIT8 | `f93696b9adf4e273a1138c9645e7b8c9559ffb889f3c634461758bdbf50e230e` | `420248dd42f02c1e68f703523165e3d74e24b7a4a20177cdfcb51584d16dcc24` |
+| KINIT1 | `bfa7977bf2ef8b480c9b640295a8c0ef83fbdfadb51b22a4e438a62b7d8cfa3c` | `38d5c5eedf8ec87a095976c5c9b31a1b9780b3bafe25961fdf76b24e3e978bd7` |
+
+Both boots are 37380096 bytes. The inline window is `[0x10c2030,0x10c2078)`;
+284143 relocation sites and all present rewrite tables were checked. The
+observer must pass its new full-SHA/origin/pair regression gates before use.

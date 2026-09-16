@@ -20,6 +20,13 @@ IMAGES = {
     "reset1": (37380096, "43b9737ac02cd4947b2173109cf6f5dc49b85d5291dbc438c8a2945600aa0ae8"),
     "rest8": (37380096, "1832c179c924f2d21dd2aa16440759833c069353a920feff98240493214358bd"),
     "rest1": (37380096, "e4b06d5785e010aa4b340f72f65974cf03c09b6e9654249d41cab6b1808226b4"),
+    "kinit8": (37380096, "420248dd42f02c1e68f703523165e3d74e24b7a4a20177cdfcb51584d16dcc24"),
+    "kinit1": (37380096, "38d5c5eedf8ec87a095976c5c9b31a1b9780b3bafe25961fdf76b24e3e978bd7"),
+}
+PAIRS = {
+    "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
+    "rest1": ("rest8", "rest_init_entry", "rest_init_body"),
+    "kinit1": ("kinit8", "kernel_init_entry", "kthreadd_done_wait_completed"),
 }
 CONTEXT = {
     "boot_b_prefix": IMAGES["recovery"][1],
@@ -46,8 +53,8 @@ def validate_context(context, case=None):
     require(all(context.get(k) == v for k, v in CONTEXT.items()), "B_CONTEXT_MISMATCH")
     require(context.get("slot_a_unchanged") is True, "SLOT_A_UNCHANGED_NOT_VERIFIED")
     require(context.get("readback_verified") is True, "B_READBACK_NOT_VERIFIED")
-    if case in ("rest8", "rest1"):
-        require(context.get("bootloader_origin") == REST_ORIGIN, "REST_BOOTLOADER_ORIGIN_MISMATCH")
+    if case in ("rest8", "rest1", "kinit8", "kinit1"):
+        require(context.get("bootloader_origin") == REST_ORIGIN, "BOOTLOADER_ORIGIN_MISMATCH")
 
 
 def validate_preflight(values, size):
@@ -62,10 +69,11 @@ def validate_preflight(values, size):
 
 
 def pair_verdict(baseline, result):
-    rest_pair = result.get("case") == "rest1"
-    members = ("rest8", "rest1") if rest_pair else ("reset8", "reset1")
-    for record, case in zip((baseline, result), members):
-        if rest_pair:
+    second = result.get("case")
+    require(second in PAIRS, "PAIR_MEMBER_MISMATCH")
+    first, proof_key, unproved_key = PAIRS[second]
+    for record, case in zip((baseline, result), (first, second)):
+        if second != "reset1":
             require(record.get("bootloader_origin") == REST_ORIGIN, "PAIR_ORIGIN_MISMATCH")
         require(record.get("protocol") == PROTOCOL, "PAIR_PROTOCOL_MISMATCH")
         require(record.get("case") == case, "PAIR_MEMBER_MISMATCH")
@@ -83,10 +91,9 @@ def pair_verdict(baseline, result):
         "SUPPORTED" if abs(error) <= 2.0 else "SHIFT_NOT_OBSERVED")
     return {"delta_s": delta, "expected_delta_s": -7.0, "error_s": error,
             "verdict": verdict,
-            "rest_init_entry" if rest_pair else "machine_restart_entry":
-                "PROVEN" if verdict == "STRONG" else (
-                    "SUPPORTED" if verdict == "SUPPORTED" else "NOT_PROVEN"),
-            "rest_init_body" if rest_pair else "original_restart_body": "NOT_PROVEN",
+            proof_key: "PROVEN" if verdict == "STRONG" else (
+                "SUPPORTED" if verdict == "SUPPORTED" else "NOT_PROVEN"),
+            unproved_key: "NOT_PROVEN",
             "init_executed": "NOT_PROVEN"}
 
 
@@ -199,7 +206,7 @@ class Observer:
         context = json.loads(self.args.context.read_text())
         validate_context(context, self.args.case)
         baseline = None
-        if self.args.case in ("reset1", "rest1"):
+        if self.args.case in PAIRS:
             require(self.args.baseline is not None, "MATCHED_8S_BASELINE_REQUIRED")
             baseline = json.loads(self.args.baseline.read_text())
             # Validate the reference before any device command, without assigning a verdict.
