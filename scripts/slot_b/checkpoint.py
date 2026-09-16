@@ -219,6 +219,16 @@ def compose(args, bundle):
     agreement = {"symbol": args.symbol, "offset": hex(offset), "size": length,
                  "bundle_image_sha256": digest(image), "frozen_payload_sha256": digest(frozen),
                  "differing_words": differences}
+    if args.symbol == "smp_init":
+        agreement["log_literal_refs"] = {}
+        for name, data in (("bundle", image), ("frozen", frozen)):
+            add = struct.unpack_from("<I", data, offset + 28)[0]
+            literal = 0x1A30000 + ((add >> 10) & 0xFFF)
+            end = data.find(b"\0", literal, literal + 128)
+            agreement["log_literal_refs"][name] = {
+                "offset": hex(literal), "add_word": hex(add),
+                "bytes_hex": data[literal:end + 1].hex() if end >= 0 else None,
+                "text": data[literal:end].decode("ascii", "backslashreplace") if end >= 0 else None}
     (out / "window-agreement.json").write_text(json.dumps(agreement, indent=2) + "\n")
     require(not differences, f"TARGET_WINDOW_DIFFERS_FROM_AUDIT_IMAGE:{differences}")
     t3.gate_window_bytes_agree(target_va, offset, dump, frozen, length // 4)
