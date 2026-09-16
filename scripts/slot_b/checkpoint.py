@@ -328,7 +328,7 @@ def audit_initcall_source(linux):
     require(re.search(r"for\s*\(fn\s*=\s*initcall_levels\[level\];\s*"
                       r"fn\s*<\s*initcall_levels\[level\+1\];\s*fn\+\+\)", main),
             "INITCALL_ITERATION_SOURCE_MISMATCH")
-    linker_levels = re.search(r"#define INIT_CALLS.*?__initcall_end\s*=\s*\.;", linker, re.S)
+    linker_levels = re.search(r"#define INIT_CALLS\b.*?__initcall_end\s*=\s*\.;", linker, re.S)
     require(linker_levels is not None and re.findall(r"INIT_CALLS_LEVEL\(([^)]+)\)",
             linker_levels.group(0)) == ["0", "1", "2", "3", "4", "5", "rootfs", "6", "7"],
             "INITCALL_LINKER_ORDER_SOURCE_MISMATCH")
