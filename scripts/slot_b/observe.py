@@ -22,12 +22,17 @@ IMAGES = {
     "rest1": (37380096, "e4b06d5785e010aa4b340f72f65974cf03c09b6e9654249d41cab6b1808226b4"),
     "kinit8": (37380096, "420248dd42f02c1e68f703523165e3d74e24b7a4a20177cdfcb51584d16dcc24"),
     "kinit1": (37380096, "38d5c5eedf8ec87a095976c5c9b31a1b9780b3bafe25961fdf76b24e3e978bd7"),
+    "free8": (37380096, "9c294a544cf1e178b7f638a40901fbddf97e3556ff57f18646114cd2d921be93"),
+    "free1": (37380096, "8cf15312cd5803d33c8e889c5a87ad22edaa050da5455a92e68c37adfffffa19"),
 }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
     "rest1": ("rest8", "rest_init_entry", "rest_init_body"),
     "kinit1": ("kinit8", "kernel_init_entry", "kthreadd_done_wait_completed"),
+    "free1": ("free8", "kernel_init_freeable_entry", "kernel_init_freeable_body"),
 }
+ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
+                for case in (spec[0], second)}
 CONTEXT = {
     "boot_b_prefix": IMAGES["recovery"][1],
     "vendor_boot_b": "aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972",
@@ -53,7 +58,7 @@ def validate_context(context, case=None):
     require(all(context.get(k) == v for k, v in CONTEXT.items()), "B_CONTEXT_MISMATCH")
     require(context.get("slot_a_unchanged") is True, "SLOT_A_UNCHANGED_NOT_VERIFIED")
     require(context.get("readback_verified") is True, "B_READBACK_NOT_VERIFIED")
-    if case in ("rest8", "rest1", "kinit8", "kinit1"):
+    if case in ORIGIN_CASES:
         require(context.get("bootloader_origin") == REST_ORIGIN, "BOOTLOADER_ORIGIN_MISMATCH")
 
 

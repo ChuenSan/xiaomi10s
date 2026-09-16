@@ -88,7 +88,7 @@ class SafetyTests(unittest.TestCase):
 
     def test_rest_origin_must_be_recorded(self):
         context = {**observe.CONTEXT, "readback_verified": True, "slot_a_unchanged": True}
-        for case in ("rest8", "rest1", "kinit8", "kinit1"):
+        for case in observe.ORIGIN_CASES:
             with self.assertRaisesRegex(ValueError, "ORIGIN_MISMATCH"):
                 observe.validate_context(context, case)
             observe.validate_context({**context, "bootloader_origin": observe.REST_ORIGIN}, case)
@@ -107,21 +107,25 @@ class SafetyTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 observe.pair_verdict(invalid, result)
 
-    def test_kernel_init_pair_proves_pid1_entry_only(self):
-        baseline = {**self.record("kinit8", 35.4), "bootloader_origin": observe.REST_ORIGIN}
-        result = {**self.record("kinit1", 28.5), "bootloader_origin": observe.REST_ORIGIN}
-        verdict = observe.pair_verdict(baseline, result)
-        self.assertEqual(verdict["kernel_init_entry"], "PROVEN")
-        self.assertEqual(verdict["kthreadd_done_wait_completed"], "NOT_PROVEN")
-        self.assertEqual(verdict["init_executed"], "NOT_PROVEN")
-        self.assertNotIn("rest_init_entry", verdict)
-        for invalid in ({**baseline, "bootloader_origin": "P15_RESTART2"},
-                        {**baseline, "status": "NO_RETURN_WITHIN_120S"},
-                        {**baseline, "final_slot": "a"},
-                        {**baseline, "case": "rest8"},
-                        {**baseline, "image_sha256": observe.IMAGES["rest8"][1]}):
-            with self.assertRaises(ValueError):
-                observe.pair_verdict(invalid, result)
+    def test_pid1_stage_pairs_prove_only_the_selected_entry(self):
+        for second, (first, proof, unproved) in observe.PAIRS.items():
+            if second in ("reset1", "rest1"):
+                continue
+            with self.subTest(stage=second):
+                baseline = {**self.record(first, 35.4), "bootloader_origin": observe.REST_ORIGIN}
+                result = {**self.record(second, 28.5), "bootloader_origin": observe.REST_ORIGIN}
+                verdict = observe.pair_verdict(baseline, result)
+                self.assertEqual(verdict[proof], "PROVEN")
+                self.assertEqual(verdict[unproved], "NOT_PROVEN")
+                self.assertEqual(verdict["init_executed"], "NOT_PROVEN")
+                self.assertNotIn("rest_init_entry", verdict)
+                for invalid in ({**baseline, "bootloader_origin": "P15_RESTART2"},
+                                {**baseline, "status": "NO_RETURN_WITHIN_120S"},
+                                {**baseline, "final_slot": "a"},
+                                {**baseline, "case": "rest8"},
+                                {**baseline, "image_sha256": observe.IMAGES["rest8"][1]}):
+                    with self.assertRaises(ValueError):
+                        observe.pair_verdict(invalid, result)
 
     def test_pair_delta_not_old_slot_a_absolute_timing(self):
         baseline = self.record("reset8", 50.0)
