@@ -330,6 +330,34 @@ empty (Mainline defconfig has no `CONFIG_PSTORE`; empty is not
 counter-evidence). Stock 4.19 later reports `hw_reset reason1 is 0x2`;
 that is not a Mainline checkpoint proof.
 
-Evidence: `artifacts/slot-b-core8-20260916/`. Do not rerun CORE8. CORE1
-waits for `MAINLINE_V2_R3_SLOT_B_CORE1_DEVICE_GATE_REVIEW` plus separate
-user approval. PURE and CONSOLE reruns remain forbidden.
+Evidence: `artifacts/slot-b-core8-20260916/`. Do not rerun CORE8, PURE or
+CONSOLE.
+
+## CORE1 device gate review
+
+The read-only `MAINLINE_V2_R3_SLOT_B_CORE1_DEVICE_GATE_REVIEW` reconfirmed the
+frozen member-B identity: public payload
+`4ccf9e26edc0a37d2eade6a29c8dd73947b17dde57c0630dc1562616e3cf0704`, boot
+`a66c3f7a95e05905f5f65d96cb7f378ccdad9edf33814271425829ce10fe3e6c`,
+37380096 bytes, pack `35105559604`, reverify `35105810959`. Extracted payload,
+checkpoint window, 1-second delay encoding, PSCI FID, geometry, RT-D, `/init`
+and initramfs remain verified. No new mismatch was admitted.
+
+The pair still differs only by 2 bytes at `[0x1b338b5,0x1b338b7)`, instruction
+3, for `8s → 1s`. CORE1 contains only the first-postcore-entry diagnostic; all
+historical probes and the CORE8 delay member are absent. Observer fixtures
+`35107904900` and safety regression `35107904896` cover the final functional
+observer state; later changes are documentation and frozen CORE8 evidence only.
+The CORE1 full-SHA gate rejects the sibling, all historical candidates, wrong
+size, mutations, wrong checkpoint and wrong delay.
+
+The frozen future primary equation is
+`PAIR_DELTA=CORE1_TOTAL-34.961135333s`,
+`PAIR_ERROR=PAIR_DELTA+7.000000000s`; STRONG is absolute error `<=1.000s` and
+SUPPORTED `<=2.000s`. Absolute CORE1 time is secondary. CORE8's result alone
+continues to prove no additional reachability.
+
+`READY_FOR_R3_SLOT_B_CORE1_DEVICE_CONTROL=YES`. This review performed no device
+operation and authorizes no automatic execution. The next separately approved
+stage is `MAINLINE_V2_R3_SLOT_B_CORE1_TRUE_DEVICE_CONTROL`: one CORE1 Slot B
+RAM-only boot, with fresh pre/post Current B readback and Android A recovery.

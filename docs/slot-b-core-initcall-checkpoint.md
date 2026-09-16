@@ -222,7 +222,106 @@ Mainline proof.
 
 `PAIR_VERDICT=PENDING_CORE1`
 
-Do not rerun CORE8. Recommended next:
-`MAINLINE_V2_R3_SLOT_B_CORE1_DEVICE_GATE_REVIEW`. CORE1 waits for this
-freeze plus separate user approval. PURE and CONSOLE reruns remain
+Do not rerun CORE8. PURE and CONSOLE reruns remain forbidden.
+
+## CORE1 device gate review
+
+`MAINLINE_V2_R3_SLOT_B_CORE1_DEVICE_GATE_REVIEW` is a read-only review.
+No local build, image generation, binary validation, objdump, source gate,
+actionlint, device command, private repack or payload regeneration ran.
+
+CORE8 member A remains frozen at `34.961135333s`, boot SHA
+`5d7d5b88668e1925e3a79c677c2b630bb81d66135fec2761016de1da52fd7272`.
+Its automatic Fastboot B return, retry 7→6, unchanged 16-chain hashes and P15
+prefix, and restored Android A remain the fixed member-A evidence. They do not
+advance core or postcore reachability.
+
+CORE1 is reconfirmed as pair member B: public payload
+`4ccf9e26edc0a37d2eade6a29c8dd73947b17dde57c0630dc1562616e3cf0704`,
+private boot `a66c3f7a95e05905f5f65d96cb7f378ccdad9edf33814271425829ce10fe3e6c`,
+size 37380096, extracted payload equal to the public payload, private pack
+`35105559604`, independent reverify `35105810959`. The checkpoint remains
+`debug_monitors_init` at VA `0xffff800081b338a8`, Image offset `0x1b338a8`,
+`.init.text`, 60 bytes, entry `paciasp`, window `[0x1b338a8,0x1b338e4)`.
+The 1-second member uses CNTPCT elapsed time and frequency shift `#0`, PSCI
+FID `0x84000009`, SMC then fail-closed WFE, with no stack, memory read/write,
+MMIO or runtime relocation. Geometry, RT-D, `rdinit=/init panic=5 loglevel=7`,
+`/init`, initramfs and `RUNTIME_DTB_EXTERNAL_INITRD=NO` remain frozen.
+
+CORE8 and CORE1 still differ by exactly 2 bytes at
+`[0x1b338b5,0x1b338b7)`, instruction 3, solely the programmed delay `8s → 1s`.
+Target, probe placement, PAC handling, timer algorithm, PSCI/SMC/WFE behavior,
+geometry, RT-D, `/init` and initramfs are identical. REST, KINIT, FREE, SMP,
+DO_INITCALLS, PURE and CONSOLE probes are absent; CORE8 delay encoding is
+absent from CORE1. The only active diagnostic is the CORE1 first-postcore-entry
+checkpoint. The literal exception remains narrowly limited to
+`CORE_INITCALL_NAME_LITERAL_ADDRESS_DELTA_VERIFIED` (`0x91329421` versus
+`0x9132b421`, offsets `0x1a23ca5` / `0x1a23cad`, exact
+`arm64/debug_monitors:starting\0`, call `__cpuhp_setup_state`).
+
+Observer fixtures `35107904900` and observer-safety regression `35107904896`
+passed after the last functional observer change. Later commits modify docs
+and captured CORE8 evidence only. The CORE1 exact full-SHA/size whitelist
+accepts only CORE1 and therefore rejects CORE8, PURE8/PURE1,
+CONSOLE8/CONSOLE1, INITCALLS8/INITCALLS1, SMP8/SMP1, FREE8/FREE1,
+KINIT8/KINIT1, REST8/REST1, FIX8, wrong size, any one-byte CORE1 mutation,
+wrong checkpoint, wrong delay and every other candidate.
+
+The future primary equation is frozen before execution:
+
+`PAIR_DELTA = CORE1_TOTAL - 34.961135333s`
+
+`EXPECTED_DELTA = -7.000000000s`
+
+`PAIR_ERROR = PAIR_DELTA + 7.000000000s`
+
+STRONG requires `abs(PAIR_ERROR)<=1.000s`; SUPPORTED requires
+`abs(PAIR_ERROR)<=2.000s`. Absolute CORE1 timing is secondary only. A STRONG
+result proves core initcall completion and first postcore entry, not the
+postcore function body or later stages. SUPPORTED yields STRONGLY_SUPPORTED,
+not PROVEN. No shift records only
+`CORE_INITCALLS_CHECKPOINT_SHIFT_NOT_OBSERVED` and routes to
+`CORE_INITCALLS_FAILURE_ISOLATION_CI`.
+
+Future execution remains exactly one RAM-only CORE1 boot from healthy Android
+A: reboot to bootloader, verify A, select and immediately verify B, start the
+CORE1 observer, then boot the frozen image. Booting failure has no retry. No
+partition write or corrective write is permitted. Current B is frozen as
+`STOCK_V14_VENDOR_DTBO_PLUS_PROVEN_P15_RECOVERY`; its pre/post integrity must
+be read back in the future device round. CORE8, PURE and CONSOLE reruns are
 forbidden.
+
+`CORE8_MEMBER_A_FROZEN=YES`
+
+`CORE8_TOTAL_FROZEN=34.961135333`
+
+`CORE1_PUBLIC_PAYLOAD_IDENTITY=PASS`
+
+`CORE1_PRIVATE_BOOT_IDENTITY=PASS`
+
+`CORE1_PRIVATE_REVERIFY=PASS`
+
+`CORE_PAIR_SINGLE_VARIABLE_STILL_VALID=YES`
+
+`CORE_PAIR_GEOMETRY_IDENTICAL=YES`
+
+`CORE1_CHECKPOINT_IDENTITY=PASS`
+
+`CORE1_ONLY_ACTIVE_DIAGNOSTIC=YES`
+
+`CORE1_OBSERVER_IDENTITY_GATE_READY=YES`
+
+`CORE1_OBSERVER_REGRESSION_SAFE=YES`
+
+`CURRENT_B_AFTER_CORE8=UNCHANGED`
+
+`ANDROID_A_AFTER_CORE8=RESTORED`
+
+`PAIR_EQUATION_FROZEN=YES`
+
+`DEVICE_OPERATION=NO`
+
+`READY_FOR_R3_SLOT_B_CORE1_DEVICE_CONTROL=YES`
+
+Recommended next, only after separate user approval:
+`MAINLINE_V2_R3_SLOT_B_CORE1_TRUE_DEVICE_CONTROL`.

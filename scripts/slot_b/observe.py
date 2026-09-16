@@ -116,7 +116,9 @@ def pair_verdict(baseline, result):
            "verdict": verdict, proof_key: grade, unproved_key: "NOT_PROVEN",
            "init_executed": "NOT_PROVEN"}
     if second == "core1":
-        out.update(first_postcore_initcall_entry=grade,
+        core_grade = "STRONGLY_SUPPORTED" if verdict == "SUPPORTED" else grade
+        out.update(core_initcalls_completed=core_grade,
+                   first_postcore_initcall_entry=core_grade,
                    postcore_initcalls_completed="NOT_PROVEN",
                    console_on_rootfs_entry="NOT_PROVEN")
         if verdict == "SHIFT_NOT_OBSERVED":

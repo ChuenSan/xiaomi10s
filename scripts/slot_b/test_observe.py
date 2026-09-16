@@ -141,8 +141,14 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(verdict["console_on_rootfs_entry"], "NOT_PROVEN")
         supported = {**self.record("core1", 26.5),
                      "bootloader_origin": observe.REST_ORIGIN}
-        self.assertEqual(observe.pair_verdict(baseline, supported)["verdict"],
-                         "SUPPORTED")
+        supported_verdict = observe.pair_verdict(baseline, supported)
+        self.assertEqual(supported_verdict["verdict"], "SUPPORTED")
+        self.assertEqual(supported_verdict["core_initcalls_completed"],
+                         "STRONGLY_SUPPORTED")
+        self.assertEqual(supported_verdict["first_postcore_initcall_entry"],
+                         "STRONGLY_SUPPORTED")
+        self.assertEqual(supported_verdict["first_postcore_initcall_body"],
+                         "NOT_PROVEN")
         no_shift = {**self.record("core1", 35.0),
                     "bootloader_origin": observe.REST_ORIGIN}
         miss = observe.pair_verdict(baseline, no_shift)
