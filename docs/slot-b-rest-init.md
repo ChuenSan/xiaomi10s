@@ -92,3 +92,25 @@ System.map symbol before exporting reconciled provenance. The old and archived
 ELF hashes are retained. A mismatch stops the workflow; no kernel rebuild or
 unconditional hash replacement is permitted. This reconciliation runs in
 Actions, never locally.
+
+Reconciliation passed in `35040148509`: the archived ELF reproduces the exact
+original Image and matches all 167212 System.map entries. Its container SHA is
+`295bfdb12184052a79c1aea35ce4a93a5833c42bdb7b4bd9173973312ade00ff`.
+The corrected audit checked 284143 relocation sites and preserved the ELF hash.
+The same run holds the reconciled reusable kernel bundle; no kernel rebuild ran.
+
+## Frozen device pair artifacts
+
+| member | public run | private pack + independent verify | boot SHA256 |
+| --- | --- | --- | --- |
+| REST8 | `35036419486` | `35038457905` | `1832c179c924f2d21dd2aa16440759833c069353a920feff98240493214358bd` |
+| REST1 | `35040148509` | `35040497721` | `e4b06d5785e010aa4b340f72f65974cf03c09b6e9654249d41cab6b1808226b4` |
+
+Both boots are 37380096 bytes. Public payloads: REST8
+`22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360`, REST1
+`2aa3ce7e5f6edb337fea3510c0288a45f975bc3ee3de186eab613f3e5bea6746`.
+The corrected REST1 audit also reconstructs and checks the exact REST8
+reference; it does not replace the already privately verified REST8 image.
+The B observer pins both full boot SHAs, requires the declared Android-A-to-
+bootloader-to-B origin, and cannot run the second member without a valid first
+record. Device execution remains pending the observer CI gate.

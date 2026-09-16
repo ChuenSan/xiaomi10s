@@ -86,6 +86,27 @@ class SafetyTests(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 observe.validate_context({**context, key: None})
 
+    def test_rest_origin_must_be_recorded(self):
+        context = {**observe.CONTEXT, "readback_verified": True, "slot_a_unchanged": True}
+        for case in ("rest8", "rest1"):
+            with self.assertRaisesRegex(ValueError, "ORIGIN_MISMATCH"):
+                observe.validate_context(context, case)
+            observe.validate_context({**context, "bootloader_origin": observe.REST_ORIGIN}, case)
+
+    def test_rest_pair_proves_entry_only(self):
+        baseline = {**self.record("rest8", 35.4), "bootloader_origin": observe.REST_ORIGIN}
+        result = {**self.record("rest1", 28.5), "bootloader_origin": observe.REST_ORIGIN}
+        verdict = observe.pair_verdict(baseline, result)
+        self.assertEqual(verdict["rest_init_entry"], "PROVEN")
+        self.assertEqual(verdict["rest_init_body"], "NOT_PROVEN")
+        self.assertEqual(verdict["init_executed"], "NOT_PROVEN")
+        self.assertNotIn("machine_restart_entry", verdict)
+        for invalid in ({**baseline, "bootloader_origin": "P15_RESTART2"},
+                        {**baseline, "status": "NO_RETURN_WITHIN_120S"},
+                        self.record("reset8", 35.4)):
+            with self.assertRaises(ValueError):
+                observe.pair_verdict(invalid, result)
+
     def test_pair_delta_not_old_slot_a_absolute_timing(self):
         baseline = self.record("reset8", 50.0)
         strong = observe.pair_verdict(baseline, self.record("reset1", 43.1))

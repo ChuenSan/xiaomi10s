@@ -18,6 +18,8 @@ IMAGES = {
     "recovery": (52666368, "133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34"),
     "reset8": (37380096, "1422a187bb82cca1dfd85ec0805e2fcb6b6fdea1d48d1a09f8a8e68c9e825b7f"),
     "reset1": (37380096, "43b9737ac02cd4947b2173109cf6f5dc49b85d5291dbc438c8a2945600aa0ae8"),
+    "rest8": (37380096, "1832c179c924f2d21dd2aa16440759833c069353a920feff98240493214358bd"),
+    "rest1": (37380096, "e4b06d5785e010aa4b340f72f65974cf03c09b6e9654249d41cab6b1808226b4"),
 }
 CONTEXT = {
     "boot_b_prefix": IMAGES["recovery"][1],
@@ -25,6 +27,7 @@ CONTEXT = {
     "dtbo_b": "018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634",
 }
 PROTOCOL = "slot-b-p15-fastboot-return-v1"
+REST_ORIGIN = "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B"
 VARS = ("product", "unlocked", "current-slot", "slot-count",
         "snapshot-update-status", "battery-soc-ok", "max-download-size",
         "slot-unbootable:b", "slot-retry-count:b", "slot-successful:a")
@@ -39,10 +42,12 @@ def validate_identity(case, size, digest):
     require(case in IMAGES and (size, digest) == IMAGES[case], "IMAGE_IDENTITY_MISMATCH")
 
 
-def validate_context(context):
+def validate_context(context, case=None):
     require(all(context.get(k) == v for k, v in CONTEXT.items()), "B_CONTEXT_MISMATCH")
     require(context.get("slot_a_unchanged") is True, "SLOT_A_UNCHANGED_NOT_VERIFIED")
     require(context.get("readback_verified") is True, "B_READBACK_NOT_VERIFIED")
+    if case in ("rest8", "rest1"):
+        require(context.get("bootloader_origin") == REST_ORIGIN, "REST_BOOTLOADER_ORIGIN_MISMATCH")
 
 
 def validate_preflight(values, size):
@@ -57,7 +62,11 @@ def validate_preflight(values, size):
 
 
 def pair_verdict(baseline, result):
-    for record, case in ((baseline, "reset8"), (result, "reset1")):
+    rest_pair = result.get("case") == "rest1"
+    members = ("rest8", "rest1") if rest_pair else ("reset8", "reset1")
+    for record, case in zip((baseline, result), members):
+        if rest_pair:
+            require(record.get("bootloader_origin") == REST_ORIGIN, "PAIR_ORIGIN_MISMATCH")
         require(record.get("protocol") == PROTOCOL, "PAIR_PROTOCOL_MISMATCH")
         require(record.get("case") == case, "PAIR_MEMBER_MISMATCH")
         require(record.get("image_sha256") == IMAGES[case][1], "PAIR_IDENTITY_MISMATCH")
@@ -74,9 +83,11 @@ def pair_verdict(baseline, result):
         "SUPPORTED" if abs(error) <= 2.0 else "SHIFT_NOT_OBSERVED")
     return {"delta_s": delta, "expected_delta_s": -7.0, "error_s": error,
             "verdict": verdict,
-            "machine_restart_entry": "PROVEN" if verdict == "STRONG" else (
-                "SUPPORTED" if verdict == "SUPPORTED" else "NOT_PROVEN"),
-            "original_restart_body": "NOT_PROVEN", "init_executed": "NOT_PROVEN"}
+            "rest_init_entry" if rest_pair else "machine_restart_entry":
+                "PROVEN" if verdict == "STRONG" else (
+                    "SUPPORTED" if verdict == "SUPPORTED" else "NOT_PROVEN"),
+            "rest_init_body" if rest_pair else "original_restart_body": "NOT_PROVEN",
+            "init_executed": "NOT_PROVEN"}
 
 
 class Observer:
@@ -186,17 +197,19 @@ class Observer:
         digest = hashlib.sha256(image).hexdigest()
         validate_identity(self.args.case, len(image), digest)
         context = json.loads(self.args.context.read_text())
-        validate_context(context)
+        validate_context(context, self.args.case)
         baseline = None
-        if self.args.case == "reset1":
-            require(self.args.baseline is not None, "RESET8_BASELINE_REQUIRED")
+        if self.args.case in ("reset1", "rest1"):
+            require(self.args.baseline is not None, "MATCHED_8S_BASELINE_REQUIRED")
             baseline = json.loads(self.args.baseline.read_text())
             # Validate the reference before any device command, without assigning a verdict.
-            candidate = {**baseline, "case": "reset1", "image_sha256": IMAGES["reset1"][1]}
+            candidate = {**baseline, "case": self.args.case, "image_sha256": IMAGES[self.args.case][1]}
             pair_verdict(baseline, candidate)
         self.args.output.mkdir(parents=True, exist_ok=False)
         result = {"protocol": PROTOCOL, "case": self.args.case, "image_sha256": digest,
                   "context": CONTEXT, "ci_run": self.args.ci_run,
+                  "bootloader_origin": context.get("bootloader_origin", "UNRECORDED"),
+                  "normal_boot_candidate": False,
                   "slot_a_written": False, "partition_writes": 0}
         try:
             values = {key: self.getvar(key) for key in VARS}
