@@ -249,5 +249,39 @@ A is healthy after recovery. Each member ran exactly once in RAM. Evidence is
 in `artifacts/slot-b-pure-pair-20260916/`; do not rerun this pair.
 
 The next source-ordered level is core completion, observed at the first
-postcore initcall entry derived from `__initcall2_start`. It requires a new
-CI audit and must not be inferred from this result.
+postcore initcall entry derived from `__initcall2_start`. It must not be
+inferred from the PURE result.
+
+## Core-initcall completion checkpoint CI readiness
+
+Public GHA `35101182120` completed the new source/binary audit and independent
+reverify without rebuilding the kernel. Exact Linux 6.6.156 source maps pure,
+core and postcore to `__initcall0_start..__initcall1_start`,
+`__initcall1_start..__initcall2_start` and
+`__initcall2_start..__initcall3_start`. The exact vmlinux uses 4-byte PREL32
+entries. `__initcall2_start` is VA `0xffff800081d0ab6c`, Image offset
+`0x1d0ab6c`; its first word decodes uniquely to `debug_monitors_init` at VA
+`0xffff800081b338a8`, Image offset `0x1b338a8`, registered by
+`postcore_initcall` in `arch/arm64/kernel/debug-monitors.c`.
+
+The function is exactly 60 bytes. The historical 72-byte compact checkpoint
+was rejected as too large, so the accepted inline design preserves the entry
+`paciasp` and uses a 56-byte stack/memory-free CNTPCT elapsed-time + PSCI
+SYSTEM_RESET core ending exactly at the function boundary. Incoming-interior,
+back-edge, relocation, exception-table, alternatives, jump-label, static-call
+and KCFI gates pass. One target-specific linked-string ADD difference is
+closed as `CORE_INITCALL_NAME_LITERAL_ADDRESS_DELTA_VERIFIED`; both addresses
+contain exact `arm64/debug_monitors:starting`, and the call resolves to
+`__cpuhp_setup_state`.
+
+CORE8 payload
+`1e35411ba4d9bdeb48af47c0269a96b63a9214be5483601a9dfa5f8bdcfcc0a8`
+and CORE1 payload
+`4ccf9e26edc0a37d2eade6a29c8dd73947b17dde57c0630dc1562616e3cf0704`
+differ only at `[0x1b338b5,0x1b338b7)`, instruction 3's delay encoding.
+The frozen FIX8 baseline, RT-D, `/init` and initramfs match; all prior probes
+are absent. `MAINLINE_V2_R3_SLOT_B_CORE_INITCALLS_CHECKPOINT_CI_READY`, but
+private pack and device operation remain NO. Runtime evidence remains
+`CORE_INITCALLS_COMPLETED=NOT_PROVEN` and
+`FIRST_POSTCORE_INITCALL_ENTRY=NOT_PROVEN`. See
+`docs/slot-b-core-initcall-checkpoint.md`.

@@ -248,10 +248,10 @@ class CheckpointTests(unittest.TestCase):
                 checkpoint.gate_core_checkpoint_design(bad)
 
     def test_ultracompact_core_and_literal_delta_are_exact(self):
-        words = [0] * 14
-        words[2] = 0xD37DF12A
-        words[8] = 0x54FFFF83
-        words[11:14] = [0xD4000003, 0xD503205F, 0x17FFFFFF]
+        words = (0xD5034FDF, 0xD53BE009, 0xD37DF12A, 0xD53BE02B,
+                 0xD5033FDF, 0xD53BE02C, 0xCB0B018D, 0xEB0A01BF,
+                 0x54FFFF83, 0x52800120, 0x72B08000, 0xD4000003,
+                 0xD503205F, 0x17FFFFFF)
         core = struct.pack('<14I', *words)
         self.assertEqual(checkpoint.ultracompact_core(core), core)
         short = checkpoint.delay_core(core, 1)

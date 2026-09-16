@@ -176,9 +176,11 @@ def gate_initcall_literal_delta(bundle, frozen, refs):
 def ultracompact_core(core):
     require(len(core) == 56, "INVALID_ULTRACOMPACT_CORE_SIZE")
     words = struct.unpack("<14I", core)
-    require(words[2] == 0xD37DF12A, "ULTRACOMPACT_DELAY_NOT_LSL_3")
-    require(words[11:14] == (0xD4000003, 0xD503205F, 0x17FFFFFF),
-            "ULTRACOMPACT_FAIL_CLOSED_MISMATCH")
+    expected = (0xD5034FDF, 0xD53BE009, 0xD37DF12A, 0xD53BE02B,
+                0xD5033FDF, 0xD53BE02C, 0xCB0B018D, 0xEB0A01BF,
+                0x54FFFF83, 0x52800120, 0x72B08000, 0xD4000003,
+                0xD503205F, 0x17FFFFFF)
+    require(words == expected, "ULTRACOMPACT_INSTRUCTION_SEQUENCE_MISMATCH")
     require(branch_target(words[8], 8 * 4) == 4 * 4, "ULTRACOMPACT_TIMER_LOOP_MISMATCH")
     return core
 
