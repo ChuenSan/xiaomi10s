@@ -7,6 +7,7 @@ on:
       - 'scripts/slot_b/checkpoint.py'
       - 'scripts/slot_b/test_checkpoint.py'
       - 'scripts/slot_b/checkpoint-compact.S'
+      - 'scripts/slot_b/checkpoint-ultracompact.S'
       - '.github/workflows/thyme-slot-b-core-initcalls-complete.yml'
   workflow_dispatch:
     inputs:
@@ -119,6 +120,12 @@ jobs:
           llvm-objcopy-18 -O binary --only-section=.text compact.o compact.bin
           test "$(stat -c %s compact.bin)" = 68
           llvm-objdump-18 -d compact.o | tee compact-disassembly.log
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-ultracompact.S -o ultracompact.o
+          llvm-readelf-18 -r ultracompact.o | tee ultracompact-relocations.log
+          grep -q 'There are no relocations in this file' ultracompact-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text ultracompact.o ultracompact.bin
+          test "$(stat -c %s ultracompact.bin)" = 56
+          llvm-objdump-18 -d ultracompact.o | tee ultracompact-disassembly.log
       - name: Decode boundaries, derive exact first postcore target, audit entry, and build CORE8 CORE1
         env:
           GITHUB_ACTIONS: 'true'
@@ -131,6 +138,7 @@ jobs:
             fi
             python3 -u -B scripts/slot_b/checkpoint.py \
               --symbol core_complete --delay "$delay" --compact-core compact.bin \
+              --ultracompact-core ultracompact.bin \
               --bundle kernel-bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
               --core proven-core/p1b-t1-core-reference.bin --out "core-pair/$delay" \
               "${reference[@]}" | tee "core-$delay.log"
@@ -151,21 +159,21 @@ jobs:
           assert m8['initcall_boundary']['entry_encoding'] == 'PREL32'
           assert m8['initcall_boundary'] == m1['initcall_boundary']
           assert m8['target_va'] == m1['target_va']
-          assert m8['target_function_size'] >= m8['checkpoint_size'] == 72
+          assert m8['target_function_size'] >= m8['checkpoint_size'] == 60
           assert m8['target_entry_audit']['entry_audit'] == 'PASS'
           assert not m8['target_entry_audit']['branch_topology']['incoming_window_interior']
           assert m8['target_entry_audit']['runtime_rewrite_safe'] is True
           assert m8['window_agreement']['verdict'] in ('EXACT', 'CORE_INITCALL_NAME_LITERAL_ADDRESS_DELTA_VERIFIED')
           changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
-          assert changed == [m8['offset'] + 16, m8['offset'] + 17]
-          assert p8[:m8['offset']] == frozen[:m8['offset']] and p8[m8['offset']+72:] == frozen[m8['offset']+72:]
-          assert p1[:m1['offset']] == frozen[:m1['offset']] and p1[m1['offset']+72:] == frozen[m1['offset']+72:]
+          assert changed == [m8['offset'] + 13, m8['offset'] + 14]
+          assert p8[:m8['offset']] == frozen[:m8['offset']] and p8[m8['offset']+60:] == frozen[m8['offset']+60:]
+          assert p1[:m1['offset']] == frozen[:m1['offset']] and p1[m1['offset']+60:] == frozen[m1['offset']+60:]
           design = {
               'checkpoint_point': 'FIRST_POSTCORE_INITCALL_EXACT_ENTRY',
               'boundary': '__initcall2_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
               'entry_encoding': 'PREL32', 'cross_function_overwrite': False,
               'function_range_safe': True, 'function_size': m8['target_function_size'],
-              'probe_size': 72, 'incoming_interior_branches': 0,
+              'probe_size': 60, 'incoming_interior_branches': 0,
               'backedge_conflict': False, 'runtime_rewrite_conflict': False,
               'literal_delta': 'EXACT_OR_INDEPENDENTLY_PROVEN',
               'pair_diff': 'DELAY_CONSTANT_ONLY', 'timer': 'CNTPCT',
@@ -179,7 +187,7 @@ jobs:
               'source_commit': os.environ['GITHUB_SHA'], 'public_run': os.environ['GITHUB_RUN_ID'],
               'bundle_run': '35040148509', 'core8_payload_sha256': hashlib.sha256(p8).hexdigest(),
               'core1_payload_sha256': hashlib.sha256(p1).hexdigest(),
-              'changed_offsets': changed, 'changed_instruction_indices': [4],
+              'changed_offsets': changed, 'changed_instruction_indices': [3],
               'attribution': 'DELAY_CONSTANT_ONLY', 'expected_delta_seconds': -7.0,
               'private_pack': False, 'device_operation': False,
           }
@@ -194,7 +202,7 @@ jobs:
           print('INITCALL_ENTRY_ENCODING=PREL32')
           print('CORE_PAIR_DIFF_BYTE_COUNT=2')
           print(f"CORE_PAIR_DIFF_RANGES=[{changed[0]:#x},{changed[-1]+1:#x})")
-          print('CORE_PAIR_CHANGED_INSTRUCTIONS=[4]')
+          print('CORE_PAIR_CHANGED_INSTRUCTIONS=[3]')
           print('CORE_PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY')
           print('CORE_CHECKPOINT_PROBE_SAFE=YES')
           print('CORE_PAIR_PUBLIC_READY=YES')
@@ -219,7 +227,7 @@ jobs:
           path: |
             core-*.log
             core-pair-gates.txt
-            compact-*.log
+            *compact-*.log
             core-pair/*/checkpoint/original-window.txt
             core-pair/*/checkpoint/original-function.txt
             core-pair/*/checkpoint/target-entry-audit.json
@@ -264,18 +272,18 @@ jobs:
           assert a['initcall_boundaries']['__initcall1_start']['entry_va'] < a['initcall_boundary']['entry_va'] < a['initcall_boundaries']['__initcall3_start']['entry_va']
           assert a['target_va'] == hex(a['initcall_boundary']['target_va'])
           off, size = a['offset'], a['checkpoint_size']
-          assert size == 72 and a['target_function_size'] >= size
+          assert size == 60 and a['target_function_size'] >= size
           assert p8[:off] == base[:off] and p8[off+size:] == base[off+size:]
           assert p1[:off] == base[:off] and p1[off+size:] == base[off+size:]
           changed = [i for i, (x, y) in enumerate(zip(p8, p1)) if x != y]
-          assert changed == [off+16, off+17] == pair['changed_offsets']
-          words8 = struct.unpack_from('<18I', p8, off)
-          words1 = struct.unpack_from('<18I', p1, off)
-          assert words8[4] == 0xd280010a and words1[4] == 0xd280002a
-          assert words8[14] == words1[14] == 0xd4000003
-          assert words8[15] == words1[15] == 0xd503205f
-          assert words8[16] == words1[16] == 0x17fffffa
-          assert all(words8[i] == words1[i] for i in range(18) if i != 4)
+          assert changed == [off+13, off+14] == pair['changed_offsets']
+          words8 = struct.unpack_from('<15I', p8, off)
+          words1 = struct.unpack_from('<15I', p1, off)
+          assert words8[3] == 0xd37df12a and words1[3] == 0xd340fd2a
+          assert words8[12] == words1[12] == 0xd4000003
+          assert words8[13] == words1[13] == 0xd503205f
+          assert words8[14] == words1[14] == 0x17ffffff
+          assert all(words8[i] == words1[i] for i in range(15) if i != 3)
           assert a['runtime_dtb_external_initrd'] is False
           assert a['chosen_properties'] == ['bootargs', 'stdout-path']
           assert a['target_entry_audit']['runtime_rewrite_safe'] is True

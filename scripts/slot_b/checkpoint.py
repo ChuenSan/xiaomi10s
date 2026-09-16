@@ -173,8 +173,36 @@ def gate_initcall_literal_delta(bundle, frozen, refs):
                 "INITCALL_LITERAL_SOURCE_STRING_MISMATCH")
 
 
+def ultracompact_core(core):
+    require(len(core) == 56, "INVALID_ULTRACOMPACT_CORE_SIZE")
+    words = struct.unpack("<14I", core)
+    require(words[2] == 0xD37DF12A, "ULTRACOMPACT_DELAY_NOT_LSL_3")
+    require(words[11:14] == (0xD4000003, 0xD503205F, 0x17FFFFFF),
+            "ULTRACOMPACT_FAIL_CLOSED_MISMATCH")
+    require(branch_target(words[8], 8 * 4) == 4 * 4, "ULTRACOMPACT_TIMER_LOOP_MISMATCH")
+    return core
+
+
+def gate_core_initcall_literal_delta(bundle, frozen, refs):
+    require(len(bundle) == len(frozen) == 60, "CORE_INITCALL_LITERAL_WINDOW_SIZE")
+    require(bundle[:16] == frozen[:16] and bundle[20:] == frozen[20:],
+            "CORE_INITCALL_LITERAL_ADDITIONAL_CODE_DRIFT")
+    require(struct.unpack_from("<II", bundle, 12) == (0x90FFF781, 0x91329421)
+            and struct.unpack_from("<II", frozen, 12) == (0x90FFF781, 0x9132B421),
+            "CORE_INITCALL_LITERAL_INSTRUCTION_CONTEXT")
+    expected = b"arm64/debug_monitors:starting\0".hex()
+    require(refs["bundle"]["bytes_hex"] == refs["frozen"]["bytes_hex"] == expected,
+            "CORE_INITCALL_LITERAL_SOURCE_STRING_MISMATCH")
+    require(refs["frozen"]["offset"] == hex(int(refs["bundle"]["offset"], 16) + 8),
+            "CORE_INITCALL_LITERAL_LAYOUT_DELTA_NOT_EIGHT")
+
+
 def delay_core(core, delay):
-    require(delay in (1, 8) and len(core) in (68, 76), "INVALID_DELAY_CORE")
+    require(delay in (1, 8) and len(core) in (56, 68, 76), "INVALID_DELAY_CORE")
+    if len(core) == 56:
+        require(struct.unpack_from("<I", core, 8)[0] == 0xD37DF12A, "REFERENCE_DELAY_NOT_8")
+        word = 0xD37DF12A if delay == 8 else 0xD340FD2A
+        return core[:8] + struct.pack("<I", word) + core[12:]
     require(struct.unpack_from("<I", core, 12)[0] == 0xD280010A, "REFERENCE_DELAY_NOT_8")
     return core[:12] + struct.pack("<I", 0xD280000A | (delay << 5)) + core[16:]
 
@@ -424,7 +452,10 @@ def compose(args, bundle):
         {"external_initrd_advertised": False, "chosen_properties": sorted(chosen),
          "rt_d_sha256": digest(frozen[dtb_offset:])}, indent=2) + "\n")
     require(len(core) == 76 and digest(core) == CORE_SHA, "CHECKPOINT_CORE_MISMATCH")
-    if args.symbol != "rest_init":
+    if args.symbol == "core_complete":
+        require(args.ultracompact_core is not None, "ULTRACOMPACT_CORE_REQUIRED")
+        core = ultracompact_core(args.ultracompact_core.read_bytes())
+    elif args.symbol != "rest_init":
         core = compact_core(core)
         require(args.compact_core is not None and args.compact_core.read_bytes() == core,
                 "COMPACT_CORE_ASSEMBLY_MISMATCH")
@@ -514,6 +545,9 @@ def compose(args, bundle):
     elif args.symbol == "pure_complete":
         agreement["initcall_name_literal_refs"] = adrp_add_literal_ref_pair(
             image, frozen, text_va, offset + 36, offset + 40)
+    elif args.symbol == "core_complete":
+        agreement["core_initcall_name_literal_refs"] = adrp_add_literal_ref_pair(
+            image, frozen, text_va, offset + 12, offset + 16)
     agreement["verdict"] = "EXACT" if not differences else "UNRESOLVED"
     try:
         if differences and args.symbol == "smp_init":
@@ -537,6 +571,14 @@ def compose(args, bundle):
                     == t3.nm_symbol(nm, "__cpuhp_setup_state"),
                     "INITCALL_LITERAL_CALL_TARGET_MISMATCH")
             agreement["verdict"] = "INITCALL_NAME_LITERAL_ADDRESS_DELTA_VERIFIED"
+        elif differences and args.symbol == "core_complete":
+            gate_core_initcall_literal_delta(
+                image[offset:offset + length], frozen[offset:offset + length],
+                agreement["core_initcall_name_literal_refs"])
+            require(branch_target(struct.unpack_from("<I", frozen, offset + 44)[0], target_va + 44)
+                    == t3.nm_symbol(nm, "__cpuhp_setup_state"),
+                    "CORE_INITCALL_LITERAL_CALL_TARGET_MISMATCH")
+            agreement["verdict"] = "CORE_INITCALL_NAME_LITERAL_ADDRESS_DELTA_VERIFIED"
         else:
             require(not differences, f"TARGET_WINDOW_DIFFERS_FROM_AUDIT_IMAGE:{differences}")
     finally:
@@ -565,7 +607,8 @@ def compose(args, bundle):
     if expected_reference is not None:
         require(digest(reference) == expected_reference, "FROZEN_8S_REFERENCE_MISMATCH")
     pair_diff = [i for i, (a, b) in enumerate(zip(reference_core, core)) if a != b]
-    require(pair_diff == ([12, 13] if args.delay == 1 else []), "PAIR_NOT_DELAY_ONLY")
+    expected_pair_diff = [9, 10] if len(core) == 56 else [12, 13]
+    require(pair_diff == (expected_pair_diff if args.delay == 1 else []), "PAIR_NOT_DELAY_ONLY")
     t3.gate_tail_identity(frozen, candidate, (offset, offset + length))
     changed = t3.gate_payload_diff(frozen, candidate, (offset, offset + length))
     t3.gate_tramp_identity(candidate)
@@ -585,7 +628,9 @@ def compose(args, bundle):
                 "payload_sha256": digest(candidate), "payload_size": len(candidate),
                 "checkpoint_sha256": digest(probe), "core_sha256": digest(core),
                 "reference_core_sha256": CORE_SHA, "delay_seconds": args.delay,
-                "core_variant": "original_b_hs" if args.symbol == "rest_init" else "compact_b_lo",
+                "core_variant": ("original_b_hs" if args.symbol == "rest_init" else
+                                 "ultracompact_cntpct_elapsed_b_lo" if args.symbol == "core_complete" else
+                                 "compact_b_lo"),
                 "pair_reference_sha256": digest(reference),
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
                 "frozen_sha256": digest(frozen), "changed_bytes": len(changed),
@@ -621,6 +666,7 @@ def main():
     parser.add_argument("--delay", type=int, choices=(1, 8), default=8)
     parser.add_argument("--reference-sha")
     parser.add_argument("--compact-core", type=Path)
+    parser.add_argument("--ultracompact-core", type=Path)
     parser.add_argument("--bundle", type=Path)
     parser.add_argument("--out", type=Path, default=Path("out-slot-b-checkpoint"))
     args = parser.parse_args()

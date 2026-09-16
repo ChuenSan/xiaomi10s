@@ -208,7 +208,7 @@ class CheckpointTests(unittest.TestCase):
             'checkpoint_point': 'FIRST_POSTCORE_INITCALL_EXACT_ENTRY',
             'boundary': '__initcall2_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
             'entry_encoding': 'PREL32', 'cross_function_overwrite': False,
-            'function_range_safe': True, 'function_size': 128, 'probe_size': 72,
+            'function_range_safe': True, 'function_size': 60, 'probe_size': 60,
             'incoming_interior_branches': 0, 'backedge_conflict': False,
             'runtime_rewrite_conflict': False,
             'literal_delta': 'EXACT_OR_INDEPENDENTLY_PROVEN',
@@ -226,7 +226,7 @@ class CheckpointTests(unittest.TestCase):
             'symbol_order_guess': ('target_derivation', 'SYSTEM_MAP_ORDER_GUESS'),
             'before_entry': ('checkpoint_point', 'BEFORE_FIRST_POSTCORE_ENTRY'),
             'cross_function': ('cross_function_overwrite', True),
-            'short_function': ('function_size', 68),
+            'short_function': ('function_size', 56),
             'incoming_branch': ('incoming_interior_branches', 1),
             'backedge': ('backedge_conflict', True),
             'runtime_rewrite': ('runtime_rewrite_conflict', True),
@@ -246,6 +246,30 @@ class CheckpointTests(unittest.TestCase):
             bad[key] = value
             with self.subTest(name=name), self.assertRaises(ValueError):
                 checkpoint.gate_core_checkpoint_design(bad)
+
+    def test_ultracompact_core_and_literal_delta_are_exact(self):
+        words = [0] * 14
+        words[2] = 0xD37DF12A
+        words[8] = 0x54FFFF83
+        words[11:14] = [0xD4000003, 0xD503205F, 0x17FFFFFF]
+        core = struct.pack('<14I', *words)
+        self.assertEqual(checkpoint.ultracompact_core(core), core)
+        short = checkpoint.delay_core(core, 1)
+        self.assertEqual([i for i, (a, b) in enumerate(zip(core, short)) if a != b], [9, 10])
+        self.assertEqual(struct.unpack_from('<I', short, 8)[0], 0xD340FD2A)
+        bundle = bytearray(60)
+        struct.pack_into('<II', bundle, 12, 0x90FFF781, 0x91329421)
+        frozen = bytearray(bundle)
+        struct.pack_into('<I', frozen, 16, 0x9132B421)
+        text = b'arm64/debug_monitors:starting\0'.hex()
+        refs = {'bundle': {'offset': '0x100', 'bytes_hex': text},
+                'frozen': {'offset': '0x108', 'bytes_hex': text}}
+        checkpoint.gate_core_initcall_literal_delta(bundle, frozen, refs)
+        for off in (0, 12, 16, 20, 56):
+            changed = bytearray(frozen)
+            changed[off] ^= 1
+            with self.subTest(offset=off), self.assertRaises(ValueError):
+                checkpoint.gate_core_initcall_literal_delta(bundle, changed, refs)
 
     def test_pair_changes_only_delay_immediate(self):
         core = bytearray(76)
