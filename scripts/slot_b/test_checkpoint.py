@@ -116,6 +116,27 @@ class CheckpointTests(unittest.TestCase):
                     with self.subTest(tag=tag, image=name, field=key), self.assertRaises(ValueError):
                         checkpoint.gate_console_literal_deltas(bundle, frozen, changed)
 
+    def test_initcall_literal_delta_requires_exact_code_and_source_text(self):
+        bundle = bytearray(72)
+        struct.pack_into('<II', bundle, 36, 0xB0FFF061, 0x913B7421)
+        frozen = bytearray(bundle)
+        struct.pack_into('<I', frozen, 40, 0x913B9421)
+        text = b'arm64/fpsimd:dead\0'.hex()
+        refs = {'bundle': {'offset': '0x1940edd', 'bytes_hex': text},
+                'frozen': {'offset': '0x1940ee5', 'bytes_hex': text}}
+        checkpoint.gate_initcall_literal_delta(bundle, frozen, refs)
+        for off in (0, 36, 40, 44, 68):
+            changed = bytearray(frozen)
+            changed[off] ^= 1
+            with self.subTest(offset=off), self.assertRaises(ValueError):
+                checkpoint.gate_initcall_literal_delta(bundle, changed, refs)
+        for name in refs:
+            for key in ('offset', 'bytes_hex'):
+                changed = {n: dict(value) for n, value in refs.items()}
+                changed[name][key] = 'wrong'
+                with self.subTest(image=name, field=key), self.assertRaises(ValueError):
+                    checkpoint.gate_initcall_literal_delta(bundle, frozen, changed)
+
     def test_smp_literal_delta_requires_exact_code_and_source_text(self):
         bundle = bytearray(72)
         struct.pack_into('<III', bundle, 24, 0xD0FFF740, 0x912DC000, 0x97D5CD80)

@@ -138,6 +138,19 @@ def gate_smp_literal_delta(bundle, frozen, refs):
                 "SMP_LITERAL_SOURCE_STRING_MISMATCH")
 
 
+def gate_initcall_literal_delta(bundle, frozen, refs):
+    require(len(bundle) == len(frozen) == 72, "INITCALL_LITERAL_WINDOW_SIZE")
+    require(bundle[:40] == frozen[:40] and bundle[44:] == frozen[44:],
+            "INITCALL_LITERAL_ADDITIONAL_CODE_DRIFT")
+    require(struct.unpack_from("<II", bundle, 36) == (0xB0FFF061, 0x913B7421)
+            and struct.unpack_from("<II", frozen, 36) == (0xB0FFF061, 0x913B9421),
+            "INITCALL_LITERAL_INSTRUCTION_CONTEXT")
+    expected = b"arm64/fpsimd:dead\0".hex()
+    for name, offset in (("bundle", "0x1940edd"), ("frozen", "0x1940ee5")):
+        require(refs[name]["offset"] == offset and refs[name]["bytes_hex"] == expected,
+                "INITCALL_LITERAL_SOURCE_STRING_MISMATCH")
+
+
 def delay_core(core, delay):
     require(delay in (1, 8) and len(core) in (68, 76), "INVALID_DELAY_CORE")
     require(struct.unpack_from("<I", core, 12)[0] == 0xD280010A, "REFERENCE_DELAY_NOT_8")
@@ -388,6 +401,13 @@ def compose(args, bundle):
                                       target_va + call_offset) == t3.nm_symbol(nm, callee),
                         "CONSOLE_LITERAL_CALL_TARGET_MISMATCH")
             agreement["verdict"] = "CONSOLE_LITERAL_ADDRESS_DELTAS_VERIFIED"
+        elif differences and args.symbol == "pure_complete":
+            gate_initcall_literal_delta(image[offset:offset + length], frozen[offset:offset + length],
+                                        agreement["initcall_name_literal_refs"])
+            require(branch_target(struct.unpack_from("<I", frozen, offset + 68)[0], target_va + 68)
+                    == t3.nm_symbol(nm, "__cpuhp_setup_state"),
+                    "INITCALL_LITERAL_CALL_TARGET_MISMATCH")
+            agreement["verdict"] = "INITCALL_NAME_LITERAL_ADDRESS_DELTA_VERIFIED"
         else:
             require(not differences, f"TARGET_WINDOW_DIFFERS_FROM_AUDIT_IMAGE:{differences}")
     finally:
