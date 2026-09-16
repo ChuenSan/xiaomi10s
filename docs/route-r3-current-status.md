@@ -24,12 +24,16 @@ SMP entry matched pair also passed: 35.174554375s / 28.200887000s, delta
 secondary CPU count are not yet proven. All recorded hashes are unchanged
 and Android A is healthy. The INITCALLS entry pair now also passed:
 35.356176458s / 28.379876083s, delta -6.976300375s, STRONG. SMP/topology
-and driver-core setup returned. Main initcall completion, device-probe
-success and /init remain unproven. All recorded hashes remain unchanged.
-Next is console_on_rootfs entry after main initcalls and initramfs waiting,
-using the same frozen payload and GHA-only audit bundle.
-No Linux boot success is claimed. Details: `docs/slot-b-pid1-stages.md`.
-Older A-return timing records below are historical, not this B baseline.
+and driver-core setup returned. The CONSOLE matched pair was then executed
+once: CONSOLE8 48.255931209s / CONSOLE1 48.337103709s, delta +0.081172500s,
+error +7.081172500s, SHIFT_NOT_OBSERVED. console_on_rootfs entry, console
+open and /init remain NOT_PROVEN. Both members automatically returned to B
+(retry 7→6). All recorded hashes remain unchanged and Android A is healthy.
+Do not rerun CONSOLE8/CONSOLE1. The hang/reset is after do_initcalls entry
+and before a proven console_on_rootfs entry; isolate by initcall level, not
+by USB or /init claims. No Linux boot success is claimed.
+Details: `docs/slot-b-pid1-stages.md`. Older A-return timing records below
+are historical, not this B baseline.
 
 Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
@@ -460,7 +464,7 @@ RECOVERY_B_RETRY_COUNT=6
 POST_RESET8_PARTITION_HASHES=ALL_RECORDED_UNCHANGED
 DEVICE_TRANSPORT=ADB_ROOT_ANDROID_A
 DEVICE_RECOVERY=COMPLETE
-NEXT_DEVICE_ACTION=CONSOLE_ON_ROOTFS_ENTRY_AFTER_CI_GATES
+NEXT_DEVICE_ACTION=ISOLATE_POST_DO_INITCALLS_ENTRY_BY_LEVEL
 DO_BASIC_SETUP_DIAGNOSTIC=REJECTED_FUNCTION_TOO_SHORT
 REST_INIT_PUBLIC_CI_RUN=35036419486
 REST_INIT_PUBLIC_CI_STATUS=PASS
@@ -506,6 +510,20 @@ INITCALLS_PAIR_DELTA_S=-6.976300375
 INITCALLS_PAIR_ERROR_S=0.023699625
 INITCALLS_PAIR_VERDICT=STRONG
 INITCALLS_POSTTEST_HASHES=ALL_RECORDED_UNCHANGED
+CONSOLE_ON_ROOTFS_ENTRY=NOT_PROVEN
+CONSOLE_OPENED=NOT_PROVEN
+CONSOLE_PAIR_STATUS=SHIFT_NOT_OBSERVED
+CONSOLE_PUBLIC_RUN=35055586198
+CONSOLE_PRIVATE_RUN=35055709127
+CONSOLE_OBSERVER_CI_RUN=35056576698
+CONSOLE_8_TOTAL_S=48.255931209
+CONSOLE_1_TOTAL_S=48.337103709
+CONSOLE_PAIR_DELTA_S=0.081172500
+CONSOLE_PAIR_ERROR_S=7.081172500
+CONSOLE_PAIR_VERDICT=SHIFT_NOT_OBSERVED
+CONSOLE_PAIR_POSTTEST_HASHES=ALL_RECORDED_UNCHANGED
+RUNTIME_DTB_EXTERNAL_INITRD=NO
+CHOSEN_PROPERTIES=bootargs,stdout-path
 SECONDARY_CPU_COUNT=NOT_OBSERVED
 SMP_ENTRY_OBSERVER_CI_RUN=35050078930
 SMP_ENTRY_8_TOTAL_S=35.174554375

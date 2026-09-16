@@ -190,3 +190,24 @@ applicable to the R3 DTB path; no packaging workaround is required.
 The same B-only 8s/1s protocol applies, with unchanged −7s delta and error
 thresholds. A valid first automatic return and unchanged partition readback
 are prerequisites for the second member. This is not a USB or userspace test.
+
+## CONSOLE pair true-device result
+
+Observer CI `35056576698` passed. CONSOLE8 booted once at 04:43:21.259 UTC
+and returned in 48.255931209s; CONSOLE1 booted once at 04:49:32.400 UTC and
+returned in 48.337103709s. Delta `+0.081172500s`, expected `-7s`, error
+`+7.081172500s`: **SHIFT_NOT_OBSERVED**. `CONSOLE_ON_ROOTFS_ENTRY=NOT_PROVEN`,
+`CONSOLE_OPENED=NOT_PROVEN`, `/init=NOT_PROVEN`. Both automatic returns stayed
+B (retry 7→6). All 16 recorded A/B boot-chain hashes and the P15 prefix
+matched before/between/after; zero partition flashes. Android A is healthy
+(`_a`, `boot_completed=1`, `bootreason=bootloader`). pstore remains empty;
+oops has no Linux 6.6 / THYME-R3 marker. Stock 4.19 later reports
+`hw_reset reason1 is 0x2` after Android A is already running; that is not a
+Mainline panic/console/init proof.
+
+Do not rerun CONSOLE8/CONSOLE1. Absolute ~48s is not an entry proof. The last
+proven boundary remains `do_initcalls` entry. Next is isolation of the hang
+between that entry and `console_on_rootfs`: initcall levels `pure`→`late`,
+then `wait_for_initramfs`. Keep the same frozen FIX8 payload, compact core,
+GHA-only composition and B-only RAM protocol. USB, BusyBox userspace and
+INITRAMFS_FORCE remain frozen until a later proven boundary requires them.

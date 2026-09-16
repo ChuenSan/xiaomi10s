@@ -1,0 +1,23 @@
+[    0.000000] Linux version 4.19.157-perf-g9d90dd04aa7c (builder@pangu-build-component-vendor-144082-xmbbk-vqbzf-3sb9s) (clang version 10.0.7 for Android NDK, GNU ld (binutils-2.27-bd24d23f) 2.27.0.20170315) #1 SMP PREEMPT Mon Sep 4 10:51:57 UTC 2023
+[    0.000000] ramoops: msm_reserve_ramoops_memory addr=b0000000,size=400000
+[    0.000000] ramoops: msm_reserve_ramoops_memory record_size=0,ftrace_size=0
+[    0.092593] ramoops: msm_register_ramoops_device
+[    0.094467] console [pstore-1] enabled
+[    0.094509] pstore: Registered ramoops as persistent store backend
+[    0.094516] ramoops: attached 0x400000@0xb0000000, ecc: 0/0
+[    0.123973] msm_watchdog 17c10000.qcom,wdt: wdog absent resource not present
+[    0.124099] msm_watchdog 17c10000.qcom,wdt: MSM Watchdog Initialized
+[    1.714770] pstore: Invalid compression size for deflate: 0
+[    3.291611] logd: Ignored bug_map definition in /system/etc/selinux/bug_map: 'init pstorefs dir b/77873135', (scontext, tcontext, tclass) denial combination is already tagged with bug metadata 'b/77873135'
+[    6.635040] init: starting service 'exec 31 (/system/bin/bootstat --set_system_boot_reason)'...
+[    6.675824] init: Service 'exec 31 (/system/bin/bootstat --set_system_boot_reason)' (pid 1641) exited with status 0 oneshot service took 0.039000 seconds in background
+[    6.675832] init: Sending signal 9 to service 'exec 31 (/system/bin/bootstat --set_system_boot_reason)' (pid 1641) process group...
+[    8.313330] qcom,qpnp-power-on c440000.qcom,spmi:qcom,pm8150@0:qcom,power-on@800: hw_reset reason1 is 0x2
+[   18.168069] init: starting service 'exec 54 (/system/bin/bootstat --record_boot_complete --record_boot_reason --record_time_since_factory_reset -l)'...
+[   18.264800] init: Service 'exec 54 (/system/bin/bootstat --record_boot_complete --record_boot_reason --record_time_since_factory_reset -l)' (pid 4186) exited with status 0 oneshot service took 0.096000 seconds in background
+[   18.264808] init: Sending signal 9 to service 'exec 54 (/system/bin/bootstat --record_boot_complete --record_boot_reason --record_time_since_factory_reset -l)' (pid 4186) process group...
+[   18.529164] init: processing action (sys.boot.reason=* && sys.boot_completed=1) from (/vendor/etc/init/vendor.xiaomi.hardware.antdtx@1.0-service.rc:7)
+[   18.601230] qcom,qpnp-power-on c440000.qcom,spmi:qcom,pm8150@0:qcom,power-on@800: hw_reset reason1 is 0x2
+[   19.233490] qcom,qpnp-power-on c440000.qcom,spmi:qcom,pm8150@0:qcom,power-on@800: hw_reset reason1 is 0x2
+[   19.237967] qcom,qpnp-power-on c440000.qcom,spmi:qcom,pm8150@0:qcom,power-on@800: hw_reset reason1 is 0x2
+[   21.237735] qcom,qpnp-power-on c440000.qcom,spmi:qcom,pm8150@0:qcom,power-on@800: hw_reset reason1 is 0x2

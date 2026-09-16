@@ -1,0 +1,17 @@
+{
+  "symbol": "console_on_rootfs",
+  "source_commit": "3294285c854e8a8ea5dfcc6b436e097b909aff1b",
+  "public_run": "35055586198",
+  "bundle_run": "35040148509",
+  "payload_shas": {
+    "8": "bd402c0291eb0806a68c9a142f06ec5cb800eeb09e7eaf5430cfcd1e3a35219e",
+    "1": "4a070454b9ce7b78fc41e3e7303ff74d6f938b061602ddf125efee62a92f3f4c"
+  },
+  "changed_offsets": [
+    28511668,
+    28511669
+  ],
+  "expected_delta_s": -7,
+  "device_operation": false,
+  "kernel_rebuilt": false
+}

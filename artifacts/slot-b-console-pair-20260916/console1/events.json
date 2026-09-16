@@ -1,0 +1,84 @@
+[
+  {
+    "utc": "2026-09-16T04:49:31.213635+00:00",
+    "event": "PREFLIGHT",
+    "product": "thyme",
+    "unlocked": "yes",
+    "current-slot": "b",
+    "slot-count": "2",
+    "snapshot-update-status": "none",
+    "battery-soc-ok": "yes",
+    "max-download-size": "805306368",
+    "slot-unbootable:b": "no",
+    "slot-retry-count:b": "7",
+    "slot-successful:a": "yes"
+  },
+  {
+    "utc": "2026-09-16T04:49:31.232984+00:00",
+    "event": "COMMAND_START",
+    "operation": "ram_boot_b",
+    "case": "console1"
+  },
+  {
+    "utc": "2026-09-16T04:49:32.180703+00:00",
+    "event": "FASTBOOT_OUT",
+    "text": "Sending 'boot.img' (36504 KB)                      OKAY [  0.925s]"
+  },
+  {
+    "utc": "2026-09-16T04:49:32.400258+00:00",
+    "event": "FASTBOOT_OUT",
+    "text": "Booting                                            OKAY [  0.220s]"
+  },
+  {
+    "utc": "2026-09-16T04:49:32.407559+00:00",
+    "event": "FASTBOOT_OUT",
+    "text": "Finished. Total time: 1.157s"
+  },
+  {
+    "utc": "2026-09-16T04:49:32.408688+00:00",
+    "event": "BOOTING_OKAY"
+  },
+  {
+    "utc": "2026-09-16T04:49:33.771329+00:00",
+    "event": "FASTBOOT_DISAPPEARED",
+    "elapsed_s": 1.336066042
+  },
+  {
+    "utc": "2026-09-16T04:50:20.763752+00:00",
+    "event": "FASTBOOT_FIRST_RETURN",
+    "elapsed_s": 48.337103709000004
+  },
+  {
+    "utc": "2026-09-16T04:50:23.918698+00:00",
+    "event": "RESULT",
+    "protocol": "slot-b-p15-fastboot-return-v1",
+    "case": "console1",
+    "image_sha256": "c116cf585516f1e6d9835a90ef0324745fd12f84f5d7cb36528e7aa73f2983b1",
+    "context": {
+      "boot_b_prefix": "133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34",
+      "vendor_boot_b": "aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972",
+      "dtbo_b": "018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634"
+    },
+    "ci_run": "35055709127",
+    "bootloader_origin": "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B",
+    "normal_boot_candidate": false,
+    "slot_a_written": false,
+    "partition_writes": 0,
+    "status": "AUTOMATIC_FASTBOOT_RETURN",
+    "final_slot": "b",
+    "total_s": 48.337103709000004,
+    "b_retries": "6",
+    "host_boot_commands": 1,
+    "experimental_boots": 1,
+    "recovery_control_boots": 0,
+    "pair": {
+      "delta_s": 0.08117250000000098,
+      "expected_delta_s": -7.0,
+      "error_s": 7.081172500000001,
+      "verdict": "SHIFT_NOT_OBSERVED",
+      "console_on_rootfs_entry": "NOT_PROVEN",
+      "console_opened": "NOT_PROVEN",
+      "init_executed": "NOT_PROVEN"
+    }
+  }
+]
