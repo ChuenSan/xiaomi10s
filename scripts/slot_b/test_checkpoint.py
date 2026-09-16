@@ -202,6 +202,50 @@ class CheckpointTests(unittest.TestCase):
                     image, [{'vma': base, 'size': len(data), 'file_off': 0}], nm,
                     '__initcall1_start')
 
+    def test_core_checkpoint_negative_fixtures(self):
+        valid = {
+            'checkpoint_point': 'FIRST_POSTCORE_INITCALL_EXACT_ENTRY',
+            'boundary': '__initcall2_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
+            'entry_encoding': 'PREL32', 'cross_function_overwrite': False,
+            'function_range_safe': True, 'function_size': 128, 'probe_size': 72,
+            'incoming_interior_branches': 0, 'backedge_conflict': False,
+            'runtime_rewrite_conflict': False,
+            'literal_delta': 'EXACT_OR_INDEPENDENTLY_PROVEN',
+            'pair_diff': 'DELAY_CONSTANT_ONLY', 'timer': 'CNTPCT',
+            'psci_fid': '0x84000009', 'timer_algorithm_changed': False,
+            'prior_pure_probe': False, 'prior_console_probe': False,
+            'rt_d_sha256': '4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327',
+            'init_changed': False, 'private_pack': False, 'device_operation': False,
+        }
+        checkpoint.gate_core_checkpoint_design(valid)
+        fixtures = {
+            'shared_loop': ('checkpoint_point', 'SHARED_DO_INITCALLS_LOOP'),
+            'wrong_boundary': ('boundary', '__initcall1_start'),
+            'wrong_target': ('checkpoint_point', 'WRONG_POSTCORE_TARGET'),
+            'symbol_order_guess': ('target_derivation', 'SYSTEM_MAP_ORDER_GUESS'),
+            'before_entry': ('checkpoint_point', 'BEFORE_FIRST_POSTCORE_ENTRY'),
+            'cross_function': ('cross_function_overwrite', True),
+            'short_function': ('function_size', 68),
+            'incoming_branch': ('incoming_interior_branches', 1),
+            'backedge': ('backedge_conflict', True),
+            'runtime_rewrite': ('runtime_rewrite_conflict', True),
+            'unproved_literal_delta': ('literal_delta', 'UNPROVEN'),
+            'extra_pair_diff': ('pair_diff', 'EXTRA_BYTES'),
+            'timer_change': ('timer_algorithm_changed', True),
+            'psci_change': ('psci_fid', '0x84000008'),
+            'pure_probe_remains': ('prior_pure_probe', True),
+            'console_probe_remains': ('prior_console_probe', True),
+            'rt_d_changed': ('rt_d_sha256', '0' * 64),
+            'init_changed': ('init_changed', True),
+            'private_pack': ('private_pack', True),
+            'device_operation': ('device_operation', True),
+        }
+        for name, (key, value) in fixtures.items():
+            bad = dict(valid)
+            bad[key] = value
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                checkpoint.gate_core_checkpoint_design(bad)
+
     def test_pair_changes_only_delay_immediate(self):
         core = bytearray(76)
         struct.pack_into('<I', core, 12, 0xD280010A)

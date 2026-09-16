@@ -30,7 +30,8 @@ TARGETS = {"rest_init": 0x10C1F48, "kernel_init": 0x10C2030,
            "kernel_init_freeable": 0x1B3103C, "smp_init": 0x1B466E0,
            "do_basic_setup": 0x1B311A8, "do_initcalls": 0x1B311D0,
            "console_on_rootfs": 0x1B30DA4}
-INITCALL_BOUNDARIES = {"pure_complete": "__initcall1_start"}
+INITCALL_BOUNDARIES = {"pure_complete": "__initcall1_start",
+                       "core_complete": "__initcall2_start"}
 PROOF_BOUNDARIES = {
     "rest_init": ("rest_init entry and preceding normal start_kernel path",
                   "rest_init body, scheduler, SMP or /init"),
@@ -48,6 +49,8 @@ PROOF_BOUNDARIES = {
                           "successful device probes, console open, executable /init or userspace entry"),
     "pure_complete": ("all pure initcalls completed and the first core initcall entry was reached",
                       "the first core initcall body, later initcall levels, initramfs readiness or /init"),
+    "core_complete": ("all core initcalls completed and the first postcore initcall entry was reached",
+                      "the first postcore initcall body, postcore completion, later levels, console or /init"),
 }
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
 
@@ -64,6 +67,25 @@ def digest(data):
 def gate_builtin_initramfs_source(chosen):
     require(not {"linux,initrd-start", "linux,initrd-end"}.intersection(chosen),
             "EXTERNAL_INITRD_IN_RUNTIME_DTB")
+
+
+def gate_core_checkpoint_design(design):
+    expected = {
+        "checkpoint_point": "FIRST_POSTCORE_INITCALL_EXACT_ENTRY",
+        "boundary": "__initcall2_start", "target_derivation": "TABLE_ENTRY_DECODE",
+        "entry_encoding": "PREL32", "cross_function_overwrite": False,
+        "function_range_safe": True, "incoming_interior_branches": 0,
+        "backedge_conflict": False, "runtime_rewrite_conflict": False,
+        "literal_delta": "EXACT_OR_INDEPENDENTLY_PROVEN", "pair_diff": "DELAY_CONSTANT_ONLY",
+        "timer": "CNTPCT", "psci_fid": "0x84000009", "timer_algorithm_changed": False,
+        "prior_pure_probe": False, "prior_console_probe": False,
+        "rt_d_sha256": "4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327",
+        "init_changed": False, "private_pack": False, "device_operation": False,
+    }
+    for key, value in expected.items():
+        require(design.get(key) == value, f"CORE_DESIGN_REJECTED:{key}")
+    require(design.get("function_size", 0) >= design.get("probe_size", 1),
+            "CORE_DESIGN_REJECTED:function_shorter_than_probe")
 
 
 def compact_core(core):
@@ -280,9 +302,85 @@ def resolve_initcall_boundary(vmlinux, sections, nm, boundary):
         rel = struct.unpack("<i", vmlinux_bytes_at(vmlinux, sections, va, 4))[0]
         entries.append(va + rel)
     require(entries.count(target_va) == 1, "INITCALL_TARGET_NOT_UNIQUE_IN_TABLE")
-    return {"boundary_symbol": boundary, "entry_va": entry_va, "relative": relative,
-            "target_va": target_va, "target_aliases": aliases,
-            "table_entries_checked": len(entries)}
+    section = next(s for s in sections if s["vma"] <= entry_va < s["vma"] + s["size"])
+    return {"boundary_symbol": boundary, "entry_va": entry_va,
+            "entry_image_offset": entry_va - t3.nm_symbol(nm, "_text"),
+            "entry_section": section["name"], "entry_size": 4,
+            "entry_encoding": "PREL32", "relative": relative,
+            "entry_word": hex(relative & 0xffffffff), "target_va": target_va,
+            "target_aliases": aliases, "table_entries_checked": len(entries)}
+
+
+def audit_initcall_source(linux):
+    main = (linux / "init/main.c").read_text()
+    linker = (linux / "include/asm-generic/vmlinux.lds.h").read_text()
+    init_h = (linux / "include/linux/init.h").read_text()
+    levels = re.search(r"initcall_levels\[\].*?=\s*\{(.*?)\};", main, re.S)
+    names = re.search(r"initcall_level_names\[\].*?=\s*\{(.*?)\};", main, re.S)
+    require(levels is not None and re.findall(r"__initcall(?:\d+|_end)_start|__initcall_end",
+            levels.group(1)) == ["__initcall0_start", "__initcall1_start", "__initcall2_start",
+                                  "__initcall3_start", "__initcall4_start", "__initcall5_start",
+                                  "__initcall6_start", "__initcall7_start", "__initcall_end"],
+            "INITCALL_LEVEL_ARRAY_SOURCE_MISMATCH")
+    require(names is not None and re.findall(r'"([a-z]+)"', names.group(1)) ==
+            ["pure", "core", "postcore", "arch", "subsys", "fs", "device", "late"],
+            "INITCALL_LEVEL_NAMES_SOURCE_MISMATCH")
+    require(re.search(r"for\s*\(fn\s*=\s*initcall_levels\[level\];\s*"
+                      r"fn\s*<\s*initcall_levels\[level\+1\];\s*fn\+\+\)", main),
+            "INITCALL_ITERATION_SOURCE_MISMATCH")
+    linker_levels = re.search(r"#define INIT_CALLS.*?__initcall_end\s*=\s*\.;", linker, re.S)
+    require(linker_levels is not None and re.findall(r"INIT_CALLS_LEVEL\(([^)]+)\)",
+            linker_levels.group(0)) == ["0", "1", "2", "3", "4", "5", "rootfs", "6", "7"],
+            "INITCALL_LINKER_ORDER_SOURCE_MISMATCH")
+    require("#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS" in init_h and
+            "typedef int initcall_entry_t;" in init_h and
+            re.search(r'\.long.*__stringify\(__stub\).*" - \.', init_h, re.S),
+            "INITCALL_PREL32_SOURCE_MISMATCH")
+    return {"pure": "__initcall0_start..__initcall1_start",
+            "core": "__initcall1_start..__initcall2_start",
+            "postcore": "__initcall2_start..__initcall3_start",
+            "pure_level_boundary": "__initcall1_start",
+            "core_level_boundary": "__initcall2_start",
+            "postcore_level_boundary": "__initcall3_start",
+            "core_complete_boundary_source_proven": True,
+            "entry_encoding_source": "CONFIG_HAVE_ARCH_PREL32_RELOCATIONS => s32 .long target-."}
+
+
+def find_initcall_source(linux, aliases, macro):
+    hits = []
+    patterns = [re.compile(rf"\b{re.escape(macro)}(?:_sync)?\s*\(\s*{re.escape(name)}\s*\)")
+                for name in aliases]
+    for path in linux.rglob("*"):
+        if path.suffix not in (".c", ".h") or not path.is_file():
+            continue
+        text = path.read_text(errors="replace")
+        if any(pattern.search(text) for pattern in patterns):
+            hits.append(str(path.relative_to(linux)))
+    require(len(hits) == 1, f"INITCALL_SOURCE_NOT_UNIQUE:{hits}")
+    return hits[0]
+
+
+def branch_audit(image, ranges, text_va, function, window):
+    f_lo, f_hi = function
+    w_lo, w_hi = window
+    incoming_entry, incoming_interior, internal, back_edges = [], [], [], []
+    for begin, end in ranges:
+        for off in range(max(0, begin), min(len(image), end) - 3, 4):
+            pc = text_va + off
+            target = branch_target(struct.unpack_from("<I", image, off)[0], pc)
+            if target is None:
+                continue
+            if not f_lo <= pc < f_hi and target == f_lo:
+                incoming_entry.append((pc, target))
+            if not w_lo <= pc < w_hi and w_lo < target < w_hi:
+                incoming_interior.append((pc, target))
+            if f_lo <= pc < f_hi and f_lo <= target < f_hi:
+                internal.append((pc, target))
+                if target < pc:
+                    back_edges.append((pc, target))
+    hx = lambda rows: [[hex(a), hex(b)] for a, b in rows]
+    return {"incoming_entry": hx(incoming_entry), "incoming_window_interior": hx(incoming_interior),
+            "internal_branches": hx(internal), "back_edges": hx(back_edges)}
 
 
 def audit_rewrites(out, vmlinux, sections, window):
@@ -340,15 +438,22 @@ def compose(args, bundle):
     sections = t3.section_map(out, TOOLS, vmlinux)
     initcall_boundary = None
     if args.symbol in INITCALL_BOUNDARIES:
-        initcall_boundary = resolve_initcall_boundary(
-            vmlinux, sections, nm, INITCALL_BOUNDARIES[args.symbol])
+        source_audit = audit_initcall_source(pb.LINUX)
+        initcall_boundaries = {name: resolve_initcall_boundary(vmlinux, sections, nm, name)
+                               for name in ("__initcall1_start", "__initcall2_start",
+                                            "__initcall3_start")}
+        initcall_boundary = initcall_boundaries[INITCALL_BOUNDARIES[args.symbol]]
         target_va = initcall_boundary["target_va"]
         target_symbol = initcall_boundary["target_aliases"][0]
         next_va = min(va for va, _ in t3.symbol_table(nm) if va > target_va)
         extent = next_va
+        initcall_source = find_initcall_source(
+            pb.LINUX, initcall_boundary["target_aliases"],
+            "postcore_initcall" if args.symbol == "core_complete" else "core_initcall")
         require(t3.sysmap_symbol(bundle / "System.map", target_symbol) == target_va,
                 "SYMBOL_MAP_MISMATCH")
     else:
+        source_audit = initcall_boundaries = initcall_source = None
         target_symbol = args.symbol
         target_va, extent = t3.symbol_extent(nm, target_symbol)
         require(target_va - text_va == TARGETS[args.symbol],
@@ -366,9 +471,33 @@ def compose(args, bundle):
     dump = pb.run([TOOLS["objdump"], "-d", f"--start-address={target_va:#x}",
                    f"--stop-address={target_va + length:#x}", str(vmlinux)])
     (out / "original-window.txt").write_text(dump)
-    (out / "original-function.txt").write_text(pb.run(
-        [TOOLS["objdump"], "-d", f"--start-address={target_va:#x}",
-         f"--stop-address={extent:#x}", str(vmlinux)]))
+    function_dump = pb.run([TOOLS["objdump"], "-dr", f"--start-address={target_va:#x}",
+                            f"--stop-address={extent:#x}", str(vmlinux)])
+    (out / "original-function.txt").write_text(function_dump)
+    ranges = [(s["vma"] - text_va, s["vma"] - text_va + s["size"])
+              for s in sections if s["code"] and s["alloc"]]
+    topology = branch_audit(frozen[:len(image)], ranges, text_va,
+                            (target_va, extent), (target_va, target_va + length))
+    target_section = next(s for s in sections if s["vma"] <= target_va < s["vma"] + s["size"])
+    entry_words = [hex(struct.unpack_from("<I", frozen, offset + i)[0])
+                   for i in range(0, min(128, extent - target_va), 4)]
+    target_audit = {"symbol": target_symbol,
+                    "aliases": initcall_boundary["target_aliases"] if initcall_boundary else [target_symbol],
+                    "source": initcall_source, "target_va": hex(target_va),
+                    "image_offset": hex(offset), "section": target_section["name"],
+                    "function_size": extent - target_va, "entry_instruction": pad,
+                    "entry_bytes": frozen[offset:offset + 4].hex(),
+                    "first_32_instruction_words": entry_words,
+                    "pac": pad.startswith("paciasp"), "bti": pad.startswith("bti"),
+                    "scs": cfg.get("CONFIG_SHADOW_CALL_STACK") == "y",
+                    "cfi": cfg.get("CONFIG_CFI_CLANG") == "y",
+                    "fentry": cfg.get("CONFIG_FUNCTION_TRACER") == "y",
+                    "stack_frame_in_window": any("stp\tx29, x30" in line for line in dump.splitlines()),
+                    "branch_topology": topology,
+                    "literal_load_words": [word for word in entry_words
+                        if int(word, 16) & 0x3b000000 == 0x18000000]}
+    (out / "target-entry-audit.json").write_text(json.dumps(target_audit, indent=2) + "\n")
+    print("FIRST_POSTCORE_TARGET_PRELIMINARY=" + json.dumps(target_audit, sort_keys=True), flush=True)
     differences = [{"offset": hex(i), "bundle": hex(struct.unpack_from("<I", image, i)[0]),
                     "frozen": hex(struct.unpack_from("<I", frozen, i)[0])}
                    for i in range(offset, offset + length, 4)
@@ -417,14 +546,16 @@ def compose(args, bundle):
     t3.gate_function_extent_scan(target_va, length, extent)
     t3.gate_window_symbol_scan(target_va, length, [va for va, _ in t3.symbol_table(nm)])
     window = (target_va, target_va + length)
-    ranges = [(s["vma"] - text_va, s["vma"] - text_va + s["size"])
-              for s in sections if s["code"] and s["alloc"]]
     incoming = incoming_branches(frozen[:len(image)], ranges, text_va, window)
     require(not incoming, f"BRANCH_INTO_OVERWRITE_INTERIOR:{[(hex(a), hex(b)) for a, b in incoming[:8]]}")
     t3.gate_window_literal_scan(target_va, length, frozen[:len(image)])
     sites = relocation_sites(vmlinux, sections)
     t3.gate_window_relocation_scan(target_va, length, sites)
     rewrites = audit_rewrites(out, vmlinux, sections, window)
+    target_audit.update({"incoming_branch_gate": "PASS", "function_range_safe": True,
+                         "relocations_in_window": 0, "runtime_rewrites": rewrites,
+                         "runtime_rewrite_safe": True, "entry_audit": "PASS"})
+    (out / "target-entry-audit.json").write_text(json.dumps(target_audit, indent=2) + "\n")
     require(digest(vmlinux.read_bytes()) == metadata["files"]["vmlinux"], "AUDIT_MUTATED_VMLINUX")
     t3.gate_window_inside_image_size(offset, length, image_size)
     candidate = patch_window(frozen, offset, probe)
@@ -445,6 +576,11 @@ def compose(args, bundle):
                 "target_va": hex(target_va), "offset": offset,
                 "checkpoint_size": length, "entry": pad, "section": section["name"],
                 "initcall_boundary": initcall_boundary,
+                "initcall_boundaries": initcall_boundaries,
+                "initcall_source_audit": source_audit,
+                "target_source": initcall_source, "target_aliases": target_audit["aliases"],
+                "target_function_size": extent - target_va,
+                "target_entry_audit": target_audit,
                 "core_size": len(core), "terminal_nop_padding_size": length - 4 - len(core),
                 "payload_sha256": digest(candidate), "payload_size": len(candidate),
                 "checkpoint_sha256": digest(probe), "core_sha256": digest(core),
@@ -468,6 +604,11 @@ def compose(args, bundle):
     (out / "SHA256SUMS").write_text("".join(f"{digest((out / n).read_bytes())}  {n}\n"
                                            for n in ("payload.bin", "checkpoint.bin", "manifest.json")))
     print(json.dumps(manifest, indent=2), flush=True)
+    if args.symbol == "core_complete":
+        print("CORE_CHECKPOINT_SOURCE_AUDIT=PASS\nCORE_CHECKPOINT_BINARY_AUDIT=PASS\n"
+              "FIRST_POSTCORE_ENTRY_AUDIT=PASS\nCORE_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES\n"
+              "CORE_CHECKPOINT_DIAGNOSTIC_SAFE=YES\nCORE_ALL_PRIOR_STAGE_PROBES_REMOVED=YES",
+              flush=True)
     print(f"{args.symbol.upper()}_INLINE_AUDIT=PASS\nDEVICE_OPERATION=NO\nLOCAL_BUILD=NO", flush=True)
 
 
