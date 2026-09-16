@@ -236,6 +236,18 @@ kernel rebuild. Both boots are 37380096 bytes:
 | PURE8 | `86d5c664e17675cf23322158782f2a0d2b9a7a1f075adc98c51f441ff4612a4b` |
 | PURE1 | `08346222366202abf2d033b0f9bc9d3c11ac3ccd806727bf0d17d40dcf0ba57a` |
 
-The observer identity update must pass CI before device use. The unchanged
-B-only 8s/1s protocol and thresholds apply. No device operation has occurred
-for this pair yet.
+Observer CI `35095805149` passed. PURE8 booted once at 12:30:36.520 UTC and
+returned in `35.017469042s`; PURE1 booted once at 12:32:56.978 UTC and returned
+in `27.909857042s`. Delta `-7.107612000s`, error `-0.107612000s`: **STRONG**.
+All pure initcalls completed and the first core initcall entry was reached.
+The `fpsimd_init` body, core-level completion and every later level remain
+unproven.
+
+Both returns stayed B with retry 7→6. All 16 protected boot-chain hashes and
+the P15 prefix matched before/between/after; no partition was flashed. Android
+A is healthy after recovery. Each member ran exactly once in RAM. Evidence is
+in `artifacts/slot-b-pure-pair-20260916/`; do not rerun this pair.
+
+The next source-ordered level is core completion, observed at the first
+postcore initcall entry derived from `__initcall2_start`. It requires a new
+CI audit and must not be inferred from this result.

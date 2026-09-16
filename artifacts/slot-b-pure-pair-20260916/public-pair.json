@@ -1,0 +1,17 @@
+{
+  "symbol": "pure_complete",
+  "source_commit": "d357357c3ef00e7b5eadc0b7b5b98618a35f3174",
+  "public_run": "35095344774",
+  "bundle_run": "35040148509",
+  "payload_shas": {
+    "8": "583c38351115de4d89f80630492b9dd301dd72e8d527461698521b95e71994c8",
+    "1": "44bb4783aa6101866611e62c55ccddfe3e1a42c39485572bd08fb495a7851ad9"
+  },
+  "changed_offsets": [
+    28523908,
+    28523909
+  ],
+  "expected_delta_s": -7,
+  "device_operation": false,
+  "kernel_rebuilt": false
+}
