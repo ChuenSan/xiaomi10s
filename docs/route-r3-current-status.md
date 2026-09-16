@@ -19,11 +19,12 @@ unchanged, Android A is healthy, and no new partition write occurred.
 FREE8/FREE1 also passed: 35.151693708s / 28.236296167s, delta -6.915397541s,
 STRONG. kthreadd_done wait completion and kernel_init_freeable entry are now
 PROVEN. All recorded hashes remain unchanged; Android A is healthy.
-The next SMP entry audit rejected its overwrite window as different between
-the frozen payload and reused audit bundle. No SMP device test ran; resolve
-the exact binary difference before proceeding. No Linux boot success is
-claimed. Details: `docs/slot-b-pid1-stages.md`. Older A-return timing records
-below are historical, not this B baseline.
+The SMP entry window difference is resolved as one verified printk literal
+address delta; no other code difference is accepted. Public audit `35049745503`
+and private pack/independent verify `35049851963` passed. Next is the B-only
+SMP entry matched pair after observer CI. No SMP device test or Linux boot
+success is claimed yet. Details: `docs/slot-b-pid1-stages.md`. Older A-return
+timing records below are historical, not this B baseline.
 
 Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
@@ -454,7 +455,7 @@ RECOVERY_B_RETRY_COUNT=6
 POST_RESET8_PARTITION_HASHES=ALL_RECORDED_UNCHANGED
 DEVICE_TRANSPORT=ADB_ROOT_ANDROID_A
 DEVICE_RECOVERY=COMPLETE
-NEXT_DEVICE_ACTION=HOLD_FOR_SMP_WINDOW_AGREEMENT_AUDIT
+NEXT_DEVICE_ACTION=SMP_ENTRY_MATCHED_PAIR_AFTER_OBSERVER_CI
 REST_INIT_PUBLIC_CI_RUN=35036419486
 REST_INIT_PUBLIC_CI_STATUS=PASS
 REST_INIT_CORRECTED_AUDIT_RUN=35040148509
@@ -484,7 +485,10 @@ FREEABLE_PAIR_ERROR_S=0.084602459
 FREEABLE_PAIR_VERDICT=STRONG
 FREEABLE_PAIR_POSTTEST_HASHES=ALL_RECORDED_UNCHANGED
 SMP_ENTRY_DEVICE_TEST=NOT_EXECUTED
-SMP_ENTRY_PREDEVICE=BLOCKED_ON_WINDOW_AGREEMENT
+SMP_ENTRY_PREDEVICE=PRIVATE_VERIFIED_OBSERVER_PENDING
+SMP_ENTRY_PUBLIC_RUN=35049745503
+SMP_ENTRY_PRIVATE_RUN=35049851963
+SMP_WINDOW_AGREEMENT=SMP_PRINTK_LITERAL_ADDRESS_DELTA_VERIFIED
 KERNEL_INIT_8_TOTAL_S=35.345397459
 KERNEL_INIT_1_TOTAL_S=28.375281834
 KERNEL_INIT_PAIR_DELTA_S=-6.970115625

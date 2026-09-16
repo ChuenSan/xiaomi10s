@@ -24,12 +24,15 @@ IMAGES = {
     "kinit1": (37380096, "38d5c5eedf8ec87a095976c5c9b31a1b9780b3bafe25961fdf76b24e3e978bd7"),
     "free8": (37380096, "9c294a544cf1e178b7f638a40901fbddf97e3556ff57f18646114cd2d921be93"),
     "free1": (37380096, "8cf15312cd5803d33c8e889c5a87ad22edaa050da5455a92e68c37adfffffa19"),
+    "smp8": (37380096, "915214b436376189a4bd871b574567d07a3884edf9706a9c6971829912ead689"),
+    "smp1": (37380096, "fbdb4ef8cddf228977953f5371e65e7134e121867f4b932637546fa43bfb2950"),
 }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
     "rest1": ("rest8", "rest_init_entry", "rest_init_body"),
     "kinit1": ("kinit8", "kernel_init_entry", "kthreadd_done_wait_completed"),
     "free1": ("free8", "kernel_init_freeable_entry", "kernel_init_freeable_body"),
+    "smp1": ("smp8", "smp_init_entry", "smp_bringup_completed"),
 }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}

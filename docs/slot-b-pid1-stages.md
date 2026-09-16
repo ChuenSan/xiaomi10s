@@ -74,3 +74,17 @@ Negative fixtures reject any other instruction, offset or string drift;
 private verification also checks the frozen literal. Incoming branches,
 relocations and runtime rewrite gates remain mandatory. This does not change
 any runtime code outside the new diagnostic window or rebuild the kernel.
+
+Public SMP pair audit `35049745503` and private pack/independent verification
+`35049851963` passed. Both boot images are 37380096 B:
+
+| member | boot SHA256 |
+| --- | --- |
+| SMP8 | `915214b436376189a4bd871b574567d07a3884edf9706a9c6971829912ead689` |
+| SMP1 | `fbdb4ef8cddf228977953f5371e65e7134e121867f4b932637546fa43bfb2950` |
+
+Use the same preregistered B-only matched-pair protocol and thresholds as
+FREE. SMP1 is conditional on a valid SMP8 return plus unchanged protected
+partition hashes. A positive proves pre-SMP initialization reached the
+`smp_init` entry, not secondary CPU bring-up or `/init`. The updated observer
+must pass CI before either device operation.
