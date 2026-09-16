@@ -121,4 +121,5 @@ jobs:
             out-pair/*/checkpoint/original-window.txt
             out-pair/*/checkpoint/original-function.txt
             out-pair/*/checkpoint/window-agreement.json
+            out-pair/*/checkpoint/initramfs-source.json
           if-no-files-found: warn

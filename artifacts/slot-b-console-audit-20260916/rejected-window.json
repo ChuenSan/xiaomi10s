@@ -1,0 +1,20 @@
+{
+  "symbol": "console_on_rootfs",
+  "offset": "0x1b30da4",
+  "size": 72,
+  "bundle_image_sha256": "43fb1c9128bdf37a2a77eb88cfff234381340b098ebf1aea1eabb2741180cebb",
+  "frozen_payload_sha256": "4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41",
+  "differing_words": [
+    {
+      "offset": "0x1b30db8",
+      "bundle": "0x912c3000",
+      "frozen": "0x912c5000"
+    },
+    {
+      "offset": "0x1b30dd4",
+      "bundle": "0x91022000",
+      "frozen": "0x91024000"
+    }
+  ],
+  "verdict": "UNRESOLVED"
+}

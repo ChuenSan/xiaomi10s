@@ -164,3 +164,14 @@ checks the exact frozen DTB's `/chosen` for absence of BOTH initrd address
 properties. An external ramdisk in the boot envelope alone is not evidence
 that Linux consumes it. No INITRAMFS_FORCE or packing change is made on that
 unconfirmed hypothesis.
+
+The first console audit `35054566914` found two ADD-immediate address deltas:
+`0x1b30db8` (`0x912c3000`→`0x912c5000`) and `0x1b30dd4`
+(`0x91022000`→`0x91024000`). Disassembly and source identify the arguments as
+`/dev/console` for `filp_open` and the KERN_ERR initial-console warning for
+`_printk`. The new gate must prove these exact two strings at each image's
+separate linked address, preserve every other instruction, and resolve both
+call targets. No blanket string/address normalization is allowed. Negative
+fixtures cover extra code changes and wrong text/addresses; private wrapping
+independently verifies the frozen literals. The initrd-source gate now runs
+before window auditing and exports its result even if a window is rejected.

@@ -1,0 +1,33 @@
+
+kernel-bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .init.text:
+
+ffff800081b30da4 <console_on_rootfs>:
+ffff800081b30da4: d503233f     	paciasp
+ffff800081b30da8: a9be7bfd     	stp	x29, x30, [sp, #-0x20]!
+ffff800081b30dac: f9000bf3     	str	x19, [sp, #0x10]
+ffff800081b30db0: 910003fd     	mov	x29, sp
+ffff800081b30db4: d0fff460     	adrp	x0, 0xffff8000819be000 <max_tt_usecs+0x40d39>
+ffff800081b30db8: 912c3000     	add	x0, x0, #0xb0c
+ffff800081b30dbc: 52800041     	mov	w1, #0x2        // =2
+ffff800081b30dc0: 2a1f03e2     	mov	w2, wzr
+ffff800081b30dc4: 979eabea     	bl	0xffff8000802dbd6c <filp_open>
+ffff800081b30dc8: b13ffc1f     	cmn	x0, #0xfff
+ffff800081b30dcc: 540000a3     	b.lo	0xffff800081b30de0 <console_on_rootfs+0x3c>
+ffff800081b30dd0: 90fff540     	adrp	x0, 0xffff8000819d8000 <max_tt_usecs+0x5ad39>
+ffff800081b30dd4: 91022000     	add	x0, x0, #0x88
+ffff800081b30dd8: 97d623ca     	bl	0xffff8000810b9d00 <_printk>
+ffff800081b30ddc: 14000009     	b	0xffff800081b30e00 <console_on_rootfs+0x5c>
+ffff800081b30de0: aa0003f3     	mov	x19, x0
+ffff800081b30de4: 9400965b     	bl	0xffff800081b56750 <init_dup>
+ffff800081b30de8: aa1303e0     	mov	x0, x19
+ffff800081b30dec: 94009659     	bl	0xffff800081b56750 <init_dup>
+ffff800081b30df0: aa1303e0     	mov	x0, x19
+ffff800081b30df4: 94009657     	bl	0xffff800081b56750 <init_dup>
+ffff800081b30df8: aa1303e0     	mov	x0, x19
+ffff800081b30dfc: 979ec1c4     	bl	0xffff8000802e150c <fput>
+ffff800081b30e00: f9400bf3     	ldr	x19, [sp, #0x10]
+ffff800081b30e04: a8c27bfd     	ldp	x29, x30, [sp], #0x20
+ffff800081b30e08: d50323bf     	autiasp
+ffff800081b30e0c: d65f03c0     	ret

@@ -70,6 +70,38 @@ def compact_core(core):
     return core[:44] + struct.pack("<I", 0x54FFFF83) + core[56:]
 
 
+def literal_ref_pair(image, frozen, add_offset, page_offset):
+    refs = {}
+    for name, data in (("bundle", image), ("frozen", frozen)):
+        add = struct.unpack_from("<I", data, add_offset)[0]
+        literal = page_offset + ((add >> 10) & 0xFFF)
+        end = data.find(b"\0", literal, literal + 128)
+        refs[name] = {"offset": hex(literal), "add_word": hex(add),
+                      "bytes_hex": data[literal:end + 1].hex() if end >= 0 else None,
+                      "text": data[literal:end].decode("ascii", "backslashreplace") if end >= 0 else None}
+    return refs
+
+
+def gate_console_literal_deltas(bundle, frozen, refs):
+    require(len(bundle) == len(frozen) == 72, "CONSOLE_LITERAL_WINDOW_SIZE")
+    normalized = bytearray(frozen)
+    for off in (20, 48):
+        normalized[off:off + 4] = bundle[off:off + 4]
+    require(normalized == bundle, "CONSOLE_LITERAL_ADDITIONAL_CODE_DRIFT")
+    for off, adrp, old_add, new_add in ((16, 0xD0FFF460, 0x912C3000, 0x912C5000),
+                                      (44, 0x90FFF540, 0x91022000, 0x91024000)):
+        require(struct.unpack_from("<II", bundle, off) == (adrp, old_add)
+                and struct.unpack_from("<II", frozen, off) == (adrp, new_add),
+                "CONSOLE_LITERAL_INSTRUCTION_CONTEXT")
+    specs = (("path", "0x19beb0c", "0x19beb14", b"/dev/console\0"),
+             ("warning", "0x19d8088", "0x19d8090",
+              b"\x013Warning: unable to open an initial console.\n\0"))
+    for tag, old_offset, new_offset, text in specs:
+        for name, expected in (("bundle", old_offset), ("frozen", new_offset)):
+            require(refs[tag][name]["offset"] == expected and refs[tag][name]["bytes_hex"] == text.hex(),
+                    "CONSOLE_LITERAL_SOURCE_STRING_MISMATCH")
+
+
 def gate_smp_literal_delta(bundle, frozen, refs):
     require(len(bundle) == len(frozen) == 72, "SMP_LITERAL_WINDOW_SIZE")
     require(bundle[:28] == frozen[:28] and bundle[32:] == frozen[32:],
@@ -219,6 +251,14 @@ def compose(args, bundle):
     frozen = args.frozen.read_bytes()
     core = args.core.read_bytes()
     require(digest(frozen) == t3.FIX8_PAYLOAD_SHA, "FROZEN_PAYLOAD_MISMATCH")
+    image_size = pb.parse_image_hdr(frozen, "FIX8")["image_size"]
+    dtb_offset, _ = pb.calc_dtb_offset(image_size)
+    pb.gate_rt_d(frozen[dtb_offset:])
+    chosen = rt.parse_fdt(frozen[dtb_offset:])["/chosen"]
+    gate_builtin_initramfs_source(chosen)
+    (out / "initramfs-source.json").write_text(json.dumps(
+        {"external_initrd_advertised": False, "chosen_properties": sorted(chosen),
+         "rt_d_sha256": digest(frozen[dtb_offset:])}, indent=2) + "\n")
     require(len(core) == 76 and digest(core) == CORE_SHA, "CHECKPOINT_CORE_MISMATCH")
     if args.symbol != "rest_init":
         core = compact_core(core)
@@ -256,24 +296,29 @@ def compose(args, bundle):
                  "bundle_image_sha256": digest(image), "frozen_payload_sha256": digest(frozen),
                  "differing_words": differences}
     if args.symbol == "smp_init":
-        agreement["log_literal_refs"] = {}
-        for name, data in (("bundle", image), ("frozen", frozen)):
-            add = struct.unpack_from("<I", data, offset + 28)[0]
-            literal = 0x1A30000 + ((add >> 10) & 0xFFF)
-            end = data.find(b"\0", literal, literal + 128)
-            agreement["log_literal_refs"][name] = {
-                "offset": hex(literal), "add_word": hex(add),
-                "bytes_hex": data[literal:end + 1].hex() if end >= 0 else None,
-                "text": data[literal:end].decode("ascii", "backslashreplace") if end >= 0 else None}
+        agreement["log_literal_refs"] = literal_ref_pair(image, frozen, offset + 28, 0x1A30000)
+    elif args.symbol == "console_on_rootfs":
+        agreement["console_literal_refs"] = {
+            "path": literal_ref_pair(image, frozen, offset + 20, 0x19BE000),
+            "warning": literal_ref_pair(image, frozen, offset + 48, 0x19D8000)}
     agreement["verdict"] = "EXACT" if not differences else "UNRESOLVED"
     try:
-        if differences:
-            require(args.symbol == "smp_init", f"TARGET_WINDOW_DIFFERS_FROM_AUDIT_IMAGE:{differences}")
+        if differences and args.symbol == "smp_init":
             gate_smp_literal_delta(image[offset:offset + length], frozen[offset:offset + length],
                                    agreement["log_literal_refs"])
             require(branch_target(struct.unpack_from("<I", frozen, offset + 32)[0], target_va + 32)
                     == t3.nm_symbol(nm, "_printk"), "SMP_LITERAL_CALL_NOT_PRINTK")
             agreement["verdict"] = "SMP_PRINTK_LITERAL_ADDRESS_DELTA_VERIFIED"
+        elif differences and args.symbol == "console_on_rootfs":
+            gate_console_literal_deltas(image[offset:offset + length], frozen[offset:offset + length],
+                                        agreement["console_literal_refs"])
+            for call_offset, callee in ((32, "filp_open"), (52, "_printk")):
+                require(branch_target(struct.unpack_from("<I", frozen, offset + call_offset)[0],
+                                      target_va + call_offset) == t3.nm_symbol(nm, callee),
+                        "CONSOLE_LITERAL_CALL_TARGET_MISMATCH")
+            agreement["verdict"] = "CONSOLE_LITERAL_ADDRESS_DELTAS_VERIFIED"
+        else:
+            require(not differences, f"TARGET_WINDOW_DIFFERS_FROM_AUDIT_IMAGE:{differences}")
     finally:
         (out / "window-agreement.json").write_text(json.dumps(agreement, indent=2) + "\n")
     t3.gate_window_bytes_agree(target_va, offset, dump, image, length // 4)
@@ -291,7 +336,6 @@ def compose(args, bundle):
     t3.gate_window_relocation_scan(target_va, length, sites)
     rewrites = audit_rewrites(out, vmlinux, sections, window)
     require(digest(vmlinux.read_bytes()) == metadata["files"]["vmlinux"], "AUDIT_MUTATED_VMLINUX")
-    image_size = pb.parse_image_hdr(frozen, "FIX8")["image_size"]
     t3.gate_window_inside_image_size(offset, length, image_size)
     candidate = patch_window(frozen, offset, probe)
     reference = patch_window(frozen, offset, probe[:4] + reference_core + probe[4 + len(core):])
@@ -304,10 +348,7 @@ def compose(args, bundle):
     t3.gate_tail_identity(frozen, candidate, (offset, offset + length))
     changed = t3.gate_payload_diff(frozen, candidate, (offset, offset + length))
     t3.gate_tramp_identity(candidate)
-    dtb_offset, _ = pb.calc_dtb_offset(image_size)
     pb.gate_rt_d(candidate[dtb_offset:])
-    chosen = rt.parse_fdt(candidate[dtb_offset:])["/chosen"]
-    gate_builtin_initramfs_source(chosen)
     (out / "payload.bin").write_bytes(candidate)
     (out / "checkpoint.bin").write_bytes(probe)
     manifest = {"symbol": args.symbol, "target_va": hex(target_va), "offset": offset,

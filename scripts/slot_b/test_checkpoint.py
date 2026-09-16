@@ -60,6 +60,47 @@ class CheckpointTests(unittest.TestCase):
                          [(base + 0x16C, base + 0x48)])
         self.assertEqual(checkpoint.incoming_branches(image, ranges, base, (base, base + 72)), [])
 
+    def test_literal_reference_collection_keeps_each_image_address(self):
+        bundle, frozen = bytearray(128), bytearray(128)
+        struct.pack_into('<I', bundle, 0, 0x91010000)
+        struct.pack_into('<I', frozen, 0, 0x91012000)
+        text = b'/dev/console\0'
+        bundle[64:64 + len(text)] = text
+        frozen[72:72 + len(text)] = text
+        refs = checkpoint.literal_ref_pair(bundle, frozen, 0, 0)
+        self.assertEqual(refs['bundle']['offset'], '0x40')
+        self.assertEqual(refs['frozen']['offset'], '0x48')
+        self.assertEqual(refs['bundle']['bytes_hex'], text.hex())
+        self.assertEqual(refs['frozen']['bytes_hex'], text.hex())
+
+    def test_console_literal_deltas_are_two_exact_source_references_only(self):
+        bundle = bytearray(72)
+        struct.pack_into('<II', bundle, 16, 0xD0FFF460, 0x912C3000)
+        struct.pack_into('<II', bundle, 44, 0x90FFF540, 0x91022000)
+        frozen = bytearray(bundle)
+        struct.pack_into('<I', frozen, 20, 0x912C5000)
+        struct.pack_into('<I', frozen, 48, 0x91024000)
+        refs = {}
+        for tag, a, b, text in (
+                ('path', '0x19beb0c', '0x19beb14', b'/dev/console\0'),
+                ('warning', '0x19d8088', '0x19d8090',
+                 b'\x013Warning: unable to open an initial console.\n\0')):
+            refs[tag] = {'bundle': {'offset': a, 'bytes_hex': text.hex()},
+                         'frozen': {'offset': b, 'bytes_hex': text.hex()}}
+        checkpoint.gate_console_literal_deltas(bundle, frozen, refs)
+        for off in (0, 16, 20, 32, 44, 48, 52, 68):
+            changed = bytearray(frozen)
+            changed[off] ^= 1
+            with self.subTest(offset=off), self.assertRaises(ValueError):
+                checkpoint.gate_console_literal_deltas(bundle, changed, refs)
+        for tag in refs:
+            for name in refs[tag]:
+                for key in ('offset', 'bytes_hex'):
+                    changed = {t: {n: dict(v) for n, v in images.items()} for t, images in refs.items()}
+                    changed[tag][name][key] = 'wrong'
+                    with self.subTest(tag=tag, image=name, field=key), self.assertRaises(ValueError):
+                        checkpoint.gate_console_literal_deltas(bundle, frozen, changed)
+
     def test_smp_literal_delta_requires_exact_code_and_source_text(self):
         bundle = bytearray(72)
         struct.pack_into('<III', bundle, 24, 0xD0FFF740, 0x912DC000, 0x97D5CD80)
