@@ -82,12 +82,86 @@ never the overwritten arch function body or later initcall levels.
 
 `POSTCORE_PAIR_PUBLIC_READY=YES`
 
-`PRIVATE_PACK=NO`
+`READY_FOR_POSTCORE_INITCALLS_PRIVATE_GATE=YES`
+
+The public-CI gate was `MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_CHECKPOINT_CI_READY`.
+It authorized no device operation. The separately approved private-gate result
+is recorded below.
+
+## Private gate freeze
+
+Private GHA pack `35170737800` wrapped the two frozen public payloads in the
+same proven Slot B/P15 OEM envelope without rebuilding or regenerating them.
+Independent reverify-only run `35170837546` downloaded those exact artifacts;
+it did not repack, rebuild or regenerate.
+
+| member | private boot SHA256 | size | extracted payload SHA256 |
+| --- | --- | --- | --- |
+| POSTCORE8 | `141d67931f8792036119c131d93ffa74649af2c6c44d086b489851230075355c` | 37380096 | `537a021f6278130957fa666f32421d4f624e84803f00075e3ab2001b8eb9e98b` |
+| POSTCORE1 | `4762a9fd29e109affb1c8864247887334508d9af2d6b183b7bf0200a05b697f1` | 37380096 | `3a4b50c956413dabfd739181ca1ed19aca618002e0292782bf02b271ac9cd59f` |
+
+The reverify reconfirmed the exact target and boundary, preserved `paciasp`,
+60-byte in-function window, 8s/1s CNTPCT encodings, PSCI `0x84000009`, SMC,
+fail-closed WFE, prior-probe absence, frozen RT-D, `/init`, initramfs and the
+P15/OEM envelope. Extracted private payloads differ by exactly two bytes at
+`[0x1b33f6d,0x1b33f6f)`, `DELAY_CONSTANT_ONLY`. Geometry is identical:
+Image file 35166720, header `image_size=0x2230000`, DTB offset `0x2380000`,
+payload 37369041 and boot 37380096.
+
+Observer GHA `35170993710` froze separate full-SHA gates. POSTCORE8 accepts
+only POSTCORE8; POSTCORE1 accepts only POSTCORE1. Each rejects its sibling,
+CORE, PURE, CONSOLE, INITCALLS, SMP, FREE, KINIT, REST, FIX8, wrong size,
+one-byte mutation, payload swap, wrong checkpoint, wrong delay and wrong PSCI.
+The completed CORE observer regression `35170993608` passed.
+
+Future device execution is split and ordered `POSTCORE8_THEN_POSTCORE1`.
+The next stage may run one POSTCORE8 RAM-only member only after separate user
+approval. POSTCORE8 alone can record only `POSTCORE8_MEMBER_A_COMPLETED` and a
+total. POSTCORE1 remains blocked until that result is frozen and the user
+approves a separate stage. No-shift records
+`POSTCORE_INITCALLS_CHECKPOINT_SHIFT_NOT_OBSERVED` and routes to
+`POSTCORE_INITCALLS_FAILURE_ISOLATION_CI`; it never asserts that postcore
+initcalls did not complete.
+
+`POSTCORE_PUBLIC_PAIR_PASS=YES`
+
+`POSTCORE_TARGET_IDENTITY_FROZEN=YES`
+
+`POSTCORE_PROOF_BOUNDARY_AUDITED=PASS`
+
+`POSTCORE8_PRIVATE_PACK_PASS=YES`
+
+`POSTCORE1_PRIVATE_PACK_PASS=YES`
+
+`POSTCORE8_PRIVATE_REVERIFY_PASS=YES`
+
+`POSTCORE1_PRIVATE_REVERIFY_PASS=YES`
+
+`PRIVATE_POSTCORE_PAIR_DIFF_REVERIFIED=YES`
+
+`POSTCORE_PAIR_GEOMETRY_IDENTICAL=YES`
+
+`POSTCORE8_OBSERVER_READY=YES`
+
+`POSTCORE1_OBSERVER_READY=YES`
+
+`POSTCORE_PAIR_OBSERVER_FIXTURES=PASS`
+
+`POSTCORE_PAIR_DEVICE_EXECUTION_SPLIT=REQUIRED`
+
+`POSTCORE_PAIR_EXECUTION_ORDER=POSTCORE8_THEN_POSTCORE1`
+
+`POSTCORE8_DEVICE_AUTHORIZED=NO`
+
+`POSTCORE1_DEVICE_AUTHORIZED=NO`
 
 `DEVICE_OPERATION=NO`
 
+`PARTITION_WRITES=0`
+
 `SLOT_A_WRITTEN=NO`
 
-Final gate: `MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_CHECKPOINT_CI_READY`.
-This is not device authorization. Wait for explicit user approval before any
-private pack, observer freeze or device stage.
+Final gate: `READY_FOR_R3_SLOT_B_POSTCORE8_DEVICE_CONTROL=YES`.
+`READY_FOR_R3_SLOT_B_POSTCORE1_DEVICE_CONTROL=NO`. This readiness gate is not
+true-device authorization. Recommended next, only after explicit user approval:
+`MAINLINE_V2_R3_SLOT_B_POSTCORE8_TRUE_DEVICE_CONTROL`.

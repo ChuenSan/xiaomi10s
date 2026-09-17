@@ -423,6 +423,32 @@ This CI gate does not change runtime evidence:
 `POSTCORE_INITCALLS_COMPLETED=NOT_PROVEN` and
 `FIRST_ARCH_INITCALL_ENTRY=NOT_PROVEN`. No private pack, boot image or device
 operation occurred. Final gate:
-`MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_CHECKPOINT_CI_READY`. This is not
-device authorization. See `docs/slot-b-postcore-initcall-checkpoint.md` and
-wait for explicit user approval.
+`MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_CHECKPOINT_CI_READY`. This public
+CI gate authorized no device operation.
+
+## Postcore-initcall private gate freeze
+
+Private pack `35170737800` and independent reverify-only `35170837546` froze
+the POSTCORE8/POSTCORE1 boot members without kernel rebuild or payload
+regeneration. Both are 37380096 bytes:
+
+| member | boot SHA256 |
+| --- | --- |
+| POSTCORE8 | `141d67931f8792036119c131d93ffa74649af2c6c44d086b489851230075355c` |
+| POSTCORE1 | `4762a9fd29e109affb1c8864247887334508d9af2d6b183b7bf0200a05b697f1` |
+
+Extracted payloads exactly match public run `35169202296`. The private pair
+still differs only by two delay bytes at `[0x1b33f6d,0x1b33f6f)`, and all
+geometry is identical. Observer fixtures `35170993710` and CORE observer
+regression `35170993608` passed with separate full-SHA gates.
+
+Execution is split and ordered POSTCORE8 then POSTCORE1, one member per
+true-device stage. POSTCORE8 alone cannot advance runtime evidence. POSTCORE1
+remains blocked until POSTCORE8's result is frozen and the user separately
+approves member B. This round performed no device operation.
+
+Final gate: `READY_FOR_R3_SLOT_B_POSTCORE8_DEVICE_CONTROL=YES`.
+`READY_FOR_R3_SLOT_B_POSTCORE1_DEVICE_CONTROL=NO`. Recommended next only after
+explicit user approval:
+`MAINLINE_V2_R3_SLOT_B_POSTCORE8_TRUE_DEVICE_CONTROL`. See
+`docs/slot-b-postcore-initcall-checkpoint.md`.
