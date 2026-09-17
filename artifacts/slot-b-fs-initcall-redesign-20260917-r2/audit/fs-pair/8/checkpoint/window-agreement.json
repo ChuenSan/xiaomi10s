@@ -1,0 +1,9 @@
+{
+  "symbol": "fs_complete",
+  "offset": "0x1b347b8",
+  "size": 8,
+  "bundle_image_sha256": "43fb1c9128bdf37a2a77eb88cfff234381340b098ebf1aea1eabb2741180cebb",
+  "frozen_payload_sha256": "4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41",
+  "differing_words": [],
+  "verdict": "EXACT"
+}

@@ -1,0 +1,20 @@
+
+ultracompact.o:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+0000000000000000 <slot_b_ultracompact_checkpoint>:
+       0: d5034fdf     	msr	DAIFSet, #0xf
+       4: d53be009     	mrs	x9, CNTFRQ_EL0
+       8: d37df12a     	lsl	x10, x9, #3
+       c: d53be02b     	mrs	x11, CNTPCT_EL0
+      10: d5033fdf     	isb
+      14: d53be02c     	mrs	x12, CNTPCT_EL0
+      18: cb0b018d     	sub	x13, x12, x11
+      1c: eb0a01bf     	cmp	x13, x10
+      20: 54ffff83     	b.lo	0x10 <slot_b_ultracompact_checkpoint+0x10>
+      24: 52800120     	mov	w0, #0x9                // =9
+      28: 72b08000     	movk	w0, #0x8400, lsl #16
+      2c: d4000003     	smc	#0
+      30: d503205f     	wfe
+      34: 17ffffff     	b	0x30 <slot_b_ultracompact_checkpoint+0x30>

@@ -776,9 +776,18 @@ kernel rebuild. It confirmed:
 
 The target is `.init.text`, 48 bytes, entry `paciasp`, unique table decode,
 `device_initcall(register_arm64_panic_block)` in `arch/arm64/kernel/setup.c`.
-A 56-byte inline diagnostic does not fit. No FS8/FS1 payloads were generated.
+A 56-byte inline diagnostic does not fit.
+
+Public GHA `35215536867` at `150cb9a299a551bd8d90f269c90aed9aae994776` then
+closed an entry-preserving trampoline: keep `paciasp`, `b` to reserved
+`.head.text` NOP island `[0xffcc,0x10000)` / `0xffff80008000ffcc`, 52-byte
+CNTPCT/PSCI `0x84000009` WFE core. PREL32 unchanged. Live FIX8 trampoline
+`[0x40,0x70)` identical. FS8
+`1a4da6f924ec09f58bb37edb8bb41d74e9e138b91c9b5c69a4479035da6718ee`, FS1
+`e36d4a18d78bdabbcb209e87472a3240bdbc93d3a5b55cd88f182d295aa75e49`, pair
+DELAY_CONSTANT_ONLY 2 bytes `[0xffd1,0xffd3)`. Independent reverify PASS.
 Runtime evidence is unchanged: `FS_INITCALLS_COMPLETED=NOT_PROVEN` and
 `FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`. No private pack or device operation.
-Final gate: `R3_SLOT_B_FS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY`.
-`READY_FOR_FS_INITCALLS_PRIVATE_GATE=NO`.
+Final gate: `MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_CHECKPOINT_CI_READY`.
+`READY_FOR_FS_INITCALLS_PRIVATE_GATE=YES`.
 See `docs/slot-b-fs-initcall-checkpoint.md`.

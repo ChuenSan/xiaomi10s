@@ -1,0 +1,18 @@
+{
+  "offset": 65484,
+  "va": "0xffff80008000ffcc",
+  "size": 52,
+  "section": ".head.text",
+  "kind": "RESERVED_EFI_HOLE",
+  "padding": "nop",
+  "covering_symbols": [
+    "__efistub__text",
+    "_text"
+  ],
+  "covering_va": "0xffff800080000000",
+  "next_symbol_va": "0xffff800080010000",
+  "b_word": "0x17936e04",
+  "b_pc": "0xffff800081b347bc",
+  "direct_b": true,
+  "veneer": false
+}

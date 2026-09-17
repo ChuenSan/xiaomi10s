@@ -1,0 +1,86 @@
+{
+  "symbol": "register_arm64_panic_block",
+  "aliases": [
+    "register_arm64_panic_block"
+  ],
+  "source": "arch/arm64/kernel/setup.c",
+  "registration": "device_initcall(register_arm64_panic_block)",
+  "target_va": "0xffff800081b347b8",
+  "image_offset": "0x1b347b8",
+  "section": ".init.text",
+  "function_size": 48,
+  "entry_instruction": "paciasp",
+  "entry_bytes": "3f2303d5",
+  "first_32_instruction_words": [
+    "0xd503233f",
+    "0xa9bf7bfd",
+    "0x910003fd",
+    "0xf0003300",
+    "0x91392000",
+    "0xd0001181",
+    "0x910b8021",
+    "0x97961903",
+    "0x2a1f03e0",
+    "0xa8c17bfd",
+    "0xd50323bf",
+    "0xd65f03c0"
+  ],
+  "pac": true,
+  "bti": false,
+  "scs": false,
+  "cfi": false,
+  "fentry": false,
+  "stack_frame_in_window": true,
+  "branch_topology": {
+    "incoming_entry": [],
+    "incoming_window_interior": [],
+    "internal_branches": [],
+    "back_edges": []
+  },
+  "cfg_closure": {
+    "candidate_window_length": 8,
+    "function_size": 48,
+    "window_derivation": "TARGET_CFG",
+    "internal_branch_sources": [],
+    "internal_branch_targets": [],
+    "overwritten_sources": [],
+    "surviving_sources": [],
+    "targets_in_overwritten_region": [],
+    "back_edges": [],
+    "surviving_into_interior": [],
+    "cfg_closure_proven": true
+  },
+  "window_derivation": "TARGET_CFG",
+  "literal_load_words": [],
+  "incoming_branch_gate": "PASS",
+  "function_range_safe": true,
+  "relocations_in_window": 0,
+  "runtime_rewrites": {
+    "__ex_table": {
+      "entries": 994,
+      "sha256": "e93f6326dba119d9b5091b9c31295e47086ce45813b6f1a62dde0655ca65a9be"
+    },
+    "altinstructions": {
+      "entries": 37287,
+      "sha256": "a98a9bc613c12519ea5fd8f1e168ede872af0d8474fa385df6bc1cc17fdc36a6"
+    },
+    "__jump_table": "ABSENT",
+    "static_call_sites": "ABSENT",
+    "kcfi_traps": "ABSENT"
+  },
+  "island_runtime_rewrites": {
+    "__ex_table": {
+      "entries": 994,
+      "sha256": "e93f6326dba119d9b5091b9c31295e47086ce45813b6f1a62dde0655ca65a9be"
+    },
+    "altinstructions": {
+      "entries": 37287,
+      "sha256": "a98a9bc613c12519ea5fd8f1e168ede872af0d8474fa385df6bc1cc17fdc36a6"
+    },
+    "__jump_table": "ABSENT",
+    "static_call_sites": "ABSENT",
+    "kcfi_traps": "ABSENT"
+  },
+  "runtime_rewrite_safe": true,
+  "entry_audit": "PASS"
+}

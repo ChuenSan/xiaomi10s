@@ -1,0 +1,18 @@
+
+kernel-bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .init.text:
+
+ffff800081b347b8 <register_arm64_panic_block>:
+ffff800081b347b8: d503233f     	paciasp
+ffff800081b347bc: a9bf7bfd     	stp	x29, x30, [sp, #-0x10]!
+ffff800081b347c0: 910003fd     	mov	x29, sp
+ffff800081b347c4: f0003300     	adrp	x0, 0xffff800082197000 <cpu_release_addr+0x7e8>
+ffff800081b347c8: 91392000     	add	x0, x0, #0xe48
+ffff800081b347cc: d0001181     	adrp	x1, 0xffff800081d66000 <__cpu_logical_map+0x5a0>
+ffff800081b347d0: 910b8021     	add	x1, x1, #0x2e0
+ffff800081b347d4: 97961903     	bl	0xffff8000800babe0 <atomic_notifier_chain_register>
+ffff800081b347d8: 2a1f03e0     	mov	w0, wzr
+ffff800081b347dc: a8c17bfd     	ldp	x29, x30, [sp], #0x10
+ffff800081b347e0: d50323bf     	autiasp
+ffff800081b347e4: d65f03c0     	ret

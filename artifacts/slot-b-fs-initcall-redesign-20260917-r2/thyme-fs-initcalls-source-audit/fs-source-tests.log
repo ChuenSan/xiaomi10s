@@ -1,0 +1,55 @@
+test_adrp_add_literal_collection_derives_each_linked_address (test_checkpoint.CheckpointTests.test_adrp_add_literal_collection_derives_each_linked_address) ... ok
+test_all_direct_branch_families_use_virtual_pc (test_checkpoint.CheckpointTests.test_all_direct_branch_families_use_virtual_pc) ... ok
+test_arch_checkpoint_negative_fixtures (test_checkpoint.CheckpointTests.test_arch_checkpoint_negative_fixtures) ... ok
+test_arch_prefix_covers_topology_backedge_without_ignoring_external_entries (test_checkpoint.CheckpointTests.test_arch_prefix_covers_topology_backedge_without_ignoring_external_entries) ... ok
+test_compact_poll_preserves_timer_and_terminal_reset (test_checkpoint.CheckpointTests.test_compact_poll_preserves_timer_and_terminal_reset) ... ok
+test_compact_window_preserves_real_kernel_init_branch_landing (test_checkpoint.CheckpointTests.test_compact_window_preserves_real_kernel_init_branch_landing) ... ok
+test_composition_changes_only_authorized_window (test_checkpoint.CheckpointTests.test_composition_changes_only_authorized_window) ... ok
+test_console_literal_deltas_are_two_exact_source_references_only (test_checkpoint.CheckpointTests.test_console_literal_deltas_are_two_exact_source_references_only) ... ok
+test_core_checkpoint_negative_fixtures (test_checkpoint.CheckpointTests.test_core_checkpoint_negative_fixtures) ... ok
+test_fs_checkpoint_negative_fixtures (test_checkpoint.CheckpointTests.test_fs_checkpoint_negative_fixtures) ... ok
+test_fs_complete_core_prefers_proven_56_when_function_fits (test_checkpoint.CheckpointTests.test_fs_complete_core_prefers_proven_56_when_function_fits) ... ok
+test_fs_complete_literal_delta_accepts_same_string_add_only (test_checkpoint.CheckpointTests.test_fs_complete_literal_delta_accepts_same_string_add_only) ... ok
+test_fs_encode_b_roundtrip_and_range_fail (test_checkpoint.CheckpointTests.test_fs_encode_b_roundtrip_and_range_fail) ... ok
+test_fs_island_selector_rejects_live_tramp_overlap (test_checkpoint.CheckpointTests.test_fs_island_selector_rejects_live_tramp_overlap) ... ok
+test_fs_patch_windows_are_disjoint (test_checkpoint.CheckpointTests.test_fs_patch_windows_are_disjoint) ... ok
+test_fs_source_semantics_include_rootfs_in_level5 (test_checkpoint.CheckpointTests.test_fs_source_semantics_include_rootfs_in_level5) ... ok
+test_initcall_boundary_resolves_unique_prel32_target (test_checkpoint.CheckpointTests.test_initcall_boundary_resolves_unique_prel32_target) ... ok
+test_initcall_literal_delta_requires_exact_code_and_source_text (test_checkpoint.CheckpointTests.test_initcall_literal_delta_requires_exact_code_and_source_text) ... ok
+test_initcall_prefix_covers_backedge_without_ignoring_external_entries (test_checkpoint.CheckpointTests.test_initcall_prefix_covers_backedge_without_ignoring_external_entries) ... ok
+test_interior_entry_from_outside_is_rejected_in_va_space (test_checkpoint.CheckpointTests.test_interior_entry_from_outside_is_rejected_in_va_space) ... ok
+test_literal_reference_collection_keeps_each_image_address (test_checkpoint.CheckpointTests.test_literal_reference_collection_keeps_each_image_address) ... ok
+test_pair_changes_only_delay_immediate (test_checkpoint.CheckpointTests.test_pair_changes_only_delay_immediate) ... ok
+test_relr_advances_all_63_bitmap_positions (test_checkpoint.CheckpointTests.test_relr_advances_all_63_bitmap_positions) ... ok
+test_runtime_dtb_cannot_advertise_an_external_initrd (test_checkpoint.CheckpointTests.test_runtime_dtb_cannot_advertise_an_external_initrd) ... ok
+test_smp_literal_delta_requires_exact_code_and_source_text (test_checkpoint.CheckpointTests.test_smp_literal_delta_requires_exact_code_and_source_text) ... ok
+test_subsys52_core_is_proven_56_without_daifset (test_checkpoint.CheckpointTests.test_subsys52_core_is_proven_56_without_daifset) ... ok
+test_subsys_checkpoint_negative_fixtures (test_checkpoint.CheckpointTests.test_subsys_checkpoint_negative_fixtures) ... ok
+test_subsys_fs_literal_delta_requires_exact_debug_enabled_string (test_checkpoint.CheckpointTests.test_subsys_fs_literal_delta_requires_exact_debug_enabled_string) ... ok
+test_subsys_window_is_derived_from_target_cfg_not_arch_160b (test_checkpoint.CheckpointTests.test_subsys_window_is_derived_from_target_cfg_not_arch_160b) ... ok
+test_ultracompact_core_and_literal_delta_are_exact (test_checkpoint.CheckpointTests.test_ultracompact_core_and_literal_delta_are_exact) ... ok
+test_arch_geometry_rejects_sixty_byte_window (test_observe.SafetyTests.test_arch_geometry_rejects_sixty_byte_window) ... ok
+test_arch_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_arch_member_full_sha_gates_are_distinct) ... ok
+test_arch_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_arch_pair_proof_boundary_and_no_shift_route) ... ok
+test_context_requires_readback_and_a_protection (test_observe.SafetyTests.test_context_requires_readback_and_a_protection) ... ok
+test_core_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_core_member_full_sha_gates_are_distinct) ... ok
+test_core_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_core_pair_proof_boundary_and_no_shift_route) ... ok
+test_exact_images_only (test_observe.SafetyTests.test_exact_images_only) ... ok
+test_invalid_pair_never_proves_entry (test_observe.SafetyTests.test_invalid_pair_never_proves_entry) ... ok
+test_no_return_blocks_reset1 (test_observe.SafetyTests.test_no_return_blocks_reset1) ... ok
+test_pair_delta_not_old_slot_a_absolute_timing (test_observe.SafetyTests.test_pair_delta_not_old_slot_a_absolute_timing) ... ok
+test_pid1_stage_pairs_prove_only_the_selected_entry (test_observe.SafetyTests.test_pid1_stage_pairs_prove_only_the_selected_entry) ... ok
+test_recovery_is_not_an_experimental_boot (test_observe.SafetyTests.test_recovery_is_not_an_experimental_boot) ... ok
+test_rest_origin_must_be_recorded (test_observe.SafetyTests.test_rest_origin_must_be_recorded) ... ok
+test_rest_pair_proves_entry_only (test_observe.SafetyTests.test_rest_pair_proves_entry_only) ... ok
+test_second_boot_never_launches (test_observe.SafetyTests.test_second_boot_never_launches) ... ok
+test_slot_a_never_launches (test_observe.SafetyTests.test_slot_a_never_launches) ... ok
+test_slot_b_preflight (test_observe.SafetyTests.test_slot_b_preflight) ... ok
+test_subsys_geometry_rejects_oversize_windows (test_observe.SafetyTests.test_subsys_geometry_rejects_oversize_windows) ... ok
+test_subsys_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_subsys_member_full_sha_gates_are_distinct) ... ok
+test_subsys_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_subsys_pair_proof_boundary_and_no_shift_route) ... ok
+
+----------------------------------------------------------------------
+Ran 50 tests in 0.082s
+
+OK

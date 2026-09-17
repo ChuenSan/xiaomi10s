@@ -1,0 +1,1215 @@
+P1B_RT_D_SHA_EXACT=PASS
+P1B_RT_D_BOOTARGS_FROZEN=PASS
+T3_SECTION_MAP_SOURCE=readelf-SW sections=44
+FS_RUNTIME_SPAN={"begin": "0xffff800081d0b0d4", "end": "0xffff800081d0b1a8", "entry_count": 53, "rootfs_entry_count": 1, "rootfs_start": "0xffff800081d0b1a4", "rootfs_symbols": ["populate_rootfs"]}
+FIRST_DEVICE_TABLE_DECODE={"aliases": ["register_arm64_panic_block"], "boundary": "__initcall6_start", "entry_va": "0xffff800081d0b1a8", "entry_word": "0xffe29610", "relative": -1927664, "target_va": "0xffff800081b347b8"}
+FIRST_DEVICE_FUNCTION_SIZE=48
+FIRST_DEVICE_INITCALL_SOURCE=arch/arm64/kernel/setup.c
+FIRST_DEVICE_INITCALL_REGISTRATION=device_initcall(register_arm64_panic_block)
+INITCALL_BOUNDARY_VAS={"__initcall1_start": "0xffff800081d0a9d0", "__initcall2_start": "0xffff800081d0ab6c", "__initcall3_start": "0xffff800081d0ac48", "__initcall4_start": "0xffff800081d0ae0c", "__initcall5_start": "0xffff800081d0b0d4", "__initcall6_start": "0xffff800081d0b1a8", "__initcall7_start": "0xffff800081d0c2d8", "__initcallrootfs_start": "0xffff800081d0b1a4"}
+FIRST_DEVICE_FUNCTION_SIZE=48
+FIRST_DEVICE_INITCALL_SOURCE=arch/arm64/kernel/setup.c
+FIRST_DEVICE_INITCALL_REGISTRATION=device_initcall(register_arm64_panic_block)
+FS_SELECTED_PROBE_ARCHITECTURE=ENTRY_TRAMPOLINE
+FS_STUB_SIZE=8
+FS_ISLAND_CORE_SIZE=52
+P1B_RT_D_SHA_EXACT=PASS
+P1B_RT_D_BOOTARGS_FROZEN=PASS
+{
+  "symbol": "fs_complete",
+  "target_symbol": "register_arm64_panic_block",
+  "target_va": "0xffff800081b347b8",
+  "offset": 28526520,
+  "checkpoint_size": 8,
+  "entry": "paciasp",
+  "section": ".init.text",
+  "initcall_boundary": {
+    "boundary_symbol": "__initcall6_start",
+    "entry_va": 18446603338399134120,
+    "entry_image_offset": 30454184,
+    "entry_section": ".init.data",
+    "entry_size": 4,
+    "entry_encoding": "PREL32",
+    "relative": -1927664,
+    "entry_word": "0xffe29610",
+    "target_va": 18446603338397206456,
+    "target_aliases": [
+      "register_arm64_panic_block"
+    ],
+    "table_entries_checked": 1732
+  },
+  "initcall_boundaries": {
+    "__initcall1_start": {
+      "boundary_symbol": "__initcall1_start",
+      "entry_va": 18446603338399132112,
+      "entry_image_offset": 30452176,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -1928284,
+      "entry_word": "0xffe293a4",
+      "target_va": 18446603338397203828,
+      "target_aliases": [
+        "fpsimd_init"
+      ],
+      "table_entries_checked": 1732
+    },
+    "__initcall2_start": {
+      "boundary_symbol": "__initcall2_start",
+      "entry_va": 18446603338399132524,
+      "entry_image_offset": 30452588,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -1929924,
+      "entry_word": "0xffe28d3c",
+      "target_va": 18446603338397202600,
+      "target_aliases": [
+        "debug_monitors_init"
+      ],
+      "table_entries_checked": 1732
+    },
+    "__initcall3_start": {
+      "boundary_symbol": "__initcall3_start",
+      "entry_va": 18446603338399132744,
+      "entry_image_offset": 30452808,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -1928424,
+      "entry_word": "0xffe29318",
+      "target_va": 18446603338397204320,
+      "target_aliases": [
+        "reserve_memblock_reserved_regions"
+      ],
+      "table_entries_checked": 1732
+    },
+    "__initcall4_start": {
+      "boundary_symbol": "__initcall4_start",
+      "entry_va": 18446603338399133196,
+      "entry_image_offset": 30453260,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -1926928,
+      "entry_word": "0xffe298f0",
+      "target_va": 18446603338397206268,
+      "target_aliases": [
+        "topology_init"
+      ],
+      "table_entries_checked": 1732
+    },
+    "__initcall5_start": {
+      "boundary_symbol": "__initcall5_start",
+      "entry_va": 18446603338399133908,
+      "entry_image_offset": 30453972,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -30369524,
+      "entry_word": "0xfe30990c",
+      "target_va": 18446603338368764384,
+      "target_aliases": [
+        "create_debug_debugfs_entry"
+      ],
+      "table_entries_checked": 1732
+    },
+    "__initcallrootfs_start": {
+      "boundary_symbol": "__initcallrootfs_start",
+      "entry_va": 18446603338399134116,
+      "entry_image_offset": 30454180,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -1936924,
+      "entry_word": "0xffe271e4",
+      "target_va": 18446603338397197192,
+      "target_aliases": [
+        "populate_rootfs"
+      ],
+      "table_entries_checked": 1732
+    },
+    "__initcall6_start": {
+      "boundary_symbol": "__initcall6_start",
+      "entry_va": 18446603338399134120,
+      "entry_image_offset": 30454184,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -1927664,
+      "entry_word": "0xffe29610",
+      "target_va": 18446603338397206456,
+      "target_aliases": [
+        "register_arm64_panic_block"
+      ],
+      "table_entries_checked": 1732
+    },
+    "__initcall7_start": {
+      "boundary_symbol": "__initcall7_start",
+      "entry_va": 18446603338399138520,
+      "entry_image_offset": 30458584,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -1942112,
+      "entry_word": "0xffe25da0",
+      "target_va": 18446603338397196408,
+      "target_aliases": [
+        "kernel_do_mounts_initrd_sysctls_init"
+      ],
+      "table_entries_checked": 1732
+    }
+  },
+  "initcall_source_audit": {
+    "pure": "__initcall0_start..__initcall1_start",
+    "core": "__initcall1_start..__initcall2_start",
+    "postcore": "__initcall2_start..__initcall3_start",
+    "arch": "__initcall3_start..__initcall4_start",
+    "subsys": "__initcall4_start..__initcall5_start",
+    "fs": "__initcall5_start..__initcall6_start",
+    "device": "__initcall6_start..__initcall7_start",
+    "pure_level_boundary": "__initcall1_start",
+    "core_level_boundary": "__initcall2_start",
+    "postcore_level_boundary": "__initcall3_start",
+    "arch_level_boundary": "__initcall4_start",
+    "subsys_level_boundary": "__initcall5_start",
+    "fs_level_boundary": "__initcall6_start",
+    "device_level_boundary": "__initcall7_start",
+    "rootfs_start_symbol": "__initcallrootfs_start",
+    "fs_next_linker_boundary": "__initcallrootfs_start",
+    "linker_order": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "rootfs",
+      "6",
+      "7"
+    ],
+    "do_initcall_level_5_begin": "__initcall5_start",
+    "do_initcall_level_5_end": "__initcall6_start",
+    "rootfs_has_separate_runtime_pass": false,
+    "rootfs_included_in_level5_traversal": true,
+    "rootfs_start_is_marker_only": true,
+    "fs_complete_causal_boundary": "__initcall6_start",
+    "fs_complete_boundary_source_proven": true,
+    "first_device_entry_implies_fs_complete": true,
+    "core_complete_boundary_source_proven": true,
+    "postcore_complete_boundary_source_proven": true,
+    "arch_complete_boundary_source_proven": true,
+    "subsys_complete_boundary_source_proven": true,
+    "first_subsys_entry_implies_arch_complete": true,
+    "first_fs_entry_implies_subsys_complete": true,
+    "entry_encoding_source": "CONFIG_HAVE_ARCH_PREL32_RELOCATIONS => s32 .long target-."
+  },
+  "target_source": "arch/arm64/kernel/setup.c",
+  "target_aliases": [
+    "register_arm64_panic_block"
+  ],
+  "target_function_size": 48,
+  "target_entry_audit": {
+    "symbol": "register_arm64_panic_block",
+    "aliases": [
+      "register_arm64_panic_block"
+    ],
+    "source": "arch/arm64/kernel/setup.c",
+    "registration": "device_initcall(register_arm64_panic_block)",
+    "target_va": "0xffff800081b347b8",
+    "image_offset": "0x1b347b8",
+    "section": ".init.text",
+    "function_size": 48,
+    "entry_instruction": "paciasp",
+    "entry_bytes": "3f2303d5",
+    "first_32_instruction_words": [
+      "0xd503233f",
+      "0xa9bf7bfd",
+      "0x910003fd",
+      "0xf0003300",
+      "0x91392000",
+      "0xd0001181",
+      "0x910b8021",
+      "0x97961903",
+      "0x2a1f03e0",
+      "0xa8c17bfd",
+      "0xd50323bf",
+      "0xd65f03c0"
+    ],
+    "pac": true,
+    "bti": false,
+    "scs": false,
+    "cfi": false,
+    "fentry": false,
+    "stack_frame_in_window": true,
+    "branch_topology": {
+      "incoming_entry": [],
+      "incoming_window_interior": [],
+      "internal_branches": [],
+      "back_edges": []
+    },
+    "cfg_closure": {
+      "candidate_window_length": 8,
+      "function_size": 48,
+      "window_derivation": "TARGET_CFG",
+      "internal_branch_sources": [],
+      "internal_branch_targets": [],
+      "overwritten_sources": [],
+      "surviving_sources": [],
+      "targets_in_overwritten_region": [],
+      "back_edges": [],
+      "surviving_into_interior": [],
+      "cfg_closure_proven": true
+    },
+    "window_derivation": "TARGET_CFG",
+    "literal_load_words": [],
+    "incoming_branch_gate": "PASS",
+    "function_range_safe": true,
+    "relocations_in_window": 0,
+    "runtime_rewrites": {
+      "__ex_table": {
+        "entries": 994,
+        "sha256": "e93f6326dba119d9b5091b9c31295e47086ce45813b6f1a62dde0655ca65a9be"
+      },
+      "altinstructions": {
+        "entries": 37287,
+        "sha256": "a98a9bc613c12519ea5fd8f1e168ede872af0d8474fa385df6bc1cc17fdc36a6"
+      },
+      "__jump_table": "ABSENT",
+      "static_call_sites": "ABSENT",
+      "kcfi_traps": "ABSENT"
+    },
+    "island_runtime_rewrites": {
+      "__ex_table": {
+        "entries": 994,
+        "sha256": "e93f6326dba119d9b5091b9c31295e47086ce45813b6f1a62dde0655ca65a9be"
+      },
+      "altinstructions": {
+        "entries": 37287,
+        "sha256": "a98a9bc613c12519ea5fd8f1e168ede872af0d8474fa385df6bc1cc17fdc36a6"
+      },
+      "__jump_table": "ABSENT",
+      "static_call_sites": "ABSENT",
+      "kcfi_traps": "ABSENT"
+    },
+    "runtime_rewrite_safe": true,
+    "entry_audit": "PASS"
+  },
+  "core_size": 52,
+  "terminal_nop_padding_size": 0,
+  "payload_sha256": "1a4da6f924ec09f58bb37edb8bb41d74e9e138b91c9b5c69a4479035da6718ee",
+  "payload_size": 37369041,
+  "checkpoint_sha256": "3c344ad82f7e05aa9068141cc3d2bf8d013ff4e9c4ed45dae1bd9ba40155b7b1",
+  "core_sha256": "e3e10d7f5202b20074bf5aae150c9f9a4b4771e7a7e4fbe7ef562b446ca09b46",
+  "reference_core_sha256": "e3e10d7f5202b20074bf5aae150c9f9a4b4771e7a7e4fbe7ef562b446ca09b46",
+  "delay_seconds": 8,
+  "initcall_registration": "device_initcall(register_arm64_panic_block)",
+  "core_variant": "subsys52_cntpct_elapsed_b_lo",
+  "probe_architecture": "ENTRY_TRAMPOLINE",
+  "sixty_byte_inline_rejected": true,
+  "inline_48b_total_rejected": true,
+  "fs_runtime_span": {
+    "begin": "0xffff800081d0b0d4",
+    "end": "0xffff800081d0b1a8",
+    "rootfs_start": "0xffff800081d0b1a4",
+    "entry_count": 53,
+    "rootfs_entry_count": 1,
+    "rootfs_start_is_marker_only": true,
+    "entries": [
+      {
+        "index": 0,
+        "entry_va_hex": "0xffff800081d0b0d4",
+        "entry_word": "0xfe30990c",
+        "relative": -30369524,
+        "target_va_hex": "0xffff8000800149e0",
+        "symbol": "create_debug_debugfs_entry",
+        "aliases": [
+          "create_debug_debugfs_entry"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(create_debug_debugfs_entry)",
+        "source": "arch/arm64/kernel/debug-monitors.c"
+      },
+      {
+        "index": 1,
+        "entry_va_hex": "0xffff800081d0b0d8",
+        "entry_word": "0xffe33f7c",
+        "relative": -1884292,
+        "target_va_hex": "0xffff800081b3f054",
+        "symbol": "iomem_init_inode",
+        "aliases": [
+          "iomem_init_inode"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(iomem_init_inode)",
+        "source": "kernel/resource.c"
+      },
+      {
+        "index": 2,
+        "entry_va_hex": "0xffff800081d0b0dc",
+        "entry_word": "0xffe37464",
+        "relative": -1870748,
+        "target_va_hex": "0xffff800081b42540",
+        "symbol": "em_debug_init",
+        "aliases": [
+          "em_debug_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(em_debug_init)",
+        "source": "kernel/power/energy_model.c"
+      },
+      {
+        "index": 3,
+        "entry_va_hex": "0xffff800081d0b0e0",
+        "entry_word": "0xffe3aa4c",
+        "relative": -1856948,
+        "target_va_hex": "0xffff800081b45b2c",
+        "symbol": "clocksource_done_booting",
+        "aliases": [
+          "clocksource_done_booting"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(clocksource_done_booting)",
+        "source": "kernel/time/clocksource.c"
+      },
+      {
+        "index": 4,
+        "entry_va_hex": "0xffff800081d0b0e4",
+        "entry_word": "0xffe3dba8",
+        "relative": -1844312,
+        "target_va_hex": "0xffff800081b48c8c",
+        "symbol": "bpf_init",
+        "aliases": [
+          "bpf_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(bpf_init)",
+        "source": "kernel/bpf/inode.c"
+      },
+      {
+        "index": 5,
+        "entry_va_hex": "0xffff800081d0b0e8",
+        "entry_word": "0xffe4a028",
+        "relative": -1794008,
+        "target_va_hex": "0xffff800081b55110",
+        "symbol": "secretmem_init",
+        "aliases": [
+          "secretmem_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(secretmem_init)",
+        "source": "mm/secretmem.c"
+      },
+      {
+        "index": 6,
+        "entry_va_hex": "0xffff800081d0b0ec",
+        "entry_word": "0xffe4a088",
+        "relative": -1793912,
+        "target_va_hex": "0xffff800081b55174",
+        "symbol": "init_fs_stat_sysctls",
+        "aliases": [
+          "init_fs_stat_sysctls"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(init_fs_stat_sysctls)",
+        "source": "fs/file_table.c"
+      },
+      {
+        "index": 7,
+        "entry_va_hex": "0xffff800081d0b0f0",
+        "entry_word": "0xffe4a1b4",
+        "relative": -1793612,
+        "target_va_hex": "0xffff800081b552a4",
+        "symbol": "init_fs_exec_sysctls",
+        "aliases": [
+          "init_fs_exec_sysctls"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(init_fs_exec_sysctls)",
+        "source": "fs/exec.c"
+      },
+      {
+        "index": 8,
+        "entry_va_hex": "0xffff800081d0b0f4",
+        "entry_word": "0xffe4a1ec",
+        "relative": -1793556,
+        "target_va_hex": "0xffff800081b552e0",
+        "symbol": "init_pipe_fs",
+        "aliases": [
+          "init_pipe_fs"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(init_pipe_fs)",
+        "source": "fs/pipe.c"
+      },
+      {
+        "index": 9,
+        "entry_va_hex": "0xffff800081d0b0f8",
+        "entry_word": "0xffe4a274",
+        "relative": -1793420,
+        "target_va_hex": "0xffff800081b5536c",
+        "symbol": "init_fs_namei_sysctls",
+        "aliases": [
+          "init_fs_namei_sysctls"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(init_fs_namei_sysctls)",
+        "source": "fs/namei.c"
+      },
+      {
+        "index": 10,
+        "entry_va_hex": "0xffff800081d0b0fc",
+        "entry_word": "0xffe4a2f0",
+        "relative": -1793296,
+        "target_va_hex": "0xffff800081b553ec",
+        "symbol": "init_fs_dcache_sysctls",
+        "aliases": [
+          "init_fs_dcache_sysctls"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(init_fs_dcache_sysctls)",
+        "source": "fs/dcache.c"
+      },
+      {
+        "index": 11,
+        "entry_va_hex": "0xffff800081d0b100",
+        "entry_word": "0xffe4ab98",
+        "relative": -1791080,
+        "target_va_hex": "0xffff800081b55c98",
+        "symbol": "init_fs_namespace_sysctls",
+        "aliases": [
+          "init_fs_namespace_sysctls"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(init_fs_namespace_sysctls)",
+        "source": "fs/namespace.c"
+      },
+      {
+        "index": 12,
+        "entry_va_hex": "0xffff800081d0b104",
+        "entry_word": "0xffe4ac0c",
+        "relative": -1790964,
+        "target_va_hex": "0xffff800081b55d10",
+        "symbol": "cgroup_writeback_init",
+        "aliases": [
+          "cgroup_writeback_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(cgroup_writeback_init)",
+        "source": "fs/fs-writeback.c"
+      },
+      {
+        "index": 13,
+        "entry_va_hex": "0xffff800081d0b108",
+        "entry_word": "0xffe4b8a8",
+        "relative": -1787736,
+        "target_va_hex": "0xffff800081b569b0",
+        "symbol": "inotify_user_setup",
+        "aliases": [
+          "inotify_user_setup"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(inotify_user_setup)",
+        "source": "fs/notify/inotify/inotify_user.c"
+      },
+      {
+        "index": 14,
+        "entry_va_hex": "0xffff800081d0b10c",
+        "entry_word": "0xffe4bb54",
+        "relative": -1787052,
+        "target_va_hex": "0xffff800081b56c60",
+        "symbol": "eventpoll_init",
+        "aliases": [
+          "eventpoll_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(eventpoll_init)",
+        "source": "fs/eventpoll.c"
+      },
+      {
+        "index": 15,
+        "entry_va_hex": "0xffff800081d0b110",
+        "entry_word": "0xffe4bc88",
+        "relative": -1786744,
+        "target_va_hex": "0xffff800081b56d98",
+        "symbol": "anon_inode_init",
+        "aliases": [
+          "anon_inode_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(anon_inode_init)",
+        "source": "fs/anon_inodes.c"
+      },
+      {
+        "index": 16,
+        "entry_va_hex": "0xffff800081d0b114",
+        "entry_word": "0xffe4bde4",
+        "relative": -1786396,
+        "target_va_hex": "0xffff800081b56ef8",
+        "symbol": "proc_locks_init",
+        "aliases": [
+          "proc_locks_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_locks_init)",
+        "source": "fs/locks.c"
+      },
+      {
+        "index": 17,
+        "entry_va_hex": "0xffff800081d0b118",
+        "entry_word": "0xffe4bfe8",
+        "relative": -1785880,
+        "target_va_hex": "0xffff800081b57100",
+        "symbol": "init_fs_coredump_sysctls",
+        "aliases": [
+          "init_fs_coredump_sysctls"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(init_fs_coredump_sysctls)",
+        "source": "fs/coredump.c"
+      },
+      {
+        "index": 18,
+        "entry_va_hex": "0xffff800081d0b11c",
+        "entry_word": "0xffe4c05c",
+        "relative": -1785764,
+        "target_va_hex": "0xffff800081b57178",
+        "symbol": "iomap_init",
+        "aliases": [
+          "iomap_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(iomap_init)",
+        "source": "fs/iomap/buffered-io.c"
+      },
+      {
+        "index": 19,
+        "entry_va_hex": "0xffff800081d0b120",
+        "entry_word": "0xffe4c088",
+        "relative": -1785720,
+        "target_va_hex": "0xffff800081b571a8",
+        "symbol": "dquot_init",
+        "aliases": [
+          "dquot_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(dquot_init)",
+        "source": "fs/quota/dquot.c"
+      },
+      {
+        "index": 20,
+        "entry_va_hex": "0xffff800081d0b124",
+        "entry_word": "0xffe4c438",
+        "relative": -1784776,
+        "target_va_hex": "0xffff800081b5755c",
+        "symbol": "proc_cmdline_init",
+        "aliases": [
+          "proc_cmdline_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_cmdline_init)",
+        "source": "fs/proc/cmdline.c"
+      },
+      {
+        "index": 21,
+        "entry_va_hex": "0xffff800081d0b128",
+        "entry_word": "0xffe4c490",
+        "relative": -1784688,
+        "target_va_hex": "0xffff800081b575b8",
+        "symbol": "proc_consoles_init",
+        "aliases": [
+          "proc_consoles_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_consoles_init)",
+        "source": "fs/proc/consoles.c"
+      },
+      {
+        "index": 22,
+        "entry_va_hex": "0xffff800081d0b12c",
+        "entry_word": "0xffe4c4cc",
+        "relative": -1784628,
+        "target_va_hex": "0xffff800081b575f8",
+        "symbol": "proc_cpuinfo_init",
+        "aliases": [
+          "proc_cpuinfo_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_cpuinfo_init)",
+        "source": "fs/proc/cpuinfo.c"
+      },
+      {
+        "index": 23,
+        "entry_va_hex": "0xffff800081d0b130",
+        "entry_word": "0xffe4c500",
+        "relative": -1784576,
+        "target_va_hex": "0xffff800081b57630",
+        "symbol": "proc_devices_init",
+        "aliases": [
+          "proc_devices_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_devices_init)",
+        "source": "fs/proc/devices.c"
+      },
+      {
+        "index": 24,
+        "entry_va_hex": "0xffff800081d0b134",
+        "entry_word": "0xffe4c54c",
+        "relative": -1784500,
+        "target_va_hex": "0xffff800081b57680",
+        "symbol": "proc_interrupts_init",
+        "aliases": [
+          "proc_interrupts_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_interrupts_init)",
+        "source": "fs/proc/interrupts.c"
+      },
+      {
+        "index": 25,
+        "entry_va_hex": "0xffff800081d0b138",
+        "entry_word": "0xffe4c588",
+        "relative": -1784440,
+        "target_va_hex": "0xffff800081b576c0",
+        "symbol": "proc_loadavg_init",
+        "aliases": [
+          "proc_loadavg_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_loadavg_init)",
+        "source": "fs/proc/loadavg.c"
+      },
+      {
+        "index": 26,
+        "entry_va_hex": "0xffff800081d0b13c",
+        "entry_word": "0xffe4c5d0",
+        "relative": -1784368,
+        "target_va_hex": "0xffff800081b5770c",
+        "symbol": "proc_meminfo_init",
+        "aliases": [
+          "proc_meminfo_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_meminfo_init)",
+        "source": "fs/proc/meminfo.c"
+      },
+      {
+        "index": 27,
+        "entry_va_hex": "0xffff800081d0b140",
+        "entry_word": "0xffe4c618",
+        "relative": -1784296,
+        "target_va_hex": "0xffff800081b57758",
+        "symbol": "proc_stat_init",
+        "aliases": [
+          "proc_stat_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_stat_init)",
+        "source": "fs/proc/stat.c"
+      },
+      {
+        "index": 28,
+        "entry_va_hex": "0xffff800081d0b144",
+        "entry_word": "0xffe4c64c",
+        "relative": -1784244,
+        "target_va_hex": "0xffff800081b57790",
+        "symbol": "proc_uptime_init",
+        "aliases": [
+          "proc_uptime_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_uptime_init)",
+        "source": "fs/proc/uptime.c"
+      },
+      {
+        "index": 29,
+        "entry_va_hex": "0xffff800081d0b148",
+        "entry_word": "0xffe4c694",
+        "relative": -1784172,
+        "target_va_hex": "0xffff800081b577dc",
+        "symbol": "proc_version_init",
+        "aliases": [
+          "proc_version_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_version_init)",
+        "source": "fs/proc/version.c"
+      },
+      {
+        "index": 30,
+        "entry_va_hex": "0xffff800081d0b14c",
+        "entry_word": "0xffe4c6dc",
+        "relative": -1784100,
+        "target_va_hex": "0xffff800081b57828",
+        "symbol": "proc_softirqs_init",
+        "aliases": [
+          "proc_softirqs_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_softirqs_init)",
+        "source": "fs/proc/softirqs.c"
+      },
+      {
+        "index": 31,
+        "entry_va_hex": "0xffff800081d0b150",
+        "entry_word": "0xffe4c844",
+        "relative": -1783740,
+        "target_va_hex": "0xffff800081b57994",
+        "symbol": "vmcore_init",
+        "aliases": [
+          "vmcore_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(vmcore_init)",
+        "source": "fs/proc/vmcore.c"
+      },
+      {
+        "index": 32,
+        "entry_va_hex": "0xffff800081d0b154",
+        "entry_word": "0xffe4d6c4",
+        "relative": -1780028,
+        "target_va_hex": "0xffff800081b58818",
+        "symbol": "proc_kmsg_init",
+        "aliases": [
+          "proc_kmsg_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_kmsg_init)",
+        "source": "fs/proc/kmsg.c"
+      },
+      {
+        "index": 33,
+        "entry_va_hex": "0xffff800081d0b158",
+        "entry_word": "0xffe4d6f8",
+        "relative": -1779976,
+        "target_va_hex": "0xffff800081b58850",
+        "symbol": "proc_page_init",
+        "aliases": [
+          "proc_page_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(proc_page_init)",
+        "source": "fs/proc/page.c"
+      },
+      {
+        "index": 34,
+        "entry_va_hex": "0xffff800081d0b15c",
+        "entry_word": "0xffe4e3b0",
+        "relative": -1776720,
+        "target_va_hex": "0xffff800081b5950c",
+        "symbol": "init_ramfs_fs",
+        "aliases": [
+          "init_ramfs_fs"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(init_ramfs_fs)",
+        "source": "fs/ramfs/inode.c"
+      },
+      {
+        "index": 35,
+        "entry_va_hex": "0xffff800081d0b160",
+        "entry_word": "0xffe4e3d0",
+        "relative": -1776688,
+        "target_va_hex": "0xffff800081b59530",
+        "symbol": "init_hugetlbfs_fs",
+        "aliases": [
+          "init_hugetlbfs_fs"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(init_hugetlbfs_fs)",
+        "source": "fs/hugetlbfs/inode.c"
+      },
+      {
+        "index": 36,
+        "entry_va_hex": "0xffff800081d0b164",
+        "entry_word": "0xffe61aa0",
+        "relative": -1697120,
+        "target_va_hex": "0xffff800081b6cc04",
+        "symbol": "acpi_event_init",
+        "aliases": [
+          "acpi_event_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(acpi_event_init)",
+        "source": "drivers/acpi/event.c"
+      },
+      {
+        "index": 37,
+        "entry_va_hex": "0xffff800081d0b168",
+        "entry_word": "0xffe6700c",
+        "relative": -1675252,
+        "target_va_hex": "0xffff800081b72174",
+        "symbol": "pnp_system_init",
+        "aliases": [
+          "pnp_system_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(pnp_system_init)",
+        "source": "drivers/pnp/system.c"
+      },
+      {
+        "index": 38,
+        "entry_va_hex": "0xffff800081d0b16c",
+        "entry_word": "0xffe6702c",
+        "relative": -1675220,
+        "target_va_hex": "0xffff800081b72198",
+        "symbol": "pnpacpi_init",
+        "aliases": [
+          "pnpacpi_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(pnpacpi_init)",
+        "source": "drivers/pnp/pnpacpi/core.c"
+      },
+      {
+        "index": 39,
+        "entry_va_hex": "0xffff800081d0b170",
+        "entry_word": "0xffe81bd0",
+        "relative": -1565744,
+        "target_va_hex": "0xffff800081b8cd40",
+        "symbol": "chr_dev_init",
+        "aliases": [
+          "chr_dev_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(chr_dev_init)",
+        "source": "drivers/char/mem.c"
+      },
+      {
+        "index": 40,
+        "entry_va_hex": "0xffff800081d0b174",
+        "entry_word": "0xffe82338",
+        "relative": -1563848,
+        "target_va_hex": "0xffff800081b8d4ac",
+        "symbol": "hwrng_modinit",
+        "aliases": [
+          "hwrng_modinit"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(hwrng_modinit)",
+        "source": "drivers/char/hw_random/core.c"
+      },
+      {
+        "index": 41,
+        "entry_va_hex": "0xffff800081d0b178",
+        "entry_word": "0xffe8386c",
+        "relative": -1558420,
+        "target_va_hex": "0xffff800081b8e9e4",
+        "symbol": "firmware_class_init",
+        "aliases": [
+          "firmware_class_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(firmware_class_init)",
+        "source": "drivers/base/firmware_loader/main.c"
+      },
+      {
+        "index": 42,
+        "entry_va_hex": "0xffff800081d0b17c",
+        "entry_word": "0xffe9e9d8",
+        "relative": -1447464,
+        "target_va_hex": "0xffff800081ba9b54",
+        "symbol": "sysctl_core_init",
+        "aliases": [
+          "sysctl_core_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(sysctl_core_init)",
+        "source": "net/core/sysctl_net_core.c"
+      },
+      {
+        "index": 43,
+        "entry_va_hex": "0xffff800081d0b180",
+        "entry_word": "0xffe9f348",
+        "relative": -1445048,
+        "target_va_hex": "0xffff800081baa4c8",
+        "symbol": "eth_offload_init",
+        "aliases": [
+          "eth_offload_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(eth_offload_init)",
+        "source": "net/ethernet/eth.c"
+      },
+      {
+        "index": 44,
+        "entry_va_hex": "0xffff800081d0b184",
+        "entry_word": "0xffea0c00",
+        "relative": -1438720,
+        "target_va_hex": "0xffff800081babd84",
+        "symbol": "ipv4_offload_init",
+        "aliases": [
+          "ipv4_offload_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(ipv4_offload_init)",
+        "source": "net/ipv4/af_inet.c"
+      },
+      {
+        "index": 45,
+        "entry_va_hex": "0xffff800081d0b188",
+        "entry_word": "0xffea0c90",
+        "relative": -1438576,
+        "target_va_hex": "0xffff800081babe18",
+        "symbol": "inet_init",
+        "aliases": [
+          "inet_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(inet_init)",
+        "source": "net/ipv4/af_inet.c"
+      },
+      {
+        "index": 46,
+        "entry_va_hex": "0xffff800081d0b18c",
+        "entry_word": "0xffea360c",
+        "relative": -1427956,
+        "target_va_hex": "0xffff800081bae798",
+        "symbol": "af_unix_init",
+        "aliases": [
+          "af_unix_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(af_unix_init)",
+        "source": "net/unix/af_unix.c"
+      },
+      {
+        "index": 47,
+        "entry_va_hex": "0xffff800081d0b190",
+        "entry_word": "0xffea37c4",
+        "relative": -1427516,
+        "target_va_hex": "0xffff800081bae954",
+        "symbol": "ipv6_offload_init",
+        "aliases": [
+          "ipv6_offload_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(ipv6_offload_init)",
+        "source": "net/ipv6/ip6_offload.c"
+      },
+      {
+        "index": 48,
+        "entry_va_hex": "0xffff800081d0b194",
+        "entry_word": "0xffea3aa4",
+        "relative": -1426780,
+        "target_va_hex": "0xffff800081baec38",
+        "symbol": "init_sunrpc",
+        "aliases": [
+          "init_sunrpc"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(init_sunrpc)",
+        "source": "net/sunrpc/sunrpc_syms.c"
+      },
+      {
+        "index": 49,
+        "entry_va_hex": "0xffff800081d0b198",
+        "entry_word": "0xffea3c64",
+        "relative": -1426332,
+        "target_va_hex": "0xffff800081baedfc",
+        "symbol": "vlan_offload_init",
+        "aliases": [
+          "vlan_offload_init"
+        ],
+        "registration_type": "fs_initcall",
+        "registration": "fs_initcall(vlan_offload_init)",
+        "source": "net/8021q/vlan_core.c"
+      },
+      {
+        "index": 50,
+        "entry_va_hex": "0xffff800081d0b19c",
+        "entry_word": "0xffe5dd2c",
+        "relative": -1712852,
+        "target_va_hex": "0xffff800081b68ec8",
+        "symbol": "pci_apply_final_quirks",
+        "aliases": [
+          "pci_apply_final_quirks"
+        ],
+        "registration_type": "fs_initcall_sync",
+        "registration": "fs_initcall_sync(pci_apply_final_quirks)",
+        "source": "drivers/pci/quirks.c"
+      },
+      {
+        "index": 51,
+        "entry_va_hex": "0xffff800081d0b1a0",
+        "entry_word": "0xffe6015c",
+        "relative": -1703588,
+        "target_va_hex": "0xffff800081b6b2fc",
+        "symbol": "acpi_reserve_resources",
+        "aliases": [
+          "acpi_reserve_resources"
+        ],
+        "registration_type": "fs_initcall_sync",
+        "registration": "fs_initcall_sync(acpi_reserve_resources)",
+        "source": "drivers/acpi/osl.c"
+      },
+      {
+        "index": 52,
+        "entry_va_hex": "0xffff800081d0b1a4",
+        "entry_word": "0xffe271e4",
+        "relative": -1936924,
+        "target_va_hex": "0xffff800081b32388",
+        "symbol": "populate_rootfs",
+        "aliases": [
+          "populate_rootfs"
+        ],
+        "registration_type": "rootfs_initcall",
+        "registration": "rootfs_initcall(populate_rootfs)",
+        "source": "init/initramfs.c"
+      }
+    ],
+    "rootfs_entries": [
+      {
+        "entry_va_hex": "0xffff800081d0b1a4",
+        "target_va_hex": "0xffff800081b32388",
+        "symbol": "populate_rootfs",
+        "registration": "rootfs_initcall(populate_rootfs)",
+        "source": "init/initramfs.c"
+      }
+    ]
+  },
+  "pair_reference_sha256": "1a4da6f924ec09f58bb37edb8bb41d74e9e138b91c9b5c69a4479035da6718ee",
+  "pair_changed_offsets": [],
+  "frozen_sha256": "4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41",
+  "changed_bytes": 48,
+  "outside_window_changed_bytes": 0,
+  "runtime_rewrites": {
+    "__ex_table": {
+      "entries": 994,
+      "sha256": "e93f6326dba119d9b5091b9c31295e47086ce45813b6f1a62dde0655ca65a9be"
+    },
+    "altinstructions": {
+      "entries": 37287,
+      "sha256": "a98a9bc613c12519ea5fd8f1e168ede872af0d8474fa385df6bc1cc17fdc36a6"
+    },
+    "__jump_table": "ABSENT",
+    "static_call_sites": "ABSENT",
+    "kcfi_traps": "ABSENT"
+  },
+  "window_agreement": {
+    "symbol": "fs_complete",
+    "offset": "0x1b347b8",
+    "size": 8,
+    "bundle_image_sha256": "43fb1c9128bdf37a2a77eb88cfff234381340b098ebf1aea1eabb2741180cebb",
+    "frozen_payload_sha256": "4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41",
+    "differing_words": [],
+    "verdict": "EXACT"
+  },
+  "cfg_closure": {
+    "candidate_window_length": 8,
+    "function_size": 48,
+    "window_derivation": "TARGET_CFG",
+    "internal_branch_sources": [],
+    "internal_branch_targets": [],
+    "overwritten_sources": [],
+    "surviving_sources": [],
+    "targets_in_overwritten_region": [],
+    "back_edges": [],
+    "surviving_into_interior": [],
+    "cfg_closure_proven": true
+  },
+  "window_derivation": "TARGET_CFG",
+  "island": {
+    "offset": 65484,
+    "va": "0xffff80008000ffcc",
+    "size": 52,
+    "section": ".head.text",
+    "kind": "RESERVED_EFI_HOLE",
+    "padding": "nop",
+    "covering_symbols": [
+      "__efistub__text",
+      "_text"
+    ],
+    "covering_va": "0xffff800080000000",
+    "next_symbol_va": "0xffff800080010000",
+    "b_word": "0x17936e04",
+    "b_pc": "0xffff800081b347bc",
+    "direct_b": true,
+    "veneer": false
+  },
+  "island_offset": 65484,
+  "stub_size": 8,
+  "b_word": "0x17936e04",
+  "b_pc": "0xffff800081b347bc",
+  "windows": [
+    [
+      28526520,
+      28526528
+    ],
+    [
+      65484,
+      65536
+    ]
+  ],
+  "prel32_target_unchanged": true,
+  "function_remainder_preserved": true,
+  "live_tramp_sha256": "362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623",
+  "direct_b": true,
+  "veneer": false,
+  "relocation_sites_checked": 284143,
+  "audit_elf_unchanged": true,
+  "source_commit": "150cb9a299a551bd8d90f269c90aed9aae994776",
+  "run_id": "35215536867",
+  "bundle": {
+    "linux_base": "8b73de7da85fde281a385e0b26eda9bffd3ca477",
+    "patch_queue_sha256": "d470701d58d62bf10b96adb4dbf0c639945afccd45d4d3f039e8051e7aaaf1b5",
+    "source_commit": "ba870dbdc094bdee08c67e465f229e67c36ac0b6",
+    "run_id": "35036419486",
+    "files": {
+      "Image": "43fb1c9128bdf37a2a77eb88cfff234381340b098ebf1aea1eabb2741180cebb",
+      "vmlinux": "295bfdb12184052a79c1aea35ce4a93a5833c42bdb7b4bd9173973312ade00ff",
+      "System.map": "e3ed0234692c5dc80188996730bb13f2303fd2ecb573e303134df02b7f61b3ea",
+      "kernel.config": "f947a2e44e60f5818e5e63ed3192d5eeca652b45665c6f4b13b3796cea359bfa"
+    },
+    "elf_export_reconciliation": {
+      "original_vmlinux_sha256": "42c04b8dc386b2f378e20b2b67bc635e11c681e0e1ba7a3bbe8a076af27ca2ca",
+      "archived_vmlinux_sha256": "295bfdb12184052a79c1aea35ce4a93a5833c42bdb7b4bd9173973312ade00ff",
+      "image_reproduction": "EXACT_MATCH",
+      "system_map_entries_matched": 167212,
+      "cause": "llvm-objcopy --dump-section without output rewrote ELF container in place",
+      "rebuild": false,
+      "run_id": "35040148509",
+      "source_commit": "ef629df364a592dd63e83743dfc06bf69f15ae5c"
+    }
+  },
+  "normal_boot_candidate": false,
+  "runtime_dtb_external_initrd": false,
+  "chosen_properties": [
+    "bootargs",
+    "stdout-path"
+  ],
+  "positive_proves": "all fs and rootfs initcalls completed and the first device initcall entry was reached",
+  "positive_does_not_prove": "the first device initcall body, device completion, later levels, console or /init",
+  "init_symbols": {
+    "rest_init": "0xffff8000810c1f48",
+    "kernel_init": "0xffff8000810c2030",
+    "kernel_init_freeable": "0xffff800081b3103c",
+    "smp_init": "0xffff800081b466e0"
+  },
+  "device_operation": false
+}
+FS_CHECKPOINT_SOURCE_AUDIT=PASS
+FS_CHECKPOINT_BINARY_AUDIT=PASS
+FS_LINKER_ORDER_PROVEN=YES
+ROOTFS_LINKER_POSITION_PROVEN=YES
+ROOTFS_HAS_SEPARATE_RUNTIME_PASS=NO
+ROOTFS_INCLUDED_IN_LEVEL5_TRAVERSAL=YES
+ROOTFS_START_IS_MARKER_ONLY=YES
+FIRST_DEVICE_ENTRY_IMPLIES_FS_COMPLETE=YES
+FS_COMPLETE_TARGET_UNIQUE=PASS
+FS_COMPLETE_TARGET_ENTRY_AUDIT=PASS
+FS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=YES
+FS_CFG_CLOSURE_PROVEN=YES
+FS_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES
+FS_ALL_PRIOR_STAGE_PROBES_REMOVED=YES
+FS_SELECTED_PROBE_ARCHITECTURE=ENTRY_TRAMPOLINE
+FS_PACIASP_PRESERVED=YES
+FIRST_DEVICE_PREL32_TARGET_UNCHANGED=YES
+FIX8_TRAMPOLINE_IDENTICAL=YES
+FS_DIRECT_B=YES
+FS_ISLAND_KIND=RESERVED_EFI_HOLE
+FS_ISLAND_OFFSET=0xffcc
+FS_B_WORD=0x17936e04
+DEVICE_OPERATION=NO
+LOCAL_BUILD=NO

@@ -1,0 +1,8 @@
+
+kernel-bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .init.text:
+
+ffff800081b347b8 <register_arm64_panic_block>:
+ffff800081b347b8: d503233f     	paciasp
+ffff800081b347bc: a9bf7bfd     	stp	x29, x30, [sp, #-0x10]!
