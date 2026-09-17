@@ -146,7 +146,47 @@ the overwritten `create_debug_debugfs_entry` body or later initcall levels.
 
 The public-CI gate is
 `MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_CHECKPOINT_CI_READY`.
-It authorized no device operation. Next, only after explicit approval:
-`MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_PRIVATE_GATE_FINALIZATION_CI`.
+The separately approved private-gate result is recorded below.
 
-Evidence: `artifacts/slot-b-subsys-initcall-redesign-20260917/`.
+## Private gate freeze
+
+Private GHA pack `35197516266` wrapped the two frozen public payloads in the
+same proven Slot B/P15 OEM envelope without rebuilding or regenerating them.
+Independent reverify-only run `35197852552` downloaded those exact artifacts;
+it did not repack, rebuild or regenerate. Both members reconfirmed the 56-byte
+window, 52-byte no-daifset core, PREL32 target unchanged, and the
+`debug_enabled` ADD layout delta. 60B and 57B windows stay rejected.
+
+| member | private boot SHA256 | size | extracted payload SHA256 |
+| --- | --- | --- | --- |
+| SUBSYS8 | `e082e530e4fce6dbe61f9cbe225851966fa35d1f80e4ab1dd69b5af9ba9175f1` | 37380096 | `22400cb378098ce32ef77698de552e8a3690ebda0f377cacc630d69fa0f6d108` |
+| SUBSYS1 | `df14e7bcdf409deeeede70d7217f420091a6e9a292b0670443df50c0a0e8b9a1` | 37380096 | `c9738f1043c4467b66f2f63305ec20c17b2e648fdd9802fda07e8321e37d5194` |
+
+Private extracted payloads differ by exactly two bytes at
+`[0x149e9,0x149eb)`, `DELAY_CONSTANT_ONLY`. Geometry is identical:
+Image file 35166720, header `image_size=0x2230000`, DTB offset `0x2380000`,
+payload 37369041 and boot 37380096. Envelope is `KERNEL_PAYLOAD_ONLY` vs FIX8.
+
+Observer GHA `35197854423` froze separate full-SHA gates plus the 56-byte
+geometry and 52-byte core. SUBSYS8 accepts only SUBSYS8; SUBSYS1 accepts only
+SUBSYS1. Each rejects its sibling, ARCH, POSTCORE, CORE, PURE, CONSOLE,
+INITCALLS, SMP, FREE, KINIT, REST, FIX8, 60B/57B windows, daifset, trampoline,
+wrong PREL32, wrong `debug_enabled` ADD, wrong delay and wrong PSCI. CORE
+observer regression `35197854428`, POSTCORE observer `35197854432` and ARCH
+observer `35197854485` passed.
+
+Future device execution is split and ordered `SUBSYS8_THEN_SUBSYS1`. The next
+stage may run one SUBSYS8 RAM-only member only after separate user approval.
+SUBSYS8 alone can record only `SUBSYS8_MEMBER_A_COMPLETED` and a total.
+SUBSYS1 remains blocked until that result is frozen and the user approves a
+separate stage. No-shift records
+`SUBSYS_INITCALLS_CHECKPOINT_SHIFT_NOT_OBSERVED` and routes to
+`SUBSYS_INITCALLS_FAILURE_ISOLATION_CI`.
+
+`READY_FOR_R3_SLOT_B_SUBSYS8_DEVICE_CONTROL=YES`
+
+`READY_FOR_R3_SLOT_B_SUBSYS1_DEVICE_CONTROL=NO`
+
+`DEVICE_OPERATION=NO`
+
+Evidence: `artifacts/slot-b-subsys-private-gate-20260917/`.

@@ -693,4 +693,24 @@ passed. Runtime evidence is unchanged:
 `FIRST_FS_INITCALL_ENTRY=NOT_PROVEN`. No private pack or device operation.
 Final gate: `MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_CHECKPOINT_CI_READY`.
 `READY_FOR_SUBSYS_INITCALLS_PRIVATE_GATE=YES`.
-See `docs/slot-b-subsys-initcall-checkpoint.md`.
+The separately approved private-gate stage is now complete.
+
+## Subsys-initcall private gate freeze
+
+Private pack `35197516266` and independent reverify-only `35197852552` froze
+the SUBSYS8/SUBSYS1 boot members without kernel rebuild or payload
+regeneration. Both are 37380096 bytes:
+
+| member | boot SHA256 |
+| --- | --- |
+| SUBSYS8 | `e082e530e4fce6dbe61f9cbe225851966fa35d1f80e4ab1dd69b5af9ba9175f1` |
+| SUBSYS1 | `df14e7bcdf409deeeede70d7217f420091a6e9a292b0670443df50c0a0e8b9a1` |
+
+Extracted payloads exactly match public run `35195817696`. The private pair
+still differs only by two delay bytes at `[0x149e9,0x149eb)`, the 56-byte
+window remains in-function, 52-byte core has no daifset, and 60B probes stay
+rejected. Observer fixtures `35197854423` passed with separate full-SHA gates
+plus the 56-byte geometry. Execution is split and ordered SUBSYS8 then
+SUBSYS1. `READY_FOR_R3_SLOT_B_SUBSYS8_DEVICE_CONTROL=YES`.
+`READY_FOR_R3_SLOT_B_SUBSYS1_DEVICE_CONTROL=NO`. This round performed no
+device operation. See `docs/slot-b-subsys-initcall-checkpoint.md`.
