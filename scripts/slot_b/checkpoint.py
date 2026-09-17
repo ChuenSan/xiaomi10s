@@ -39,10 +39,15 @@ INITCALL_MACROS = {"pure_complete": "core_initcall", "core_complete": "postcore_
                    "postcore_complete": "arch_initcall", "arch_complete": "subsys_initcall",
                    "subsys_complete": "fs_initcall"}
 INITCALL_SOURCE_PREFIX = {"postcore_complete": "arch/arm64/", "arch_complete": "arch/arm64/"}
-ULTRACOMPACT_SYMBOLS = frozenset({"core_complete", "postcore_complete", "arch_complete",
-                                  "subsys_complete"})
+ULTRACOMPACT_SYMBOLS = frozenset({"core_complete", "postcore_complete", "arch_complete"})
+SUBSYS52_SYMBOLS = frozenset({"subsys_complete"})
 EXPANDED_WINDOWS = {"do_initcalls": 96, "arch_complete": 160}
 CFG_DERIVED_WINDOWS = frozenset({"subsys_complete"})
+ULTRACOMPACT_WORDS = (0xD5034FDF, 0xD53BE009, 0xD37DF12A, 0xD53BE02B,
+                      0xD5033FDF, 0xD53BE02C, 0xCB0B018D, 0xEB0A01BF,
+                      0x54FFFF83, 0x52800120, 0x72B08000, 0xD4000003,
+                      0xD503205F, 0x17FFFFFF)
+SUBSYS52_WORDS = ULTRACOMPACT_WORDS[1:]
 INITCALL_BOUNDARY_SYMBOLS = ("__initcall1_start", "__initcall2_start", "__initcall3_start",
                              "__initcall4_start", "__initcall5_start")
 INITCALL_TARGET_LABELS = {"pure_complete": "FIRST_CORE", "core_complete": "FIRST_POSTCORE",
@@ -143,7 +148,10 @@ def gate_subsys_checkpoint_design(design):
         "window_derivation": "TARGET_CFG", "reuse_arch_160b": False,
         "copied_arch_probe": False, "prior_arch_probe": False,
         "prior_core_probe": False, "prior_postcore_probe": False,
-        "cfg_closure_proven": True,
+        "cfg_closure_proven": True, "probe_architecture": "INLINE_56B_TOTAL",
+        "diagnostic_core_size": 52, "paciasp_preserved": True,
+        "cntpct_elapsed": True, "subsys_60b_inline_rejected": True,
+        "prel32_target_unchanged": True, "fixed_iteration_delay": False,
     }
     for key, value in extra.items():
         require(design.get(key) == value, f"SUBSYS_DESIGN_REJECTED:{key}")
@@ -237,13 +245,27 @@ def gate_initcall_literal_delta(bundle, frozen, refs):
 def ultracompact_core(core):
     require(len(core) == 56, "INVALID_ULTRACOMPACT_CORE_SIZE")
     words = struct.unpack("<14I", core)
-    expected = (0xD5034FDF, 0xD53BE009, 0xD37DF12A, 0xD53BE02B,
-                0xD5033FDF, 0xD53BE02C, 0xCB0B018D, 0xEB0A01BF,
-                0x54FFFF83, 0x52800120, 0x72B08000, 0xD4000003,
-                0xD503205F, 0x17FFFFFF)
-    require(words == expected, "ULTRACOMPACT_INSTRUCTION_SEQUENCE_MISMATCH")
+    require(words == ULTRACOMPACT_WORDS, "ULTRACOMPACT_INSTRUCTION_SEQUENCE_MISMATCH")
     require(branch_target(words[8], 8 * 4) == 4 * 4, "ULTRACOMPACT_TIMER_LOOP_MISMATCH")
     return core
+
+
+def subsys52_core(core):
+    require(len(core) == 52, "INVALID_SUBSYS52_CORE_SIZE")
+    words = struct.unpack("<13I", core)
+    require(words == SUBSYS52_WORDS, "SUBSYS52_INSTRUCTION_SEQUENCE_MISMATCH")
+    require(branch_target(words[7], 7 * 4) == 3 * 4, "SUBSYS52_TIMER_LOOP_MISMATCH")
+    require(branch_target(words[12], 12 * 4) == 11 * 4, "SUBSYS52_WFE_LOOP_MISMATCH")
+    return core
+
+
+def gate_subsys52_core_equivalence(old56, new52):
+    require(len(old56) == 56 and len(new52) == 52, "SUBSYS52_EQUIVALENCE_SIZE")
+    require(old56[:4] == struct.pack("<I", ULTRACOMPACT_WORDS[0]), "SUBSYS52_REMOVED_NOT_DAIFSET")
+    require(old56[4:] == new52, "SUBSYS52_NOT_TAIL_OF_PROVEN_56")
+    require(struct.unpack_from("<I", new52, 4)[0] == 0xD37DF12A, "SUBSYS52_DELAY_SLOT_MISMATCH")
+    require(struct.unpack_from("<III", new52, 40) == (0xD4000003, 0xD503205F, 0x17FFFFFF),
+            "SUBSYS52_PSCI_WFE_MISMATCH")
 
 
 def gate_core_initcall_literal_delta(bundle, frozen, refs):
@@ -261,11 +283,12 @@ def gate_core_initcall_literal_delta(bundle, frozen, refs):
 
 
 def delay_core(core, delay):
-    require(delay in (1, 8) and len(core) in (56, 68, 76), "INVALID_DELAY_CORE")
-    if len(core) == 56:
-        require(struct.unpack_from("<I", core, 8)[0] == 0xD37DF12A, "REFERENCE_DELAY_NOT_8")
+    require(delay in (1, 8) and len(core) in (52, 56, 68, 76), "INVALID_DELAY_CORE")
+    if len(core) in (52, 56):
+        slot = 4 if len(core) == 52 else 8
+        require(struct.unpack_from("<I", core, slot)[0] == 0xD37DF12A, "REFERENCE_DELAY_NOT_8")
         word = 0xD37DF12A if delay == 8 else 0xD340FD2A
-        return core[:8] + struct.pack("<I", word) + core[12:]
+        return core[:slot] + struct.pack("<I", word) + core[slot + 4:]
     require(struct.unpack_from("<I", core, 12)[0] == 0xD280010A, "REFERENCE_DELAY_NOT_8")
     return core[:12] + struct.pack("<I", 0xD280000A | (delay << 5)) + core[16:]
 
@@ -586,7 +609,13 @@ def compose(args, bundle):
         {"external_initrd_advertised": False, "chosen_properties": sorted(chosen),
          "rt_d_sha256": digest(frozen[dtb_offset:])}, indent=2) + "\n")
     require(len(core) == 76 and digest(core) == CORE_SHA, "CHECKPOINT_CORE_MISMATCH")
-    if args.symbol in ULTRACOMPACT_SYMBOLS:
+    if args.symbol in SUBSYS52_SYMBOLS:
+        require(args.subsys52_core is not None and args.ultracompact_core is not None,
+                "SUBSYS52_CORE_REQUIRED")
+        proven56 = ultracompact_core(args.ultracompact_core.read_bytes())
+        core = subsys52_core(args.subsys52_core.read_bytes())
+        gate_subsys52_core_equivalence(proven56, core)
+    elif args.symbol in ULTRACOMPACT_SYMBOLS:
         require(args.ultracompact_core is not None, "ULTRACOMPACT_CORE_REQUIRED")
         core = ultracompact_core(args.ultracompact_core.read_bytes())
     elif args.symbol != "rest_init":
@@ -783,7 +812,7 @@ def compose(args, bundle):
     if expected_reference is not None:
         require(digest(reference) == expected_reference, "FROZEN_8S_REFERENCE_MISMATCH")
     pair_diff = [i for i, (a, b) in enumerate(zip(reference_core, core)) if a != b]
-    expected_pair_diff = [9, 10] if len(core) == 56 else [12, 13]
+    expected_pair_diff = {52: [5, 6], 56: [9, 10]}.get(len(core), [12, 13])
     require(pair_diff == (expected_pair_diff if args.delay == 1 else []), "PAIR_NOT_DELAY_ONLY")
     t3.gate_tail_identity(frozen, candidate, (offset, offset + length))
     changed = t3.gate_payload_diff(frozen, candidate, (offset, offset + length))
@@ -806,6 +835,8 @@ def compose(args, bundle):
                 "reference_core_sha256": CORE_SHA, "delay_seconds": args.delay,
                 "initcall_registration": initcall_registration,
                 "core_variant": ("original_b_hs" if args.symbol == "rest_init" else
+                                 "subsys52_cntpct_elapsed_b_lo" if args.symbol in
+                                 SUBSYS52_SYMBOLS else
                                  "ultracompact_cntpct_elapsed_b_lo" if args.symbol in
                                  ULTRACOMPACT_SYMBOLS else "compact_b_lo"),
                 "pair_reference_sha256": digest(reference),
@@ -843,10 +874,15 @@ def compose(args, bundle):
               "ARCH_CHECKPOINT_DIAGNOSTIC_SAFE=YES\nARCH_ALL_PRIOR_STAGE_PROBES_REMOVED=YES",
               flush=True)
     elif args.symbol == "subsys_complete":
+        require(length == 56 and len(core) == 52 and extent - target_va == 56,
+                "SUBSYS_INLINE_56B_TOTAL_MISMATCH")
         print("SUBSYS_CHECKPOINT_SOURCE_AUDIT=PASS\nSUBSYS_CHECKPOINT_BINARY_AUDIT=PASS\n"
               "FIRST_FS_ENTRY_AUDIT=PASS\nSUBSYS_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES\n"
               "SUBSYS_CHECKPOINT_DIAGNOSTIC_SAFE=YES\nSUBSYS_ALL_PRIOR_STAGE_PROBES_REMOVED=YES\n"
-              "SUBSYS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=YES\nSUBSYS_CFG_CLOSURE_PROVEN=YES",
+              "SUBSYS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=YES\nSUBSYS_CFG_CLOSURE_PROVEN=YES\n"
+              "SUBSYS_60B_INLINE_REJECTED=YES\nSUBSYS_52B_CORE_INDEPENDENTLY_AUDITED=YES\n"
+              "SUBSYS_SELECTED_PROBE_ARCHITECTURE=INLINE_56B_TOTAL\n"
+              "SUBSYS_INLINE_FUNCTION_RANGE_SAFE=YES\nFIRST_FS_PREL32_TARGET_UNCHANGED=YES",
               flush=True)
     print(f"{args.symbol.upper()}_INLINE_AUDIT=PASS\nDEVICE_OPERATION=NO\nLOCAL_BUILD=NO", flush=True)
 
@@ -861,6 +897,7 @@ def main():
     parser.add_argument("--reference-sha")
     parser.add_argument("--compact-core", type=Path)
     parser.add_argument("--ultracompact-core", type=Path)
+    parser.add_argument("--subsys52-core", type=Path)
     parser.add_argument("--bundle", type=Path)
     parser.add_argument("--out", type=Path, default=Path("out-slot-b-checkpoint"))
     args = parser.parse_args()

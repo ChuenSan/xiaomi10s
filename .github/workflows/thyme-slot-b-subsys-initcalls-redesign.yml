@@ -1,4 +1,4 @@
-name: SUBSYS_INITCALLS_COMPLETE_CHECKPOINT_CI
+name: SUBSYS_INITCALLS_PROBE_REDESIGN_CI
 
 on:
   push:
@@ -22,7 +22,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: subsys-initcalls-complete-${{ github.ref }}
+  group: subsys-initcalls-redesign-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
       - name: Actions-only workflow lint
         uses: docker://rhysd/actionlint:latest
         with:
-          args: -color .github/workflows/thyme-slot-b-subsys-initcalls-complete.yml
+          args: -color .github/workflows/thyme-slot-b-subsys-initcalls-redesign.yml
       - name: Exact subsys-to-fs source boundary and negative fixtures
         env:
           GITHUB_ACTIONS: 'true'

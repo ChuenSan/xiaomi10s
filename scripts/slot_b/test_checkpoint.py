@@ -319,12 +319,16 @@ class CheckpointTests(unittest.TestCase):
             'checkpoint_point': 'FIRST_FS_INITCALL_EXACT_ENTRY',
             'boundary': '__initcall5_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
             'entry_encoding': 'PREL32', 'cross_function_overwrite': False,
-            'function_range_safe': True, 'function_size': 60, 'probe_size': 60,
+            'function_range_safe': True, 'function_size': 56, 'probe_size': 56,
             'incoming_interior_branches': 0, 'backedge_conflict': False,
             'runtime_rewrite_conflict': False, 'cfg_closure_proven': True,
             'window_derivation': 'TARGET_CFG', 'reuse_arch_160b': False,
             'copied_arch_probe': False, 'prior_arch_probe': False,
             'prior_core_probe': False, 'prior_postcore_probe': False,
+            'probe_architecture': 'INLINE_56B_TOTAL', 'diagnostic_core_size': 52,
+            'paciasp_preserved': True, 'cntpct_elapsed': True,
+            'subsys_60b_inline_rejected': True, 'prel32_target_unchanged': True,
+            'fixed_iteration_delay': False,
             'literal_delta': 'EXACT_OR_INDEPENDENTLY_PROVEN',
             'pair_diff': 'DELAY_CONSTANT_ONLY', 'timer': 'CNTPCT',
             'psci_fid': '0x84000009', 'timer_algorithm_changed': False,
@@ -338,7 +342,7 @@ class CheckpointTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             checkpoint.gate_arch_checkpoint_design(subsys)
         with self.assertRaises(ValueError):
-            checkpoint.gate_subsys_checkpoint_design(dict(subsys, function_size=56))
+            checkpoint.gate_subsys_checkpoint_design(dict(subsys, function_size=52))
         fixtures = {
             'use_initcall4_start': ('boundary', '__initcall4_start'),
             'shared_loop': ('checkpoint_point', 'SHARED_DO_INITCALLS_LOOP'),
@@ -346,7 +350,13 @@ class CheckpointTests(unittest.TestCase):
             'symbol_order_guess': ('target_derivation', 'SYSTEM_MAP_ORDER_GUESS'),
             'before_entry': ('checkpoint_point', 'BEFORE_FIRST_FS_ENTRY'),
             'cross_function': ('cross_function_overwrite', True),
-            'short_function': ('function_size', 56),
+            'short_function': ('function_size', 52),
+            'sixty_byte_inline': ('subsys_60b_inline_rejected', False),
+            'drop_paciasp': ('paciasp_preserved', False),
+            'core_53b': ('diagnostic_core_size', 53),
+            'fixed_iteration': ('fixed_iteration_delay', True),
+            'prel32_retarget': ('prel32_target_unchanged', False),
+            'trampoline_instead': ('probe_architecture', 'ENTRY_TRAMPOLINE'),
             'blind_reuse_arch_160b': ('reuse_arch_160b', True),
             'copied_arch_window': ('window_derivation', 'COPIED_ARCH_160B'),
             'copied_arch_probe': ('copied_arch_probe', True),
@@ -382,8 +392,11 @@ class CheckpointTests(unittest.TestCase):
         self.assertEqual(
             checkpoint.derive_inline_window(base, 188, [[hex(base + 0x9C), hex(base + 0x38)]], 60),
             0xA0)
+        self.assertEqual(checkpoint.derive_inline_window(base, 56, [], 56), 56)
         with self.assertRaises(ValueError):
             checkpoint.derive_inline_window(base, 56, [], 60)
+        with self.assertRaises(ValueError):
+            checkpoint.derive_inline_window(base, 56, [], 57)
         with self.assertRaises(ValueError):
             checkpoint.derive_inline_window(base, 80, [[hex(base + 0x9C), hex(base + 0x38)]], 60)
         report = checkpoint.cfg_closure_report(
@@ -401,6 +414,23 @@ class CheckpointTests(unittest.TestCase):
              'incoming_window_interior': [[hex(base + 0x9C), hex(base + 0x38)]]})
         self.assertFalse(live['cfg_closure_proven'])
         self.assertEqual(live['surviving_sources'][0]['source_offset'], '0x9c')
+
+    def test_subsys52_core_is_proven_56_without_daifset(self):
+        old = struct.pack('<14I', *checkpoint.ULTRACOMPACT_WORDS)
+        new = struct.pack('<13I', *checkpoint.SUBSYS52_WORDS)
+        self.assertEqual(checkpoint.ultracompact_core(old), old)
+        self.assertEqual(checkpoint.subsys52_core(new), new)
+        checkpoint.gate_subsys52_core_equivalence(old, new)
+        self.assertEqual(old[4:], new)
+        self.assertNotIn('subsys_complete', checkpoint.ULTRACOMPACT_SYMBOLS)
+        self.assertIn('subsys_complete', checkpoint.SUBSYS52_SYMBOLS)
+        short = checkpoint.delay_core(new, 1)
+        self.assertEqual([i for i, (a, b) in enumerate(zip(new, short)) if a != b], [5, 6])
+        self.assertEqual(struct.unpack_from('<I', short, 4)[0], 0xD340FD2A)
+        with self.assertRaises(ValueError):
+            checkpoint.subsys52_core(old)
+        with self.assertRaises(ValueError):
+            checkpoint.gate_subsys52_core_equivalence(old, old[8:])
 
     def test_ultracompact_core_and_literal_delta_are_exact(self):
         words = (0xD5034FDF, 0xD53BE009, 0xD37DF12A, 0xD53BE02B,
