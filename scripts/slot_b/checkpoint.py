@@ -395,16 +395,19 @@ def audit_initcall_source(linux):
             "entry_encoding_source": "CONFIG_HAVE_ARCH_PREL32_RELOCATIONS => s32 .long target-."}
 
 
-def find_initcall_source(linux, aliases, macro):
+def find_initcall_source(linux, aliases, macro, source_prefix=None):
     hits = []
     patterns = [re.compile(rf"\b{re.escape(macro)}(?:_sync)?\s*\(\s*{re.escape(name)}\s*\)")
                 for name in aliases]
     for path in linux.rglob("*"):
         if path.suffix not in (".c", ".h") or not path.is_file():
             continue
+        relative = str(path.relative_to(linux))
+        if source_prefix is not None and not relative.startswith(source_prefix):
+            continue
         text = path.read_text(errors="replace")
         if any(pattern.search(text) for pattern in patterns):
-            hits.append(str(path.relative_to(linux)))
+            hits.append(relative)
     require(len(hits) == 1, f"INITCALL_SOURCE_NOT_UNIQUE:{hits}")
     return hits[0]
 
@@ -502,7 +505,8 @@ def compose(args, bundle):
         initcall_source = find_initcall_source(
             pb.LINUX, initcall_boundary["target_aliases"],
             {"pure_complete": "core_initcall", "core_complete": "postcore_initcall",
-             "postcore_complete": "arch_initcall"}[args.symbol])
+             "postcore_complete": "arch_initcall"}[args.symbol],
+            "arch/arm64/" if args.symbol == "postcore_complete" else None)
         require(t3.sysmap_symbol(bundle / "System.map", target_symbol) == target_va,
                 "SYMBOL_MAP_MISMATCH")
     else:
