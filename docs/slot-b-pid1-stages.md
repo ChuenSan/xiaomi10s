@@ -727,7 +727,18 @@ not executed. Absolute ~35s is descriptive only.
 `SUBSYS_INITCALLS_COMPLETED=NOT_PROVEN`.
 `FIRST_FS_INITCALL_ENTRY=NOT_PROVEN`.
 `PAIR_VERDICT=PENDING_SUBSYS1`.
-`READY_FOR_R3_SLOT_B_SUBSYS1_DEVICE_CONTROL=NO`.
-Final gate: `MAINLINE_V2_R3_SLOT_B_SUBSYS8_MEMBER_A_COMPLETED`.
-Recommended next: `MAINLINE_V2_R3_SLOT_B_SUBSYS1_DEVICE_GATE_REVIEW`.
+`READY_FOR_R3_SLOT_B_SUBSYS1_DEVICE_CONTROL=NO` was the post-member-A state.
+The read-only `MAINLINE_V2_R3_SLOT_B_SUBSYS1_DEVICE_GATE_REVIEW` has now
+reconfirmed SUBSYS1 public payload
+`c9738f1043c4467b66f2f63305ec20c17b2e648fdd9802fda07e8321e37d5194`,
+private boot `df14e7bcdf409deeeede70d7217f420091a6e9a292b0670443df50c0a0e8b9a1`
+(37380096), extracted payload, 56-byte window, 52-byte no-daifset core, PREL32,
+`debug_enabled` ADD gate, 1-second encoding, PSCI, RT-D, `/init` and initramfs.
+The pair remains a two-byte delay-only change at `[0x149e9,0x149eb)`.
+Observer review `35201324281` and CORE/POSTCORE/ARCH reviews
+`35201328691`/`35201332615`/`35201336960` passed. Reverify-only `35201320107`
+passed without rebuild. The primary equation is
+`SUBSYS1_TOTAL-34.702650958s`, expected `-7.000000000s`, with STRONG `±1.000s`
+and SUPPORTED `±2.000s`. `READY_FOR_R3_SLOT_B_SUBSYS1_DEVICE_CONTROL=YES`.
+This review performed no device operation and did not auto-run SUBSYS1.
 See `docs/slot-b-subsys-initcall-checkpoint.md`.

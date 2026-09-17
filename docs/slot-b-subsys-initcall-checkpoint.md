@@ -246,7 +246,110 @@ pending a separate gate review and explicit user approval.
 
 `PAIR_VERDICT=PENDING_SUBSYS1`
 
-`READY_FOR_R3_SLOT_B_SUBSYS1_DEVICE_CONTROL=NO`
+`READY_FOR_R3_SLOT_B_SUBSYS1_DEVICE_CONTROL=NO` was the post-member-A state.
+The subsequent no-device SUBSYS1 gate review is recorded below.
 
-Final gate: `MAINLINE_V2_R3_SLOT_B_SUBSYS8_MEMBER_A_COMPLETED`.
-Recommended next, no device: `MAINLINE_V2_R3_SLOT_B_SUBSYS1_DEVICE_GATE_REVIEW`.
+## SUBSYS1 device gate review
+
+`MAINLINE_V2_R3_SLOT_B_SUBSYS1_DEVICE_GATE_REVIEW` froze member A at
+`SUBSYS8_TOTAL=34.702650958s`; SUBSYS8 may not be rerun. GHA-only reverify-only
+run `35201320107` downloaded the immutable private artifacts from pack run
+`35197516266` without rebuild, repack or regeneration. It reconfirmed:
+
+- SUBSYS1 boot SHA256
+  `df14e7bcdf409deeeede70d7217f420091a6e9a292b0670443df50c0a0e8b9a1`,
+  size 37380096
+- extracted payload SHA256
+  `c9738f1043c4467b66f2f63305ec20c17b2e648fdd9802fda07e8321e37d5194`
+- target `create_debug_debugfs_entry`, boundary `__initcall5_start`, 56-byte
+  function, 56-byte in-function window and preserved `paciasp`
+- 52-byte diagnostic core with `daifset` absent; 60-byte and 57-byte windows
+  still rejected; next symbol untouched
+- 1s CNTPCT elapsed loop, PSCI SYSTEM_RESET `0x84000009`, `smc #0`, and
+  fail-closed WFE loop
+- ADD at `0x149f0` still `0x91019000` vs FIX8 `0x9101b000`, both
+  `debug_enabled`: `SUBSYS_FS_NAME_LITERAL_ADDRESS_DELTA_VERIFIED=PASS`
+- PREL32 target unchanged
+- frozen RT-D `4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327`,
+  bootargs `rdinit=/init panic=5 loglevel=7`, unchanged `/init` and initramfs,
+  no external initrd, and matching P15/OEM envelope
+- all REST/KINIT/FREE/SMP/DO_INITCALLS/PURE/CORE/POSTCORE/ARCH/CONSOLE
+  diagnostics removed; SUBSYS1 is the sole active checkpoint
+
+The private payload pair still differs by exactly two bytes at
+`[0x149e9,0x149eb)`, instruction 2 only, attributed `DELAY_CONSTANT_ONLY`;
+geometry and every non-delay property remain identical. Therefore
+`SUBSYS_PAIR_SINGLE_VARIABLE_STILL_VALID=YES`.
+
+Observer source is byte-identical to readiness commit
+`92633a354fddc65c195ed1a2872f8250db836a84`. GHA observer review run
+`35201324281` passed the SUBSYS1 exact full-SHA gate, 56-byte geometry, 52-byte
+core, daifset-absent, 60/57-byte rejection, ADD narrow-gate fixture, unit tests,
+future pair boundaries, one-boot/RAM-only discipline, and rejection of SUBSYS8,
+ARCH, POSTCORE, CORE, PURE, CONSOLE, INITCALLS, SMP, FREE, KINIT, REST, RESET,
+FIX8, wrong size, one-byte mutation, payload swap, wrong checkpoint, wrong delay
+and wrong PSCI. CORE observer review `35201328691`, POSTCORE observer review
+`35201332615` and ARCH observer review `35201336960` passed; prior regressions
+remain applicable because observer behavior did not change.
+
+Future member B must use the same timing algorithm:
+`SUBSYS1_TOTAL-34.702650958s`. Expected delta is `-7.000000000s`, with STRONG
+absolute pair error `<=1.000s` and SUPPORTED `<=2.000s`. Absolute SUBSYS1 timing
+is secondary only. A comparable no-shift result routes to
+`MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_FAILURE_ISOLATION_CI`; ambiguous
+behavior routes to the same isolation stage without changing the windows.
+
+This review performed no device interaction or partition write. Current B and
+Android A remain frozen from the SUBSYS8 result. A future SUBSYS1 round must
+independently repeat pre/post integrity checks, begin from healthy Android A,
+select B, run exactly one full-SHA-gated RAM boot, return to A without image
+writes, and never retry a rejected boot.
+
+`SUBSYS8_MEMBER_A_FROZEN=YES`
+
+`SUBSYS8_TOTAL_FROZEN=34.702650958`
+
+`SUBSYS1_PUBLIC_PAYLOAD_IDENTITY=PASS`
+
+`SUBSYS1_PRIVATE_BOOT_IDENTITY=PASS`
+
+`SUBSYS1_PRIVATE_REVERIFY=PASS`
+
+`FIRST_FS_PREL32_TARGET_UNCHANGED=YES`
+
+`SUBSYS_INLINE_56B_TOTAL_STILL_VALID=YES`
+
+`SUBSYS_52B_CORE_IDENTITY_STILL_VALID=YES`
+
+`SUBSYS_DAIFSET_ABSENT=YES`
+
+`SUBSYS_60B_INLINE_REJECTED=YES`
+
+`SUBSYS_FS_NAME_LITERAL_ADDRESS_DELTA_VERIFIED=YES`
+
+`SUBSYS_PAIR_SINGLE_VARIABLE_STILL_VALID=YES`
+
+`SUBSYS_PAIR_GEOMETRY_IDENTICAL=YES`
+
+`SUBSYS1_CHECKPOINT_IDENTITY=PASS`
+
+`SUBSYS1_OBSERVER_IDENTITY_GATE_READY=YES`
+
+`SUBSYS1_OBSERVER_REGRESSION_SAFE=YES`
+
+`CURRENT_B_AFTER_SUBSYS8=UNCHANGED`
+
+`ANDROID_A_AFTER_SUBSYS8=RESTORED`
+
+`PAIR_EQUATION_FROZEN=YES`
+
+`DEVICE_OPERATION=NO`
+
+`READY_FOR_R3_SLOT_B_SUBSYS1_DEVICE_CONTROL=YES`
+
+Final gate: `READY_FOR_R3_SLOT_B_SUBSYS1_DEVICE_CONTROL`.
+Recommended next, after separate user approval:
+`MAINLINE_V2_R3_SLOT_B_SUBSYS1_TRUE_DEVICE_CONTROL`.
+This review did not execute SUBSYS1.
+
+Evidence: `artifacts/slot-b-subsys1-gate-review-20260917/`.
