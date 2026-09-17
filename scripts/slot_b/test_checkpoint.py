@@ -203,7 +203,7 @@ class CheckpointTests(unittest.TestCase):
                     image, [{'name': '.init.data', 'vma': base, 'size': len(data), 'file_off': 0}], nm,
                     '__initcall1_start')
 
-    def test_initcall_checkpoint_design_negative_fixtures(self):
+    def test_core_checkpoint_negative_fixtures(self):
         valid = {
             'checkpoint_point': 'FIRST_POSTCORE_INITCALL_EXACT_ENTRY',
             'boundary': '__initcall2_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
