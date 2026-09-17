@@ -226,5 +226,92 @@ and explicit user approval.
 `PAIR_VERDICT=PENDING_POSTCORE1`
 
 Final gate: `MAINLINE_V2_R3_SLOT_B_POSTCORE8_MEMBER_A_COMPLETED`.
-Recommended next: `MAINLINE_V2_R3_SLOT_B_POSTCORE1_DEVICE_GATE_REVIEW`, with
-no device operation in that review.
+The subsequent no-device POSTCORE1 gate review is recorded below.
+
+## POSTCORE1 device gate review
+
+`MAINLINE_V2_R3_SLOT_B_POSTCORE1_DEVICE_GATE_REVIEW` froze member A at
+`POSTCORE8_TOTAL=34.936234167s`; POSTCORE8 may not be rerun. GHA-only
+reverify-only run `35174714051` downloaded the immutable private artifacts from
+pack run `35170737800` without rebuild, repack or regeneration. It reconfirmed:
+
+- POSTCORE1 boot SHA256
+  `4762a9fd29e109affb1c8864247887334508d9af2d6b183b7bf0200a05b697f1`,
+  size 37380096
+- extracted payload SHA256
+  `3a4b50c956413dabfd739181ca1ed19aca618002e0292782bf02b271ac9cd59f`
+- target `reserve_memblock_reserved_regions`, boundary `__initcall3_start`,
+  60-byte in-function window and preserved `paciasp`
+- 1s CNTPCT elapsed loop, PSCI SYSTEM_RESET `0x84000009`, `smc #0`, and
+  fail-closed WFE loop
+- frozen RT-D `4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327`,
+  bootargs `rdinit=/init panic=5 loglevel=7`, unchanged `/init` and initramfs,
+  no external initrd, and matching P15/OEM envelope
+- all REST/KINIT/FREE/SMP/DO_INITCALLS/PURE/CORE/CONSOLE diagnostics removed;
+  POSTCORE1 is the sole active checkpoint
+
+The private payload pair still differs by exactly two bytes at
+`[0x1b33f6d,0x1b33f6f)`, instruction 3 only, attributed
+`DELAY_CONSTANT_ONLY`; geometry and every non-delay property remain identical.
+Therefore `POSTCORE_PAIR_SINGLE_VARIABLE_STILL_VALID=YES`.
+
+Observer source and fixtures are byte-identical to readiness commit
+`66d93d314ac6c4540475f34bd207c036ddc793bd`. GHA observer review run
+`35174717152` passed the POSTCORE1 exact full-SHA gate, unit tests, future pair
+boundaries, one-boot/RAM-only discipline, and rejection of POSTCORE8, CORE,
+PURE, CONSOLE, INITCALLS, SMP, FREE, KINIT, REST, RESET, FIX8, wrong size,
+one-byte mutation, payload swap, wrong checkpoint, wrong delay and wrong PSCI.
+The frozen CORE regression `35170993608` remains applicable because observer
+behavior did not change.
+
+Future member B must use the same timing algorithm:
+`POSTCORE1_TOTAL-34.936234167s`. Expected delta is `-7.000000000s`, with
+STRONG absolute pair error `<=1.000s` and SUPPORTED `<=2.000s`. Absolute
+POSTCORE1 timing is secondary only. A comparable no-shift result routes to
+`MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_FAILURE_ISOLATION_CI`; ambiguous
+behavior routes to the same isolation stage without changing the windows.
+
+This review performed no device interaction or partition write. Current B and
+Android A remain frozen from the POSTCORE8 result. A future POSTCORE1 round
+must independently repeat pre/post integrity checks, begin from healthy Android
+A, select B, run exactly one full-SHA-gated RAM boot, return to A without image
+writes, and never retry a rejected boot.
+
+`POSTCORE8_MEMBER_A_FROZEN=YES`
+
+`POSTCORE8_TOTAL_FROZEN=34.936234167`
+
+`POSTCORE1_PUBLIC_PAYLOAD_IDENTITY=PASS`
+
+`POSTCORE1_PRIVATE_BOOT_IDENTITY=PASS`
+
+`POSTCORE1_PRIVATE_REVERIFY=PASS`
+
+`POSTCORE_PAIR_SINGLE_VARIABLE_STILL_VALID=YES`
+
+`POSTCORE_PAIR_GEOMETRY_IDENTICAL=YES`
+
+`POSTCORE1_CHECKPOINT_IDENTITY=PASS`
+
+`POSTCORE1_ONLY_ACTIVE_DIAGNOSTIC=YES`
+
+`POSTCORE1_OBSERVER_IDENTITY_GATE_READY=YES`
+
+`POSTCORE1_OBSERVER_REGRESSION_SAFE=YES`
+
+`CURRENT_B_AFTER_POSTCORE8=UNCHANGED`
+
+`ANDROID_A_AFTER_POSTCORE8=RESTORED`
+
+`PAIR_EQUATION_FROZEN=YES`
+
+`DEVICE_OPERATION=NO`
+
+`PARTITION_WRITES=0`
+
+`SLOT_A_WRITTEN=NO`
+
+Final gate: `READY_FOR_R3_SLOT_B_POSTCORE1_DEVICE_CONTROL=YES`. This is
+readiness only: `POSTCORE1_DEVICE_OPERATION=NO`. Recommended next, only after
+separate explicit user approval:
+`MAINLINE_V2_R3_SLOT_B_POSTCORE1_TRUE_DEVICE_CONTROL`.

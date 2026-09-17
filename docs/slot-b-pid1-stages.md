@@ -469,7 +469,36 @@ so `PAIR_DELTA=NOT_AVAILABLE` and `PAIR_VERDICT=PENDING_POSTCORE1`.
 remain NOT_PROVEN. POSTCORE1 remains blocked pending a no-device gate review
 and separate approval.
 
-Final gate: `MAINLINE_V2_R3_SLOT_B_POSTCORE8_MEMBER_A_COMPLETED`.
-Recommended next: `MAINLINE_V2_R3_SLOT_B_POSTCORE1_DEVICE_GATE_REVIEW`. See
-`docs/slot-b-postcore-initcall-checkpoint.md` and evidence under
+The member-A gate remains
+`MAINLINE_V2_R3_SLOT_B_POSTCORE8_MEMBER_A_COMPLETED`; evidence is under
 `artifacts/slot-b-postcore8-20260917/`.
+
+## POSTCORE1 device gate review
+
+No-device GHA review froze `POSTCORE8_TOTAL=34.936234167s`. Reverify-only run
+`35174714051` reconfirmed POSTCORE1 boot
+`4762a9fd29e109affb1c8864247887334508d9af2d6b183b7bf0200a05b697f1`
+(size 37380096), extracted public payload
+`3a4b50c956413dabfd739181ca1ed19aca618002e0292782bf02b271ac9cd59f`,
+target/window, preserved `paciasp`, 1s CNTPCT/PSCI/WFE semantics, RT-D,
+`/init`, initramfs and P15/OEM envelope. No build, repack or regeneration ran.
+The pair remains two-byte `DELAY_CONSTANT_ONLY` at
+`[0x1b33f6d,0x1b33f6f)`, with identical geometry and POSTCORE1 as the only
+active diagnostic.
+
+Observer review `35174717152` passed the exact POSTCORE1 full-SHA gate and all
+negative identities. Observer behavior is unchanged from readiness commit
+`66d93d314ac6c4540475f34bd207c036ddc793bd`; prior CORE regression
+`35170993608` remains valid.
+
+The future primary equation is
+`POSTCORE1_TOTAL-34.936234167s`, expected `-7.000000000s`; STRONG is absolute
+error `<=1.000s`, SUPPORTED `<=2.000s`. POSTCORE8 cannot be rerun and absolute
+POSTCORE1 timing cannot substitute for the pair. Runtime evidence remains
+unchanged.
+
+Final gate: `READY_FOR_R3_SLOT_B_POSTCORE1_DEVICE_CONTROL=YES`. This review
+performed no device operation. Recommended next only after separate explicit
+approval: `MAINLINE_V2_R3_SLOT_B_POSTCORE1_TRUE_DEVICE_CONTROL`, exactly one
+POSTCORE1 Slot B RAM-only boot. See
+`docs/slot-b-postcore-initcall-checkpoint.md`.
