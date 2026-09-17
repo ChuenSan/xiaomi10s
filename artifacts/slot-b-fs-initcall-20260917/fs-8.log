@@ -1,0 +1,12 @@
+P1B_RT_D_SHA_EXACT=PASS
+P1B_RT_D_BOOTARGS_FROZEN=PASS
+T3_SECTION_MAP_SOURCE=readelf-SW sections=44
+FS_RUNTIME_SPAN={"begin": "0xffff800081d0b0d4", "end": "0xffff800081d0b1a8", "entry_count": 53, "rootfs_entry_count": 1, "rootfs_start": "0xffff800081d0b1a4", "rootfs_symbols": ["populate_rootfs"]}
+FIRST_DEVICE_TABLE_DECODE={"aliases": ["register_arm64_panic_block"], "boundary": "__initcall6_start", "entry_va": "0xffff800081d0b1a8", "entry_word": "0xffe29610", "relative": -1927664, "target_va": "0xffff800081b347b8"}
+FIRST_DEVICE_FUNCTION_SIZE=48
+FIRST_DEVICE_INITCALL_SOURCE=arch/arm64/kernel/setup.c
+FIRST_DEVICE_INITCALL_REGISTRATION=device_initcall(register_arm64_panic_block)
+FS_COMPLETE_TARGET_TOO_SMALL
+FS_SELECTED_PROBE_ARCHITECTURE=NONE
+FS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=NO
+R3_SLOT_B_FS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY

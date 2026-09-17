@@ -286,16 +286,27 @@ levels, `wait_for_initramfs`, console, `/init` and Linux full boot remain
 NOT_PROVEN; USB remains FROZEN. All 16 boot-chain hashes and the P15 prefix
 matched before/after, Current B is unchanged, and Android A was restored
 healthy. Partition image writes remained zero and Slot A was not written.
-Do not rerun SUBSYS8, SUBSYS1, ARCH, POSTCORE, CORE, PURE or CONSOLE. Next is
-the CI-only `MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_CHECKPOINT_CI_AUDIT` after
-explicit approval; it must re-audit `__initcallrootfs_start` versus
-`__initcall6_start` before naming any FS-complete boundary.
+Do not rerun SUBSYS8, SUBSYS1, ARCH, POSTCORE, CORE, PURE or CONSOLE.
+
+The CI-only FS checkpoint audit is now complete. Public GHA `35208519342` at
+`736c96ea348989a708f7638c2dfd6409aac1798c` reused bundle `35040148509` and
+proved `do_initcall_level(5)` walks `[__initcall5_start, __initcall6_start)`
+including the single rootfs entry `populate_rootfs`. There is no separate
+rootfs runtime pass. The FS-complete causal boundary is the first device
+entry `register_arm64_panic_block` at `0xffff800081b347b8` / Image
+`0x1b347b8`, `.init.text`, 48 bytes, entry `paciasp`. A 56-byte inline
+diagnostic does not fit. No FS8/FS1 pair was generated. Runtime evidence is
+unchanged: `FS_INITCALLS_COMPLETED=NOT_PROVEN` and
+`FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`. The public gate is
+`R3_SLOT_B_FS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY`.
+`READY_FOR_FS_INITCALLS_PRIVATE_GATE=NO`.
 
 No Linux boot success is claimed. Details: `docs/slot-b-pid1-stages.md`,
 `docs/slot-b-core-initcall-checkpoint.md`,
 `docs/slot-b-postcore-initcall-checkpoint.md`,
-`docs/slot-b-arch-initcall-checkpoint.md` and
-`docs/slot-b-subsys-initcall-checkpoint.md`. Older A-return timing records
+`docs/slot-b-arch-initcall-checkpoint.md`,
+`docs/slot-b-subsys-initcall-checkpoint.md` and
+`docs/slot-b-fs-initcall-checkpoint.md`. Older A-return timing records
 below are historical, not this B baseline.
 
 Maintained rule: this file is the ONLY current-state entry. Older docs keep
@@ -1303,6 +1314,45 @@ SUBSYS_INITCALLS_COMPLETED=PROVEN
 FS_INITCALLS_COMPLETED=NOT_PROVEN
 SUBSYS_CHECKPOINT_FINAL_GATE=MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_COMPLETED_PROVEN
 SUBSYS_CHECKPOINT_NEXT_STAGE=MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_CHECKPOINT_CI_AUDIT
+FS_CHECKPOINT_PUBLIC_RUN=35208519342
+FS_CHECKPOINT_PUBLIC_COMMIT=736c96ea348989a708f7638c2dfd6409aac1798c
+FS_CHECKPOINT_BUNDLE_RUN=35040148509
+FS_LEVEL_BOUNDARY=__initcall5_start..__initcall6_start
+DEVICE_LEVEL_BOUNDARY=__initcall6_start..__initcall7_start
+DO_INITCALL_LEVEL_5_BEGIN=__initcall5_start
+DO_INITCALL_LEVEL_5_END=__initcall6_start
+INITCALL5_START_VA=0xffff800081d0b0d4
+INITCALLROOTFS_START_VA=0xffff800081d0b1a4
+INITCALL6_START_VA=0xffff800081d0b1a8
+FS_LINKER_ORDER_PROVEN=YES
+ROOTFS_LINKER_POSITION_PROVEN=YES
+ROOTFS_HAS_SEPARATE_RUNTIME_PASS=NO
+ROOTFS_INCLUDED_IN_LEVEL5_TRAVERSAL=YES
+ROOTFS_START_IS_MARKER_ONLY=YES
+FS_RUNTIME_SPAN_ENTRY_COUNT=53
+ROOTFS_ENTRY_COUNT=1
+ROOTFS_SYMBOLS=populate_rootfs
+FIRST_DEVICE_ENTRY_IMPLIES_FS_COMPLETE=YES
+FS_COMPLETE_CAUSAL_BOUNDARY_SYMBOL=register_arm64_panic_block
+FIRST_DEVICE_INITCALL_VA=0xffff800081b347b8
+FIRST_DEVICE_INITCALL_OFFSET=0x1b347b8
+FIRST_DEVICE_INITCALL_SIZE=48
+FIRST_DEVICE_INITCALL_SOURCE=arch/arm64/kernel/setup.c
+FIRST_DEVICE_INITCALL_REGISTRATION=device_initcall(register_arm64_panic_block)
+FIRST_DEVICE_INITCALL_SECTION=.init.text
+FIRST_DEVICE_INITCALL_ENTRY_WORD=0xffe29610
+FIRST_DEVICE_INITCALL_SIGNED_DISPLACEMENT=-1927664
+FIRST_DEVICE_INITCALL_TARGET_UNIQUE=PASS
+FIRST_DEVICE_ENTRY0=paciasp
+FIRST_DEVICE_PAC=YES
+FIRST_DEVICE_BTI=NO
+FS_COMPLETE_TARGET_TOO_SMALL=YES
+FS_MIN_INLINE_PROBE=56
+FS_SELECTED_PROBE_ARCHITECTURE=NONE
+FS_PAIR_PUBLIC_READY=NO
+READY_FOR_FS_INITCALLS_PRIVATE_GATE=NO
+FS_CHECKPOINT_FINAL_GATE=R3_SLOT_B_FS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY
+FS_CHECKPOINT_NEXT_STAGE=MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_TRAMPOLINE_REDESIGN_CI
 CORE8_MEMBER_A_COMPLETED=YES
 CORE8_MEMBER_A_FROZEN=YES
 CORE8_TOTAL_S=34.961135333

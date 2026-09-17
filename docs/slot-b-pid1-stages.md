@@ -758,3 +758,27 @@ rerun. Final gate:
 `MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_COMPLETED_PROVEN`.
 Recommended next: `MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_CHECKPOINT_CI_AUDIT`.
 See `docs/slot-b-subsys-initcall-checkpoint.md`.
+
+## FS-initcall completion checkpoint CI
+
+Public GHA `35208519342` at `736c96ea348989a708f7638c2dfd6409aac1798c`
+completed source/linker/runtime audit and exact PREL32 table decode without a
+kernel rebuild. It confirmed:
+
+- `do_initcall_level(5)` is `[__initcall5_start, __initcall6_start)`
+- `__initcallrootfs_start` is a linker marker inside that span, not a separate
+  runtime pass
+- level-5 span has 53 PREL32 entries including one `rootfs_initcall(populate_rootfs)`
+- first FS identity remains `create_debug_debugfs_entry` at
+  `0xffff8000800149e0`
+- FS-complete causal boundary is the first device entry
+  `register_arm64_panic_block` at `0xffff800081b347b8` / Image `0x1b347b8`
+
+The target is `.init.text`, 48 bytes, entry `paciasp`, unique table decode,
+`device_initcall(register_arm64_panic_block)` in `arch/arm64/kernel/setup.c`.
+A 56-byte inline diagnostic does not fit. No FS8/FS1 payloads were generated.
+Runtime evidence is unchanged: `FS_INITCALLS_COMPLETED=NOT_PROVEN` and
+`FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`. No private pack or device operation.
+Final gate: `R3_SLOT_B_FS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY`.
+`READY_FOR_FS_INITCALLS_PRIVATE_GATE=NO`.
+See `docs/slot-b-fs-initcall-checkpoint.md`.
