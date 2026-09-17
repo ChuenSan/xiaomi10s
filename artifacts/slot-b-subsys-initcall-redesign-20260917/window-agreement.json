@@ -1,0 +1,33 @@
+{
+  "symbol": "subsys_complete",
+  "offset": "0x149e0",
+  "size": 56,
+  "bundle_image_sha256": "43fb1c9128bdf37a2a77eb88cfff234381340b098ebf1aea1eabb2741180cebb",
+  "frozen_payload_sha256": "4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41",
+  "differing_words": [
+    {
+      "offset": "0x149f0",
+      "bundle": "0x91019000",
+      "frozen": "0x9101b000"
+    }
+  ],
+  "debug_enabled_literal_refs": {
+    "bundle": {
+      "offset": "0x1a30064",
+      "va": "0xffff800081a30064",
+      "adrp_word": "0x9000d0e0",
+      "add_word": "0x91019000",
+      "bytes_hex": "64656275675f656e61626c656400",
+      "text": "debug_enabled"
+    },
+    "frozen": {
+      "offset": "0x1a3006c",
+      "va": "0xffff800081a3006c",
+      "adrp_word": "0x9000d0e0",
+      "add_word": "0x9101b000",
+      "bytes_hex": "64656275675f656e61626c656400",
+      "text": "debug_enabled"
+    }
+  },
+  "verdict": "SUBSYS_FS_NAME_LITERAL_ADDRESS_DELTA_VERIFIED"
+}

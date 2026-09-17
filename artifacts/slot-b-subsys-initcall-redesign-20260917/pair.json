@@ -1,0 +1,23 @@
+{
+  "source_commit": "e201a8d74bf94c3b9e9014ee91dfe952d17ad027",
+  "public_run": "35195817696",
+  "bundle_run": "35040148509",
+  "subsys8_payload_sha256": "22400cb378098ce32ef77698de552e8a3690ebda0f377cacc630d69fa0f6d108",
+  "subsys1_payload_sha256": "c9738f1043c4467b66f2f63305ec20c17b2e648fdd9802fda07e8321e37d5194",
+  "changed_offsets": [
+    84457,
+    84458
+  ],
+  "changed_instruction_indices": [
+    2
+  ],
+  "probe_architecture": "INLINE_56B_TOTAL",
+  "attribution": "DELAY_CONSTANT_ONLY",
+  "expected_delta_seconds": -7.0,
+  "strong_error_seconds": 1.0,
+  "supported_error_seconds": 2.0,
+  "window_derivation": "TARGET_CFG",
+  "checkpoint_size": 56,
+  "private_pack": false,
+  "device_operation": false
+}

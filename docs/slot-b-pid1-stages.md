@@ -677,10 +677,20 @@ It confirmed:
 
 The target is `.text`, 56 bytes, entry `paciasp`, unique table decode,
 `fs_initcall(create_debug_debugfs_entry)`. CFG is a straight line with no
-internal or back-edge. The window is derived from that CFG, not copied from
-ARCH 160B. Proven inline diagnostic needs 60 bytes and does not fit.
-SUBSYS8/SUBSYS1 were not generated. Runtime evidence is unchanged:
+internal or back-edge. A 60-byte inline overwrite is rejected. Public GHA
+`35195817696` at `e201a8d74bf94c3b9e9014ee91dfe952d17ad027` selected Design A:
+preserved `paciasp` plus a 52-byte core that is the proven 56-byte CNTPCT/PSCI
+sequence without `msr daifset`. Total 56 bytes, function-range safe. One ADD
+immediate at `0x149f0` is closed as
+`SUBSYS_FS_NAME_LITERAL_ADDRESS_DELTA_VERIFIED` to identical `debug_enabled`.
+SUBSYS8 payload
+`22400cb378098ce32ef77698de552e8a3690ebda0f377cacc630d69fa0f6d108` and
+SUBSYS1 payload
+`c9738f1043c4467b66f2f63305ec20c17b2e648fdd9802fda07e8321e37d5194`
+differ only at `[0x149e9,0x149eb)`, instruction 2. Independent reverify
+passed. Runtime evidence is unchanged:
 `SUBSYS_INITCALLS_COMPLETED=NOT_PROVEN` and
 `FIRST_FS_INITCALL_ENTRY=NOT_PROVEN`. No private pack or device operation.
-Final gate: `R3_SLOT_B_SUBSYS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY`.
+Final gate: `MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_CHECKPOINT_CI_READY`.
+`READY_FOR_SUBSYS_INITCALLS_PRIVATE_GATE=YES`.
 See `docs/slot-b-subsys-initcall-checkpoint.md`.

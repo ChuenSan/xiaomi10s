@@ -1,0 +1,360 @@
+{
+  "symbol": "subsys_complete",
+  "target_symbol": "create_debug_debugfs_entry",
+  "target_va": "0xffff8000800149e0",
+  "offset": 84448,
+  "checkpoint_size": 56,
+  "entry": "paciasp",
+  "section": ".text",
+  "initcall_boundary": {
+    "boundary_symbol": "__initcall5_start",
+    "entry_va": 18446603338399133908,
+    "entry_image_offset": 30453972,
+    "entry_section": ".init.data",
+    "entry_size": 4,
+    "entry_encoding": "PREL32",
+    "relative": -30369524,
+    "entry_word": "0xfe30990c",
+    "target_va": 18446603338368764384,
+    "target_aliases": [
+      "create_debug_debugfs_entry"
+    ],
+    "table_entries_checked": 1732
+  },
+  "initcall_boundaries": {
+    "__initcall1_start": {
+      "boundary_symbol": "__initcall1_start",
+      "entry_va": 18446603338399132112,
+      "entry_image_offset": 30452176,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -1928284,
+      "entry_word": "0xffe293a4",
+      "target_va": 18446603338397203828,
+      "target_aliases": [
+        "fpsimd_init"
+      ],
+      "table_entries_checked": 1732
+    },
+    "__initcall2_start": {
+      "boundary_symbol": "__initcall2_start",
+      "entry_va": 18446603338399132524,
+      "entry_image_offset": 30452588,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -1929924,
+      "entry_word": "0xffe28d3c",
+      "target_va": 18446603338397202600,
+      "target_aliases": [
+        "debug_monitors_init"
+      ],
+      "table_entries_checked": 1732
+    },
+    "__initcall3_start": {
+      "boundary_symbol": "__initcall3_start",
+      "entry_va": 18446603338399132744,
+      "entry_image_offset": 30452808,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -1928424,
+      "entry_word": "0xffe29318",
+      "target_va": 18446603338397204320,
+      "target_aliases": [
+        "reserve_memblock_reserved_regions"
+      ],
+      "table_entries_checked": 1732
+    },
+    "__initcall4_start": {
+      "boundary_symbol": "__initcall4_start",
+      "entry_va": 18446603338399133196,
+      "entry_image_offset": 30453260,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -1926928,
+      "entry_word": "0xffe298f0",
+      "target_va": 18446603338397206268,
+      "target_aliases": [
+        "topology_init"
+      ],
+      "table_entries_checked": 1732
+    },
+    "__initcall5_start": {
+      "boundary_symbol": "__initcall5_start",
+      "entry_va": 18446603338399133908,
+      "entry_image_offset": 30453972,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -30369524,
+      "entry_word": "0xfe30990c",
+      "target_va": 18446603338368764384,
+      "target_aliases": [
+        "create_debug_debugfs_entry"
+      ],
+      "table_entries_checked": 1732
+    },
+    "__initcallrootfs_start": {
+      "boundary_symbol": "__initcallrootfs_start",
+      "entry_va": 18446603338399134116,
+      "entry_image_offset": 30454180,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -1936924,
+      "entry_word": "0xffe271e4",
+      "target_va": 18446603338397197192,
+      "target_aliases": [
+        "populate_rootfs"
+      ],
+      "table_entries_checked": 1732
+    },
+    "__initcall6_start": {
+      "boundary_symbol": "__initcall6_start",
+      "entry_va": 18446603338399134120,
+      "entry_image_offset": 30454184,
+      "entry_section": ".init.data",
+      "entry_size": 4,
+      "entry_encoding": "PREL32",
+      "relative": -1927664,
+      "entry_word": "0xffe29610",
+      "target_va": 18446603338397206456,
+      "target_aliases": [
+        "register_arm64_panic_block"
+      ],
+      "table_entries_checked": 1732
+    }
+  },
+  "initcall_source_audit": {
+    "pure": "__initcall0_start..__initcall1_start",
+    "core": "__initcall1_start..__initcall2_start",
+    "postcore": "__initcall2_start..__initcall3_start",
+    "arch": "__initcall3_start..__initcall4_start",
+    "subsys": "__initcall4_start..__initcall5_start",
+    "fs": "__initcall5_start..__initcall6_start",
+    "pure_level_boundary": "__initcall1_start",
+    "core_level_boundary": "__initcall2_start",
+    "postcore_level_boundary": "__initcall3_start",
+    "arch_level_boundary": "__initcall4_start",
+    "subsys_level_boundary": "__initcall5_start",
+    "fs_level_boundary": "__initcall6_start",
+    "fs_next_linker_boundary": "__initcallrootfs_start",
+    "linker_order": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "rootfs",
+      "6",
+      "7"
+    ],
+    "core_complete_boundary_source_proven": true,
+    "postcore_complete_boundary_source_proven": true,
+    "arch_complete_boundary_source_proven": true,
+    "subsys_complete_boundary_source_proven": true,
+    "first_subsys_entry_implies_arch_complete": true,
+    "first_fs_entry_implies_subsys_complete": true,
+    "entry_encoding_source": "CONFIG_HAVE_ARCH_PREL32_RELOCATIONS => s32 .long target-."
+  },
+  "target_source": "arch/arm64/kernel/debug-monitors.c",
+  "target_aliases": [
+    "create_debug_debugfs_entry"
+  ],
+  "target_function_size": 56,
+  "target_entry_audit": {
+    "symbol": "create_debug_debugfs_entry",
+    "aliases": [
+      "create_debug_debugfs_entry"
+    ],
+    "source": "arch/arm64/kernel/debug-monitors.c",
+    "registration": "fs_initcall(create_debug_debugfs_entry)",
+    "target_va": "0xffff8000800149e0",
+    "image_offset": "0x149e0",
+    "section": ".text",
+    "function_size": 56,
+    "entry_instruction": "paciasp",
+    "entry_bytes": "3f2303d5",
+    "first_32_instruction_words": [
+      "0xd503233f",
+      "0xa9bf7bfd",
+      "0x910003fd",
+      "0x9000d0e0",
+      "0x9101b000",
+      "0xb000ea83",
+      "0x91240063",
+      "0x52803481",
+      "0xaa1f03e2",
+      "0x941231c5",
+      "0x2a1f03e0",
+      "0xa8c17bfd",
+      "0xd50323bf",
+      "0xd65f03c0"
+    ],
+    "pac": true,
+    "bti": false,
+    "scs": false,
+    "cfi": false,
+    "fentry": false,
+    "stack_frame_in_window": true,
+    "branch_topology": {
+      "incoming_entry": [],
+      "incoming_window_interior": [],
+      "internal_branches": [],
+      "back_edges": []
+    },
+    "cfg_closure": {
+      "candidate_window_length": 56,
+      "function_size": 56,
+      "window_derivation": "TARGET_CFG",
+      "internal_branch_sources": [],
+      "internal_branch_targets": [],
+      "overwritten_sources": [],
+      "surviving_sources": [],
+      "targets_in_overwritten_region": [],
+      "back_edges": [],
+      "surviving_into_interior": [],
+      "cfg_closure_proven": true
+    },
+    "window_derivation": "TARGET_CFG",
+    "literal_load_words": [],
+    "incoming_branch_gate": "PASS",
+    "function_range_safe": true,
+    "relocations_in_window": 0,
+    "runtime_rewrites": {
+      "__ex_table": {
+        "entries": 994,
+        "sha256": "e93f6326dba119d9b5091b9c31295e47086ce45813b6f1a62dde0655ca65a9be"
+      },
+      "altinstructions": {
+        "entries": 37287,
+        "sha256": "a98a9bc613c12519ea5fd8f1e168ede872af0d8474fa385df6bc1cc17fdc36a6"
+      },
+      "__jump_table": "ABSENT",
+      "static_call_sites": "ABSENT",
+      "kcfi_traps": "ABSENT"
+    },
+    "runtime_rewrite_safe": true,
+    "entry_audit": "PASS"
+  },
+  "core_size": 52,
+  "terminal_nop_padding_size": 0,
+  "payload_sha256": "22400cb378098ce32ef77698de552e8a3690ebda0f377cacc630d69fa0f6d108",
+  "payload_size": 37369041,
+  "checkpoint_sha256": "cb0dccf49f5722d5183dad7fe35173b3da828e33121eb6cd23bf468b780aff63",
+  "core_sha256": "e3e10d7f5202b20074bf5aae150c9f9a4b4771e7a7e4fbe7ef562b446ca09b46",
+  "reference_core_sha256": "4d792df5f7688af9a48480bf69c5afeaeade290bacfce0878876c9ab6dd93611",
+  "delay_seconds": 8,
+  "initcall_registration": "fs_initcall(create_debug_debugfs_entry)",
+  "core_variant": "subsys52_cntpct_elapsed_b_lo",
+  "pair_reference_sha256": "22400cb378098ce32ef77698de552e8a3690ebda0f377cacc630d69fa0f6d108",
+  "pair_changed_offsets": [],
+  "frozen_sha256": "4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41",
+  "changed_bytes": 50,
+  "outside_window_changed_bytes": 0,
+  "runtime_rewrites": {
+    "__ex_table": {
+      "entries": 994,
+      "sha256": "e93f6326dba119d9b5091b9c31295e47086ce45813b6f1a62dde0655ca65a9be"
+    },
+    "altinstructions": {
+      "entries": 37287,
+      "sha256": "a98a9bc613c12519ea5fd8f1e168ede872af0d8474fa385df6bc1cc17fdc36a6"
+    },
+    "__jump_table": "ABSENT",
+    "static_call_sites": "ABSENT",
+    "kcfi_traps": "ABSENT"
+  },
+  "window_agreement": {
+    "symbol": "subsys_complete",
+    "offset": "0x149e0",
+    "size": 56,
+    "bundle_image_sha256": "43fb1c9128bdf37a2a77eb88cfff234381340b098ebf1aea1eabb2741180cebb",
+    "frozen_payload_sha256": "4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41",
+    "differing_words": [
+      {
+        "offset": "0x149f0",
+        "bundle": "0x91019000",
+        "frozen": "0x9101b000"
+      }
+    ],
+    "debug_enabled_literal_refs": {
+      "bundle": {
+        "offset": "0x1a30064",
+        "va": "0xffff800081a30064",
+        "adrp_word": "0x9000d0e0",
+        "add_word": "0x91019000",
+        "bytes_hex": "64656275675f656e61626c656400",
+        "text": "debug_enabled"
+      },
+      "frozen": {
+        "offset": "0x1a3006c",
+        "va": "0xffff800081a3006c",
+        "adrp_word": "0x9000d0e0",
+        "add_word": "0x9101b000",
+        "bytes_hex": "64656275675f656e61626c656400",
+        "text": "debug_enabled"
+      }
+    },
+    "verdict": "SUBSYS_FS_NAME_LITERAL_ADDRESS_DELTA_VERIFIED"
+  },
+  "cfg_closure": {
+    "candidate_window_length": 56,
+    "function_size": 56,
+    "window_derivation": "TARGET_CFG",
+    "internal_branch_sources": [],
+    "internal_branch_targets": [],
+    "overwritten_sources": [],
+    "surviving_sources": [],
+    "targets_in_overwritten_region": [],
+    "back_edges": [],
+    "surviving_into_interior": [],
+    "cfg_closure_proven": true
+  },
+  "window_derivation": "TARGET_CFG",
+  "relocation_sites_checked": 284143,
+  "audit_elf_unchanged": true,
+  "source_commit": "e201a8d74bf94c3b9e9014ee91dfe952d17ad027",
+  "run_id": "35195817696",
+  "bundle": {
+    "linux_base": "8b73de7da85fde281a385e0b26eda9bffd3ca477",
+    "patch_queue_sha256": "d470701d58d62bf10b96adb4dbf0c639945afccd45d4d3f039e8051e7aaaf1b5",
+    "source_commit": "ba870dbdc094bdee08c67e465f229e67c36ac0b6",
+    "run_id": "35036419486",
+    "files": {
+      "Image": "43fb1c9128bdf37a2a77eb88cfff234381340b098ebf1aea1eabb2741180cebb",
+      "vmlinux": "295bfdb12184052a79c1aea35ce4a93a5833c42bdb7b4bd9173973312ade00ff",
+      "System.map": "e3ed0234692c5dc80188996730bb13f2303fd2ecb573e303134df02b7f61b3ea",
+      "kernel.config": "f947a2e44e60f5818e5e63ed3192d5eeca652b45665c6f4b13b3796cea359bfa"
+    },
+    "elf_export_reconciliation": {
+      "original_vmlinux_sha256": "42c04b8dc386b2f378e20b2b67bc635e11c681e0e1ba7a3bbe8a076af27ca2ca",
+      "archived_vmlinux_sha256": "295bfdb12184052a79c1aea35ce4a93a5833c42bdb7b4bd9173973312ade00ff",
+      "image_reproduction": "EXACT_MATCH",
+      "system_map_entries_matched": 167212,
+      "cause": "llvm-objcopy --dump-section without output rewrote ELF container in place",
+      "rebuild": false,
+      "run_id": "35040148509",
+      "source_commit": "ef629df364a592dd63e83743dfc06bf69f15ae5c"
+    }
+  },
+  "normal_boot_candidate": false,
+  "runtime_dtb_external_initrd": false,
+  "chosen_properties": [
+    "bootargs",
+    "stdout-path"
+  ],
+  "positive_proves": "all subsys initcalls completed and the first fs initcall entry was reached",
+  "positive_does_not_prove": "the first fs initcall body, fs completion, later levels, console or /init",
+  "init_symbols": {
+    "rest_init": "0xffff8000810c1f48",
+    "kernel_init": "0xffff8000810c2030",
+    "kernel_init_freeable": "0xffff800081b3103c",
+    "smp_init": "0xffff800081b466e0"
+  },
+  "device_operation": false
+}

@@ -1,0 +1,20 @@
+
+kernel-bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+ffff8000800149e0 <create_debug_debugfs_entry>:
+ffff8000800149e0: d503233f     	paciasp
+ffff8000800149e4: a9bf7bfd     	stp	x29, x30, [sp, #-0x10]!
+ffff8000800149e8: 910003fd     	mov	x29, sp
+ffff8000800149ec: 9000d0e0     	adrp	x0, 0xffff800081a30000 <k_cur.cur_chars+0x1198a>
+ffff8000800149f0: 91019000     	add	x0, x0, #0x64
+ffff8000800149f4: b000ea83     	adrp	x3, 0xffff800081d65000 <init_task+0x600>
+ffff8000800149f8: 91240063     	add	x3, x3, #0x900
+ffff8000800149fc: 52803481     	mov	w1, #0x1a4      // =420
+ffff800080014a00: aa1f03e2     	mov	x2, xzr
+ffff800080014a04: 941231c5     	bl	0xffff8000804a1118 <debugfs_create_bool>
+ffff800080014a08: 2a1f03e0     	mov	w0, wzr
+ffff800080014a0c: a8c17bfd     	ldp	x29, x30, [sp], #0x10
+ffff800080014a10: d50323bf     	autiasp
+ffff800080014a14: d65f03c0     	ret
