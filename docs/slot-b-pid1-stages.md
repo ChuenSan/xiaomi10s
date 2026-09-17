@@ -815,11 +815,13 @@ Next: `MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_FAILURE_ISOLATION_CI`.
 
 ## FS failure isolation CI
 
-GHA-only. CONTROL-A applies the failed trampoline architecture to the
-proven first FS entry `create_debug_debugfs_entry`. CONTROL-B probes
-runtime-table midpoint index 26 `proc_meminfo_init`. No device
-operation this round. Runtime `FS_INITCALLS_COMPLETED` and
-`FIRST_DEVICE_INITCALL_ENTRY` stay NOT_PROVEN.
+GHA-only complete. Forensic `STATIC_DESIGN_DEFECT=NO`. CONTROL-A
+trampoline on proven `create_debug_debugfs_entry`. CONTROL-B midpoint
+index 26 `proc_meminfo_init` INLINE_56B size 76. Public `35230518371`,
+private pack `35233229575`, reverify `35234689905`, observer
+`35234636839`. Both pairs READY. No device. Runtime
+`FS_INITCALLS_COMPLETED` and `FIRST_DEVICE_INITCALL_ENTRY` stay
+NOT_PROVEN. Final gate: `R3_SLOT_B_FS_FAILURE_ISOLATION_CONTROLS_READY`.
 See `docs/slot-b-fs-initcall-checkpoint.md`.
 
 

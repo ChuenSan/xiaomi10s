@@ -196,35 +196,50 @@ Evidence: `artifacts/slot-b-fs-private-gate-20260917/`,
 
 ## Failure isolation CI
 
-`MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_FAILURE_ISOLATION_CI` is GHA-only.
-It does not rerun FS8/FS1, does not rebuild the kernel, and does not
-touch a device or Slot A.
+`MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_FAILURE_ISOLATION_CI` completed
+GHA-only. Public run `35230518371` at `f217326`. Private pack
+`35233229575`. Independent private reverify `35234689905`. Observer
+`35234636839` at `9db9b22`. No kernel rebuild, no device, Slot A
+untouched. FS8/FS1 reruns remain forbidden.
 
-Static forensic of the failed first-device trampoline is encoded in
-`checkpoint.forensic_failed_fs_pair`. Link-time encoding, PAC entry,
-island identity, live trampoline, PREL32 and DELAY_CONSTANT_ONLY are
-re-checked against the frozen public pair. `.head.text` runtime RX after
-EFI-stub exit remains `HYPOTHESIS_UNPROVEN`.
+Static forensic of failed FS8/FS1: `STATIC_DESIGN_DEFECT=NO`.
+`HEAD_TEXT_RUNTIME_RX=HYPOTHESIS_UNPROVEN`.
 
-CONTROL-A reuses the same ENTRY_TRAMPOLINE / island `[0xffcc,0x10000)` /
-52B no-daifset core on the already-proven first FS entry
-`create_debug_debugfs_entry` at `0xffff8000800149e0` / Image `0x149e0`.
-PREL32 at `__initcall5_start` is not rewritten. Pair CONTROL8/CONTROL1
-is delay-constant-only.
+CONTROL-A target `create_debug_debugfs_entry` `0xffff8000800149e0` /
+`0x149e0` size 56. Forced `ENTRY_TRAMPOLINE` island `[0xffcc,0x10000)`
+52B no-daifset. PREL32 `__initcall5_start` unchanged.
 
-CONTROL-B midpoint is runtime-table index `26` of 53:
-`proc_meminfo_init` at `0xffff800081b5770c`, table
-`0xffff800081d0b13c`, `fs_initcall(proc_meminfo_init)`. Probe geometry
-is chosen from function size in GHA (`select_fs_complete_core`); a
-trampoline still pins island `0xffcc`.
+| | SHA-256 |
+| --- | --- |
+| CONTROL8 payload | `98d7f0ebff37af94f272ba5042da50e987073052fc018ab02d5e6c87ba626096` |
+| CONTROL1 payload | `c219658aeec53697c4d29dfdaac0d2b5c671726e15831af677380678bb7864e2` |
+| CONTROL8 boot | `2feff8bc1c055f5b2fade01e00c992b49277068b6a0f95d145cd31fe9a87ecc1` |
+| CONTROL1 boot | `4551a94079ace87062f6a51444bfdbff76982e1b34b4b65658022df9e0c6db99` |
 
-Runtime evidence is unchanged:
+CONTROL-B midpoint index 26 `proc_meminfo_init` `0xffff800081b5770c` /
+`0x1b5770c` size 76. Selected `INLINE_PACIASP_PLUS_56B_ULTRACOMPACT`
+window 60. PREL32 of that table slot unchanged.
 
-`FS_INITCALLS_COMPLETED=NOT_PROVEN`
+| | SHA-256 |
+| --- | --- |
+| MID8 payload | `0dba6383a2f494bd33ba4623ef86eeb33cc8942961bf31b7d58c25d49c20c392` |
+| MID1 payload | `ca98a432b8c8bb0f6035de47cf9f7b77b6d45fcffab3d8d8e9e5cf21611a2973` |
+| MID8 boot | `89614d8a2d85ba53ca34d353db558fe8cbfc775740b85d3b1b899ef35bc7b4b0` |
+| MID1 boot | `b2b7cd68a68886ebcc7f6fc598d22c7a27ecc9698a7397ec97b58271627c1499` |
 
-`FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`
+Both pairs `DELAY_CONSTANT_ONLY`. Live tramp `[0x40,0x70)` identical.
 
-Public artifacts: `thyme-fs-control-pair`, `thyme-fs-midpoint-pair`.
-Private pack is a separate GHA on `thyme-mainline-private-ci`.
+`READY_FOR_FS_TRAMPOLINE_CONTROL_DEVICE_PAIR=YES`
+
+`READY_FOR_FS_MIDPOINT_DEVICE_PAIR=YES`
+
+Runtime unchanged: `FS_INITCALLS_COMPLETED=NOT_PROVEN`,
+`FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`.
+
+Final gate: `R3_SLOT_B_FS_FAILURE_ISOLATION_CONTROLS_READY`.
+
+WAIT FOR USER APPROVAL before any device boot. Future device: serial
+CONTROL8 then CONTROL1 then MID8 then MID1, each one RAM-only Slot B
+boot, observer `total_s`.
 
 
