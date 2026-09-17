@@ -1,0 +1,80 @@
+name: thyme-slot-b-arch-observer-fixtures
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/arch_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-arch-observer-fixtures.yml
+  pull_request:
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/arch_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-arch-observer-fixtures.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thyme-slot-b-arch-observer-fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  arch-observer-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: GHA-only observer source and fixture tests
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/slot_b/observe.py \
+            scripts/slot_b/test_observe.py scripts/slot_b/arch_observer_fixtures.py
+          (cd scripts/slot_b && python3 -B -m unittest test_observe.py -v) \
+            2>&1 | tee arch-observer-unit-tests.log
+          (cd scripts/slot_b && python3 -B arch_observer_fixtures.py) \
+            | tee arch-observer-fixtures.txt
+          for gate in \
+            ARCH8_OBSERVER_READY=YES \
+            ARCH1_OBSERVER_READY=YES \
+            ARCH_PAIR_OBSERVER_FIXTURES=PASS \
+            ARCH_160B_GEOMETRY_GATE=PASS \
+            ARCH_60B_NEGATIVE_FIXTURE=PASS \
+            ARCH_PAIR_DEVICE_EXECUTION_SPLIT=REQUIRED \
+            ARCH_PAIR_EXECUTION_ORDER=ARCH8_THEN_ARCH1 \
+            ARCH_FUTURE_PAIR_BOUNDARIES=PASS \
+            SECOND_BOOT_FORBIDDEN=PASS \
+            RAM_BOOT_ONLY=PASS \
+            MANUAL_RECOVERY_TIMING_NOT_PROOF=PASS; do
+            grep -Fxq "$gate" arch-observer-fixtures.txt
+          done
+          printf '%s\n' \
+            'ARCH8_OBSERVER_FULL_SHA_GATE=PASS' \
+            'ARCH1_OBSERVER_FULL_SHA_GATE=PASS' \
+            'ARCH_160B_GEOMETRY_GATE=PASS' \
+            'ARCH_60B_NEGATIVE_FIXTURE=PASS' \
+            'ARCH_PAIR_OBSERVER_FIXTURES=PASS' \
+            'DEVICE_OPERATION=NO' \
+            'ADB_DEVICE_OPERATION=NO' \
+            'FASTBOOT_DEVICE_OPERATION=NO' \
+            'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' \
+            | tee arch-observer-gates.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-arch-observer-fixtures
+          path: |
+            arch-observer-unit-tests.log
+            arch-observer-fixtures.txt
+            arch-observer-gates.txt
+          if-no-files-found: error
+          retention-days: 90

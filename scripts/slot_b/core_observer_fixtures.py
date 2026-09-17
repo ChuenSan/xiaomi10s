@@ -56,7 +56,7 @@ def main() -> None:
     reject("core1", size1, mutated(sha1, "psci"), "CORE1_WRONG_PSCI_REJECT")
     reject("core8", 37380096, FIX8_SHA, "CORE8_REJECTS_FIX8")
     reject("core1", 37380096, FIX8_SHA, "CORE1_REJECTS_FIX8")
-    for old in ("pure8", "pure1", "console8", "console1", "initcalls8",
+    for old in ("arch8", "arch1", "postcore8", "postcore1", "pure8", "pure1", "console8", "console1", "initcalls8",
                 "initcalls1", "smp8", "smp1", "free8", "free1",
                 "kinit8", "kinit1", "rest8", "rest1", "reset8", "reset1"):
         reject("core8", *observe.IMAGES[old], f"CORE8_REJECTS_{old.upper()}")

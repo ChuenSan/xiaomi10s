@@ -36,6 +36,8 @@ IMAGES = {
     "core1": (37380096, "a66c3f7a95e05905f5f65d96cb7f378ccdad9edf33814271425829ce10fe3e6c"),
     "postcore8": (37380096, "141d67931f8792036119c131d93ffa74649af2c6c44d086b489851230075355c"),
     "postcore1": (37380096, "4762a9fd29e109affb1c8864247887334508d9af2d6b183b7bf0200a05b697f1"),
+    "arch8": (37380096, "7fcdbd0de81d0396280b941ed9cf7f2a4b3f9818b5ffe131fa59cfc49524e48d"),
+    "arch1": (37380096, "f1aa8943131f768ceb7a7a0b160877195bb01ca69ba8252697fe6f5fe1a23113"),
 }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
@@ -48,6 +50,7 @@ PAIRS = {
     "pure1": ("pure8", "pure_initcalls_completed", "core_initcalls_completed"),
     "core1": ("core8", "core_initcalls_completed", "first_postcore_initcall_body"),
     "postcore1": ("postcore8", "postcore_initcalls_completed", "first_arch_initcall_body"),
+    "arch1": ("arch8", "arch_initcalls_completed", "first_subsys_initcall_body"),
 }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -57,6 +60,11 @@ CONTEXT = {
     "dtbo_b": "018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634",
 }
 PROTOCOL = "slot-b-p15-fastboot-return-v1"
+ARCH_GEOMETRY = {
+    "target": "topology_init", "va": 0xFFFF800081B346FC, "offset": 0x1B346FC,
+    "function_size": 188, "window": 160, "entry": "paciasp",
+    "back_edge_src": 0x9C, "back_edge_dst": 0x38,
+}
 REST_ORIGIN = "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B"
 VARS = ("product", "unlocked", "current-slot", "slot-count",
         "snapshot-update-status", "battery-soc-ok", "max-download-size",
@@ -70,6 +78,15 @@ def require(condition, message):
 
 def validate_identity(case, size, digest):
     require(case in IMAGES and (size, digest) == IMAGES[case], "IMAGE_IDENTITY_MISMATCH")
+
+
+def validate_arch_geometry(window):
+    require(window != 60, "ARCH_60B_WINDOW_REJECTED")
+    require(window == ARCH_GEOMETRY["window"], "ARCH_WINDOW_NOT_160")
+    require(ARCH_GEOMETRY["window"] <= ARCH_GEOMETRY["function_size"],
+            "ARCH_WINDOW_EXCEEDS_FUNCTION")
+    require(ARCH_GEOMETRY["back_edge_src"] + 4 <= window, "ARCH_BACKEDGE_SOURCE_LIVE")
+    require(ARCH_GEOMETRY["entry"] == "paciasp", "ARCH_ENTRY_NOT_PACIASP")
 
 
 def validate_context(context, case=None):
@@ -143,6 +160,21 @@ def pair_verdict(baseline, result):
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(postcore_initcalls_checkpoint_shift_not_observed="YES",
                        next="POSTCORE_INITCALLS_FAILURE_ISOLATION_CI")
+    elif second == "arch1":
+        arch_grade = "STRONGLY_SUPPORTED" if verdict == "SUPPORTED" else grade
+        out.update(arch_initcalls_completed=arch_grade,
+                   first_subsys_initcall_entry=arch_grade,
+                   first_subsys_initcall_body="NOT_PROVEN",
+                   subsys_initcalls_completed="NOT_PROVEN",
+                   fs_initcalls_completed="NOT_PROVEN",
+                   device_initcalls_completed="NOT_PROVEN",
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(arch_initcalls_checkpoint_shift_not_observed="YES",
+                       next="ARCH_INITCALLS_FAILURE_ISOLATION_CI")
     return out
 
 

@@ -175,6 +175,60 @@ class SafetyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "IMAGE_IDENTITY_MISMATCH"):
                 observe.validate_identity(case, size, digest)
 
+    def test_arch_geometry_rejects_sixty_byte_window(self):
+        observe.validate_arch_geometry(160)
+        with self.assertRaisesRegex(ValueError, "ARCH_60B_WINDOW_REJECTED"):
+            observe.validate_arch_geometry(60)
+        with self.assertRaisesRegex(ValueError, "ARCH_WINDOW_NOT_160"):
+            observe.validate_arch_geometry(188)
+        self.assertEqual(observe.ARCH_GEOMETRY["target"], "topology_init")
+        self.assertEqual(observe.ARCH_GEOMETRY["offset"], 0x1B346FC)
+        self.assertEqual(observe.ARCH_GEOMETRY["function_size"], 188)
+        self.assertEqual(observe.ARCH_GEOMETRY["window"], 160)
+        self.assertEqual(observe.ARCH_GEOMETRY["back_edge_src"], 0x9C)
+
+    def test_arch_pair_proof_boundary_and_no_shift_route(self):
+        baseline = {**self.record("arch8", 35.0),
+                    "bootloader_origin": observe.REST_ORIGIN}
+        strong = {**self.record("arch1", 28.0),
+                  "bootloader_origin": observe.REST_ORIGIN}
+        verdict = observe.pair_verdict(baseline, strong)
+        self.assertEqual(verdict["verdict"], "STRONG")
+        self.assertEqual(verdict["arch_initcalls_completed"], "PROVEN")
+        self.assertEqual(verdict["first_subsys_initcall_entry"], "PROVEN")
+        self.assertEqual(verdict["first_subsys_initcall_body"], "NOT_PROVEN")
+        self.assertEqual(verdict["subsys_initcalls_completed"], "NOT_PROVEN")
+        self.assertEqual(verdict["console_on_rootfs_entry"], "NOT_PROVEN")
+        self.assertEqual(verdict["usb"], "FROZEN")
+        supported = {**self.record("arch1", 26.5),
+                     "bootloader_origin": observe.REST_ORIGIN}
+        supported_verdict = observe.pair_verdict(baseline, supported)
+        self.assertEqual(supported_verdict["verdict"], "SUPPORTED")
+        self.assertEqual(supported_verdict["arch_initcalls_completed"],
+                         "STRONGLY_SUPPORTED")
+        self.assertEqual(supported_verdict["first_subsys_initcall_entry"],
+                         "STRONGLY_SUPPORTED")
+        no_shift = {**self.record("arch1", 35.0),
+                    "bootloader_origin": observe.REST_ORIGIN}
+        miss = observe.pair_verdict(baseline, no_shift)
+        self.assertEqual(miss["arch_initcalls_checkpoint_shift_not_observed"], "YES")
+        self.assertEqual(miss["next"], "ARCH_INITCALLS_FAILURE_ISOLATION_CI")
+        self.assertNotIn("arch_initcalls_not_completed", miss)
+
+    def test_arch_member_full_sha_gates_are_distinct(self):
+        size8, sha8 = observe.IMAGES["arch8"]
+        size1, sha1 = observe.IMAGES["arch1"]
+        self.assertEqual(size8, size1)
+        self.assertEqual(sha8, "7fcdbd0de81d0396280b941ed9cf7f2a4b3f9818b5ffe131fa59cfc49524e48d")
+        self.assertEqual(sha1, "f1aa8943131f768ceb7a7a0b160877195bb01ca69ba8252697fe6f5fe1a23113")
+        observe.validate_identity("arch8", size8, sha8)
+        observe.validate_identity("arch1", size1, sha1)
+        for case, size, digest in (("arch8", size1, sha1),
+                                   ("arch1", size8, sha8),
+                                   ("arch8", size8, observe.IMAGES["postcore8"][1])):
+            with self.assertRaisesRegex(ValueError, "IMAGE_IDENTITY_MISMATCH"):
+                observe.validate_identity(case, size, digest)
+
     def test_pair_delta_not_old_slot_a_absolute_timing(self):
         baseline = self.record("reset8", 50.0)
         strong = observe.pair_verdict(baseline, self.record("reset1", 43.1))
