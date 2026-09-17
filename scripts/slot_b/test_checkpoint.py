@@ -314,6 +314,94 @@ class CheckpointTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             checkpoint.gate_core_checkpoint_design(arch)
 
+    def test_subsys_checkpoint_negative_fixtures(self):
+        subsys = {
+            'checkpoint_point': 'FIRST_FS_INITCALL_EXACT_ENTRY',
+            'boundary': '__initcall5_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
+            'entry_encoding': 'PREL32', 'cross_function_overwrite': False,
+            'function_range_safe': True, 'function_size': 60, 'probe_size': 60,
+            'incoming_interior_branches': 0, 'backedge_conflict': False,
+            'runtime_rewrite_conflict': False, 'cfg_closure_proven': True,
+            'window_derivation': 'TARGET_CFG', 'reuse_arch_160b': False,
+            'copied_arch_probe': False, 'prior_arch_probe': False,
+            'prior_core_probe': False, 'prior_postcore_probe': False,
+            'literal_delta': 'EXACT_OR_INDEPENDENTLY_PROVEN',
+            'pair_diff': 'DELAY_CONSTANT_ONLY', 'timer': 'CNTPCT',
+            'psci_fid': '0x84000009', 'timer_algorithm_changed': False,
+            'prior_pure_probe': False, 'prior_console_probe': False,
+            'rt_d_sha256': '4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327',
+            'init_changed': False, 'private_pack': False, 'device_operation': False,
+        }
+        checkpoint.gate_subsys_checkpoint_design(subsys)
+        with self.assertRaises(ValueError):
+            checkpoint.gate_subsys_checkpoint_design(dict(subsys, boundary='__initcall4_start'))
+        with self.assertRaises(ValueError):
+            checkpoint.gate_arch_checkpoint_design(subsys)
+        with self.assertRaises(ValueError):
+            checkpoint.gate_subsys_checkpoint_design(dict(subsys, function_size=56))
+        fixtures = {
+            'use_initcall4_start': ('boundary', '__initcall4_start'),
+            'shared_loop': ('checkpoint_point', 'SHARED_DO_INITCALLS_LOOP'),
+            'wrong_first_fs_target': ('checkpoint_point', 'WRONG_FIRST_FS_TARGET'),
+            'symbol_order_guess': ('target_derivation', 'SYSTEM_MAP_ORDER_GUESS'),
+            'before_entry': ('checkpoint_point', 'BEFORE_FIRST_FS_ENTRY'),
+            'cross_function': ('cross_function_overwrite', True),
+            'short_function': ('function_size', 56),
+            'blind_reuse_arch_160b': ('reuse_arch_160b', True),
+            'copied_arch_window': ('window_derivation', 'COPIED_ARCH_160B'),
+            'copied_arch_probe': ('copied_arch_probe', True),
+            'incoming_branch': ('incoming_interior_branches', 1),
+            'backedge_source_live': ('backedge_conflict', True),
+            'cfg_not_closed': ('cfg_closure_proven', False),
+            'runtime_rewrite': ('runtime_rewrite_conflict', True),
+            'unproved_literal_delta': ('literal_delta', 'UNPROVEN'),
+            'extra_pair_diff': ('pair_diff', 'EXTRA_BYTES'),
+            'timer_change': ('timer_algorithm_changed', True),
+            'psci_change': ('psci_fid', '0x84000008'),
+            'arch_probe_remains': ('prior_arch_probe', True),
+            'postcore_probe_remains': ('prior_postcore_probe', True),
+            'core_probe_remains': ('prior_core_probe', True),
+            'pure_probe_remains': ('prior_pure_probe', True),
+            'console_probe_remains': ('prior_console_probe', True),
+            'rt_d_changed': ('rt_d_sha256', '0' * 64),
+            'init_changed': ('init_changed', True),
+            'private_pack': ('private_pack', True),
+            'device_operation': ('device_operation', True),
+        }
+        for name, (key, value) in fixtures.items():
+            bad = dict(subsys)
+            bad[key] = value
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                checkpoint.gate_subsys_checkpoint_design(bad)
+        self.assertNotIn('subsys_complete', checkpoint.EXPANDED_WINDOWS)
+        self.assertIn('subsys_complete', checkpoint.CFG_DERIVED_WINDOWS)
+
+    def test_subsys_window_is_derived_from_target_cfg_not_arch_160b(self):
+        base = 0xFFFF800081B00000
+        self.assertEqual(checkpoint.derive_inline_window(base, 188, [], 60), 60)
+        self.assertEqual(
+            checkpoint.derive_inline_window(base, 188, [[hex(base + 0x9C), hex(base + 0x38)]], 60),
+            0xA0)
+        with self.assertRaises(ValueError):
+            checkpoint.derive_inline_window(base, 56, [], 60)
+        with self.assertRaises(ValueError):
+            checkpoint.derive_inline_window(base, 80, [[hex(base + 0x9C), hex(base + 0x38)]], 60)
+        report = checkpoint.cfg_closure_report(
+            base, 188, 0xA0,
+            {'internal_branches': [[hex(base + 0x9C), hex(base + 0x38)]],
+             'back_edges': [[hex(base + 0x9C), hex(base + 0x38)]],
+             'incoming_window_interior': []})
+        self.assertTrue(report['cfg_closure_proven'])
+        self.assertEqual(report['window_derivation'], 'TARGET_CFG')
+        self.assertEqual(report['candidate_window_length'], 0xA0)
+        live = checkpoint.cfg_closure_report(
+            base, 188, 60,
+            {'internal_branches': [[hex(base + 0x9C), hex(base + 0x38)]],
+             'back_edges': [[hex(base + 0x9C), hex(base + 0x38)]],
+             'incoming_window_interior': [[hex(base + 0x9C), hex(base + 0x38)]]})
+        self.assertFalse(live['cfg_closure_proven'])
+        self.assertEqual(live['surviving_sources'][0]['source_offset'], '0x9c')
+
     def test_ultracompact_core_and_literal_delta_are_exact(self):
         words = (0xD5034FDF, 0xD53BE009, 0xD37DF12A, 0xD53BE02B,
                  0xD5033FDF, 0xD53BE02C, 0xCB0B018D, 0xEB0A01BF,

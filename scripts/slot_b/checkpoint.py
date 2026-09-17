@@ -33,16 +33,21 @@ TARGETS = {"rest_init": 0x10C1F48, "kernel_init": 0x10C2030,
 INITCALL_BOUNDARIES = {"pure_complete": "__initcall1_start",
                        "core_complete": "__initcall2_start",
                        "postcore_complete": "__initcall3_start",
-                       "arch_complete": "__initcall4_start"}
+                       "arch_complete": "__initcall4_start",
+                       "subsys_complete": "__initcall5_start"}
 INITCALL_MACROS = {"pure_complete": "core_initcall", "core_complete": "postcore_initcall",
-                   "postcore_complete": "arch_initcall", "arch_complete": "subsys_initcall"}
+                   "postcore_complete": "arch_initcall", "arch_complete": "subsys_initcall",
+                   "subsys_complete": "fs_initcall"}
 INITCALL_SOURCE_PREFIX = {"postcore_complete": "arch/arm64/", "arch_complete": "arch/arm64/"}
-ULTRACOMPACT_SYMBOLS = frozenset({"core_complete", "postcore_complete", "arch_complete"})
+ULTRACOMPACT_SYMBOLS = frozenset({"core_complete", "postcore_complete", "arch_complete",
+                                  "subsys_complete"})
 EXPANDED_WINDOWS = {"do_initcalls": 96, "arch_complete": 160}
+CFG_DERIVED_WINDOWS = frozenset({"subsys_complete"})
 INITCALL_BOUNDARY_SYMBOLS = ("__initcall1_start", "__initcall2_start", "__initcall3_start",
                              "__initcall4_start", "__initcall5_start")
 INITCALL_TARGET_LABELS = {"pure_complete": "FIRST_CORE", "core_complete": "FIRST_POSTCORE",
-                          "postcore_complete": "FIRST_ARCH", "arch_complete": "FIRST_SUBSYS"}
+                          "postcore_complete": "FIRST_ARCH", "arch_complete": "FIRST_SUBSYS",
+                          "subsys_complete": "FIRST_FS"}
 PROOF_BOUNDARIES = {
     "rest_init": ("rest_init entry and preceding normal start_kernel path",
                   "rest_init body, scheduler, SMP or /init"),
@@ -66,6 +71,8 @@ PROOF_BOUNDARIES = {
                           "the first arch initcall body, arch completion, later levels, console or /init"),
     "arch_complete": ("all arch initcalls completed and the first subsys initcall entry was reached",
                       "the first subsys initcall body, subsys completion, later levels, console or /init"),
+    "subsys_complete": ("all subsys initcalls completed and the first fs initcall entry was reached",
+                        "the first fs initcall body, fs completion, later levels, console or /init"),
 }
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
 
@@ -89,6 +96,7 @@ def gate_checkpoint_design(design, stage):
         "core": ("FIRST_POSTCORE_INITCALL_EXACT_ENTRY", "__initcall2_start"),
         "postcore": ("FIRST_ARCH_INITCALL_EXACT_ENTRY", "__initcall3_start"),
         "arch": ("FIRST_SUBSYS_INITCALL_EXACT_ENTRY", "__initcall4_start"),
+        "subsys": ("FIRST_FS_INITCALL_EXACT_ENTRY", "__initcall5_start"),
     }
     require(stage in boundaries, "CHECKPOINT_DESIGN_STAGE_INVALID")
     checkpoint_point, boundary = boundaries[stage]
@@ -127,6 +135,18 @@ def gate_arch_checkpoint_design(design):
     }
     for key, value in extra.items():
         require(design.get(key) == value, f"ARCH_DESIGN_REJECTED:{key}")
+
+
+def gate_subsys_checkpoint_design(design):
+    gate_checkpoint_design(design, "subsys")
+    extra = {
+        "window_derivation": "TARGET_CFG", "reuse_arch_160b": False,
+        "copied_arch_probe": False, "prior_arch_probe": False,
+        "prior_core_probe": False, "prior_postcore_probe": False,
+        "cfg_closure_proven": True,
+    }
+    for key, value in extra.items():
+        require(design.get(key) == value, f"SUBSYS_DESIGN_REJECTED:{key}")
 
 
 def compact_core(core):
@@ -280,6 +300,50 @@ def pad_probe(probe, length):
     return probe + struct.pack("<I", 0xD503201F) * ((length - len(probe)) // 4)
 
 
+def derive_inline_window(function_va, function_size, internal_branches, min_size):
+    require(min_size > 0 and min_size % 4 == 0, "INVALID_MIN_PROBE")
+    require(function_size >= min_size, "PROBE_LARGER_THAN_TARGET_FUNCTION")
+    window = min_size
+    while True:
+        live = []
+        for src_hex, dst_hex in internal_branches:
+            src_off = int(src_hex, 16) - function_va
+            dst_off = int(dst_hex, 16) - function_va
+            if src_off >= window and 0 < dst_off < window:
+                live.append(src_off)
+        if not live:
+            return window
+        grown = max((off + 4 + 3) & ~3 for off in live)
+        require(grown <= function_size, "CFG_CLOSURE_EXCEEDS_FUNCTION")
+        require(grown > window, "CFG_WINDOW_DID_NOT_GROW")
+        window = grown
+
+
+def cfg_closure_report(function_va, function_size, window, topology):
+    overwritten, surviving, targets_in = [], [], []
+    for src_hex, dst_hex in topology["internal_branches"]:
+        src, dst = int(src_hex, 16), int(dst_hex, 16)
+        rec = {"source": src_hex, "target": dst_hex,
+               "source_offset": hex(src - function_va),
+               "target_offset": hex(dst - function_va)}
+        if 0 <= src - function_va < window:
+            overwritten.append(rec)
+        else:
+            surviving.append(rec)
+        if 0 < dst - function_va < window:
+            targets_in.append(rec)
+    interior = topology["incoming_window_interior"]
+    return {"candidate_window_length": window, "function_size": function_size,
+            "window_derivation": "TARGET_CFG",
+            "internal_branch_sources": [row[0] for row in topology["internal_branches"]],
+            "internal_branch_targets": [row[1] for row in topology["internal_branches"]],
+            "overwritten_sources": overwritten, "surviving_sources": surviving,
+            "targets_in_overwritten_region": targets_in,
+            "back_edges": topology["back_edges"],
+            "surviving_into_interior": interior,
+            "cfg_closure_proven": not interior}
+
+
 def patch_window(frozen, offset, probe):
     require(0 <= offset and offset + len(probe) <= len(frozen), "WINDOW_OUT_OF_BOUNDS")
     return frozen[:offset] + probe + frozen[offset + len(probe):]
@@ -400,8 +464,8 @@ def audit_initcall_source(linux):
                       r"fn\s*<\s*initcall_levels\[level\+1\];\s*fn\+\+\)", main),
             "INITCALL_ITERATION_SOURCE_MISMATCH")
     linker_levels = re.search(r"#define INIT_CALLS\b.*?__initcall_end\s*=\s*\.;", linker, re.S)
-    require(linker_levels is not None and re.findall(r"INIT_CALLS_LEVEL\(([^)]+)\)",
-            linker_levels.group(0)) == ["0", "1", "2", "3", "4", "5", "rootfs", "6", "7"],
+    linker_order = re.findall(r"INIT_CALLS_LEVEL\(([^)]+)\)", linker_levels.group(0)) if linker_levels else []
+    require(linker_levels is not None and linker_order == ["0", "1", "2", "3", "4", "5", "rootfs", "6", "7"],
             "INITCALL_LINKER_ORDER_SOURCE_MISMATCH")
     require("#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS" in init_h and
             "typedef int initcall_entry_t;" in init_h and
@@ -411,23 +475,33 @@ def audit_initcall_source(linux):
                       init_h), "ARCH_INITCALL_LEVEL_MACRO_MISMATCH")
     require(re.search(r"#define\s+subsys_initcall\s*\(\s*fn\s*\)\s*__define_initcall\s*\(\s*fn\s*,\s*4\s*\)",
                       init_h), "SUBSYS_INITCALL_LEVEL_MACRO_MISMATCH")
+    require(re.search(r"#define\s+fs_initcall\s*\(\s*fn\s*\)\s*__define_initcall\s*\(\s*fn\s*,\s*5\s*\)",
+                      init_h), "FS_INITCALL_LEVEL_MACRO_MISMATCH")
     kconfig = (linux / "arch/arm64/Kconfig").read_text()
     require(re.search(r"^\s*select\s+HAVE_ARCH_PREL32_RELOCATIONS\b", kconfig, re.M),
             "ARM64_PREL32_KCONFIG_MISSING")
+    next_linker_level = linker_order[linker_order.index("5") + 1]
+    fs_next_linker_boundary = f"__initcall{next_linker_level}_start"
     return {"pure": "__initcall0_start..__initcall1_start",
             "core": "__initcall1_start..__initcall2_start",
             "postcore": "__initcall2_start..__initcall3_start",
             "arch": "__initcall3_start..__initcall4_start",
             "subsys": "__initcall4_start..__initcall5_start",
+            "fs": "__initcall5_start..__initcall6_start",
             "pure_level_boundary": "__initcall1_start",
             "core_level_boundary": "__initcall2_start",
             "postcore_level_boundary": "__initcall3_start",
             "arch_level_boundary": "__initcall4_start",
             "subsys_level_boundary": "__initcall5_start",
+            "fs_level_boundary": "__initcall6_start",
+            "fs_next_linker_boundary": fs_next_linker_boundary,
+            "linker_order": linker_order,
             "core_complete_boundary_source_proven": True,
             "postcore_complete_boundary_source_proven": True,
             "arch_complete_boundary_source_proven": True,
+            "subsys_complete_boundary_source_proven": True,
             "first_subsys_entry_implies_arch_complete": True,
+            "first_fs_entry_implies_subsys_complete": True,
             "entry_encoding_source": "CONFIG_HAVE_ARCH_PREL32_RELOCATIONS => s32 .long target-."}
 
 
@@ -528,11 +602,23 @@ def compose(args, bundle):
     text_va = t3.nm_symbol(nm, "_text")
     sections = t3.section_map(out, TOOLS, vmlinux)
     initcall_boundary = None
+    cfg_report = None
     if args.symbol in INITCALL_BOUNDARIES:
         source_audit = audit_initcall_source(pb.LINUX)
+        boundary_names = list(INITCALL_BOUNDARY_SYMBOLS)
+        if args.symbol == "subsys_complete":
+            for extra in (source_audit["fs_next_linker_boundary"], source_audit["fs_level_boundary"]):
+                if extra not in boundary_names:
+                    boundary_names.append(extra)
         initcall_boundaries = {name: resolve_initcall_boundary(vmlinux, sections, nm, name)
-                               for name in INITCALL_BOUNDARY_SYMBOLS}
+                               for name in boundary_names}
         initcall_boundary = initcall_boundaries[INITCALL_BOUNDARIES[args.symbol]]
+        if args.symbol == "subsys_complete":
+            va4 = initcall_boundaries["__initcall4_start"]["entry_va"]
+            va5 = initcall_boundaries["__initcall5_start"]["entry_va"]
+            va_next = initcall_boundaries[source_audit["fs_next_linker_boundary"]]["entry_va"]
+            va_end = initcall_boundaries[source_audit["fs_level_boundary"]]["entry_va"]
+            require(va4 < va5 < va_next <= va_end, "FS_LEVEL_LINKER_ORDER_MISMATCH")
         target_va = initcall_boundary["target_va"]
         target_symbol = initcall_boundary["target_aliases"][0]
         next_va = min(va for va, _ in t3.symbol_table(nm) if va > target_va)
@@ -564,19 +650,30 @@ def compose(args, bundle):
     word0, word1 = struct.unpack_from("<II", frozen, offset)
     pad = t3.gate_sk_entry_insn(word0, word1, word0)
     t3.gate_instrumentation_audit(cfg, pad.split()[0], word0)
-    probe = frozen[offset:offset + 4] + core
-    probe = pad_probe(probe, EXPANDED_WINDOWS.get(args.symbol, len(probe)))
-    length = len(probe)
-    dump = pb.run([TOOLS["objdump"], "-d", f"--start-address={target_va:#x}",
-                   f"--stop-address={target_va + length:#x}", str(vmlinux)])
-    (out / "original-window.txt").write_text(dump)
+    ranges = [(s["vma"] - text_va, s["vma"] - text_va + s["size"])
+              for s in sections if s["code"] and s["alloc"]]
     function_dump = pb.run([TOOLS["objdump"], "-dr", f"--start-address={target_va:#x}",
                             f"--stop-address={extent:#x}", str(vmlinux)])
     (out / "original-function.txt").write_text(function_dump)
-    ranges = [(s["vma"] - text_va, s["vma"] - text_va + s["size"])
-              for s in sections if s["code"] and s["alloc"]]
+    landing_and_core = frozen[offset:offset + 4] + core
+    if args.symbol in CFG_DERIVED_WINDOWS:
+        min_probe = len(landing_and_core)
+        prelim = branch_audit(frozen[:len(image)], ranges, text_va,
+                              (target_va, extent), (target_va, target_va + min_probe))
+        length = derive_inline_window(target_va, extent - target_va,
+                                      prelim["internal_branches"], min_probe)
+        probe = pad_probe(landing_and_core, length)
+    else:
+        probe = pad_probe(landing_and_core, EXPANDED_WINDOWS.get(args.symbol, len(landing_and_core)))
+        length = len(probe)
+    dump = pb.run([TOOLS["objdump"], "-d", f"--start-address={target_va:#x}",
+                   f"--stop-address={target_va + length:#x}", str(vmlinux)])
+    (out / "original-window.txt").write_text(dump)
     topology = branch_audit(frozen[:len(image)], ranges, text_va,
                             (target_va, extent), (target_va, target_va + length))
+    if args.symbol in CFG_DERIVED_WINDOWS:
+        cfg_report = cfg_closure_report(target_va, extent - target_va, length, topology)
+        require(cfg_report["cfg_closure_proven"], "SUBSYS_CFG_CLOSURE_NOT_PROVEN")
     target_section = next(s for s in sections if s["vma"] <= target_va < s["vma"] + s["size"])
     entry_words = [hex(struct.unpack_from("<I", frozen, offset + i)[0])
                    for i in range(0, min(128, extent - target_va), 4)]
@@ -593,7 +690,8 @@ def compose(args, bundle):
                     "cfi": cfg.get("CONFIG_CFI_CLANG") == "y",
                     "fentry": cfg.get("CONFIG_FUNCTION_TRACER") == "y",
                     "stack_frame_in_window": any("stp\tx29, x30" in line for line in dump.splitlines()),
-                    "branch_topology": topology,
+                    "branch_topology": topology, "cfg_closure": cfg_report,
+                    "window_derivation": ("TARGET_CFG" if args.symbol in CFG_DERIVED_WINDOWS else "FIXED"),
                     "literal_load_words": [word for word in entry_words
                         if int(word, 16) & 0x3b000000 == 0x18000000]}
     (out / "target-entry-audit.json").write_text(json.dumps(target_audit, indent=2) + "\n")
@@ -706,7 +804,8 @@ def compose(args, bundle):
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
                 "frozen_sha256": digest(frozen), "changed_bytes": len(changed),
                 "outside_window_changed_bytes": 0, "runtime_rewrites": rewrites,
-                "window_agreement": agreement,
+                "window_agreement": agreement, "cfg_closure": cfg_report,
+                "window_derivation": ("TARGET_CFG" if args.symbol in CFG_DERIVED_WINDOWS else "FIXED"),
                 "relocation_sites_checked": len(sites), "audit_elf_unchanged": True,
                 "source_commit": os.environ["GITHUB_SHA"], "run_id": os.environ["GITHUB_RUN_ID"],
                 "bundle": metadata, "normal_boot_candidate": False,
@@ -734,6 +833,12 @@ def compose(args, bundle):
         print("ARCH_CHECKPOINT_SOURCE_AUDIT=PASS\nARCH_CHECKPOINT_BINARY_AUDIT=PASS\n"
               "FIRST_SUBSYS_ENTRY_AUDIT=PASS\nARCH_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES\n"
               "ARCH_CHECKPOINT_DIAGNOSTIC_SAFE=YES\nARCH_ALL_PRIOR_STAGE_PROBES_REMOVED=YES",
+              flush=True)
+    elif args.symbol == "subsys_complete":
+        print("SUBSYS_CHECKPOINT_SOURCE_AUDIT=PASS\nSUBSYS_CHECKPOINT_BINARY_AUDIT=PASS\n"
+              "FIRST_FS_ENTRY_AUDIT=PASS\nSUBSYS_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES\n"
+              "SUBSYS_CHECKPOINT_DIAGNOSTIC_SAFE=YES\nSUBSYS_ALL_PRIOR_STAGE_PROBES_REMOVED=YES\n"
+              "SUBSYS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=YES\nSUBSYS_CFG_CLOSURE_PROVEN=YES",
               flush=True)
     print(f"{args.symbol.upper()}_INLINE_AUDIT=PASS\nDEVICE_OPERATION=NO\nLOCAL_BUILD=NO", flush=True)
 
