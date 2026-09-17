@@ -77,12 +77,31 @@ all later initcall levels, `wait_for_initramfs`, console, `/init` and Linux full
 boot remain NOT_PROVEN; USB remains FROZEN. All 16 boot-chain hashes and the
 P15 prefix matched before/after, Current B is unchanged, and Android A was
 restored healthy. Partition image writes remained zero and Slot A was not
-written. Do not rerun CORE8, CORE1, PURE or CONSOLE. Recommended next:
-`MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_CHECKPOINT_CI_AUDIT`. No Linux boot
-success is claimed.
-Details: `docs/slot-b-pid1-stages.md` and
-`docs/slot-b-core-initcall-checkpoint.md`. Older A-return timing records below
-are historical, not this B baseline.
+written. Do not rerun CORE8, CORE1, PURE or CONSOLE.
+
+The CI-only postcore checkpoint audit is now complete. Public GHA
+`35169202296` at `88b67da2d70a2a57949f13457a0a460de2649270` decoded exact PREL32
+boundaries `__initcall2_start=0xffff800081d0ab6c`,
+`__initcall3_start=0xffff800081d0ac48` and
+`__initcall4_start=0xffff800081d0ae0c` from the authoritative Linux 6.6.156
+vmlinux. The first arch target is `reserve_memblock_reserved_regions` at
+`0xffff800081b33f60` / Image `0x1b33f60`, `.init.text`, 324 bytes, entry
+`paciasp`, registered in `arch/arm64/kernel/setup.c`. The 60-byte target window
+is exact against frozen FIX8; no literal-address exception was used. Entry,
+function-range, incoming-branch, relocation and runtime-rewrite gates passed.
+Public POSTCORE8 payload `537a021f6278130957fa666f32421d4f624e84803f00075e3ab2001b8eb9e98b`
+and POSTCORE1 payload
+`3a4b50c956413dabfd739181ca1ed19aca618002e0292782bf02b271ac9cd59f`
+differ only at `[0x1b33f6d,0x1b33f6f)`, instruction 3's delay encoding.
+Independent static reverify passed. Final gate:
+`MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_CHECKPOINT_CI_READY`.
+`PRIVATE_PACK=NO`, `DEVICE_OPERATION=NO`; this is not device authorization.
+Runtime evidence remains unchanged. Wait for explicit user approval.
+
+No Linux boot success is claimed. Details: `docs/slot-b-pid1-stages.md`,
+`docs/slot-b-core-initcall-checkpoint.md` and
+`docs/slot-b-postcore-initcall-checkpoint.md`. Older A-return timing records
+below are historical, not this B baseline.
 
 Maintained rule: this file is the ONLY current-state entry. Older docs keep
 their historical results and are never rewritten; where an older doc says
@@ -664,6 +683,39 @@ CORE_DEVICE_OPERATION=EXECUTED
 CORE1_DEVICE_OPERATION=EXECUTED
 CORE_CHECKPOINT_FINAL_GATE=MAINLINE_V2_R3_SLOT_B_CORE_INITCALLS_COMPLETED_PROVEN
 CORE_CHECKPOINT_NEXT_STAGE=MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_CHECKPOINT_CI_AUDIT
+POSTCORE_CHECKPOINT_CI_STATUS=READY
+POSTCORE_CHECKPOINT_PUBLIC_RUN=35169202296
+POSTCORE_CHECKPOINT_PUBLIC_COMMIT=88b67da2d70a2a57949f13457a0a460de2649270
+POSTCORE_COMPLETE_BOUNDARY_SOURCE_PROVEN=YES
+POSTCORE_BOUNDARY_SYMBOL=__initcall3_start
+ARCH_LEVEL_BOUNDARY=__initcall3_start..__initcall4_start
+INITCALL4_START_VA=0xffff800081d0ae0c
+INITCALL4_START_OFFSET=0x1d0ae0c
+FIRST_ARCH_INITCALL_SYMBOL=reserve_memblock_reserved_regions
+FIRST_ARCH_INITCALL_VA=0xffff800081b33f60
+FIRST_ARCH_INITCALL_OFFSET=0x1b33f60
+FIRST_ARCH_INITCALL_SIZE=324
+FIRST_ARCH_INITCALL_SOURCE=arch/arm64/kernel/setup.c
+FIRST_ARCH_INITCALL_ENTRY=NOT_PROVEN
+ARCH_INITCALLS_COMPLETED=NOT_PROVEN
+SUBSYS_INITCALLS_COMPLETED=NOT_PROVEN
+FS_INITCALLS_COMPLETED=NOT_PROVEN
+DEVICE_INITCALLS_COMPLETED=NOT_PROVEN
+LATE_INITCALLS_COMPLETED=NOT_PROVEN
+WAIT_FOR_INITRAMFS_RETURN=NOT_PROVEN
+POSTCORE_CHECKPOINT_WINDOW_AGREEMENT=EXACT
+POSTCORE_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES
+POSTCORE8_PAYLOAD_SHA256=537a021f6278130957fa666f32421d4f624e84803f00075e3ab2001b8eb9e98b
+POSTCORE1_PAYLOAD_SHA256=3a4b50c956413dabfd739181ca1ed19aca618002e0292782bf02b271ac9cd59f
+POSTCORE_PAIR_DIFF_BYTE_COUNT=2
+POSTCORE_PAIR_DIFF_RANGES=[0x1b33f6d,0x1b33f6f)
+POSTCORE_PAIR_CHANGED_INSTRUCTIONS=[3]
+POSTCORE_PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY
+POSTCORE_PAIR_STATIC_REVERIFY=PASS
+POSTCORE_PAIR_PUBLIC_READY=YES
+POSTCORE_PRIVATE_PACK=NO
+POSTCORE_DEVICE_OPERATION=NO
+POSTCORE_CHECKPOINT_FINAL_GATE=MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_CHECKPOINT_CI_READY
 CORE8_MEMBER_A_COMPLETED=YES
 CORE8_MEMBER_A_FROZEN=YES
 CORE8_TOTAL_S=34.961135333

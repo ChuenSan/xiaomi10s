@@ -391,5 +391,38 @@ CORE1, PURE and CONSOLE reruns are forbidden. Evidence:
 `artifacts/slot-b-core1-20260916/`.
 
 Final gate: `MAINLINE_V2_R3_SLOT_B_CORE_INITCALLS_COMPLETED_PROVEN`.
-Recommended next:
-`MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_CHECKPOINT_CI_AUDIT`.
+
+## Postcore-initcall completion checkpoint CI readiness
+
+Public GHA `35169202296` at
+`88b67da2d70a2a57949f13457a0a460de2649270` completed source audit, exact
+PREL32 table decode, target audit, public 8s/1s candidate preparation and
+independent static reverify without a kernel rebuild. It confirmed:
+
+- `__initcall2_start=0xffff800081d0ab6c`
+- `__initcall3_start=0xffff800081d0ac48`
+- `__initcall4_start=0xffff800081d0ae0c`
+- first arch initcall `reserve_memblock_reserved_regions` at
+  `0xffff800081b33f60` / Image `0x1b33f60`, from
+  `arch/arm64/kernel/setup.c`
+
+The target is `.init.text`, 324 bytes, entry `paciasp`. The 60-byte checkpoint
+stays inside the function; the target window is byte-exact against frozen FIX8.
+No prior literal-address exception was generalized. Incoming-branch,
+relocation and runtime-rewrite gates remain enabled and passed.
+
+POSTCORE8 payload
+`537a021f6278130957fa666f32421d4f624e84803f00075e3ab2001b8eb9e98b`
+and POSTCORE1 payload
+`3a4b50c956413dabfd739181ca1ed19aca618002e0292782bf02b271ac9cd59f`
+differ only at `[0x1b33f6d,0x1b33f6f)`, instruction 3's delay encoding.
+Expected future delta is `-7.000s`; STRONG is `<=1.000s` absolute error and
+SUPPORTED `<=2.000s`.
+
+This CI gate does not change runtime evidence:
+`POSTCORE_INITCALLS_COMPLETED=NOT_PROVEN` and
+`FIRST_ARCH_INITCALL_ENTRY=NOT_PROVEN`. No private pack, boot image or device
+operation occurred. Final gate:
+`MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_CHECKPOINT_CI_READY`. This is not
+device authorization. See `docs/slot-b-postcore-initcall-checkpoint.md` and
+wait for explicit user approval.
