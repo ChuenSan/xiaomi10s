@@ -521,5 +521,43 @@ POSTCORE8 and POSTCORE1 reruns are forbidden. Evidence:
 `artifacts/slot-b-postcore1-20260917/`.
 
 Final gate: `MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_COMPLETED_PROVEN`.
-Recommended next: `MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_CHECKPOINT_CI_AUDIT`.
-See `docs/slot-b-postcore-initcall-checkpoint.md`.
+POSTCORE8 and POSTCORE1 reruns remain forbidden. See
+`docs/slot-b-postcore-initcall-checkpoint.md`.
+
+## Arch-initcall completion checkpoint CI readiness
+
+Public GHA `35182765631` at `fa4be7884cd91902ba22fc50bebc15a5f47cf8d2`
+completed source audit, exact PREL32 table decode, target audit, public 8s/1s
+candidate preparation and independent static reverify without a kernel rebuild.
+It confirmed:
+
+- `__initcall3_start=0xffff800081d0ac48`
+- `__initcall4_start=0xffff800081d0ae0c`
+- `__initcall5_start=0xffff800081d0b0d4`
+- first subsys initcall `topology_init` at `0xffff800081b346fc` / Image
+  `0x1b346fc`, from `arch/arm64/kernel/setup.c`
+
+The target is `.init.text`, 188 bytes, entry `paciasp`. The 60-byte diagnostic
+would leave the loop back-edge `+0x9c → +0x38` entering overwrite interior, so
+the accepted window is 160 bytes with 100 NOP bytes after the 56-byte CNTPCT
+PSCI core. The 160-byte window is byte-exact against frozen FIX8. No prior
+literal-address exception was generalized. Incoming-branch, relocation and
+runtime-rewrite gates remain enabled and passed.
+
+ARCH8 payload
+`feb46bb3da436c00ac54ee7898e9b1789a11f30878eb8859a2fcecf719d9cad5`
+and ARCH1 payload
+`efa7cc1c43302fd93872d905352f5737bd388aa698a9383b5d929e98223d2fc1`
+differ only at `[0x1b34709,0x1b3470b)`, instruction 3's delay encoding.
+Expected future delta is `-7.000s`; STRONG is `<=1.000s` absolute error and
+SUPPORTED `<=2.000s`.
+
+This CI gate does not change runtime evidence:
+`ARCH_INITCALLS_COMPLETED=NOT_PROVEN` and
+`FIRST_SUBSYS_INITCALL_ENTRY=NOT_PROVEN`. No private pack, boot image or device
+operation occurred. Final gate:
+`MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_CHECKPOINT_CI_READY`.
+`READY_FOR_ARCH_INITCALLS_PRIVATE_GATE=YES`. This public CI gate authorized no
+device operation. Recommended next:
+`MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_PRIVATE_GATE_FINALIZATION_CI`.
+See `docs/slot-b-arch-initcall-checkpoint.md`.
