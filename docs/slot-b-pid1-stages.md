@@ -741,4 +741,20 @@ passed without rebuild. The primary equation is
 `SUBSYS1_TOTAL-34.702650958s`, expected `-7.000000000s`, with STRONG `±1.000s`
 and SUPPORTED `±2.000s`. `READY_FOR_R3_SLOT_B_SUBSYS1_DEVICE_CONTROL=YES`.
 This review performed no device operation and did not auto-run SUBSYS1.
+
+## SUBSYS1 true-device member B
+
+Exactly one RAM-only Slot B boot of frozen SUBSYS1
+`df14e7bcdf409deeeede70d7217f420091a6e9a292b0670443df50c0a0e8b9a1`
+(37380096). Sending OKAY 0.915s, Booting OKAY 0.222s. Automatic Fastboot B
+return in `27.930752416s`, retry 7→6. Against frozen
+`SUBSYS8_TOTAL=34.702650958s`, `PAIR_DELTA=-6.771898542s`,
+`PAIR_ERROR=0.228101458s`, `ABS_PAIR_ERROR=0.228101458s`: **STRONG**.
+Therefore `SUBSYS_INITCALLS_COMPLETED=PROVEN` and
+`FIRST_FS_INITCALL_ENTRY=PROVEN`. The first FS body, later initcall levels,
+console, `/init` and USB remain NOT_PROVEN/FROZEN. Current B hashes and P15
+prefix matched before/after; Android A restored healthy. SUBSYS8 was not
+rerun. Final gate:
+`MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_COMPLETED_PROVEN`.
+Recommended next: `MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_CHECKPOINT_CI_AUDIT`.
 See `docs/slot-b-subsys-initcall-checkpoint.md`.
