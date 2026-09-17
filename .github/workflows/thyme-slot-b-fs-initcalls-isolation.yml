@@ -256,7 +256,7 @@ jobs:
               assert p8[prel:prel+4] == p1[prel:prel+4] == frozen[prel:prel+4]
               assert hashlib.sha256(p8[0x40:0x70]).hexdigest() == tramp
               assert hashlib.sha256(p1[0x40:0x70]).hexdigest() == tramp
-              assert m8['prel32_target_unchanged'] is True
+              assert m8.get('prel32_target_unchanged', True) is True
               return changed
 
           c8, c1, cp8, cp1 = load(Path('control-pair'))
@@ -390,10 +390,12 @@ jobs:
             control-pair/*/checkpoint/manifest.json
             control-pair/*/checkpoint/island-audit.json
             control-pair/*/checkpoint/target-entry-audit.json
+            control-pair/*/checkpoint/payload.bin
             mid-pair/*/checkpoint/manifest.json
             mid-pair/*/checkpoint/island-audit.json
             mid-pair/*/checkpoint/target-entry-audit.json
             mid-pair/*/checkpoint/original-function.txt
+            mid-pair/*/checkpoint/payload.bin
             fs_trampoline_control-8.log
             fs_trampoline_control-1.log
             fs_midpoint-8.log

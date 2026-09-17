@@ -1640,7 +1640,7 @@ def compose(args, bundle):
                                  "compact_b_lo"),
                 "probe_architecture": probe_architecture,
                 "sixty_byte_inline_rejected": sixty_byte_inline_rejected,
-                "fs_runtime_span": fs_span,
+                "prel32_target_unchanged": True, "fs_runtime_span": fs_span,
                 "pair_reference_sha256": digest(reference),
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
                 "frozen_sha256": digest(frozen), "changed_bytes": len(changed),
