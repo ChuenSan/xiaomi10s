@@ -40,6 +40,9 @@ IMAGES = {
     "arch1": (37380096, "f1aa8943131f768ceb7a7a0b160877195bb01ca69ba8252697fe6f5fe1a23113"),
     "subsys8": (37380096, "e082e530e4fce6dbe61f9cbe225851966fa35d1f80e4ab1dd69b5af9ba9175f1"),
     "subsys1": (37380096, "df14e7bcdf409deeeede70d7217f420091a6e9a292b0670443df50c0a0e8b9a1"),
+    "fs8": (37380096, "cfc9f3f9c931126aceb47a5dcc39c12227f34eceb7ad2d9e6642088f3b7e6594"),
+    "fs1": (37380096, "2377b227fd0eb4105330eec64f19843d7d64d42f994b12b999571cca6f4e3a1b"),
+
 }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
@@ -54,6 +57,7 @@ PAIRS = {
     "postcore1": ("postcore8", "postcore_initcalls_completed", "first_arch_initcall_body"),
     "arch1": ("arch8", "arch_initcalls_completed", "first_subsys_initcall_body"),
     "subsys1": ("subsys8", "subsys_initcalls_completed", "first_fs_initcall_body"),
+    "fs1": ("fs8", "fs_initcalls_completed", "first_device_initcall_body"),
 }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -72,7 +76,17 @@ SUBSYS_GEOMETRY = {
     "target": "create_debug_debugfs_entry", "va": 0xFFFF8000800149E0,
     "offset": 0x149E0, "function_size": 56, "window": 56, "entry": "paciasp",
     "core_size": 52, "daifset": "ABSENT", "prel32_unchanged": True,
+    "core_size": 52, "daifset": "ABSENT", "prel32_unchanged": True,
 }
+FS_GEOMETRY = {
+    "target": "register_arm64_panic_block", "va": 0xFFFF800081B347B8,
+    "offset": 0x1B347B8, "function_size": 48, "stub_size": 8, "entry": "paciasp",
+    "architecture": "ENTRY_TRAMPOLINE", "island_offset": 0xFFCC,
+    "island_end": 0x10000, "island_va": 0xFFFF80008000FFCC, "core_size": 52,
+    "daifset": "ABSENT", "prel32_unchanged": True, "live_tramp_untouched": True,
+    "direct_b": True,
+}
+
 REST_ORIGIN = "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B"
 VARS = ("product", "unlocked", "current-slot", "slot-count",
         "snapshot-update-status", "battery-soc-ok", "max-download-size",
@@ -107,6 +121,27 @@ def validate_subsys_geometry(window):
     require(SUBSYS_GEOMETRY["core_size"] == 52, "SUBSYS_CORE_NOT_52")
     require(SUBSYS_GEOMETRY["daifset"] == "ABSENT", "SUBSYS_DAIFSET_PRESENT")
     require(SUBSYS_GEOMETRY["prel32_unchanged"] is True, "SUBSYS_PREL32_CHANGED")
+
+
+def validate_fs_geometry(window):
+    require(window != 56, "FS_56B_INLINE_REJECTED")
+    require(window != 60, "FS_60B_INLINE_REJECTED")
+    require(window != 57, "FS_57B_WINDOW_REJECTED")
+    require(window == FS_GEOMETRY["stub_size"], "FS_STUB_NOT_8")
+    require(FS_GEOMETRY["stub_size"] <= FS_GEOMETRY["function_size"],
+            "FS_STUB_EXCEEDS_FUNCTION")
+    require(FS_GEOMETRY["function_size"] == 48, "FS_FUNCTION_NOT_48")
+    require(FS_GEOMETRY["entry"] == "paciasp", "FS_ENTRY_NOT_PACIASP")
+    require(FS_GEOMETRY["architecture"] == "ENTRY_TRAMPOLINE",
+            "FS_ARCHITECTURE_NOT_TRAMPOLINE")
+    require(FS_GEOMETRY["island_offset"] == 0xFFCC, "FS_ISLAND_NOT_FFCC")
+    require(FS_GEOMETRY["island_end"] == 0x10000, "FS_ISLAND_END")
+    require(FS_GEOMETRY["core_size"] == 52, "FS_CORE_NOT_52")
+    require(FS_GEOMETRY["daifset"] == "ABSENT", "FS_DAIFSET_PRESENT")
+    require(FS_GEOMETRY["prel32_unchanged"] is True, "FS_PREL32_CHANGED")
+    require(FS_GEOMETRY["live_tramp_untouched"] is True, "FS_LIVE_TRAMP_MUTATED")
+    require(FS_GEOMETRY["direct_b"] is True, "FS_NOT_DIRECT_B")
+    require(FS_GEOMETRY["target"] == "register_arm64_panic_block", "FS_WRONG_TARGET")
 
 
 def validate_context(context, case=None):
@@ -209,7 +244,21 @@ def pair_verdict(baseline, result):
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(subsys_initcalls_checkpoint_shift_not_observed="YES",
                        next="SUBSYS_INITCALLS_FAILURE_ISOLATION_CI")
+    elif second == "fs1":
+        fs_grade = "STRONGLY_SUPPORTED" if verdict == "SUPPORTED" else grade
+        out.update(fs_initcalls_completed=fs_grade,
+                   first_device_initcall_entry=fs_grade,
+                   first_device_initcall_body="NOT_PROVEN",
+                   device_initcalls_completed="NOT_PROVEN",
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(fs_initcalls_checkpoint_shift_not_observed="YES",
+                       next="FS_INITCALLS_FAILURE_ISOLATION_CI")
     return out
+
 
 
 class Observer:

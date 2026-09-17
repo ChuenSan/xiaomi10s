@@ -283,6 +283,70 @@ class SafetyTests(unittest.TestCase):
                                    ("subsys8", size8, observe.IMAGES["arch8"][1])):
             with self.assertRaisesRegex(ValueError, "IMAGE_IDENTITY_MISMATCH"):
                 observe.validate_identity(case, size, digest)
+                observe.validate_identity(case, size, digest)
+
+    def test_fs_geometry_rejects_inline_windows(self):
+        observe.validate_fs_geometry(8)
+        with self.assertRaisesRegex(ValueError, "FS_56B_INLINE_REJECTED"):
+            observe.validate_fs_geometry(56)
+        with self.assertRaisesRegex(ValueError, "FS_60B_INLINE_REJECTED"):
+            observe.validate_fs_geometry(60)
+        with self.assertRaisesRegex(ValueError, "FS_57B_WINDOW_REJECTED"):
+            observe.validate_fs_geometry(57)
+        geo = observe.FS_GEOMETRY
+        self.assertEqual(geo["target"], "register_arm64_panic_block")
+        self.assertEqual(geo["offset"], 0x1B347B8)
+        self.assertEqual(geo["function_size"], 48)
+        self.assertEqual(geo["stub_size"], 8)
+        self.assertEqual(geo["architecture"], "ENTRY_TRAMPOLINE")
+        self.assertEqual(geo["island_offset"], 0xFFCC)
+        self.assertEqual(geo["core_size"], 52)
+        self.assertEqual(geo["daifset"], "ABSENT")
+        self.assertTrue(geo["prel32_unchanged"])
+        self.assertTrue(geo["live_tramp_untouched"])
+        self.assertTrue(geo["direct_b"])
+
+    def test_fs_pair_proof_boundary_and_no_shift_route(self):
+        baseline = {**self.record("fs8", 35.0),
+                    "bootloader_origin": observe.REST_ORIGIN}
+        strong = {**self.record("fs1", 28.0),
+                  "bootloader_origin": observe.REST_ORIGIN}
+        verdict = observe.pair_verdict(baseline, strong)
+        self.assertEqual(verdict["verdict"], "STRONG")
+        self.assertEqual(verdict["fs_initcalls_completed"], "PROVEN")
+        self.assertEqual(verdict["first_device_initcall_entry"], "PROVEN")
+        self.assertEqual(verdict["first_device_initcall_body"], "NOT_PROVEN")
+        self.assertEqual(verdict["device_initcalls_completed"], "NOT_PROVEN")
+        self.assertEqual(verdict["console_on_rootfs_entry"], "NOT_PROVEN")
+        self.assertEqual(verdict["usb"], "FROZEN")
+        supported = {**self.record("fs1", 26.5),
+                     "bootloader_origin": observe.REST_ORIGIN}
+        supported_verdict = observe.pair_verdict(baseline, supported)
+        self.assertEqual(supported_verdict["verdict"], "SUPPORTED")
+        self.assertEqual(supported_verdict["fs_initcalls_completed"],
+                         "STRONGLY_SUPPORTED")
+        self.assertEqual(supported_verdict["first_device_initcall_entry"],
+                         "STRONGLY_SUPPORTED")
+        no_shift = {**self.record("fs1", 35.0),
+                    "bootloader_origin": observe.REST_ORIGIN}
+        miss = observe.pair_verdict(baseline, no_shift)
+        self.assertEqual(miss["fs_initcalls_checkpoint_shift_not_observed"], "YES")
+        self.assertEqual(miss["next"], "FS_INITCALLS_FAILURE_ISOLATION_CI")
+        self.assertNotIn("fs_initcalls_not_completed", miss)
+
+    def test_fs_member_full_sha_gates_are_distinct(self):
+        size8, sha8 = observe.IMAGES["fs8"]
+        size1, sha1 = observe.IMAGES["fs1"]
+        self.assertEqual(size8, size1)
+        self.assertEqual(sha8, "cfc9f3f9c931126aceb47a5dcc39c12227f34eceb7ad2d9e6642088f3b7e6594")
+        self.assertEqual(sha1, "2377b227fd0eb4105330eec64f19843d7d64d42f994b12b999571cca6f4e3a1b")
+        observe.validate_identity("fs8", size8, sha8)
+        observe.validate_identity("fs1", size1, sha1)
+        for case, size, digest in (("fs8", size1, sha1),
+                                   ("fs1", size8, sha8),
+                                   ("fs8", size8, observe.IMAGES["subsys8"][1])):
+            with self.assertRaisesRegex(ValueError, "IMAGE_IDENTITY_MISMATCH"):
+                observe.validate_identity(case, size, digest)
 
     def test_pair_delta_not_old_slot_a_absolute_timing(self):
         baseline = self.record("reset8", 50.0)

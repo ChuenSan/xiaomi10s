@@ -1,0 +1,85 @@
+name: thyme-slot-b-fs-observer-fixtures
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/fs_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-fs-observer-fixtures.yml
+  pull_request:
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/fs_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-fs-observer-fixtures.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thyme-slot-b-fs-observer-fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fs-observer-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: GHA-only observer source and fixture tests
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/slot_b/observe.py \
+            scripts/slot_b/test_observe.py scripts/slot_b/fs_observer_fixtures.py
+          (cd scripts/slot_b && python3 -B -m unittest test_observe.py -v) \
+            2>&1 | tee fs-observer-unit-tests.log
+          (cd scripts/slot_b && python3 -B fs_observer_fixtures.py) \
+            | tee fs-observer-fixtures.txt
+          for gate in \
+            FS8_OBSERVER_READY=YES \
+            FS1_OBSERVER_READY=YES \
+            FS_PAIR_OBSERVER_FIXTURES=PASS \
+            FS_48B_TARGET_GATE=PASS \
+            FS_PACIASP_DIRECT_B_STUB_GATE=PASS \
+            FS_ISLAND_FFCC_GATE=PASS \
+            FS_52B_CORE_GATE=PASS \
+            FS_NO_DAIFSET_GATE=PASS \
+            FIRST_DEVICE_PREL32_TARGET_UNCHANGED=YES \
+            LIVE_TRAMPOLINE_UNTOUCHED=YES \
+            FS_56B_NEGATIVE_FIXTURE=PASS \
+            FS_60B_NEGATIVE_FIXTURE=PASS \
+            FS_PAIR_DEVICE_EXECUTION_ORDER=FS8_THEN_FS1 \
+            FS_FUTURE_PAIR_BOUNDARIES=PASS \
+            SECOND_BOOT_FORBIDDEN=PASS \
+            RAM_BOOT_ONLY=PASS \
+            MANUAL_RECOVERY_TIMING_NOT_PROOF=PASS; do
+            grep -Fxq "$gate" fs-observer-fixtures.txt
+          done
+          printf '%s\n' \
+            'FS8_OBSERVER_FULL_SHA_GATE=PASS' \
+            'FS1_OBSERVER_FULL_SHA_GATE=PASS' \
+            'FS_TRAMPOLINE_ISLAND_GATE=PASS' \
+            'FS_PAIR_OBSERVER_FIXTURES=PASS' \
+            'DEVICE_OPERATION=NO' \
+            'ADB_DEVICE_OPERATION=NO' \
+            'FASTBOOT_DEVICE_OPERATION=NO' \
+            'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' \
+            | tee fs-observer-gates.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-fs-observer-fixtures
+          path: |
+            fs-observer-unit-tests.log
+            fs-observer-fixtures.txt
+            fs-observer-gates.txt
+          if-no-files-found: error
+          retention-days: 90
