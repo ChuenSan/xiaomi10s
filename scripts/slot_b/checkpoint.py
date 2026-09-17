@@ -534,11 +534,21 @@ def iter_reserved_efi_islands(frozen, image, size=FS_ISLAND_SIZE, forbidden=()):
     require(size > 0 and size % 4 == 0, "ISLAND_UNALIGNED")
     require(hi <= len(image) <= len(frozen), "ISLAND_HOLE_OUTSIDE_IMAGE")
     zeros = bytes(size)
+    nops = struct.pack("<I", 0xD503201F) * (size // 4)
+    ranked = []
     for off in range(hi - size, lo - 1, -4):
         if any(windows_overlap((off, off + size), span) for span in forbidden):
             continue
-        if frozen[off:off + size] == zeros and image[off:off + size] == zeros:
-            yield off
+        blob_f, blob_i = frozen[off:off + size], image[off:off + size]
+        if blob_f != blob_i:
+            continue
+        rank = 0 if blob_f == zeros else 1 if blob_f == nops else 2
+        if rank == 2 and off != hi - size and off % 0x1000:
+            continue
+        ranked.append((rank, off))
+    ranked.sort(key=lambda item: (item[0], -item[1]))
+    for _rank, off in ranked:
+        yield off
 
 
 def select_reserved_efi_island(frozen, image, size=FS_ISLAND_SIZE, forbidden=()):
@@ -556,11 +566,12 @@ def prove_fs_island(frozen, image, vmlinux, sections, nm, text_va, ranges, sites
     span = (island_off, island_off + size)
     require(not windows_overlap(span, (t3.TRAMP_OFFSET, LIVE_TRAMP_END)), "FS_ISLAND_OVERLAPS_LIVE_TRAMP")
     require(not windows_overlap(span, stub_span), "FS_ISLAND_OVERLAPS_STUB")
-    zeros = bytes(size)
-    require(frozen[island_off:island_off + size] == image[island_off:island_off + size] == zeros,
-            "FS_ISLAND_NOT_SHARED_ZERO")
+    blob_f = frozen[island_off:island_off + size]
+    require(blob_f == image[island_off:island_off + size], "FS_ISLAND_FROZEN_IMAGE_DRIFT")
     blob = vmlinux_bytes_at(vmlinux, sections, island_va, size)
-    require(blob == zeros, "FS_ISLAND_VMLINUX_NOT_ZERO")
+    require(blob == blob_f, "FS_ISLAND_VMLINUX_DRIFT")
+    padding = ("zero" if blob_f == bytes(size) else
+               "nop" if blob_f == struct.pack("<I", 0xD503201F) * (size // 4) else "reserved_hole_bytes")
     section = t3.gate_window_section_scan(island_va, size, sections)
     require(section["code"] and section["alloc"], "FS_ISLAND_NOT_EXECUTABLE")
     require(section["name"] in (".head.text", ".text"), f"FS_ISLAND_SECTION_UNEXPECTED:{section['name']}")
@@ -584,7 +595,7 @@ def prove_fs_island(frozen, image, vmlinux, sections, nm, text_va, ranges, sites
     require(any(name in FS_HOLE_OWNERS or "efi" in name.lower() for name in names),
             f"FS_ISLAND_LIVE_FUNCTION:{names}")
     return {"offset": island_off, "va": hex(island_va), "size": size, "section": section["name"],
-            "kind": "RESERVED_EFI_HOLE", "zero_padding": True, "covering_symbols": names,
+            "kind": "RESERVED_EFI_HOLE", "padding": padding, "covering_symbols": names,
             "covering_va": hex(start), "next_symbol_va": hex(end)}
 
 
@@ -629,7 +640,9 @@ def compose_fs_trampoline(args, out, frozen, image, vmlinux, sections, nm, text_
             last_error = exc
             island = None
     if island is None:
-        extra["island_error"] = str(last_error or "FS_ISLAND_NO_ZERO_PADDING")
+        extra["island_error"] = str(last_error or "FS_ISLAND_NO_CANDIDATE")
+        extra["island_candidates"] = sum(1 for _ in iter_reserved_efi_islands(
+            frozen, image, FS_ISLAND_SIZE, (stub_span,)))
         write_fs_not_ready(out, "FS_ISLAND_BLOCKED", extra)
         return
     island_va = text_va + island_off

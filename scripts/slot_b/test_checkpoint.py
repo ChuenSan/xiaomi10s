@@ -786,6 +786,8 @@ class CheckpointTests(unittest.TestCase):
         self.assertEqual(checkpoint.select_reserved_efi_island(frozen, image), 0x80)
         frozen[0x80:0x80 + 52] = b'\xff' * 52
         image[0x80:0x80 + 52] = b'\xff' * 52
+        self.assertEqual(checkpoint.select_reserved_efi_island(frozen, image), 0x10000 - 52)
+        image[0x70:0x10000] = bytes(0x10000 - 0x70)
         with self.assertRaises(ValueError):
             checkpoint.select_reserved_efi_island(frozen, image)
 
