@@ -1,0 +1,9 @@
+{"battery-soc-ok": "yes", "current-slot": "b", "event": "PREFLIGHT", "max-download-size": "805306368", "product": "thyme", "slot-count": "2", "slot-retry-count:b": "7", "slot-successful:a": "yes", "slot-unbootable:b": "no", "snapshot-update-status": "none", "unlocked": "yes", "utc": "2026-09-17T05:41:18.404648+00:00"}
+{"case": "arch8", "event": "COMMAND_START", "operation": "ram_boot_b", "utc": "2026-09-17T05:41:18.425545+00:00"}
+{"event": "FASTBOOT_OUT", "text": "Sending 'boot.img' (36504 KB)                      OKAY [  0.928s]", "utc": "2026-09-17T05:41:19.379111+00:00"}
+{"event": "FASTBOOT_OUT", "text": "Booting                                            OKAY [  0.222s]", "utc": "2026-09-17T05:41:19.600525+00:00"}
+{"event": "FASTBOOT_OUT", "text": "Finished. Total time: 1.160s", "utc": "2026-09-17T05:41:19.605232+00:00"}
+{"event": "BOOTING_OKAY", "utc": "2026-09-17T05:41:19.607554+00:00"}
+{"elapsed_s": 1.1665879170000002, "event": "FASTBOOT_DISAPPEARED", "utc": "2026-09-17T05:41:20.803622+00:00"}
+{"elapsed_s": 34.99866775, "event": "FASTBOOT_FIRST_RETURN", "utc": "2026-09-17T05:41:54.637607+00:00"}
+{"b_retries": "6", "bootloader_origin": "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B", "case": "arch8", "ci_run": "35185168680", "context": {"boot_b_prefix": "133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34", "dtbo_b": "018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634", "vendor_boot_b": "aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972"}, "event": "RESULT", "experimental_boots": 1, "final_slot": "b", "host_boot_commands": 1, "image_sha256": "7fcdbd0de81d0396280b941ed9cf7f2a4b3f9818b5ffe131fa59cfc49524e48d", "normal_boot_candidate": false, "partition_writes": 0, "protocol": "slot-b-p15-fastboot-return-v1", "recovery_control_boots": 0, "slot_a_written": false, "status": "AUTOMATIC_FASTBOOT_RETURN", "total_s": 34.99866775, "utc": "2026-09-17T05:41:57.829347+00:00"}

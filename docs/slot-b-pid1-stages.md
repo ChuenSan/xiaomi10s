@@ -583,7 +583,29 @@ stage. ARCH8 alone cannot advance runtime evidence. ARCH1 remains blocked until
 ARCH8's result is frozen and the user separately approves member B. This round
 performed no device operation.
 
-Final gate: `READY_FOR_R3_SLOT_B_ARCH8_DEVICE_CONTROL=YES` and
-`READY_FOR_R3_SLOT_B_ARCH1_DEVICE_CONTROL=NO`. Recommended next:
-`MAINLINE_V2_R3_SLOT_B_ARCH8_TRUE_DEVICE_CONTROL`. See
+The former readiness gate was `READY_FOR_R3_SLOT_B_ARCH8_DEVICE_CONTROL=YES`
+and `READY_FOR_R3_SLOT_B_ARCH1_DEVICE_CONTROL=NO`. The separately approved
+member-A round is now complete.
+
+## ARCH8 true-device result
+
+Exactly one identity-gated ARCH8 RAM boot used frozen boot SHA256
+`7fcdbd0de81d0396280b941ed9cf7f2a4b3f9818b5ffe131fa59cfc49524e48d`
+(size 37380096). Sending and Booting were OKAY in 0.928s and 0.222s.
+Automatic Fastboot B return occurred at `ARCH8_TOTAL=34.99866775s`, with retry
+7→6 and no manual recovery. The 160-byte topology_init window and 60-byte
+rejection remained the frozen identity. Current B's 16-chain hashes and P15
+prefix matched before and after. Android A was restored healthy. Partition
+image writes were zero and Slot A was not written.
+
+This records `ARCH8_MEMBER_A_COMPLETED=YES` only. ARCH1 was not run, so
+`PAIR_DELTA=NOT_AVAILABLE` and `PAIR_VERDICT=PENDING_ARCH1`.
+`ARCH_INITCALLS_COMPLETED=NOT_PROVEN` and
+`FIRST_SUBSYS_INITCALL_ENTRY=NOT_PROVEN`; body completion and all later stages
+remain NOT_PROVEN. ARCH1 remains blocked pending a no-device gate review and
+separate approval.
+
+The member-A gate is `MAINLINE_V2_R3_SLOT_B_ARCH8_MEMBER_A_COMPLETED`; evidence
+is under `artifacts/slot-b-arch8-20260917/`. Recommended next:
+`MAINLINE_V2_R3_SLOT_B_ARCH1_DEVICE_GATE_REVIEW`. See
 `docs/slot-b-arch-initcall-checkpoint.md`.

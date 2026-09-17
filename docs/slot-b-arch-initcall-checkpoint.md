@@ -186,13 +186,68 @@ did not complete.
 
 `ARCH1_DEVICE_AUTHORIZED=NO`
 
-`DEVICE_OPERATION=NO`
+The former readiness gate was `READY_FOR_R3_SLOT_B_ARCH8_DEVICE_CONTROL=YES`.
+The separately approved ARCH8 true-device round is recorded below.
+
+## ARCH8 true-device member A
+
+`MAINLINE_V2_R3_SLOT_B_ARCH8_TRUE_DEVICE_CONTROL` executed exactly one RAM-only
+ARCH8 boot. The authoritative artifact retained full SHA256
+`7fcdbd0de81d0396280b941ed9cf7f2a4b3f9818b5ffe131fa59cfc49524e48d`
+and size 37380096 immediately before Fastboot interaction; frozen observer
+identity validation passed. The 160-byte window, `paciasp`, back-edge coverage
+`+0x9c → +0x38`, and 60-byte rejection remained the frozen identity. No image
+partition was written. ARCH1 was not present and was not executed.
+
+The device began from healthy Android A (`_a`, `boot_completed=1`, Magisk root,
+stock `4.19.157-perf-g9d90dd04aa7c`). All 16 boot-chain hashes and the P15
+prefix matched the frozen baseline. Bootloader preflight returned
+`product=thyme`, `unlocked=yes`, `current-slot=a`; the only metadata transition
+before the experiment was `set_active b`.
+
+| event | UTC / value |
+| --- | --- |
+| `T_COMMAND_START` | `2026-09-17T05:41:18.425545Z` |
+| Sending | OKAY, `0.928s` |
+| Booting | OKAY, `0.222s` |
+| `T_BOOTING_OKAY` | `2026-09-17T05:41:19.607554Z` |
+| `T_FASTBOOT_DISAPPEAR` | `2026-09-17T05:41:20.803622Z` |
+| `T_FASTBOOT_B_RETURN` | `2026-09-17T05:41:54.637607Z` |
+| `ARCH8_TOTAL` | `34.99866775s` |
+
+The result was `AUTOMATIC_FASTBOOT_RETURN`; Slot B retry changed 7→6 and no
+manual recovery was needed. Fastboot returned on B, then the sole permitted
+recovery metadata action selected A and rebooted stock Android. Post-test all
+16 hashes and the P15 prefix still matched, so
+`CURRENT_B_UNCHANGED_AFTER_ARCH8=YES` and
+`ANDROID_A_RESTORED_AFTER_ARCH8=YES`. Pstore was empty, which is not negative
+evidence. Evidence is under `artifacts/slot-b-arch8-20260917/`.
+
+This single member proves only `ARCH8_MEMBER_A_COMPLETED=YES` and freezes its
+total. Absolute timing is descriptive only. `ARCH1_TOTAL=NOT_RUN`,
+`PAIR_DELTA=NOT_AVAILABLE`, and `PAIR_VERDICT=PENDING_ARCH1`.
+`ARCH_INITCALLS_COMPLETED` and `FIRST_SUBSYS_INITCALL_ENTRY` remain
+`NOT_PROVEN`; the first subsys body and every later initcall level also remain
+`NOT_PROVEN`. ARCH1 remains unauthorized pending a separate gate review and
+explicit user approval.
+
+`EXPERIMENTAL_BOOTS=1`
 
 `PARTITION_WRITES=0`
 
 `SLOT_A_WRITTEN=NO`
 
-Final gate: `READY_FOR_R3_SLOT_B_ARCH8_DEVICE_CONTROL=YES`.
-`READY_FOR_R3_SLOT_B_ARCH1_DEVICE_CONTROL=NO`. This readiness gate is not
-itself true-device authorization. Recommended next, only after explicit user
-approval: `MAINLINE_V2_R3_SLOT_B_ARCH8_TRUE_DEVICE_CONTROL`.
+`ARCH8_MEMBER_A_COMPLETED=YES`
+
+`ARCH8_BEHAVIOR_CLASS=AUTOMATIC_FASTBOOT_RETURN`
+
+`ARCH8_TOTAL_S=34.99866775`
+
+`ARCH1_TOTAL=NOT_RUN`
+
+`PAIR_DELTA=NOT_AVAILABLE`
+
+`PAIR_VERDICT=PENDING_ARCH1`
+
+Final gate: `MAINLINE_V2_R3_SLOT_B_ARCH8_MEMBER_A_COMPLETED`.
+Recommended next: `MAINLINE_V2_R3_SLOT_B_ARCH1_DEVICE_GATE_REVIEW`.
