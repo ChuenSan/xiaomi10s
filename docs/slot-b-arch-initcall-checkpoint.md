@@ -106,10 +106,93 @@ overwritten `topology_init` body or later initcall levels.
 
 `READY_FOR_ARCH_INITCALLS_PRIVATE_GATE=YES`
 
-`ARCH_PRIVATE_PACK=NO`
+The public-CI gate was `MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_CHECKPOINT_CI_READY`.
+It authorized no device operation. The separately approved private-gate result
+is recorded below.
 
-`ARCH_DEVICE_OPERATION=NO`
+## Private gate freeze
 
-Final public-CI gate: `MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_CHECKPOINT_CI_READY`.
-It authorizes no device operation. Recommended next, only after explicit user
-approval: `MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_PRIVATE_GATE_FINALIZATION_CI`.
+Private GHA pack `35185168680` wrapped the two frozen public payloads in the
+same proven Slot B/P15 OEM envelope without rebuilding or regenerating them.
+Independent reverify-only run `35185358880` downloaded those exact artifacts;
+it did not repack, rebuild or regenerate. Both members reconfirmed the 160-byte
+window, rejected any 60-byte topology_init probe, and covered back-edge source
+`+0x9c`.
+
+| member | private boot SHA256 | size | extracted payload SHA256 |
+| --- | --- | --- | --- |
+| ARCH8 | `7fcdbd0de81d0396280b941ed9cf7f2a4b3f9818b5ffe131fa59cfc49524e48d` | 37380096 | `feb46bb3da436c00ac54ee7898e9b1789a11f30878eb8859a2fcecf719d9cad5` |
+| ARCH1 | `f1aa8943131f768ceb7a7a0b160877195bb01ca69ba8252697fe6f5fe1a23113` | 37380096 | `efa7cc1c43302fd93872d905352f5737bd388aa698a9383b5d929e98223d2fc1` |
+
+Private extracted payloads differ by exactly two bytes at
+`[0x1b34709,0x1b3470b)`, `DELAY_CONSTANT_ONLY`. Geometry is identical:
+Image file 35166720, header `image_size=0x2230000`, DTB offset `0x2380000`,
+payload 37369041 and boot 37380096. Envelope is `KERNEL_PAYLOAD_ONLY` vs FIX8.
+
+Observer GHA `35185723809` froze separate full-SHA gates plus the 160-byte
+geometry. ARCH8 accepts only ARCH8; ARCH1 accepts only ARCH1. Each rejects its
+sibling, POSTCORE, CORE, PURE, CONSOLE, INITCALLS, SMP, FREE, KINIT, REST,
+FIX8, wrong size, one-byte mutation, payload swap, wrong target, wrong window,
+60-byte probe, live back-edge source, wrong delay and wrong PSCI. CORE observer
+regression `35185723784` and POSTCORE observer `35185723808` passed.
+
+Future device execution is split and ordered `ARCH8_THEN_ARCH1`. The next stage
+may run one ARCH8 RAM-only member only after separate user approval. ARCH8
+alone can record only `ARCH8_MEMBER_A_COMPLETED` and a total. ARCH1 remains
+blocked until that result is frozen and the user approves a separate stage.
+No-shift records `ARCH_INITCALLS_CHECKPOINT_SHIFT_NOT_OBSERVED` and routes to
+`ARCH_INITCALLS_FAILURE_ISOLATION_CI`; it never asserts that arch initcalls
+did not complete.
+
+`ARCH_PUBLIC_PAIR_PASS=YES`
+
+`ARCH_TARGET_IDENTITY_FROZEN=YES`
+
+`ARCH_160B_CFG_CLOSURE_REVERIFIED=YES`
+
+`ARCH_60B_WINDOW_REJECTED=YES`
+
+`ARCH_FUNCTION_RANGE_SAFE=YES`
+
+`ARCH_PUBLIC_PAIR_SINGLE_VARIABLE_REVERIFIED=YES`
+
+`ARCH8_PRIVATE_PACK_PASS=YES`
+
+`ARCH1_PRIVATE_PACK_PASS=YES`
+
+`ARCH8_PRIVATE_REVERIFY_PASS=YES`
+
+`ARCH1_PRIVATE_REVERIFY_PASS=YES`
+
+`ARCH_60B_CFG_NEGATIVE_FIXTURE=PASS`
+
+`PRIVATE_ARCH_PAIR_DIFF_REVERIFIED=YES`
+
+`ARCH_PAIR_GEOMETRY_IDENTICAL=YES`
+
+`ARCH_PAIR_P15_ENVELOPE_IDENTICAL=YES`
+
+`ARCH8_OBSERVER_READY=YES`
+
+`ARCH1_OBSERVER_READY=YES`
+
+`ARCH_PAIR_OBSERVER_FIXTURES=PASS`
+
+`ARCH_PAIR_DEVICE_EXECUTION_SPLIT=REQUIRED`
+
+`ARCH_PAIR_EXECUTION_ORDER=ARCH8_THEN_ARCH1`
+
+`ARCH8_DEVICE_AUTHORIZED=NO`
+
+`ARCH1_DEVICE_AUTHORIZED=NO`
+
+`DEVICE_OPERATION=NO`
+
+`PARTITION_WRITES=0`
+
+`SLOT_A_WRITTEN=NO`
+
+Final gate: `READY_FOR_R3_SLOT_B_ARCH8_DEVICE_CONTROL=YES`.
+`READY_FOR_R3_SLOT_B_ARCH1_DEVICE_CONTROL=NO`. This readiness gate is not
+itself true-device authorization. Recommended next, only after explicit user
+approval: `MAINLINE_V2_R3_SLOT_B_ARCH8_TRUE_DEVICE_CONTROL`.

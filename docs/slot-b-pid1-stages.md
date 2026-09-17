@@ -558,6 +558,32 @@ This CI gate does not change runtime evidence:
 operation occurred. Final gate:
 `MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_CHECKPOINT_CI_READY`.
 `READY_FOR_ARCH_INITCALLS_PRIVATE_GATE=YES`. This public CI gate authorized no
-device operation. Recommended next:
-`MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_PRIVATE_GATE_FINALIZATION_CI`.
-See `docs/slot-b-arch-initcall-checkpoint.md`.
+device operation.
+
+## Arch-initcall private gate freeze
+
+Private pack `35185168680` and independent reverify-only `35185358880` froze
+the ARCH8/ARCH1 boot members without kernel rebuild or payload regeneration.
+Both are 37380096 bytes:
+
+| member | boot SHA256 |
+| --- | --- |
+| ARCH8 | `7fcdbd0de81d0396280b941ed9cf7f2a4b3f9818b5ffe131fa59cfc49524e48d` |
+| ARCH1 | `f1aa8943131f768ceb7a7a0b160877195bb01ca69ba8252697fe6f5fe1a23113` |
+
+Extracted payloads exactly match public run `35182765631`. The private pair
+still differs only by two delay bytes at `[0x1b34709,0x1b3470b)`, the 160-byte
+window remains EXACT, and 60-byte topology_init probes stay rejected. Observer
+fixtures `35185723809`, CORE observer regression `35185723784` and POSTCORE
+observer `35185723808` passed with separate full-SHA gates plus the 160-byte
+geometry.
+
+Execution is split and ordered ARCH8 then ARCH1, one member per true-device
+stage. ARCH8 alone cannot advance runtime evidence. ARCH1 remains blocked until
+ARCH8's result is frozen and the user separately approves member B. This round
+performed no device operation.
+
+Final gate: `READY_FOR_R3_SLOT_B_ARCH8_DEVICE_CONTROL=YES` and
+`READY_FOR_R3_SLOT_B_ARCH1_DEVICE_CONTROL=NO`. Recommended next:
+`MAINLINE_V2_R3_SLOT_B_ARCH8_TRUE_DEVICE_CONTROL`. See
+`docs/slot-b-arch-initcall-checkpoint.md`.
