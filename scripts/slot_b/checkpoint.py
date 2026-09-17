@@ -34,15 +34,27 @@ INITCALL_BOUNDARIES = {"pure_complete": "__initcall1_start",
                        "core_complete": "__initcall2_start",
                        "postcore_complete": "__initcall3_start",
                        "arch_complete": "__initcall4_start",
-                       "subsys_complete": "__initcall5_start"}
+                       "subsys_complete": "__initcall5_start",
+                       "fs_complete": "__initcall6_start"}
 INITCALL_MACROS = {"pure_complete": "core_initcall", "core_complete": "postcore_initcall",
                    "postcore_complete": "arch_initcall", "arch_complete": "subsys_initcall",
-                   "subsys_complete": "fs_initcall"}
+                   "subsys_complete": "fs_initcall", "fs_complete": "device_initcall"}
 INITCALL_SOURCE_PREFIX = {"postcore_complete": "arch/arm64/", "arch_complete": "arch/arm64/"}
 ULTRACOMPACT_SYMBOLS = frozenset({"core_complete", "postcore_complete", "arch_complete"})
 SUBSYS52_SYMBOLS = frozenset({"subsys_complete"})
 EXPANDED_WINDOWS = {"do_initcalls": 96, "arch_complete": 160}
-CFG_DERIVED_WINDOWS = frozenset({"subsys_complete"})
+CFG_DERIVED_WINDOWS = frozenset({"subsys_complete", "fs_complete"})
+FROZEN_FIRST_FS_SYMBOL = "create_debug_debugfs_entry"
+FROZEN_FIRST_FS_VA = 0xffff8000800149e0
+FS_SPAN_TYPES = frozenset({"fs_initcall", "fs_initcall_sync"})
+ROOTFS_SPAN_TYPES = frozenset({"rootfs_initcall"})
+DEVICE_SPAN_TYPES = frozenset({"device_initcall", "device_initcall_sync", "__initcall"})
+INITCALL_MACRO_RE = re.compile(
+    r"\b(early_initcall|pure_initcall|core_initcall(?:_sync)?|"
+    r"postcore_initcall(?:_sync)?|arch_initcall(?:_sync)?|"
+    r"subsys_initcall(?:_sync)?|fs_initcall(?:_sync)?|"
+    r"rootfs_initcall|device_initcall(?:_sync)?|"
+    r"late_initcall(?:_sync)?|__initcall)\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)")
 ULTRACOMPACT_WORDS = (0xD5034FDF, 0xD53BE009, 0xD37DF12A, 0xD53BE02B,
                       0xD5033FDF, 0xD53BE02C, 0xCB0B018D, 0xEB0A01BF,
                       0x54FFFF83, 0x52800120, 0x72B08000, 0xD4000003,
@@ -52,7 +64,7 @@ INITCALL_BOUNDARY_SYMBOLS = ("__initcall1_start", "__initcall2_start", "__initca
                              "__initcall4_start", "__initcall5_start")
 INITCALL_TARGET_LABELS = {"pure_complete": "FIRST_CORE", "core_complete": "FIRST_POSTCORE",
                           "postcore_complete": "FIRST_ARCH", "arch_complete": "FIRST_SUBSYS",
-                          "subsys_complete": "FIRST_FS"}
+                          "subsys_complete": "FIRST_FS", "fs_complete": "FIRST_DEVICE"}
 PROOF_BOUNDARIES = {
     "rest_init": ("rest_init entry and preceding normal start_kernel path",
                   "rest_init body, scheduler, SMP or /init"),
@@ -78,6 +90,8 @@ PROOF_BOUNDARIES = {
                       "the first subsys initcall body, subsys completion, later levels, console or /init"),
     "subsys_complete": ("all subsys initcalls completed and the first fs initcall entry was reached",
                         "the first fs initcall body, fs completion, later levels, console or /init"),
+    "fs_complete": ("all fs and rootfs initcalls completed and the first device initcall entry was reached",
+                    "the first device initcall body, device completion, later levels, console or /init"),
 }
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
 
@@ -102,6 +116,7 @@ def gate_checkpoint_design(design, stage):
         "postcore": ("FIRST_ARCH_INITCALL_EXACT_ENTRY", "__initcall3_start"),
         "arch": ("FIRST_SUBSYS_INITCALL_EXACT_ENTRY", "__initcall4_start"),
         "subsys": ("FIRST_FS_INITCALL_EXACT_ENTRY", "__initcall5_start"),
+        "fs": ("FIRST_DEVICE_INITCALL_EXACT_ENTRY", "__initcall6_start"),
     }
     require(stage in boundaries, "CHECKPOINT_DESIGN_STAGE_INVALID")
     checkpoint_point, boundary = boundaries[stage]
@@ -155,6 +170,39 @@ def gate_subsys_checkpoint_design(design):
     }
     for key, value in extra.items():
         require(design.get(key) == value, f"SUBSYS_DESIGN_REJECTED:{key}")
+
+
+def gate_fs_checkpoint_design(design):
+    gate_checkpoint_design(design, "fs")
+    extra = {
+        "window_derivation": "TARGET_CFG", "reuse_arch_160b": False, "reuse_subsys_56b": False,
+        "copied_arch_probe": False, "copied_subsys_probe": False, "prior_subsys_probe": False,
+        "prior_arch_probe": False, "prior_core_probe": False, "prior_postcore_probe": False,
+        "cfg_closure_proven": True, "paciasp_preserved": True, "cntpct_elapsed": True,
+        "prel32_target_unchanged": True, "fixed_iteration_delay": False,
+        "rootfs_has_separate_runtime_pass": False, "rootfs_included_in_level5": True,
+        "first_device_entry_implies_fs_complete": True, "rootfs_start_is_marker_only": True,
+        "rewrite_initcall_table": False, "treat_rootfs_marker_as_callable": False,
+    }
+    for key, value in extra.items():
+        require(design.get(key) == value, f"FS_DESIGN_REJECTED:{key}")
+    arch = design.get("probe_architecture")
+    require(arch in ("INLINE_PACIASP_PLUS_56B_ULTRACOMPACT", "INLINE_PACIASP_PLUS_52B_NO_DAIFSET"),
+            "FS_DESIGN_REJECTED:probe_architecture")
+    core_size = 56 if arch == "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT" else 52
+    require(design.get("diagnostic_core_size") == core_size, "FS_DESIGN_REJECTED:diagnostic_core_size")
+    require(design.get("sixty_byte_inline_rejected") is (core_size == 52),
+            "FS_DESIGN_REJECTED:sixty_byte_inline_rejected")
+    require(design.get("probe_size", 0) >= 4 + core_size, "FS_DESIGN_REJECTED:probe_shorter_than_core")
+
+
+def select_fs_complete_core(function_size, proven56, proven52):
+    require(function_size > 0 and function_size % 4 == 0, "FS_COMPLETE_FUNCTION_UNALIGNED")
+    if function_size >= 60:
+        return proven56, "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT", False
+    if function_size >= 56:
+        return proven52, "INLINE_PACIASP_PLUS_52B_NO_DAIFSET", True
+    raise ValueError("FS_COMPLETE_TARGET_TOO_SMALL")
 
 
 def compact_core(core):
@@ -280,6 +328,28 @@ def gate_subsys_fs_literal_delta(bundle, frozen, refs):
             "SUBSYS_FS_LITERAL_SOURCE_STRING_MISMATCH")
     require(refs["frozen"]["offset"] == hex(int(refs["bundle"]["offset"], 16) + 8),
             "SUBSYS_FS_LITERAL_LAYOUT_DELTA_NOT_EIGHT")
+
+
+def prove_fs_complete_window_literals(image, frozen, text_va, offset, length):
+    refs = []
+    for i in range(0, length, 4):
+        if image[offset + i:offset + i + 4] == frozen[offset + i:offset + i + 4]:
+            continue
+        bundle_word, frozen_word = struct.unpack_from("<I", image, offset + i)[0], struct.unpack_from("<I", frozen, offset + i)[0]
+        require(bundle_word & 0xFFC00000 == 0x91000000 and frozen_word & 0xFFC00000 == 0x91000000
+                and not (bundle_word | frozen_word) & (1 << 22), "FS_COMPLETE_NON_ADD_WINDOW_DELTA")
+        require(i >= 4, "FS_COMPLETE_ADD_DELTA_WITHOUT_PRECEDING_WORD")
+        adrp_b = struct.unpack_from("<I", image, offset + i - 4)[0]
+        adrp_f = struct.unpack_from("<I", frozen, offset + i - 4)[0]
+        require(adrp_b == adrp_f and adrp_b & 0x9F000000 == 0x90000000, "FS_COMPLETE_ADRP_CONTEXT_MISMATCH")
+        pair = adrp_add_literal_ref_pair(image, frozen, text_va, offset + i - 4, offset + i)
+        require(pair["bundle"]["text"] and pair["bundle"]["bytes_hex"] == pair["frozen"]["bytes_hex"],
+                "FS_COMPLETE_LITERAL_SOURCE_STRING_MISMATCH")
+        refs.append({"word_offset": i, "bundle_add": hex(bundle_word), "frozen_add": hex(frozen_word),
+                     "layout_delta": int(pair["frozen"]["offset"], 16) - int(pair["bundle"]["offset"], 16),
+                     "bundle": pair["bundle"], "frozen": pair["frozen"]})
+    require(refs, "FS_COMPLETE_LITERAL_GATE_WITHOUT_DELTA")
+    return refs
 
 
 def gate_core_initcall_literal_delta(bundle, frozen, refs):
@@ -514,25 +584,68 @@ def audit_initcall_source(linux):
                       init_h), "SUBSYS_INITCALL_LEVEL_MACRO_MISMATCH")
     require(re.search(r"#define\s+fs_initcall\s*\(\s*fn\s*\)\s*__define_initcall\s*\(\s*fn\s*,\s*5\s*\)",
                       init_h), "FS_INITCALL_LEVEL_MACRO_MISMATCH")
+    require(re.search(r"#define\s+fs_initcall_sync\s*\(\s*fn\s*\)\s*__define_initcall\s*\(\s*fn\s*,\s*5s\s*\)",
+                      init_h), "FS_INITCALL_SYNC_LEVEL_MACRO_MISMATCH")
+    require(re.search(r"#define\s+rootfs_initcall\s*\(\s*fn\s*\)\s*__define_initcall\s*\(\s*fn\s*,\s*rootfs\s*\)",
+                      init_h), "ROOTFS_INITCALL_LEVEL_MACRO_MISMATCH")
+    require(re.search(r"#define\s+device_initcall\s*\(\s*fn\s*\)\s*__define_initcall\s*\(\s*fn\s*,\s*6\s*\)",
+                      init_h), "DEVICE_INITCALL_LEVEL_MACRO_MISMATCH")
+    require(re.search(r"#define\s+__initcall\s*\(\s*fn\s*\)\s*device_initcall\s*\(\s*fn\s*\)",
+                      init_h), "INITCALL_ALIAS_IS_NOT_DEVICE")
+    require(re.search(r"#define INIT_CALLS_LEVEL\(level\).*?__initcall##level##_start\s*=\s*\.;"
+                      r".*?KEEP\(\*\(\.initcall##level##\.init\)\)"
+                      r".*?KEEP\(\*\(\.initcall##level##s\.init\)\)",
+                      linker, re.S), "INITCALL_LEVEL_MARKER_MACRO_MISMATCH")
+    require("__initcallrootfs_start" not in levels.group(1), "ROOTFS_IN_RUNTIME_LEVEL_ARRAY")
+    require("extern initcall_entry_t __initcallrootfs_start" not in init_h,
+            "ROOTFS_RUNTIME_EXTERN_PRESENT")
+    require(re.search(r"do_one_initcall\s*\(\s*initcall_from_entry\s*\(\s*fn\s*\)\s*\)", main),
+            "INITCALL_FROM_ENTRY_SOURCE_MISMATCH")
+    require("return offset_to_ptr(entry);" in init_h, "INITCALL_PREL32_OFFSET_TO_PTR_MISSING")
+    require(not re.search(r"\bdo_rootfs_initcalls\b", main), "ROOTFS_SEPARATE_RUNTIME_HELPER")
+    do_initcalls = re.search(r"static void __init do_initcalls\(void\)\s*\{(.*?)^\}", main, re.S | re.M)
+    require(do_initcalls is not None and "do_initcall_level" in do_initcalls.group(1)
+            and "wait_for_initramfs" not in do_initcalls.group(1)
+            and "populate_rootfs" not in do_initcalls.group(1)
+            and "init_rootfs" not in do_initcalls.group(1),
+            "DO_INITCALLS_HAS_ROOTFS_SPECIAL_PATH")
+    initramfs = (linux / "init/initramfs.c").read_text()
+    require("rootfs_initcall(populate_rootfs);" in initramfs, "POPULATE_ROOTFS_NOT_ROOTFS_INITCALL")
+    lds = (linux / "arch/arm64/kernel/vmlinux.lds.S").read_text()
+    require(re.search(r"\bINIT_CALLS\b", lds), "ARM64_LINKER_MISSING_INIT_CALLS")
     kconfig = (linux / "arch/arm64/Kconfig").read_text()
     require(re.search(r"^\s*select\s+HAVE_ARCH_PREL32_RELOCATIONS\b", kconfig, re.M),
             "ARM64_PREL32_KCONFIG_MISSING")
     next_linker_level = linker_order[linker_order.index("5") + 1]
     fs_next_linker_boundary = f"__initcall{next_linker_level}_start"
+    require(next_linker_level == "rootfs" and fs_next_linker_boundary == "__initcallrootfs_start",
+            "ROOTFS_LINKER_NOT_AFTER_FS")
+    require(linker_order[linker_order.index("rootfs") + 1] == "6", "DEVICE_LINKER_NOT_AFTER_ROOTFS")
     return {"pure": "__initcall0_start..__initcall1_start",
             "core": "__initcall1_start..__initcall2_start",
             "postcore": "__initcall2_start..__initcall3_start",
             "arch": "__initcall3_start..__initcall4_start",
             "subsys": "__initcall4_start..__initcall5_start",
             "fs": "__initcall5_start..__initcall6_start",
+            "device": "__initcall6_start..__initcall7_start",
             "pure_level_boundary": "__initcall1_start",
             "core_level_boundary": "__initcall2_start",
             "postcore_level_boundary": "__initcall3_start",
             "arch_level_boundary": "__initcall4_start",
             "subsys_level_boundary": "__initcall5_start",
             "fs_level_boundary": "__initcall6_start",
+            "device_level_boundary": "__initcall7_start",
+            "rootfs_start_symbol": "__initcallrootfs_start",
             "fs_next_linker_boundary": fs_next_linker_boundary,
             "linker_order": linker_order,
+            "do_initcall_level_5_begin": "__initcall5_start",
+            "do_initcall_level_5_end": "__initcall6_start",
+            "rootfs_has_separate_runtime_pass": False,
+            "rootfs_included_in_level5_traversal": True,
+            "rootfs_start_is_marker_only": True,
+            "fs_complete_causal_boundary": "__initcall6_start",
+            "fs_complete_boundary_source_proven": True,
+            "first_device_entry_implies_fs_complete": True,
             "core_complete_boundary_source_proven": True,
             "postcore_complete_boundary_source_proven": True,
             "arch_complete_boundary_source_proven": True,
@@ -542,10 +655,56 @@ def audit_initcall_source(linux):
             "entry_encoding_source": "CONFIG_HAVE_ARCH_PREL32_RELOCATIONS => s32 .long target-."}
 
 
+def decode_initcall_span(vmlinux, sections, nm, begin_va, end_va):
+    require(begin_va <= end_va and not (begin_va | end_va) & 3, "INITCALL_SPAN_UNALIGNED")
+    text = t3.nm_symbol(nm, "_text")
+    data = b"" if begin_va == end_va else vmlinux_bytes_at(vmlinux, sections, begin_va, end_va - begin_va)
+    by_va = {}
+    for va, name in t3.symbol_table(nm):
+        by_va.setdefault(va, []).append(name)
+    entries = []
+    for i in range(0, len(data), 4):
+        va = begin_va + i
+        rel = struct.unpack_from("<i", data, i)[0]
+        target = va + rel
+        aliases = sorted(by_va.get(target, []))
+        require(aliases, f"INITCALL_SPAN_TARGET_UNNAMED:{va:#x}->{target:#x}")
+        entries.append({"index": i // 4, "entry_va": va, "entry_va_hex": hex(va),
+                        "entry_image_offset": va - text, "entry_word": hex(rel & 0xffffffff),
+                        "relative": rel, "target_va": target, "target_va_hex": hex(target),
+                        "aliases": aliases, "symbol": aliases[0]})
+    return entries
+
+
+def index_initcall_registrations(linux):
+    index = {}
+    for path in linux.rglob("*"):
+        if path.suffix not in (".c", ".h") or not path.is_file():
+            continue
+        relative = str(path.relative_to(linux))
+        for macro, name in INITCALL_MACRO_RE.findall(path.read_text(errors="replace")):
+            index.setdefault(name, []).append({"macro": macro, "source": relative})
+    return index
+
+
+def classify_span_entry(entry, index):
+    hits = []
+    for alias in entry["aliases"]:
+        hits.extend({**rec, "alias": alias} for rec in index.get(alias, []))
+    require(hits, f"INITCALL_SPAN_UNREGISTERED:{entry['aliases']}")
+    macros = {hit["macro"] for hit in hits}
+    require(len(macros) == 1, f"INITCALL_SPAN_MACRO_AMBIGUOUS:{entry['aliases']}:{sorted(macros)}")
+    chosen = hits[0]
+    return {**entry, "symbol": chosen["alias"],
+            "registration": f"{chosen['macro']}({chosen['alias']})",
+            "registration_type": chosen["macro"], "source": chosen["source"]}
+
+
 def find_initcall_source(linux, aliases, macro, source_prefix=None):
     hits = []
-    patterns = [re.compile(rf"\b{re.escape(macro)}(?:_sync)?\s*\(\s*{re.escape(name)}\s*\)")
-                for name in aliases]
+    macros = (macro, "__initcall") if macro == "device_initcall" else (macro,)
+    patterns = [re.compile(rf"\b{re.escape(item)}(?:_sync)?\s*\(\s*{re.escape(name)}\s*\)")
+                for item in macros for name in aliases]
     for path in linux.rglob("*"):
         if path.suffix not in (".c", ".h") or not path.is_file():
             continue
@@ -623,12 +782,20 @@ def compose(args, bundle):
         {"external_initrd_advertised": False, "chosen_properties": sorted(chosen),
          "rt_d_sha256": digest(frozen[dtb_offset:])}, indent=2) + "\n")
     require(len(core) == 76 and digest(core) == CORE_SHA, "CHECKPOINT_CORE_MISMATCH")
+    proven56 = proven52 = None
     if args.symbol in SUBSYS52_SYMBOLS:
         require(args.subsys52_core is not None and args.ultracompact_core is not None,
                 "SUBSYS52_CORE_REQUIRED")
         proven56 = ultracompact_core(args.ultracompact_core.read_bytes())
         core = subsys52_core(args.subsys52_core.read_bytes())
         gate_subsys52_core_equivalence(proven56, core)
+    elif args.symbol == "fs_complete":
+        require(args.subsys52_core is not None and args.ultracompact_core is not None,
+                "FS_COMPLETE_CORES_REQUIRED")
+        proven56 = ultracompact_core(args.ultracompact_core.read_bytes())
+        proven52 = subsys52_core(args.subsys52_core.read_bytes())
+        gate_subsys52_core_equivalence(proven56, proven52)
+        core = proven56
     elif args.symbol in ULTRACOMPACT_SYMBOLS:
         require(args.ultracompact_core is not None, "ULTRACOMPACT_CORE_REQUIRED")
         core = ultracompact_core(args.ultracompact_core.read_bytes())
@@ -637,7 +804,8 @@ def compose(args, bundle):
         require(args.compact_core is not None and args.compact_core.read_bytes() == core,
                 "COMPACT_CORE_ASSEMBLY_MISMATCH")
     reference_core = core
-    core = delay_core(core, args.delay)
+    if args.symbol != "fs_complete":
+        core = delay_core(core, args.delay)
     image = (bundle / "Image").read_bytes()
     require(len(image) == t3.FIX8_IMAGE_FILE_SIZE, "AUDIT_IMAGE_SIZE_DRIFT")
     vmlinux = bundle / "vmlinux"
@@ -653,6 +821,11 @@ def compose(args, bundle):
             for extra in (source_audit["fs_next_linker_boundary"], source_audit["fs_level_boundary"]):
                 if extra not in boundary_names:
                     boundary_names.append(extra)
+        elif args.symbol == "fs_complete":
+            for extra in (source_audit["rootfs_start_symbol"], source_audit["fs_level_boundary"],
+                          source_audit["device_level_boundary"]):
+                if extra not in boundary_names:
+                    boundary_names.append(extra)
         initcall_boundaries = {name: resolve_initcall_boundary(vmlinux, sections, nm, name)
                                for name in boundary_names}
         initcall_boundary = initcall_boundaries[INITCALL_BOUNDARIES[args.symbol]]
@@ -662,6 +835,47 @@ def compose(args, bundle):
             va_next = initcall_boundaries[source_audit["fs_next_linker_boundary"]]["entry_va"]
             va_end = initcall_boundaries[source_audit["fs_level_boundary"]]["entry_va"]
             require(va4 < va5 < va_next <= va_end, "FS_LEVEL_LINKER_ORDER_MISMATCH")
+        fs_span = probe_architecture = sixty_byte_inline_rejected = None
+        if args.symbol == "fs_complete":
+            require(source_audit["first_device_entry_implies_fs_complete"]
+                    and source_audit["rootfs_included_in_level5_traversal"]
+                    and not source_audit["rootfs_has_separate_runtime_pass"],
+                    "FS_RUNTIME_SEMANTICS_NOT_PROVEN")
+            va5 = initcall_boundaries["__initcall5_start"]["entry_va"]
+            va_rootfs = initcall_boundaries[source_audit["rootfs_start_symbol"]]["entry_va"]
+            va6 = initcall_boundaries["__initcall6_start"]["entry_va"]
+            va7 = initcall_boundaries["__initcall7_start"]["entry_va"]
+            require(va5 < va_rootfs <= va6 < va7, "FS_ROOTFS_DEVICE_LINKER_ORDER_MISMATCH")
+            index = index_initcall_registrations(pb.LINUX)
+            classified = [classify_span_entry(entry, index)
+                          for entry in decode_initcall_span(vmlinux, sections, nm, va5, va6)]
+            for entry in classified:
+                allowed = FS_SPAN_TYPES if entry["entry_va"] < va_rootfs else ROOTFS_SPAN_TYPES
+                require(entry["registration_type"] in allowed,
+                        f"FS_SPAN_TYPE_MISMATCH:{entry['symbol']}:{entry['registration_type']}")
+            require(classified and FROZEN_FIRST_FS_SYMBOL in classified[0]["aliases"]
+                    and classified[0]["target_va"] == FROZEN_FIRST_FS_VA
+                    and classified[0]["registration_type"] == "fs_initcall",
+                    "FIRST_FS_IDENTITY_MISMATCH")
+            rootfs_entries = [entry for entry in classified if entry["entry_va"] >= va_rootfs]
+            require(any(entry["symbol"] == "populate_rootfs" for entry in rootfs_entries),
+                    "POPULATE_ROOTFS_MISSING_FROM_LEVEL5")
+            fs_span = {"begin": hex(va5), "end": hex(va6), "rootfs_start": hex(va_rootfs),
+                       "entry_count": len(classified), "rootfs_entry_count": len(rootfs_entries),
+                       "rootfs_start_is_marker_only": True,
+                       "entries": [{k: entry[k] for k in
+                                    ("index", "entry_va_hex", "entry_word", "relative",
+                                     "target_va_hex", "symbol", "aliases", "registration_type",
+                                     "registration", "source")} for entry in classified],
+                       "rootfs_entries": [{k: entry[k] for k in
+                                           ("entry_va_hex", "target_va_hex", "symbol",
+                                            "registration", "source")} for entry in rootfs_entries]}
+            (out / "fs-runtime-span.json").write_text(json.dumps(fs_span, indent=2) + "\n")
+            print("FS_RUNTIME_SPAN=" + json.dumps(
+                {"entry_count": fs_span["entry_count"], "rootfs_entry_count": fs_span["rootfs_entry_count"],
+                 "begin": fs_span["begin"], "rootfs_start": fs_span["rootfs_start"], "end": fs_span["end"],
+                 "rootfs_symbols": [entry["symbol"] for entry in rootfs_entries]},
+                sort_keys=True), flush=True)
         target_va = initcall_boundary["target_va"]
         target_symbol = initcall_boundary["target_aliases"][0]
         next_va = min(va for va, _ in t3.symbol_table(nm) if va > target_va)
@@ -674,10 +888,24 @@ def compose(args, bundle):
                           "target_va": hex(target_va),
                           "aliases": initcall_boundary["target_aliases"]},
                          sort_keys=True), flush=True)
-        initcall_source = find_initcall_source(
-            pb.LINUX, initcall_boundary["target_aliases"],
-            INITCALL_MACROS[args.symbol], INITCALL_SOURCE_PREFIX.get(args.symbol))
-        initcall_registration = f"{INITCALL_MACROS[args.symbol]}({target_symbol})"
+        if args.symbol == "fs_complete":
+            hits = []
+            for alias in initcall_boundary["target_aliases"]:
+                hits.extend(index.get(alias, []))
+            require(hits, f"FIRST_DEVICE_UNREGISTERED:{initcall_boundary['target_aliases']}")
+            macros = {hit["macro"] for hit in hits}
+            require(macros <= DEVICE_SPAN_TYPES and len({hit["source"] for hit in hits}) == 1,
+                    f"FIRST_DEVICE_REGISTRATION_AMBIGUOUS:{sorted(macros)}")
+            initcall_source = hits[0]["source"]
+            initcall_registration = f"{hits[0]['macro']}({target_symbol})"
+            reference_core, probe_architecture, sixty_byte_inline_rejected = select_fs_complete_core(
+                extent - target_va, proven56, proven52)
+            core = delay_core(reference_core, args.delay)
+        else:
+            initcall_source = find_initcall_source(
+                pb.LINUX, initcall_boundary["target_aliases"],
+                INITCALL_MACROS[args.symbol], INITCALL_SOURCE_PREFIX.get(args.symbol))
+            initcall_registration = f"{INITCALL_MACROS[args.symbol]}({target_symbol})"
         require(t3.sysmap_symbol(bundle / "System.map", target_symbol) == target_va,
                 "SYMBOL_MAP_MISMATCH")
         print("INITCALL_BOUNDARY_VAS=" + json.dumps(
@@ -688,8 +916,15 @@ def compose(args, bundle):
             print(f"FIRST_FS_INITCALL_SOURCE={initcall_source}", flush=True)
             print(f"FIRST_FS_INITCALL_REGISTRATION={initcall_registration}", flush=True)
             print(f"FIRST_FS_MIN_PROBE={4 + len(core)}", flush=True)
+        elif args.symbol == "fs_complete":
+            print(f"FIRST_DEVICE_FUNCTION_SIZE={extent - target_va}", flush=True)
+            print(f"FIRST_DEVICE_INITCALL_SOURCE={initcall_source}", flush=True)
+            print(f"FIRST_DEVICE_INITCALL_REGISTRATION={initcall_registration}", flush=True)
+            print(f"FS_SELECTED_PROBE_ARCHITECTURE={probe_architecture}", flush=True)
+            print(f"FS_COMPLETE_MIN_PROBE={4 + len(core)}", flush=True)
     else:
         source_audit = initcall_boundaries = initcall_source = initcall_registration = None
+        fs_span = probe_architecture = sixty_byte_inline_rejected = None
         target_symbol = args.symbol
         target_va, extent = t3.symbol_extent(nm, target_symbol)
         require(target_va - text_va == TARGETS[args.symbol],
@@ -724,7 +959,8 @@ def compose(args, bundle):
                             (target_va, extent), (target_va, target_va + length))
     if args.symbol in CFG_DERIVED_WINDOWS:
         cfg_report = cfg_closure_report(target_va, extent - target_va, length, topology)
-        require(cfg_report["cfg_closure_proven"], "SUBSYS_CFG_CLOSURE_NOT_PROVEN")
+        tag = "FS" if args.symbol == "fs_complete" else "SUBSYS"
+        require(cfg_report["cfg_closure_proven"], f"{tag}_CFG_CLOSURE_NOT_PROVEN")
     target_section = next(s for s in sections if s["vma"] <= target_va < s["vma"] + s["size"])
     entry_words = [hex(struct.unpack_from("<I", frozen, offset + i)[0])
                    for i in range(0, min(128, extent - target_va), 4)]
@@ -809,6 +1045,10 @@ def compose(args, bundle):
                     == t3.nm_symbol(nm, "debugfs_create_bool"),
                     "SUBSYS_FS_LITERAL_CALL_TARGET_MISMATCH")
             agreement["verdict"] = "SUBSYS_FS_NAME_LITERAL_ADDRESS_DELTA_VERIFIED"
+        elif differences and args.symbol == "fs_complete":
+            agreement["fs_layout_literal_refs"] = prove_fs_complete_window_literals(
+                image, frozen, text_va, offset, length)
+            agreement["verdict"] = "FS_COMPLETE_LAYOUT_LITERAL_ADDRESS_DELTA_VERIFIED"
         else:
             require(not differences, f"TARGET_WINDOW_DIFFERS_FROM_AUDIT_IMAGE:{differences}")
     finally:
@@ -860,10 +1100,12 @@ def compose(args, bundle):
                 "reference_core_sha256": CORE_SHA, "delay_seconds": args.delay,
                 "initcall_registration": initcall_registration,
                 "core_variant": ("original_b_hs" if args.symbol == "rest_init" else
-                                 "subsys52_cntpct_elapsed_b_lo" if args.symbol in
-                                 SUBSYS52_SYMBOLS else
-                                 "ultracompact_cntpct_elapsed_b_lo" if args.symbol in
-                                 ULTRACOMPACT_SYMBOLS else "compact_b_lo"),
+                                 "subsys52_cntpct_elapsed_b_lo" if len(reference_core) == 52 else
+                                 "ultracompact_cntpct_elapsed_b_lo" if len(reference_core) == 56 else
+                                 "compact_b_lo"),
+                "probe_architecture": probe_architecture,
+                "sixty_byte_inline_rejected": sixty_byte_inline_rejected,
+                "fs_runtime_span": fs_span,
                 "pair_reference_sha256": digest(reference),
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
                 "frozen_sha256": digest(frozen), "changed_bytes": len(changed),
@@ -908,6 +1150,17 @@ def compose(args, bundle):
               "SUBSYS_60B_INLINE_REJECTED=YES\nSUBSYS_52B_CORE_INDEPENDENTLY_AUDITED=YES\n"
               "SUBSYS_SELECTED_PROBE_ARCHITECTURE=INLINE_56B_TOTAL\n"
               "SUBSYS_INLINE_FUNCTION_RANGE_SAFE=YES\nFIRST_FS_PREL32_TARGET_UNCHANGED=YES",
+              flush=True)
+    elif args.symbol == "fs_complete":
+        require(4 + len(core) <= length <= extent - target_va, "FS_COMPLETE_WINDOW_OUT_OF_FUNCTION")
+        require(pad.startswith("paciasp"), "FS_COMPLETE_ENTRY_NOT_PACIASP")
+        print("FS_CHECKPOINT_SOURCE_AUDIT=PASS\nFS_CHECKPOINT_BINARY_AUDIT=PASS\n"
+              "FS_LINKER_ORDER_PROVEN=YES\nROOTFS_LINKER_POSITION_PROVEN=YES\n"
+              "ROOTFS_HAS_SEPARATE_RUNTIME_PASS=NO\nROOTFS_INCLUDED_IN_LEVEL5_TRAVERSAL=YES\n"
+              "ROOTFS_START_IS_MARKER_ONLY=YES\nFIRST_DEVICE_ENTRY_IMPLIES_FS_COMPLETE=YES\n"
+              "FS_COMPLETE_TARGET_UNIQUE=PASS\nFS_COMPLETE_TARGET_ENTRY_AUDIT=PASS\n"
+              "FS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=YES\nFS_CFG_CLOSURE_PROVEN=YES\n"
+              "FS_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES\nFS_ALL_PRIOR_STAGE_PROBES_REMOVED=YES",
               flush=True)
     print(f"{args.symbol.upper()}_INLINE_AUDIT=PASS\nDEVICE_OPERATION=NO\nLOCAL_BUILD=NO", flush=True)
 

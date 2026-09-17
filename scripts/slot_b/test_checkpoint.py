@@ -521,6 +521,212 @@ class CheckpointTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             checkpoint.pad_probe(bytes(73), 96)
 
+
+    def test_fs_complete_core_prefers_proven_56_when_function_fits(self):
+        old = struct.pack('<14I', *checkpoint.ULTRACOMPACT_WORDS)
+        new = struct.pack('<13I', *checkpoint.SUBSYS52_WORDS)
+        core, arch, rejected = checkpoint.select_fs_complete_core(188, old, new)
+        self.assertEqual(core, old)
+        self.assertEqual(arch, 'INLINE_PACIASP_PLUS_56B_ULTRACOMPACT')
+        self.assertFalse(rejected)
+        core, arch, rejected = checkpoint.select_fs_complete_core(56, old, new)
+        self.assertEqual(core, new)
+        self.assertEqual(arch, 'INLINE_PACIASP_PLUS_52B_NO_DAIFSET')
+        self.assertTrue(rejected)
+        self.assertEqual(checkpoint.select_fs_complete_core(60, old, new)[0], old)
+        with self.assertRaises(ValueError):
+            checkpoint.select_fs_complete_core(52, old, new)
+        self.assertIn('fs_complete', checkpoint.CFG_DERIVED_WINDOWS)
+        self.assertNotIn('fs_complete', checkpoint.EXPANDED_WINDOWS)
+        self.assertNotIn('fs_complete', checkpoint.ULTRACOMPACT_SYMBOLS)
+        self.assertNotIn('fs_complete', checkpoint.SUBSYS52_SYMBOLS)
+        self.assertEqual(checkpoint.INITCALL_BOUNDARIES['fs_complete'], '__initcall6_start')
+
+    def test_fs_complete_literal_delta_accepts_same_string_add_only(self):
+        image, frozen = bytearray(512), bytearray(512)
+        struct.pack_into('<II', image, 0x100, 0x90000000, 0x91010000)
+        struct.pack_into('<II', frozen, 0x100, 0x90000000, 0x91012000)
+        image[0x40:0x45] = b'core\0'
+        frozen[0x48:0x4d] = b'core\0'
+        refs = checkpoint.prove_fs_complete_window_literals(image, frozen, 0x10000000, 0x100, 8)
+        self.assertEqual(len(refs), 1)
+        self.assertEqual(refs[0]['bundle']['text'], 'core')
+        self.assertEqual(refs[0]['frozen']['text'], 'core')
+        self.assertEqual(refs[0]['layout_delta'], 8)
+        mutated = bytearray(frozen)
+        struct.pack_into('<I', mutated, 0x100, 0x14000001)
+        with self.assertRaises(ValueError):
+            checkpoint.prove_fs_complete_window_literals(image, mutated, 0x10000000, 0x100, 8)
+        wrong = bytearray(frozen)
+        wrong[0x48:0x4d] = b'nope\0'
+        with self.assertRaises(ValueError):
+            checkpoint.prove_fs_complete_window_literals(image, wrong, 0x10000000, 0x100, 8)
+
+    def _write_fake_linux(self, root, linker_order=None, levels=None):
+        order = linker_order or ['0', '1', '2', '3', '4', '5', 'rootfs', '6', '7']
+        level_syms = levels or ['__initcall0_start', '__initcall1_start', '__initcall2_start',
+                                '__initcall3_start', '__initcall4_start', '__initcall5_start',
+                                '__initcall6_start', '__initcall7_start', '__initcall_end']
+        (root / 'init').mkdir(parents=True, exist_ok=True)
+        (root / 'include/linux').mkdir(parents=True, exist_ok=True)
+        (root / 'include/asm-generic').mkdir(parents=True, exist_ok=True)
+        (root / 'arch/arm64/kernel').mkdir(parents=True, exist_ok=True)
+        nl, tab, cont = chr(10), chr(9), ' ' + chr(92) + chr(10)
+        calls = ''.join(tab + tab + 'INIT_CALLS_LEVEL(' + item + ')' + cont for item in order)
+        lds = (
+            '#define INIT_CALLS_LEVEL(level)' + cont +
+            tab + tab + '__initcall##level##_start = .;' + cont +
+            tab + tab + 'KEEP(*(.initcall##level##.init))' + cont +
+            tab + tab + 'KEEP(*(.initcall##level##s.init))' + cont + nl +
+            '#define INIT_CALLS' + cont +
+            tab + tab + '__initcall_start = .;' + cont +
+            tab + tab + 'KEEP(*(.initcallearly.init))' + cont +
+            calls +
+            tab + tab + '__initcall_end = .;' + nl
+        )
+        (root / 'include/asm-generic/vmlinux.lds.h').write_text(lds)
+        (root / 'include/linux/init.h').write_text(nl.join([
+            '#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS',
+            'typedef int initcall_entry_t;',
+            'static inline initcall_t initcall_from_entry(initcall_entry_t *entry)',
+            '{ return offset_to_ptr(entry); }',
+            'asm(".long " __stringify(__stub) " - .");',
+            '#endif',
+            'extern initcall_entry_t __initcall0_start[];',
+            'extern initcall_entry_t __initcall5_start[];',
+            'extern initcall_entry_t __initcall6_start[];',
+            'extern initcall_entry_t __initcall7_start[];',
+            'void __init init_rootfs(void);',
+            '#define arch_initcall(fn)\t\t__define_initcall(fn, 3)',
+            '#define subsys_initcall(fn)\t\t__define_initcall(fn, 4)',
+            '#define fs_initcall(fn)\t\t\t__define_initcall(fn, 5)',
+            '#define fs_initcall_sync(fn)\t\t__define_initcall(fn, 5s)',
+            '#define rootfs_initcall(fn)\t\t__define_initcall(fn, rootfs)',
+            '#define device_initcall(fn)\t\t__define_initcall(fn, 6)',
+            '#define __initcall(fn) device_initcall(fn)',
+            ''
+        ]).replace('\\t', tab))
+        (root / 'init/main.c').write_text(
+            'static initcall_entry_t *initcall_levels[] __initdata = {' + nl +
+            ''.join(tab + name + ',' + nl for name in level_syms) +
+            '};' + nl +
+            'static const char *initcall_level_names[] __initdata = {' + nl +
+            tab + '"pure",' + nl + tab + '"core",' + nl + tab + '"postcore",' + nl +
+            tab + '"arch",' + nl + tab + '"subsys",' + nl + tab + '"fs",' + nl +
+            tab + '"device",' + nl + tab + '"late",' + nl + '};' + nl +
+            'static void __init do_initcall_level(int level, char *command_line)' + nl +
+            '{' + nl + tab + 'initcall_entry_t *fn;' + nl +
+            tab + 'for (fn = initcall_levels[level]; fn < initcall_levels[level+1]; fn++)' + nl +
+            tab + tab + 'do_one_initcall(initcall_from_entry(fn));' + nl + '}' + nl +
+            'static void __init do_initcalls(void)' + nl +
+            '{' + nl + tab + 'int level;' + nl +
+            tab + 'for (level = 0; level < ARRAY_SIZE(initcall_levels) - 1; level++) {' + nl +
+            tab + tab + 'do_initcall_level(level, command_line);' + nl + tab + '}' + nl + '}' + nl)
+        (root / 'init/initramfs.c').write_text('rootfs_initcall(populate_rootfs);' + nl)
+        (root / 'arch/arm64/kernel/vmlinux.lds.S').write_text(tab + tab + 'INIT_CALLS' + nl)
+        (root / 'arch/arm64/Kconfig').write_text(tab + 'select HAVE_ARCH_PREL32_RELOCATIONS' + nl)
+
+    def test_fs_source_semantics_include_rootfs_in_level5(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            linux = Path(tmp)
+            self._write_fake_linux(linux)
+            result = checkpoint.audit_initcall_source(linux)
+            self.assertEqual(result['fs'], '__initcall5_start..__initcall6_start')
+            self.assertEqual(result['device'], '__initcall6_start..__initcall7_start')
+            self.assertEqual(result['fs_next_linker_boundary'], '__initcallrootfs_start')
+            self.assertEqual(result['rootfs_start_symbol'], '__initcallrootfs_start')
+            self.assertEqual(result['do_initcall_level_5_begin'], '__initcall5_start')
+            self.assertEqual(result['do_initcall_level_5_end'], '__initcall6_start')
+            self.assertFalse(result['rootfs_has_separate_runtime_pass'])
+            self.assertTrue(result['rootfs_included_in_level5_traversal'])
+            self.assertTrue(result['rootfs_start_is_marker_only'])
+            self.assertTrue(result['first_device_entry_implies_fs_complete'])
+            self.assertEqual(result['fs_complete_causal_boundary'], '__initcall6_start')
+            self.assertEqual(result['linker_order'],
+                             ['0', '1', '2', '3', '4', '5', 'rootfs', '6', '7'])
+            self._write_fake_linux(linux, linker_order=['0', '1', '2', '3', '4', '5', '6', '7'])
+            with self.assertRaises(ValueError):
+                checkpoint.audit_initcall_source(linux)
+            self._write_fake_linux(linux, levels=['__initcall0_start', '__initcall1_start',
+                                                  '__initcall2_start', '__initcall3_start',
+                                                  '__initcall4_start', '__initcall5_start',
+                                                  '__initcallrootfs_start', '__initcall6_start',
+                                                  '__initcall7_start', '__initcall_end'])
+            with self.assertRaises(ValueError):
+                checkpoint.audit_initcall_source(linux)
+
+    def test_fs_checkpoint_negative_fixtures(self):
+        fs = {
+            'checkpoint_point': 'FIRST_DEVICE_INITCALL_EXACT_ENTRY',
+            'boundary': '__initcall6_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
+            'entry_encoding': 'PREL32', 'cross_function_overwrite': False,
+            'function_range_safe': True, 'function_size': 80, 'probe_size': 60,
+            'incoming_interior_branches': 0, 'backedge_conflict': False,
+            'runtime_rewrite_conflict': False, 'cfg_closure_proven': True,
+            'window_derivation': 'TARGET_CFG', 'reuse_arch_160b': False,
+            'reuse_subsys_56b': False, 'copied_arch_probe': False, 'copied_subsys_probe': False,
+            'prior_subsys_probe': False, 'prior_arch_probe': False, 'prior_core_probe': False,
+            'prior_postcore_probe': False, 'probe_architecture': 'INLINE_PACIASP_PLUS_56B_ULTRACOMPACT',
+            'diagnostic_core_size': 56, 'sixty_byte_inline_rejected': False,
+            'paciasp_preserved': True, 'cntpct_elapsed': True, 'prel32_target_unchanged': True,
+            'fixed_iteration_delay': False, 'rootfs_has_separate_runtime_pass': False,
+            'rootfs_included_in_level5': True, 'first_device_entry_implies_fs_complete': True,
+            'rootfs_start_is_marker_only': True, 'rewrite_initcall_table': False,
+            'treat_rootfs_marker_as_callable': False,
+            'literal_delta': 'EXACT_OR_INDEPENDENTLY_PROVEN',
+            'pair_diff': 'DELAY_CONSTANT_ONLY', 'timer': 'CNTPCT',
+            'psci_fid': '0x84000009', 'timer_algorithm_changed': False,
+            'prior_pure_probe': False, 'prior_console_probe': False,
+            'rt_d_sha256': '4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327',
+            'init_changed': False, 'private_pack': False, 'device_operation': False,
+        }
+        checkpoint.gate_fs_checkpoint_design(fs)
+        with self.assertRaises(ValueError):
+            checkpoint.gate_fs_checkpoint_design(dict(fs, boundary='__initcall5_start'))
+        with self.assertRaises(ValueError):
+            checkpoint.gate_subsys_checkpoint_design(fs)
+        fixtures = {
+            'assume_initcall6_without_audit': ('boundary', '__initcall5_start'),
+            'ignore_rootfs_start': ('rootfs_start_is_marker_only', False),
+            'treat_marker_callable': ('treat_rootfs_marker_as_callable', True),
+            'claim_separate_rootfs_pass': ('rootfs_has_separate_runtime_pass', True),
+            'claim_rootfs_not_in_level5': ('rootfs_included_in_level5', False),
+            'select_device_before_ordering': ('first_device_entry_implies_fs_complete', False),
+            'wrong_causal_target': ('checkpoint_point', 'WRONG_FIRST_DEVICE_TARGET'),
+            'shared_do_initcalls': ('checkpoint_point', 'SHARED_DO_INITCALLS_LOOP'),
+            'shared_do_initcall_level': ('checkpoint_point', 'SHARED_DO_INITCALL_LEVEL'),
+            'before_level5_complete': ('checkpoint_point', 'BEFORE_LEVEL5_COMPLETE'),
+            'rewrite_table': ('rewrite_initcall_table', True),
+            'cross_function': ('cross_function_overwrite', True),
+            'blind_reuse_subsys_56b': ('reuse_subsys_56b', True),
+            'blind_reuse_arch_160b': ('reuse_arch_160b', True),
+            'copied_subsys_window': ('window_derivation', 'COPIED_SUBSYS_56B'),
+            'incoming_branch': ('incoming_interior_branches', 1),
+            'backedge_source_live': ('backedge_conflict', True),
+            'cfg_not_closed': ('cfg_closure_proven', False),
+            'runtime_rewrite': ('runtime_rewrite_conflict', True),
+            'unproved_literal_delta': ('literal_delta', 'UNPROVEN'),
+            'extra_pair_diff': ('pair_diff', 'EXTRA_BYTES'),
+            'timer_change': ('timer_algorithm_changed', True),
+            'psci_change': ('psci_fid', '0x84000008'),
+            'subsys_probe_remains': ('prior_subsys_probe', True),
+            'arch_probe_remains': ('prior_arch_probe', True),
+            'postcore_probe_remains': ('prior_postcore_probe', True),
+            'core_probe_remains': ('prior_core_probe', True),
+            'pure_probe_remains': ('prior_pure_probe', True),
+            'console_probe_remains': ('prior_console_probe', True),
+            'rt_d_changed': ('rt_d_sha256', '0' * 64),
+            'init_changed': ('init_changed', True),
+            'private_pack': ('private_pack', True),
+            'device_operation': ('device_operation', True),
+            'short_function': ('function_size', 52),
+        }
+        for name, (key, value) in fixtures.items():
+            bad = dict(fs)
+            bad[key] = value
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                checkpoint.gate_fs_checkpoint_design(bad)
+
     def test_composition_changes_only_authorized_window(self):
         before = bytes(range(100))
         after = checkpoint.patch_window(before, 20, b'ABCD')

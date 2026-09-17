@@ -1,0 +1,473 @@
+name: FS_INITCALLS_COMPLETE_CHECKPOINT_CI
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/checkpoint.py'
+      - 'scripts/slot_b/test_checkpoint.py'
+      - 'scripts/slot_b/checkpoint-ultracompact.S'
+      - 'scripts/slot_b/checkpoint-subsys52.S'
+      - '.github/workflows/thyme-slot-b-fs-initcalls-complete.yml'
+  workflow_dispatch:
+    inputs:
+      bundle_run_id:
+        description: Authoritative reconciled Linux 6.6.156 vmlinux bundle
+        required: false
+        default: '35040148509'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: fs-initcalls-complete-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Actions-only workflow lint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-fs-initcalls-complete.yml
+      - name: Exact fs/rootfs/device source boundary and negative fixtures
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_*.py' -v 2>&1 | tee fs-source-tests.log
+          grep -q 'test_fs_checkpoint_negative_fixtures.*ok' fs-source-tests.log
+          grep -q 'test_fs_source_semantics_include_rootfs_in_level5.*ok' fs-source-tests.log
+          grep -q 'test_fs_complete_core_prefers_proven_56_when_function_fits.*ok' fs-source-tests.log
+          grep -q 'test_fs_complete_literal_delta_accepts_same_string_add_only.*ok' fs-source-tests.log
+          python3 -B - <<'PY' | tee fs-source-audit.json
+          import json, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          result = checkpoint.audit_initcall_source(Path('linux-6.6'))
+          assert result['fs'] == '__initcall5_start..__initcall6_start'
+          assert result['device'] == '__initcall6_start..__initcall7_start'
+          assert result['rootfs_start_symbol'] == '__initcallrootfs_start'
+          assert result['fs_next_linker_boundary'] == '__initcallrootfs_start'
+          assert result['do_initcall_level_5_begin'] == '__initcall5_start'
+          assert result['do_initcall_level_5_end'] == '__initcall6_start'
+          assert result['rootfs_has_separate_runtime_pass'] is False
+          assert result['rootfs_included_in_level5_traversal'] is True
+          assert result['rootfs_start_is_marker_only'] is True
+          assert result['first_device_entry_implies_fs_complete'] is True
+          assert result['fs_complete_causal_boundary'] == '__initcall6_start'
+          assert result['linker_order'] == ['0', '1', '2', '3', '4', '5', 'rootfs', '6', '7']
+          assert 'fs_complete' in checkpoint.CFG_DERIVED_WINDOWS
+          assert 'fs_complete' not in checkpoint.EXPANDED_WINDOWS
+          assert 'fs_complete' not in checkpoint.ULTRACOMPACT_SYMBOLS
+          assert 'fs_complete' not in checkpoint.SUBSYS52_SYMBOLS
+          print(json.dumps(result, indent=2))
+          PY
+          python3 -B - <<'PY' | tee fs-source-gates.txt
+          import json
+          from pathlib import Path
+          result = json.loads(Path('fs-source-audit.json').read_text())
+          print(f"FS_LEVEL_BOUNDARY={result['fs']}")
+          print(f"DEVICE_LEVEL_BOUNDARY={result['device']}")
+          print(f"DO_INITCALL_LEVEL_5_BEGIN={result['do_initcall_level_5_begin']}")
+          print(f"DO_INITCALL_LEVEL_5_END={result['do_initcall_level_5_end']}")
+          print(f"ROOTFS_START_SYMBOL={result['rootfs_start_symbol']}")
+          print(f"FS_NEXT_LINKER_BOUNDARY={result['fs_next_linker_boundary']}")
+          print('FS_LINKER_ORDER_PROVEN=YES')
+          print('ROOTFS_LINKER_POSITION_PROVEN=YES')
+          print('ROOTFS_HAS_SEPARATE_RUNTIME_PASS=NO')
+          print('ROOTFS_INCLUDED_IN_LEVEL5_TRAVERSAL=YES')
+          print('ROOTFS_START_IS_MARKER_ONLY=YES')
+          print('FIRST_DEVICE_ENTRY_IMPLIES_FS_COMPLETE=YES')
+          print(f"FS_COMPLETE_CAUSAL_BOUNDARY_SYMBOL={result['fs_complete_causal_boundary']}")
+          print('INITCALL_ENTRY_ENCODING=PREL32')
+          print('TARGET_DERIVATION=INITCALL_TABLE_DECODE')
+          print('WINDOW_DERIVATION=TARGET_CFG')
+          print('REWRITE_INITCALL_TABLE=FORBIDDEN')
+          print('TREAT_ROOTFS_MARKER_AS_CALLABLE=FORBIDDEN')
+          print('SHARED_LOOP_RETURN_POINT=FORBIDDEN')
+          print('REUSE_SUBSYS_56B=FORBIDDEN')
+          print('REUSE_ARCH_160B=FORBIDDEN')
+          print('PRIVATE_PACK=NO')
+          print('DEVICE_OPERATION=NO')
+          print('LOCAL_BUILD=NO')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-initcalls-source-audit
+          path: |
+            fs-source-audit.json
+            fs-source-gates.txt
+            fs-source-tests.log
+          if-no-files-found: error
+
+  initcall-table-decode:
+    if: github.event_name == 'workflow_dispatch'
+    needs: source-audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact source used by the audit
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Install binary audit tools only
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18
+      - name: Download immutable authoritative inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUNDLE_RUN: ${{ inputs.bundle_run_id || '35040148509' }}
+        run: |
+          set -euo pipefail
+          test "$BUNDLE_RUN" = 35040148509
+          gh run download "$BUNDLE_RUN" -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          gh run download 34980859158 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-reset-pair -D proven-core
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independently assemble proven 56-byte and 52-byte cores
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-ultracompact.S -o ultracompact.o
+          llvm-readelf-18 -r ultracompact.o | tee ultracompact-relocations.log
+          grep -q 'There are no relocations in this file' ultracompact-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text ultracompact.o ultracompact.bin
+          test "$(stat -c %s ultracompact.bin)" = 56
+          llvm-objdump-18 -d ultracompact.o | tee ultracompact-disassembly.log
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-subsys52.S -o subsys52.o
+          llvm-readelf-18 -r subsys52.o | tee subsys52-relocations.log
+          grep -q 'There are no relocations in this file' subsys52-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text subsys52.o subsys52.bin
+          test "$(stat -c %s subsys52.bin)" = 52
+          llvm-objdump-18 -d subsys52.o | tee subsys52-disassembly.log
+          python3 -B - <<'PY'
+          import sys
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint, pathlib
+          old = pathlib.Path('ultracompact.bin').read_bytes()
+          new = pathlib.Path('subsys52.bin').read_bytes()
+          checkpoint.gate_subsys52_core_equivalence(old, new)
+          print('FS_52B_CORE_INDEPENDENTLY_AUDITED=YES')
+          print('FS_56B_CORE_INDEPENDENTLY_AUDITED=YES')
+          PY
+      - name: Decode level-5 span, first device entry, audit CFG, and prepare public pair
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          for delay in 8 1; do
+            reference=()
+            if test "$delay" = 1; then
+              reference=(--reference-sha "$(jq -r .payload_sha256 fs-pair/8/checkpoint/manifest.json)")
+            fi
+            python3 -u -B scripts/slot_b/checkpoint.py \
+              --symbol fs_complete --delay "$delay" \
+              --ultracompact-core ultracompact.bin --subsys52-core subsys52.bin \
+              --bundle kernel-bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+              --core proven-core/p1b-t1-core-reference.bin --out "fs-pair/$delay" \
+              "${reference[@]}" | tee "fs-$delay.log"
+          done
+          python3 -B - <<'PY' | tee fs-pair-gates.txt
+          import hashlib, json, os, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          root = Path('fs-pair')
+          m8 = json.loads((root/'8/checkpoint/manifest.json').read_text())
+          m1 = json.loads((root/'1/checkpoint/manifest.json').read_text())
+          p8 = (root/'8/checkpoint/payload.bin').read_bytes()
+          p1 = (root/'1/checkpoint/payload.bin').read_bytes()
+          frozen = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          assert m8['symbol'] == m1['symbol'] == 'fs_complete'
+          assert m8['initcall_boundary']['boundary_symbol'] == '__initcall6_start'
+          assert m8['initcall_boundary']['entry_encoding'] == 'PREL32'
+          assert m8['initcall_boundary'] == m1['initcall_boundary']
+          assert m8['window_derivation'] == m1['window_derivation'] == 'TARGET_CFG'
+          source = m8['initcall_source_audit']
+          assert source['rootfs_has_separate_runtime_pass'] is False
+          assert source['rootfs_included_in_level5_traversal'] is True
+          assert source['first_device_entry_implies_fs_complete'] is True
+          assert source['do_initcall_level_5_begin'] == '__initcall5_start'
+          assert source['do_initcall_level_5_end'] == '__initcall6_start'
+          bounds = m8['initcall_boundaries']
+          va5, va_rootfs, va6, va7 = (bounds['__initcall5_start']['entry_va'],
+                                      bounds['__initcallrootfs_start']['entry_va'],
+                                      bounds['__initcall6_start']['entry_va'],
+                                      bounds['__initcall7_start']['entry_va'])
+          assert va5 < va_rootfs <= va6 < va7
+          span = m8['fs_runtime_span']
+          assert span['entry_count'] == len(span['entries'])
+          assert span['rootfs_entry_count'] == len(span['rootfs_entries'])
+          assert span['rootfs_start_is_marker_only'] is True
+          first_fs = span['entries'][0]
+          assert 'create_debug_debugfs_entry' in first_fs['aliases']
+          assert first_fs['target_va_hex'] == '0xffff8000800149e0'
+          assert first_fs['registration_type'] == 'fs_initcall'
+          assert any(entry['symbol'] == 'populate_rootfs' for entry in span['rootfs_entries'])
+          for entry in span['entries']:
+              allowed = {'fs_initcall', 'fs_initcall_sync'} if int(entry['entry_va_hex'], 16) < va_rootfs else {'rootfs_initcall'}
+              assert entry['registration_type'] in allowed
+          size = m8['checkpoint_size']
+          core_size = m8['core_size']
+          assert size == m1['checkpoint_size'] == m8['cfg_closure']['candidate_window_length']
+          assert m8['target_function_size'] >= size >= 4 + core_size
+          assert core_size in (52, 56)
+          assert m8['probe_architecture'] in (
+              'INLINE_PACIASP_PLUS_56B_ULTRACOMPACT', 'INLINE_PACIASP_PLUS_52B_NO_DAIFSET')
+          assert m8['sixty_byte_inline_rejected'] is (core_size == 52)
+          assert m8['cfg_closure']['cfg_closure_proven'] is True
+          assert not m8['cfg_closure']['surviving_into_interior']
+          assert m8['target_entry_audit']['entry_audit'] == 'PASS'
+          assert not m8['target_entry_audit']['branch_topology']['incoming_window_interior']
+          assert m8['target_entry_audit']['runtime_rewrite_safe'] is True
+          assert m8['window_agreement']['verdict'] in (
+              'EXACT', 'FS_COMPLETE_LAYOUT_LITERAL_ADDRESS_DELTA_VERIFIED')
+          assert m8['window_agreement']['verdict'] != 'SUBSYS_FS_NAME_LITERAL_ADDRESS_DELTA_VERIFIED'
+          delay_index = 2 if core_size == 52 else 3
+          changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
+          assert changed == [m8['offset'] + 4 * delay_index + 1, m8['offset'] + 4 * delay_index + 2]
+          assert p8[:m8['offset']] == frozen[:m8['offset']] and p8[m8['offset']+size:] == frozen[m8['offset']+size:]
+          assert p1[:m1['offset']] == frozen[:m1['offset']] and p1[m1['offset']+size:] == frozen[m1['offset']+size:]
+          design = {
+              'checkpoint_point': 'FIRST_DEVICE_INITCALL_EXACT_ENTRY',
+              'boundary': '__initcall6_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
+              'entry_encoding': 'PREL32', 'cross_function_overwrite': False,
+              'function_range_safe': True, 'function_size': m8['target_function_size'],
+              'probe_size': size, 'incoming_interior_branches': 0,
+              'backedge_conflict': False, 'runtime_rewrite_conflict': False,
+              'cfg_closure_proven': True, 'window_derivation': 'TARGET_CFG',
+              'reuse_arch_160b': False, 'reuse_subsys_56b': False,
+              'copied_arch_probe': False, 'copied_subsys_probe': False,
+              'prior_subsys_probe': False, 'prior_arch_probe': False,
+              'prior_core_probe': False, 'prior_postcore_probe': False,
+              'probe_architecture': m8['probe_architecture'],
+              'diagnostic_core_size': core_size,
+              'sixty_byte_inline_rejected': m8['sixty_byte_inline_rejected'],
+              'paciasp_preserved': True, 'cntpct_elapsed': True,
+              'prel32_target_unchanged': True, 'fixed_iteration_delay': False,
+              'rootfs_has_separate_runtime_pass': False, 'rootfs_included_in_level5': True,
+              'first_device_entry_implies_fs_complete': True, 'rootfs_start_is_marker_only': True,
+              'rewrite_initcall_table': False, 'treat_rootfs_marker_as_callable': False,
+              'literal_delta': 'EXACT_OR_INDEPENDENTLY_PROVEN',
+              'pair_diff': 'DELAY_CONSTANT_ONLY', 'timer': 'CNTPCT',
+              'psci_fid': '0x84000009', 'timer_algorithm_changed': False,
+              'prior_pure_probe': False, 'prior_console_probe': False,
+              'rt_d_sha256': '4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327',
+              'init_changed': False, 'private_pack': False, 'device_operation': False,
+          }
+          checkpoint.gate_fs_checkpoint_design(design)
+          pair = {
+              'source_commit': os.environ['GITHUB_SHA'], 'public_run': os.environ['GITHUB_RUN_ID'],
+              'bundle_run': '35040148509', 'fs8_payload_sha256': hashlib.sha256(p8).hexdigest(),
+              'fs1_payload_sha256': hashlib.sha256(p1).hexdigest(),
+              'changed_offsets': changed, 'changed_instruction_indices': [delay_index],
+              'probe_architecture': m8['probe_architecture'],
+              'attribution': 'DELAY_CONSTANT_ONLY', 'expected_delta_seconds': -7.0,
+              'strong_error_seconds': 1.0, 'supported_error_seconds': 2.0,
+              'window_derivation': 'TARGET_CFG', 'checkpoint_size': size,
+              'core_size': core_size, 'target_symbol': m8['target_symbol'],
+              'private_pack': False, 'device_operation': False,
+          }
+          (root/'pair.json').write_text(json.dumps(pair, indent=2)+'\n')
+          bound = m8['initcall_boundary']
+          print(f"INITCALL5_START_VA={va5:#x}")
+          print(f"INITCALLROOTFS_START_VA={va_rootfs:#x}")
+          print(f"INITCALL6_START_VA={va6:#x}")
+          print(f"INITCALL7_START_VA={va7:#x}")
+          print(f"FS_RUNTIME_SPAN_ENTRY_COUNT={span['entry_count']}")
+          print(f"ROOTFS_ENTRY_COUNT={span['rootfs_entry_count']}")
+          print('ROOTFS_START_IS_MARKER_ONLY=YES')
+          print('ROOTFS_HAS_SEPARATE_RUNTIME_PASS=NO')
+          print('ROOTFS_INCLUDED_IN_LEVEL5_TRAVERSAL=YES')
+          print(f"ROOTFS_ENTRIES_BETWEEN_ROOTFS_AND_6={span['rootfs_entry_count']}")
+          print('ROOTFS_SYMBOLS=' + ','.join(entry['symbol'] for entry in span['rootfs_entries']))
+          print('FS_COMPLETE_CAUSAL_BOUNDARY_SYMBOL=' + m8['target_symbol'])
+          print('FS_COMPLETE_CAUSAL_BOUNDARY_REASON=do_initcall_level(5) walks [__initcall5_start,__initcall6_start) including rootfs; first device entry is the next runtime function')
+          print('FIRST_DEVICE_ENTRY_IMPLIES_FS_COMPLETE=YES')
+          print(f"FIRST_DEVICE_INITCALL_TABLE_ENTRY_VA={bound['entry_va']:#x}")
+          print(f"FIRST_DEVICE_INITCALL_ENTRY_WORD={bound['entry_word']}")
+          print(f"FIRST_DEVICE_INITCALL_SIGNED_DISPLACEMENT={bound['relative']}")
+          print(f"FIRST_DEVICE_INITCALL_TARGET_VA={m8['target_va']}")
+          print(f"FIRST_DEVICE_INITCALL_IMAGE_OFFSET={m8['offset']:#x}")
+          print(f"FIRST_DEVICE_INITCALL_SYMBOL={m8['target_symbol']}")
+          print(f"FIRST_DEVICE_INITCALL_SOURCE={m8['target_source']}")
+          print(f"FIRST_DEVICE_INITCALL_REGISTRATION={m8['initcall_registration']}")
+          print(f"FIRST_DEVICE_INITCALL_SECTION={m8['section']}")
+          print(f"FIRST_DEVICE_INITCALL_SIZE={m8['target_function_size']}")
+          print('FS_COMPLETE_TARGET_UNIQUE=PASS')
+          print('INITCALL_ENTRY_ENCODING=PREL32')
+          print(f"FIRST_DEVICE_ENTRY0={m8['entry']}")
+          print(f"FIRST_DEVICE_ENTRY_BYTES={m8['target_entry_audit']['entry_bytes']}")
+          print(f"FIRST_DEVICE_PAC={m8['target_entry_audit']['pac']}")
+          print(f"FIRST_DEVICE_BTI={m8['target_entry_audit']['bti']}")
+          print('FS_COMPLETE_TARGET_ENTRY_AUDIT=PASS')
+          print(f"FS_COMPLETE_TARGET_SIZE={m8['target_function_size']}")
+          print(f"FS_CHECKPOINT_WINDOW={size}")
+          print(f"FS_SELECTED_PROBE_ARCHITECTURE={m8['probe_architecture']}")
+          print(f"FS_DIAGNOSTIC_CORE_SIZE={core_size}")
+          print(f"FS_60B_INLINE_REJECTED={'YES' if m8['sixty_byte_inline_rejected'] else 'NO'}")
+          print('FS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=YES')
+          print('FS_CFG_CLOSURE_PROVEN=YES')
+          print('FS_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES')
+          print(f"FS8_PAYLOAD_SHA={hashlib.sha256(p8).hexdigest()}")
+          print(f"FS1_PAYLOAD_SHA={hashlib.sha256(p1).hexdigest()}")
+          print(f"FS_PAIR_DIFF_BYTE_COUNT={len(changed)}")
+          print(f"FS_PAIR_DIFF_RANGES=[{changed[0]:#x},{changed[-1]+1:#x})")
+          print(f"FS_PAIR_CHANGED_INSTRUCTIONS=[{delay_index}]")
+          print('FS_PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY')
+          print('FS_ALL_PRIOR_STAGE_PROBES_REMOVED=YES')
+          print('FS_PAIR_PUBLIC_READY=YES')
+          print('FS_PRIVATE_PACK=NO')
+          print('FS_DEVICE_OPERATION=NO')
+          PY
+          (cd fs-pair && sha256sum 8/checkpoint/payload.bin 1/checkpoint/payload.bin pair.json > SHA256SUMS)
+      - name: Assert public payload-only scope
+        run: |
+          set -euo pipefail
+          if find fs-pair -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          printf '%s\n' 'PRIVATE_PACK=NO' 'DEVICE_OPERATION=NO' 'ADB_DEVICE_OPERATION=NO' \
+            'FASTBOOT_DEVICE_OPERATION=NO' 'PARTITION_WRITES=0' 'SLOT_A_WRITTEN=NO' \
+            'LOCAL_BUILD=NO' 'LOCAL_IMAGE_GENERATION=NO' 'LOCAL_BINARY_VALIDATION=NO'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-fs-initcalls-complete-audit
+          path: |
+            fs-*.log
+            fs-pair-gates.txt
+            ultracompact-*.log
+            subsys52-*.log
+            fs-pair/*/checkpoint/original-window.txt
+            fs-pair/*/checkpoint/original-function.txt
+            fs-pair/*/checkpoint/target-entry-audit.json
+            fs-pair/*/checkpoint/window-agreement.json
+            fs-pair/*/checkpoint/fs-runtime-span.json
+            fs-pair/*/checkpoint/manifest.json
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-initcalls-complete-pair
+          path: fs-pair/
+          if-no-files-found: error
+
+  independent-reverify:
+    needs: initcall-table-decode
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Download pair and immutable inputs independently
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" -n thyme-fs-initcalls-complete-pair -D pair
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          (cd pair && sha256sum -c SHA256SUMS)
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independent pair, baseline, boundary, diagnostic and identity verification
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY' | tee independent-reverify.txt
+          import json, struct
+          from pathlib import Path
+          a = json.loads(Path('pair/8/checkpoint/manifest.json').read_text())
+          b = json.loads(Path('pair/1/checkpoint/manifest.json').read_text())
+          p8 = Path('pair/8/checkpoint/payload.bin').read_bytes()
+          p1 = Path('pair/1/checkpoint/payload.bin').read_bytes()
+          base = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          pair = json.loads(Path('pair/pair.json').read_text())
+          bounds = a['initcall_boundaries']
+          source = a['initcall_source_audit']
+          span = a['fs_runtime_span']
+          assert a['initcall_boundary']['boundary_symbol'] == '__initcall6_start'
+          assert a['initcall_boundary']['entry_encoding'] == 'PREL32'
+          assert a['window_derivation'] == 'TARGET_CFG'
+          assert source['rootfs_has_separate_runtime_pass'] is False
+          assert source['rootfs_included_in_level5_traversal'] is True
+          assert source['first_device_entry_implies_fs_complete'] is True
+          assert (bounds['__initcall5_start']['entry_va']
+                  < bounds['__initcallrootfs_start']['entry_va']
+                  <= bounds['__initcall6_start']['entry_va']
+                  < bounds['__initcall7_start']['entry_va'])
+          assert a['target_va'] == hex(a['initcall_boundary']['target_va'])
+          off, size, core_size = a['offset'], a['checkpoint_size'], a['core_size']
+          delay_index = 2 if core_size == 52 else 3
+          assert size == a['cfg_closure']['candidate_window_length']
+          assert a['target_function_size'] >= size >= 4 + core_size
+          assert a['cfg_closure']['cfg_closure_proven'] is True
+          assert not a['cfg_closure']['surviving_into_interior']
+          assert p8[:off] == base[:off] and p8[off+size:] == base[off+size:]
+          assert p1[:off] == base[:off] and p1[off+size:] == base[off+size:]
+          changed = [i for i, (x, y) in enumerate(zip(p8, p1)) if x != y]
+          assert changed == [off + 4 * delay_index + 1, off + 4 * delay_index + 2] == pair['changed_offsets']
+          nwords = 1 + core_size // 4
+          words8 = struct.unpack_from(f'<{nwords}I', p8, off)
+          words1 = struct.unpack_from(f'<{nwords}I', p1, off)
+          assert words8[0] == words1[0] == 0xd503233f
+          assert words8[delay_index] == 0xd37df12a and words1[delay_index] == 0xd340fd2a
+          smc = delay_index + 9
+          assert words8[smc] == words1[smc] == 0xd4000003
+          assert words8[smc + 1] == words1[smc + 1] == 0xd503205f
+          assert words8[smc + 2] == words1[smc + 2] == 0x17ffffff
+          assert all(words8[i] == words1[i] for i in range(nwords) if i != delay_index)
+          assert a['window_agreement']['verdict'] in (
+              'EXACT', 'FS_COMPLETE_LAYOUT_LITERAL_ADDRESS_DELTA_VERIFIED')
+          assert a['runtime_dtb_external_initrd'] is False
+          assert a['chosen_properties'] == ['bootargs', 'stdout-path']
+          assert a['target_entry_audit']['runtime_rewrite_safe'] is True
+          assert not a['target_entry_audit']['branch_topology']['incoming_window_interior']
+          assert 'create_debug_debugfs_entry' in span['entries'][0]['aliases']
+          assert span['entries'][0]['target_va_hex'] == '0xffff8000800149e0'
+          assert pair['attribution'] == 'DELAY_CONSTANT_ONLY'
+          assert pair['window_derivation'] == 'TARGET_CFG'
+          assert pair['private_pack'] is False and pair['device_operation'] is False
+          print('FS_PAIR_STATIC_REVERIFY=PASS')
+          print(f"FS_SELECTED_PROBE_ARCHITECTURE={a['probe_architecture']}")
+          print('FS_INLINE_FUNCTION_RANGE_SAFE=YES')
+          print('FS_COMPLETE_TARGET_UNIQUE=PASS')
+          print('FS_PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY')
+          print('FS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=YES')
+          print('FS_CFG_CLOSURE_PROVEN=YES')
+          print('FS_ALL_PRIOR_STAGE_PROBES_REMOVED=YES')
+          print('RT_D_MATCH=YES')
+          print('/init_UNCHANGED=YES')
+          print('INITRAMFS_UNCHANGED=YES')
+          print('FS_PAIR_PUBLIC_READY=YES')
+          print('READY_FOR_FS_INITCALLS_PRIVATE_GATE=YES')
+          print('MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_CHECKPOINT_CI_READY')
+          print('PRIVATE_PACK=NO')
+          print('DEVICE_OPERATION=NO')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-initcalls-independent-reverify
+          path: independent-reverify.txt
+          if-no-files-found: error
