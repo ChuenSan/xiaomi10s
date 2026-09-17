@@ -344,6 +344,75 @@ writes, and never retry a rejected boot.
 `SLOT_A_WRITTEN=NO`
 
 Final gate: `READY_FOR_R3_SLOT_B_ARCH1_DEVICE_CONTROL=YES`.
-This readiness gate is not itself true-device authorization. Recommended next,
-only after explicit user approval:
-`MAINLINE_V2_R3_SLOT_B_ARCH1_TRUE_DEVICE_CONTROL`.
+This readiness gate is not itself true-device authorization. The separately
+approved member-B round is now complete.
+
+## ARCH1 true-device result
+
+Exactly one identity-gated ARCH1 RAM boot used frozen boot SHA256
+`f1aa8943131f768ceb7a7a0b160877195bb01ca69ba8252697fe6f5fe1a23113`
+(size 37380096). Sending and Booting were OKAY in 0.921s and 0.221s.
+Automatic Fastboot B return occurred at `ARCH1_TOTAL=27.979913459s`, with retry
+7→6 and no manual recovery. The 160-byte topology_init window, preserved
+`paciasp`, back-edge coverage `+0x9c → +0x38`, and 60-byte rejection remained
+the frozen identity. Current B's 16-chain hashes and P15 prefix matched before
+and after. Android A was restored healthy. Partition image writes were zero and
+Slot A was not written. ARCH8 was not rerun.
+
+Pair calculation used the frozen member-A total only:
+
+- `ARCH8_TOTAL=34.99866775s`
+- `ARCH1_TOTAL=27.979913459s`
+- `PAIR_DELTA=-7.018754291s`
+- `EXPECTED=-7.000000000s`
+- `PAIR_ERROR=-0.018754291s`
+- `ABS_PAIR_ERROR=0.018754291s`
+
+`ABS_PAIR_ERROR <= 1.000s` with comparable automatic Fastboot B return on both
+members, so `ARCH_PAIR_VERDICT=STRONG`. Absolute ARCH1 timing near 28s is
+descriptive only and is not the proof. The pair upgrades:
+
+`ARCH_INITCALLS_COMPLETED=PROVEN`
+
+`FIRST_SUBSYS_INITCALL_ENTRY=PROVEN`
+
+The following remain unchanged:
+
+`FIRST_SUBSYS_INITCALL_BODY=NOT_PROVEN`
+
+`SUBSYS_INITCALLS_COMPLETED=NOT_PROVEN`
+
+`FIRST_FS_INITCALL_ENTRY=NOT_PROVEN`
+
+`FS_INITCALLS_COMPLETED=NOT_PROVEN`
+
+`DEVICE_INITCALLS_COMPLETED=NOT_PROVEN`
+
+`LATE_INITCALLS_COMPLETED=NOT_PROVEN`
+
+`WAIT_FOR_INITRAMFS_RETURN=NOT_PROVEN`
+
+`CONSOLE_ON_ROOTFS_ENTRY=NOT_PROVEN`
+
+`/init=NOT_PROVEN`
+
+`USB=FROZEN`
+
+`ARCH8_RERUN_FORBIDDEN=YES`
+
+`ARCH1_RERUN_FORBIDDEN=YES`
+
+`CURRENT_B_UNCHANGED_AFTER_ARCH1=YES`
+
+`ANDROID_A_RESTORED_AFTER_ARCH1=YES`
+
+`PARTITION_WRITES=0`
+
+`SLOT_A_WRITTEN=NO`
+
+`EXPERIMENTAL_BOOTS=1`
+
+Final gate: `MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_COMPLETED_PROVEN`.
+Evidence: `artifacts/slot-b-arch1-20260917/`.
+Recommended next, only after explicit user approval:
+`MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_CHECKPOINT_CI_AUDIT`.

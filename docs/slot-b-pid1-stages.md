@@ -632,6 +632,32 @@ ARCH8 cannot be rerun and absolute ARCH1 timing cannot substitute for the pair.
 Runtime evidence remains unchanged.
 
 Final gate: `READY_FOR_R3_SLOT_B_ARCH1_DEVICE_CONTROL=YES`. This review
-performed no device operation. Recommended next, only after explicit user
-approval: `MAINLINE_V2_R3_SLOT_B_ARCH1_TRUE_DEVICE_CONTROL`. See
+performed no device operation. The separately approved member-B round is now
+complete.
+
+## ARCH1 true-device result
+
+Exactly one identity-gated ARCH1 RAM boot used frozen boot SHA256
+`f1aa8943131f768ceb7a7a0b160877195bb01ca69ba8252697fe6f5fe1a23113`
+(size 37380096). Sending and Booting were OKAY in 0.921s and 0.221s.
+Automatic Fastboot B return occurred at `ARCH1_TOTAL=27.979913459s`, retry
+7→6, no manual recovery. The 160-byte topology_init window and 60-byte
+rejection remained the frozen identity. Current B's 16-chain hashes and P15
+prefix matched before and after. Android A was restored healthy. Partition
+image writes were zero and Slot A was not written. ARCH8 was not rerun.
+
+Pair calculation used the frozen member-A total only:
+`ARCH8_TOTAL=34.99866775s`, `ARCH1_TOTAL=27.979913459s`,
+`PAIR_DELTA=-7.018754291s`, `EXPECTED=-7.000000000s`,
+`PAIR_ERROR=-0.018754291s`, `ABS_PAIR_ERROR=0.018754291s`.
+`ARCH_PAIR_VERDICT=STRONG`. Absolute ARCH1 timing is descriptive only.
+
+Runtime upgrade: `ARCH_INITCALLS_COMPLETED=PROVEN` and
+`FIRST_SUBSYS_INITCALL_ENTRY=PROVEN`. Body completion, later initcall levels,
+console, `/init` and USB remain NOT_PROVEN/FROZEN. ARCH8 and ARCH1 reruns are
+forbidden. Evidence: `artifacts/slot-b-arch1-20260917/`.
+
+Final gate: `MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_COMPLETED_PROVEN`.
+Recommended next, only after explicit user approval:
+`MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_CHECKPOINT_CI_AUDIT`. See
 `docs/slot-b-arch-initcall-checkpoint.md`.

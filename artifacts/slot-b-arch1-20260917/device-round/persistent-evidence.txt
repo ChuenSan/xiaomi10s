@@ -1,0 +1,10 @@
+==== pstore ====
+total 0
+dr-xr-x---  2 system log  0 1974-07-24 09:22 .
+drwxr-xr-x 11 root   root 0 1974-07-24 09:21 ..
+==== persist ====
+
+
+bootloader
+bootloader
+==== last_kmsg ====
