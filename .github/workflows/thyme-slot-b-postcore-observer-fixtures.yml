@@ -1,0 +1,76 @@
+name: thyme-slot-b-postcore-observer-fixtures
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/postcore_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-postcore-observer-fixtures.yml
+  pull_request:
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/postcore_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-postcore-observer-fixtures.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thyme-slot-b-postcore-observer-fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  postcore-observer-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: GHA-only observer source and fixture tests
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/slot_b/observe.py \
+            scripts/slot_b/test_observe.py scripts/slot_b/postcore_observer_fixtures.py
+          (cd scripts/slot_b && python3 -B -m unittest test_observe.py -v) \
+            2>&1 | tee postcore-observer-unit-tests.log
+          (cd scripts/slot_b && python3 -B postcore_observer_fixtures.py) \
+            | tee postcore-observer-fixtures.txt
+          for gate in \
+            POSTCORE8_OBSERVER_READY=YES \
+            POSTCORE1_OBSERVER_READY=YES \
+            POSTCORE_PAIR_OBSERVER_FIXTURES=PASS \
+            POSTCORE_PAIR_DEVICE_EXECUTION_SPLIT=REQUIRED \
+            POSTCORE_PAIR_EXECUTION_ORDER=POSTCORE8_THEN_POSTCORE1 \
+            POSTCORE_FUTURE_PAIR_BOUNDARIES=PASS \
+            SECOND_BOOT_FORBIDDEN=PASS \
+            RAM_BOOT_ONLY=PASS \
+            MANUAL_RECOVERY_TIMING_NOT_PROOF=PASS; do
+            grep -Fxq "$gate" postcore-observer-fixtures.txt
+          done
+          printf '%s\n' \
+            'POSTCORE8_OBSERVER_FULL_SHA_GATE=PASS' \
+            'POSTCORE1_OBSERVER_FULL_SHA_GATE=PASS' \
+            'POSTCORE_PAIR_OBSERVER_FIXTURES=PASS' \
+            'DEVICE_OPERATION=NO' \
+            'ADB_DEVICE_OPERATION=NO' \
+            'FASTBOOT_DEVICE_OPERATION=NO' \
+            'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' \
+            | tee postcore-observer-gates.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-postcore-observer-fixtures
+          path: |
+            postcore-observer-unit-tests.log
+            postcore-observer-fixtures.txt
+            postcore-observer-gates.txt
+          if-no-files-found: error
+          retention-days: 90

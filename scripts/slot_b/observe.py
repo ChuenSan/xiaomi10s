@@ -34,6 +34,8 @@ IMAGES = {
     "pure1": (37380096, "08346222366202abf2d033b0f9bc9d3c11ac3ccd806727bf0d17d40dcf0ba57a"),
     "core8": (37380096, "5d7d5b88668e1925e3a79c677c2b630bb81d66135fec2761016de1da52fd7272"),
     "core1": (37380096, "a66c3f7a95e05905f5f65d96cb7f378ccdad9edf33814271425829ce10fe3e6c"),
+    "postcore8": (37380096, "141d67931f8792036119c131d93ffa74649af2c6c44d086b489851230075355c"),
+    "postcore1": (37380096, "4762a9fd29e109affb1c8864247887334508d9af2d6b183b7bf0200a05b697f1"),
 }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
@@ -45,6 +47,7 @@ PAIRS = {
     "console1": ("console8", "console_on_rootfs_entry", "console_opened"),
     "pure1": ("pure8", "pure_initcalls_completed", "core_initcalls_completed"),
     "core1": ("core8", "core_initcalls_completed", "first_postcore_initcall_body"),
+    "postcore1": ("postcore8", "postcore_initcalls_completed", "first_arch_initcall_body"),
 }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -124,6 +127,22 @@ def pair_verdict(baseline, result):
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(core_initcalls_checkpoint_shift_not_observed="YES",
                        next="CORE_INITCALLS_FAILURE_ISOLATION_CI")
+    elif second == "postcore1":
+        postcore_grade = "STRONGLY_SUPPORTED" if verdict == "SUPPORTED" else grade
+        out.update(postcore_initcalls_completed=postcore_grade,
+                   first_arch_initcall_entry=postcore_grade,
+                   first_arch_initcall_body="NOT_PROVEN",
+                   arch_initcalls_completed="NOT_PROVEN",
+                   subsys_initcalls_completed="NOT_PROVEN",
+                   fs_initcalls_completed="NOT_PROVEN",
+                   device_initcalls_completed="NOT_PROVEN",
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(postcore_initcalls_checkpoint_shift_not_observed="YES",
+                       next="POSTCORE_INITCALLS_FAILURE_ISOLATION_CI")
     return out
 
 
