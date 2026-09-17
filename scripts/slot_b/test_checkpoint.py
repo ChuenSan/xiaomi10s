@@ -203,7 +203,7 @@ class CheckpointTests(unittest.TestCase):
                     image, [{'name': '.init.data', 'vma': base, 'size': len(data), 'file_off': 0}], nm,
                     '__initcall1_start')
 
-    def test_core_checkpoint_negative_fixtures(self):
+    def test_initcall_checkpoint_design_negative_fixtures(self):
         valid = {
             'checkpoint_point': 'FIRST_POSTCORE_INITCALL_EXACT_ENTRY',
             'boundary': '__initcall2_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
@@ -219,6 +219,13 @@ class CheckpointTests(unittest.TestCase):
             'init_changed': False, 'private_pack': False, 'device_operation': False,
         }
         checkpoint.gate_core_checkpoint_design(valid)
+        postcore = dict(valid, checkpoint_point='FIRST_ARCH_INITCALL_EXACT_ENTRY',
+                        boundary='__initcall3_start')
+        checkpoint.gate_postcore_checkpoint_design(postcore)
+        with self.assertRaises(ValueError):
+            checkpoint.gate_postcore_checkpoint_design(valid)
+        with self.assertRaises(ValueError):
+            checkpoint.gate_core_checkpoint_design(postcore)
         fixtures = {
             'shared_loop': ('checkpoint_point', 'SHARED_DO_INITCALLS_LOOP'),
             'wrong_boundary': ('boundary', '__initcall1_start'),
@@ -246,6 +253,10 @@ class CheckpointTests(unittest.TestCase):
             bad[key] = value
             with self.subTest(name=name), self.assertRaises(ValueError):
                 checkpoint.gate_core_checkpoint_design(bad)
+            postcore_bad = dict(postcore)
+            postcore_bad[key] = value
+            with self.subTest(name='postcore_' + name), self.assertRaises(ValueError):
+                checkpoint.gate_postcore_checkpoint_design(postcore_bad)
 
     def test_ultracompact_core_and_literal_delta_are_exact(self):
         words = (0xD5034FDF, 0xD53BE009, 0xD37DF12A, 0xD53BE02B,

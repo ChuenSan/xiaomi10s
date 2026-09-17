@@ -31,7 +31,8 @@ TARGETS = {"rest_init": 0x10C1F48, "kernel_init": 0x10C2030,
            "do_basic_setup": 0x1B311A8, "do_initcalls": 0x1B311D0,
            "console_on_rootfs": 0x1B30DA4}
 INITCALL_BOUNDARIES = {"pure_complete": "__initcall1_start",
-                       "core_complete": "__initcall2_start"}
+                       "core_complete": "__initcall2_start",
+                       "postcore_complete": "__initcall3_start"}
 PROOF_BOUNDARIES = {
     "rest_init": ("rest_init entry and preceding normal start_kernel path",
                   "rest_init body, scheduler, SMP or /init"),
@@ -51,6 +52,8 @@ PROOF_BOUNDARIES = {
                       "the first core initcall body, later initcall levels, initramfs readiness or /init"),
     "core_complete": ("all core initcalls completed and the first postcore initcall entry was reached",
                       "the first postcore initcall body, postcore completion, later levels, console or /init"),
+    "postcore_complete": ("all postcore initcalls completed and the first arch initcall entry was reached",
+                          "the first arch initcall body, arch completion, later levels, console or /init"),
 }
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
 
@@ -69,10 +72,16 @@ def gate_builtin_initramfs_source(chosen):
             "EXTERNAL_INITRD_IN_RUNTIME_DTB")
 
 
-def gate_core_checkpoint_design(design):
+def gate_checkpoint_design(design, stage):
+    boundaries = {
+        "core": ("FIRST_POSTCORE_INITCALL_EXACT_ENTRY", "__initcall2_start"),
+        "postcore": ("FIRST_ARCH_INITCALL_EXACT_ENTRY", "__initcall3_start"),
+    }
+    require(stage in boundaries, "CHECKPOINT_DESIGN_STAGE_INVALID")
+    checkpoint_point, boundary = boundaries[stage]
     expected = {
-        "checkpoint_point": "FIRST_POSTCORE_INITCALL_EXACT_ENTRY",
-        "boundary": "__initcall2_start", "target_derivation": "TABLE_ENTRY_DECODE",
+        "checkpoint_point": checkpoint_point,
+        "boundary": boundary, "target_derivation": "TABLE_ENTRY_DECODE",
         "entry_encoding": "PREL32", "cross_function_overwrite": False,
         "function_range_safe": True, "incoming_interior_branches": 0,
         "backedge_conflict": False, "runtime_rewrite_conflict": False,
@@ -83,9 +92,17 @@ def gate_core_checkpoint_design(design):
         "init_changed": False, "private_pack": False, "device_operation": False,
     }
     for key, value in expected.items():
-        require(design.get(key) == value, f"CORE_DESIGN_REJECTED:{key}")
+        require(design.get(key) == value, f"{stage.upper()}_DESIGN_REJECTED:{key}")
     require(design.get("function_size", 0) >= design.get("probe_size", 1),
-            "CORE_DESIGN_REJECTED:function_shorter_than_probe")
+            f"{stage.upper()}_DESIGN_REJECTED:function_shorter_than_probe")
+
+
+def gate_core_checkpoint_design(design):
+    gate_checkpoint_design(design, "core")
+
+
+def gate_postcore_checkpoint_design(design):
+    gate_checkpoint_design(design, "postcore")
 
 
 def compact_core(core):
@@ -372,7 +389,9 @@ def audit_initcall_source(linux):
             "pure_level_boundary": "__initcall1_start",
             "core_level_boundary": "__initcall2_start",
             "postcore_level_boundary": "__initcall3_start",
+            "arch_level_boundary": "__initcall4_start",
             "core_complete_boundary_source_proven": True,
+            "postcore_complete_boundary_source_proven": True,
             "entry_encoding_source": "CONFIG_HAVE_ARCH_PREL32_RELOCATIONS => s32 .long target-."}
 
 
@@ -454,7 +473,7 @@ def compose(args, bundle):
         {"external_initrd_advertised": False, "chosen_properties": sorted(chosen),
          "rt_d_sha256": digest(frozen[dtb_offset:])}, indent=2) + "\n")
     require(len(core) == 76 and digest(core) == CORE_SHA, "CHECKPOINT_CORE_MISMATCH")
-    if args.symbol == "core_complete":
+    if args.symbol in ("core_complete", "postcore_complete"):
         require(args.ultracompact_core is not None, "ULTRACOMPACT_CORE_REQUIRED")
         core = ultracompact_core(args.ultracompact_core.read_bytes())
     elif args.symbol != "rest_init":
@@ -474,7 +493,7 @@ def compose(args, bundle):
         source_audit = audit_initcall_source(pb.LINUX)
         initcall_boundaries = {name: resolve_initcall_boundary(vmlinux, sections, nm, name)
                                for name in ("__initcall1_start", "__initcall2_start",
-                                            "__initcall3_start")}
+                                            "__initcall3_start", "__initcall4_start")}
         initcall_boundary = initcall_boundaries[INITCALL_BOUNDARIES[args.symbol]]
         target_va = initcall_boundary["target_va"]
         target_symbol = initcall_boundary["target_aliases"][0]
@@ -482,7 +501,8 @@ def compose(args, bundle):
         extent = next_va
         initcall_source = find_initcall_source(
             pb.LINUX, initcall_boundary["target_aliases"],
-            "postcore_initcall" if args.symbol == "core_complete" else "core_initcall")
+            {"pure_complete": "core_initcall", "core_complete": "postcore_initcall",
+             "postcore_complete": "arch_initcall"}[args.symbol])
         require(t3.sysmap_symbol(bundle / "System.map", target_symbol) == target_va,
                 "SYMBOL_MAP_MISMATCH")
     else:
@@ -631,8 +651,8 @@ def compose(args, bundle):
                 "checkpoint_sha256": digest(probe), "core_sha256": digest(core),
                 "reference_core_sha256": CORE_SHA, "delay_seconds": args.delay,
                 "core_variant": ("original_b_hs" if args.symbol == "rest_init" else
-                                 "ultracompact_cntpct_elapsed_b_lo" if args.symbol == "core_complete" else
-                                 "compact_b_lo"),
+                                 "ultracompact_cntpct_elapsed_b_lo" if args.symbol in
+                                 ("core_complete", "postcore_complete") else "compact_b_lo"),
                 "pair_reference_sha256": digest(reference),
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
                 "frozen_sha256": digest(frozen), "changed_bytes": len(changed),
@@ -655,6 +675,11 @@ def compose(args, bundle):
         print("CORE_CHECKPOINT_SOURCE_AUDIT=PASS\nCORE_CHECKPOINT_BINARY_AUDIT=PASS\n"
               "FIRST_POSTCORE_ENTRY_AUDIT=PASS\nCORE_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES\n"
               "CORE_CHECKPOINT_DIAGNOSTIC_SAFE=YES\nCORE_ALL_PRIOR_STAGE_PROBES_REMOVED=YES",
+              flush=True)
+    elif args.symbol == "postcore_complete":
+        print("POSTCORE_CHECKPOINT_SOURCE_AUDIT=PASS\nPOSTCORE_CHECKPOINT_BINARY_AUDIT=PASS\n"
+              "FIRST_ARCH_ENTRY_AUDIT=PASS\nPOSTCORE_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES\n"
+              "POSTCORE_CHECKPOINT_DIAGNOSTIC_SAFE=YES\nPOSTCORE_ALL_PRIOR_STAGE_PROBES_REMOVED=YES",
               flush=True)
     print(f"{args.symbol.upper()}_INLINE_AUDIT=PASS\nDEVICE_OPERATION=NO\nLOCAL_BUILD=NO", flush=True)
 
