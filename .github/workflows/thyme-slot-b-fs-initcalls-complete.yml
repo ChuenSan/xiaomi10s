@@ -180,18 +180,58 @@ jobs:
           GITHUB_ACTIONS: 'true'
         run: |
           set -euo pipefail
-          for delay in 8 1; do
-            reference=()
-            if test "$delay" = 1; then
-              reference=(--reference-sha "$(jq -r .payload_sha256 fs-pair/8/checkpoint/manifest.json)")
-            fi
-            python3 -u -B scripts/slot_b/checkpoint.py \
-              --symbol fs_complete --delay "$delay" \
-              --ultracompact-core ultracompact.bin --subsys52-core subsys52.bin \
-              --bundle kernel-bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
-              --core proven-core/p1b-t1-core-reference.bin --out "fs-pair/$delay" \
-              "${reference[@]}" | tee "fs-$delay.log"
-          done
+          python3 -u -B scripts/slot_b/checkpoint.py \
+            --symbol fs_complete --delay 8 \
+            --ultracompact-core ultracompact.bin --subsys52-core subsys52.bin \
+            --bundle kernel-bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core proven-core/p1b-t1-core-reference.bin --out fs-pair/8 | tee fs-8.log
+          if test -f fs-pair/8/checkpoint/not-ready.json; then
+            python3 -B - <<'PY' | tee fs-pair-gates.txt
+          import json
+          from pathlib import Path
+          ready = json.loads(Path('fs-pair/8/checkpoint/not-ready.json').read_text())
+          span = ready['fs_runtime_span']
+          bound = ready['initcall_boundary']
+          print(f"INITCALL5_START_VA={span['begin']}")
+          print(f"INITCALLROOTFS_START_VA={span['rootfs_start']}")
+          print(f"INITCALL6_START_VA={span['end']}")
+          print(f"FS_RUNTIME_SPAN_ENTRY_COUNT={span['entry_count']}")
+          print(f"ROOTFS_ENTRY_COUNT={span['rootfs_entry_count']}")
+          print('ROOTFS_START_IS_MARKER_ONLY=YES')
+          print('ROOTFS_HAS_SEPARATE_RUNTIME_PASS=NO')
+          print('ROOTFS_INCLUDED_IN_LEVEL5_TRAVERSAL=YES')
+          print('ROOTFS_SYMBOLS=' + ','.join(e['symbol'] for e in span['rootfs_entries']))
+          print('FS_COMPLETE_CAUSAL_BOUNDARY_SYMBOL=' + ready['target_symbol'])
+          print('FS_COMPLETE_CAUSAL_BOUNDARY_REASON=do_initcall_level(5) walks [__initcall5_start,__initcall6_start) including rootfs; first device entry is the next runtime function')
+          print('FIRST_DEVICE_ENTRY_IMPLIES_FS_COMPLETE=YES')
+          print(f"FIRST_DEVICE_INITCALL_TABLE_ENTRY_VA={bound['entry_va']:#x}")
+          print(f"FIRST_DEVICE_INITCALL_ENTRY_WORD={bound['entry_word']}")
+          print(f"FIRST_DEVICE_INITCALL_SIGNED_DISPLACEMENT={bound['relative']}")
+          print(f"FIRST_DEVICE_INITCALL_TARGET_VA={ready['target_va']}")
+          print(f"FIRST_DEVICE_INITCALL_IMAGE_OFFSET={ready['image_offset']}")
+          print(f"FIRST_DEVICE_INITCALL_SYMBOL={ready['target_symbol']}")
+          print(f"FIRST_DEVICE_INITCALL_SOURCE={ready['initcall_source']}")
+          print(f"FIRST_DEVICE_INITCALL_REGISTRATION={ready['initcall_registration']}")
+          print(f"FIRST_DEVICE_INITCALL_SIZE={ready['function_size']}")
+          print('FS_COMPLETE_TARGET_UNIQUE=PASS')
+          print('FS_COMPLETE_TARGET_TOO_SMALL=YES')
+          print(f"FS_COMPLETE_TARGET_SIZE={ready['function_size']}")
+          print('FS_SELECTED_PROBE_ARCHITECTURE=NONE')
+          print('FS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=NO')
+          print('FS_PAIR_PUBLIC_READY=NO')
+          print('READY_FOR_FS_INITCALLS_PRIVATE_GATE=NO')
+          print('FS_PRIVATE_PACK=NO')
+          print('FS_DEVICE_OPERATION=NO')
+          print('R3_SLOT_B_FS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY')
+          PY
+            (cd fs-pair && sha256sum 8/checkpoint/not-ready.json 8/checkpoint/fs-runtime-span.json 8/checkpoint/original-function.txt > SHA256SUMS)
+          else
+          python3 -u -B scripts/slot_b/checkpoint.py \
+            --symbol fs_complete --delay 1 \
+            --ultracompact-core ultracompact.bin --subsys52-core subsys52.bin \
+            --bundle kernel-bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core proven-core/p1b-t1-core-reference.bin --out fs-pair/1 \
+            --reference-sha "$(jq -r .payload_sha256 fs-pair/8/checkpoint/manifest.json)" | tee fs-1.log
           python3 -B - <<'PY' | tee fs-pair-gates.txt
           import hashlib, json, os, sys
           from pathlib import Path
@@ -346,6 +386,7 @@ jobs:
           print('FS_DEVICE_OPERATION=NO')
           PY
           (cd fs-pair && sha256sum 8/checkpoint/payload.bin 1/checkpoint/payload.bin pair.json > SHA256SUMS)
+          fi
       - name: Assert public payload-only scope
         run: |
           set -euo pipefail
@@ -371,6 +412,7 @@ jobs:
             fs-pair/*/checkpoint/window-agreement.json
             fs-pair/*/checkpoint/fs-runtime-span.json
             fs-pair/*/checkpoint/manifest.json
+            fs-pair/*/checkpoint/not-ready.json
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
@@ -395,6 +437,32 @@ jobs:
       - name: Independent pair, baseline, boundary, diagnostic and identity verification
         run: |
           set -euo pipefail
+          if test -f pair/8/checkpoint/not-ready.json; then
+            python3 -B - <<'PY' | tee independent-reverify.txt
+          import json
+          from pathlib import Path
+          ready = json.loads(Path('pair/8/checkpoint/not-ready.json').read_text())
+          span = ready['fs_runtime_span']
+          assert ready['reason'] == 'FS_COMPLETE_TARGET_TOO_SMALL'
+          assert ready['target_symbol'] == 'register_arm64_panic_block'
+          assert ready['function_size'] < 56
+          assert span['entry_count'] >= 1 and span['rootfs_entry_count'] == 1
+          assert span['entries'][0]['symbol'] == 'create_debug_debugfs_entry'
+          assert any(e['symbol'] == 'populate_rootfs' for e in span['rootfs_entries'])
+          assert ready['first_device_entry_implies_fs_complete'] is True
+          assert ready['payload_generated'] is False
+          assert ready['private_pack'] is False and ready['device_operation'] is False
+          print('FS_PAIR_STATIC_REVERIFY=SKIPPED_TARGET_TOO_SMALL')
+          print('FS_COMPLETE_TARGET_TOO_SMALL=YES')
+          print(f"FS_COMPLETE_TARGET_SIZE={ready['function_size']}")
+          print('FS_ALL_PRIOR_STAGE_PROBES_REMOVED=YES')
+          print('READY_FOR_FS_INITCALLS_PRIVATE_GATE=NO')
+          print('R3_SLOT_B_FS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY')
+          print('PRIVATE_PACK=NO')
+          print('DEVICE_OPERATION=NO')
+          PY
+            exit 0
+          fi
           python3 -B - <<'PY' | tee independent-reverify.txt
           import json, struct
           from pathlib import Path

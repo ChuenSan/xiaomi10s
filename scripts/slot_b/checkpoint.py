@@ -898,8 +898,42 @@ def compose(args, bundle):
                     f"FIRST_DEVICE_REGISTRATION_AMBIGUOUS:{sorted(macros)}")
             initcall_source = hits[0]["source"]
             initcall_registration = f"{hits[0]['macro']}({target_symbol})"
+            function_size = extent - target_va
+            print(f"FIRST_DEVICE_FUNCTION_SIZE={function_size}", flush=True)
+            print(f"FIRST_DEVICE_INITCALL_SOURCE={initcall_source}", flush=True)
+            print(f"FIRST_DEVICE_INITCALL_REGISTRATION={initcall_registration}", flush=True)
+            require(t3.sysmap_symbol(bundle / "System.map", target_symbol) == target_va,
+                    "SYMBOL_MAP_MISMATCH")
+            (out / "original-function.txt").write_text(
+                pb.run([TOOLS["objdump"], "-dr", f"--start-address={target_va:#x}",
+                        f"--stop-address={extent:#x}", str(vmlinux)]))
+            if function_size < 56:
+                (out / "not-ready.json").write_text(json.dumps({
+                    "reason": "FS_COMPLETE_TARGET_TOO_SMALL",
+                    "target_symbol": target_symbol,
+                    "target_aliases": initcall_boundary["target_aliases"],
+                    "target_va": hex(target_va),
+                    "image_offset": hex(target_va - text_va),
+                    "function_size": function_size,
+                    "min_inline_probe": 56,
+                    "initcall_source": initcall_source,
+                    "initcall_registration": initcall_registration,
+                    "initcall_boundary": initcall_boundary,
+                    "fs_runtime_span": fs_span,
+                    "probe_architecture": "NONE",
+                    "first_device_entry_implies_fs_complete": True,
+                    "rootfs_has_separate_runtime_pass": False,
+                    "payload_generated": False,
+                    "private_pack": False,
+                    "device_operation": False,
+                }, indent=2) + "\n")
+                print("FS_COMPLETE_TARGET_TOO_SMALL", flush=True)
+                print("FS_SELECTED_PROBE_ARCHITECTURE=NONE", flush=True)
+                print("FS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=NO", flush=True)
+                print("R3_SLOT_B_FS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY", flush=True)
+                return
             reference_core, probe_architecture, sixty_byte_inline_rejected = select_fs_complete_core(
-                extent - target_va, proven56, proven52)
+                function_size, proven56, proven52)
             core = delay_core(reference_core, args.delay)
         else:
             initcall_source = find_initcall_source(
