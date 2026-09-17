@@ -606,6 +606,32 @@ remain NOT_PROVEN. ARCH1 remains blocked pending a no-device gate review and
 separate approval.
 
 The member-A gate is `MAINLINE_V2_R3_SLOT_B_ARCH8_MEMBER_A_COMPLETED`; evidence
-is under `artifacts/slot-b-arch8-20260917/`. Recommended next:
-`MAINLINE_V2_R3_SLOT_B_ARCH1_DEVICE_GATE_REVIEW`. See
+is under `artifacts/slot-b-arch8-20260917/`.
+
+## ARCH1 device gate review
+
+No-device GHA review froze `ARCH8_TOTAL=34.99866775s`. Reverify-only run
+`35187716061` reconfirmed ARCH1 boot
+`f1aa8943131f768ceb7a7a0b160877195bb01ca69ba8252697fe6f5fe1a23113`
+(size 37380096), extracted public payload
+`efa7cc1c43302fd93872d905352f5737bd388aa698a9383b5d929e98223d2fc1`,
+target/window, preserved `paciasp`, 160-byte CFG covering `+0x9c → +0x38`,
+60-byte rejection, 1s CNTPCT/PSCI/WFE semantics, RT-D, `/init`, initramfs and
+P15/OEM envelope. No build, repack or regeneration ran. The pair remains
+two-byte `DELAY_CONSTANT_ONLY` at `[0x1b34709,0x1b3470b)`, with identical
+geometry and ARCH1 as the only active diagnostic.
+
+Observer review `35187718697` passed the exact ARCH1 full-SHA gate, 160-byte
+geometry and all negative identities. Observer behavior is unchanged from
+readiness commit `fb4ab8d1548d8644518ed143eda36f10609f75d1`; CORE review
+`35187721522` and POSTCORE review `35187723891` remain valid.
+
+The future primary equation is `ARCH1_TOTAL-34.99866775s`, expected
+`-7.000000000s`; STRONG is absolute error `<=1.000s`, SUPPORTED `<=2.000s`.
+ARCH8 cannot be rerun and absolute ARCH1 timing cannot substitute for the pair.
+Runtime evidence remains unchanged.
+
+Final gate: `READY_FOR_R3_SLOT_B_ARCH1_DEVICE_CONTROL=YES`. This review
+performed no device operation. Recommended next, only after explicit user
+approval: `MAINLINE_V2_R3_SLOT_B_ARCH1_TRUE_DEVICE_CONTROL`. See
 `docs/slot-b-arch-initcall-checkpoint.md`.

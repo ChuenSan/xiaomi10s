@@ -250,4 +250,100 @@ explicit user approval.
 `PAIR_VERDICT=PENDING_ARCH1`
 
 Final gate: `MAINLINE_V2_R3_SLOT_B_ARCH8_MEMBER_A_COMPLETED`.
-Recommended next: `MAINLINE_V2_R3_SLOT_B_ARCH1_DEVICE_GATE_REVIEW`.
+The subsequent no-device ARCH1 gate review is recorded below.
+
+## ARCH1 device gate review
+
+`MAINLINE_V2_R3_SLOT_B_ARCH1_DEVICE_GATE_REVIEW` froze member A at
+`ARCH8_TOTAL=34.99866775s`; ARCH8 may not be rerun. GHA-only reverify-only run
+`35187716061` downloaded the immutable private artifacts from pack run
+`35185168680` without rebuild, repack or regeneration. It reconfirmed:
+
+- ARCH1 boot SHA256
+  `f1aa8943131f768ceb7a7a0b160877195bb01ca69ba8252697fe6f5fe1a23113`,
+  size 37380096
+- extracted payload SHA256
+  `efa7cc1c43302fd93872d905352f5737bd388aa698a9383b5d929e98223d2fc1`
+- target `topology_init`, boundary `__initcall4_start`, 188-byte function,
+  160-byte in-function window and preserved `paciasp`
+- back-edge `+0x9c → +0x38` source covered; 60-byte window still rejected
+- 1s CNTPCT elapsed loop, PSCI SYSTEM_RESET `0x84000009`, `smc #0`, and
+  fail-closed WFE loop
+- frozen RT-D `4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327`,
+  bootargs `rdinit=/init panic=5 loglevel=7`, unchanged `/init` and initramfs,
+  no external initrd, and matching P15/OEM envelope
+- all REST/KINIT/FREE/SMP/DO_INITCALLS/PURE/CORE/POSTCORE/CONSOLE diagnostics
+  removed; ARCH1 is the sole active checkpoint
+
+The private payload pair still differs by exactly two bytes at
+`[0x1b34709,0x1b3470b)`, instruction 3 only, attributed
+`DELAY_CONSTANT_ONLY`; geometry and every non-delay property remain identical.
+Therefore `ARCH_PAIR_SINGLE_VARIABLE_STILL_VALID=YES`.
+
+Observer source is byte-identical to readiness commit
+`fb4ab8d1548d8644518ed143eda36f10609f75d1`. GHA observer review run
+`35187718697` passed the ARCH1 exact full-SHA gate, 160-byte geometry, 60-byte
+rejection, unit tests, future pair boundaries, one-boot/RAM-only discipline,
+and rejection of ARCH8, POSTCORE, CORE, PURE, CONSOLE, INITCALLS, SMP, FREE,
+KINIT, REST, RESET, FIX8, wrong size, one-byte mutation, payload swap, wrong
+checkpoint, wrong delay and wrong PSCI. CORE observer review `35187721522` and
+POSTCORE observer review `35187723891` passed; prior CORE/POSTCORE regressions
+remain applicable because observer behavior did not change.
+
+Future member B must use the same timing algorithm:
+`ARCH1_TOTAL-34.99866775s`. Expected delta is `-7.000000000s`, with STRONG
+absolute pair error `<=1.000s` and SUPPORTED `<=2.000s`. Absolute ARCH1 timing
+is secondary only. A comparable no-shift result routes to
+`MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_FAILURE_ISOLATION_CI`; ambiguous
+behavior routes to the same isolation stage without changing the windows.
+
+This review performed no device interaction or partition write. Current B and
+Android A remain frozen from the ARCH8 result. A future ARCH1 round must
+independently repeat pre/post integrity checks, begin from healthy Android A,
+select B, run exactly one full-SHA-gated RAM boot, return to A without image
+writes, and never retry a rejected boot.
+
+`ARCH8_MEMBER_A_FROZEN=YES`
+
+`ARCH8_TOTAL_FROZEN=34.99866775`
+
+`ARCH1_PUBLIC_PAYLOAD_IDENTITY=PASS`
+
+`ARCH1_PRIVATE_BOOT_IDENTITY=PASS`
+
+`ARCH1_PRIVATE_REVERIFY=PASS`
+
+`ARCH_160B_CFG_CLOSURE_STILL_VALID=YES`
+
+`ARCH_60B_WINDOW_REJECTED=YES`
+
+`BACKEDGE_SOURCE_COVERED=YES`
+
+`ARCH_PAIR_SINGLE_VARIABLE_STILL_VALID=YES`
+
+`ARCH_PAIR_GEOMETRY_IDENTICAL=YES`
+
+`ARCH1_CHECKPOINT_IDENTITY=PASS`
+
+`ARCH1_ONLY_ACTIVE_DIAGNOSTIC=YES`
+
+`ARCH1_OBSERVER_IDENTITY_GATE_READY=YES`
+
+`ARCH1_OBSERVER_REGRESSION_SAFE=YES`
+
+`CURRENT_B_AFTER_ARCH8=UNCHANGED`
+
+`ANDROID_A_AFTER_ARCH8=RESTORED`
+
+`PAIR_EQUATION_FROZEN=YES`
+
+`DEVICE_OPERATION=NO`
+
+`PARTITION_WRITES=0`
+
+`SLOT_A_WRITTEN=NO`
+
+Final gate: `READY_FOR_R3_SLOT_B_ARCH1_DEVICE_CONTROL=YES`.
+This readiness gate is not itself true-device authorization. Recommended next,
+only after explicit user approval:
+`MAINLINE_V2_R3_SLOT_B_ARCH1_TRUE_DEVICE_CONTROL`.
