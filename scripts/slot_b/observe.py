@@ -38,6 +38,8 @@ IMAGES = {
     "postcore1": (37380096, "4762a9fd29e109affb1c8864247887334508d9af2d6b183b7bf0200a05b697f1"),
     "arch8": (37380096, "7fcdbd0de81d0396280b941ed9cf7f2a4b3f9818b5ffe131fa59cfc49524e48d"),
     "arch1": (37380096, "f1aa8943131f768ceb7a7a0b160877195bb01ca69ba8252697fe6f5fe1a23113"),
+    "subsys8": (37380096, "e082e530e4fce6dbe61f9cbe225851966fa35d1f80e4ab1dd69b5af9ba9175f1"),
+    "subsys1": (37380096, "df14e7bcdf409deeeede70d7217f420091a6e9a292b0670443df50c0a0e8b9a1"),
 }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
@@ -51,6 +53,7 @@ PAIRS = {
     "core1": ("core8", "core_initcalls_completed", "first_postcore_initcall_body"),
     "postcore1": ("postcore8", "postcore_initcalls_completed", "first_arch_initcall_body"),
     "arch1": ("arch8", "arch_initcalls_completed", "first_subsys_initcall_body"),
+    "subsys1": ("subsys8", "subsys_initcalls_completed", "first_fs_initcall_body"),
 }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -64,6 +67,11 @@ ARCH_GEOMETRY = {
     "target": "topology_init", "va": 0xFFFF800081B346FC, "offset": 0x1B346FC,
     "function_size": 188, "window": 160, "entry": "paciasp",
     "back_edge_src": 0x9C, "back_edge_dst": 0x38,
+}
+SUBSYS_GEOMETRY = {
+    "target": "create_debug_debugfs_entry", "va": 0xFFFF8000800149E0,
+    "offset": 0x149E0, "function_size": 56, "window": 56, "entry": "paciasp",
+    "core_size": 52, "daifset": "ABSENT", "prel32_unchanged": True,
 }
 REST_ORIGIN = "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B"
 VARS = ("product", "unlocked", "current-slot", "slot-count",
@@ -87,6 +95,18 @@ def validate_arch_geometry(window):
             "ARCH_WINDOW_EXCEEDS_FUNCTION")
     require(ARCH_GEOMETRY["back_edge_src"] + 4 <= window, "ARCH_BACKEDGE_SOURCE_LIVE")
     require(ARCH_GEOMETRY["entry"] == "paciasp", "ARCH_ENTRY_NOT_PACIASP")
+
+
+def validate_subsys_geometry(window):
+    require(window != 60, "SUBSYS_60B_WINDOW_REJECTED")
+    require(window != 57, "SUBSYS_57B_WINDOW_REJECTED")
+    require(window == SUBSYS_GEOMETRY["window"], "SUBSYS_WINDOW_NOT_56")
+    require(SUBSYS_GEOMETRY["window"] == SUBSYS_GEOMETRY["function_size"],
+            "SUBSYS_WINDOW_EXCEEDS_FUNCTION")
+    require(SUBSYS_GEOMETRY["entry"] == "paciasp", "SUBSYS_ENTRY_NOT_PACIASP")
+    require(SUBSYS_GEOMETRY["core_size"] == 52, "SUBSYS_CORE_NOT_52")
+    require(SUBSYS_GEOMETRY["daifset"] == "ABSENT", "SUBSYS_DAIFSET_PRESENT")
+    require(SUBSYS_GEOMETRY["prel32_unchanged"] is True, "SUBSYS_PREL32_CHANGED")
 
 
 def validate_context(context, case=None):
@@ -175,6 +195,20 @@ def pair_verdict(baseline, result):
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(arch_initcalls_checkpoint_shift_not_observed="YES",
                        next="ARCH_INITCALLS_FAILURE_ISOLATION_CI")
+    elif second == "subsys1":
+        subsys_grade = "STRONGLY_SUPPORTED" if verdict == "SUPPORTED" else grade
+        out.update(subsys_initcalls_completed=subsys_grade,
+                   first_fs_initcall_entry=subsys_grade,
+                   first_fs_initcall_body="NOT_PROVEN",
+                   fs_initcalls_completed="NOT_PROVEN",
+                   device_initcalls_completed="NOT_PROVEN",
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(subsys_initcalls_checkpoint_shift_not_observed="YES",
+                       next="SUBSYS_INITCALLS_FAILURE_ISOLATION_CI")
     return out
 
 
