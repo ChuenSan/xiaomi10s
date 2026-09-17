@@ -447,8 +447,29 @@ true-device stage. POSTCORE8 alone cannot advance runtime evidence. POSTCORE1
 remains blocked until POSTCORE8's result is frozen and the user separately
 approves member B. This round performed no device operation.
 
-Final gate: `READY_FOR_R3_SLOT_B_POSTCORE8_DEVICE_CONTROL=YES`.
-`READY_FOR_R3_SLOT_B_POSTCORE1_DEVICE_CONTROL=NO`. Recommended next only after
-explicit user approval:
-`MAINLINE_V2_R3_SLOT_B_POSTCORE8_TRUE_DEVICE_CONTROL`. See
-`docs/slot-b-postcore-initcall-checkpoint.md`.
+The former readiness gate was
+`READY_FOR_R3_SLOT_B_POSTCORE8_DEVICE_CONTROL=YES` and
+`READY_FOR_R3_SLOT_B_POSTCORE1_DEVICE_CONTROL=NO`. The separately approved
+member-A round is now complete.
+
+## POSTCORE8 true-device result
+
+Exactly one identity-gated POSTCORE8 RAM boot used frozen boot SHA256
+`141d67931f8792036119c131d93ffa74649af2c6c44d086b489851230075355c`
+(size 37380096). Sending and Booting were OKAY in 0.923s and 0.221s.
+Automatic Fastboot B return occurred at `POSTCORE8_TOTAL=34.936234167s`, with
+retry 7→6 and no manual recovery. Current B's 16-chain hashes and P15 prefix
+matched before and after. Android A was restored healthy. Partition image
+writes were zero and Slot A was not written.
+
+This records `POSTCORE8_MEMBER_A_COMPLETED=YES` only. POSTCORE1 was not run,
+so `PAIR_DELTA=NOT_AVAILABLE` and `PAIR_VERDICT=PENDING_POSTCORE1`.
+`POSTCORE_INITCALLS_COMPLETED=NOT_PROVEN` and
+`FIRST_ARCH_INITCALL_ENTRY=NOT_PROVEN`; body completion and all later stages
+remain NOT_PROVEN. POSTCORE1 remains blocked pending a no-device gate review
+and separate approval.
+
+Final gate: `MAINLINE_V2_R3_SLOT_B_POSTCORE8_MEMBER_A_COMPLETED`.
+Recommended next: `MAINLINE_V2_R3_SLOT_B_POSTCORE1_DEVICE_GATE_REVIEW`. See
+`docs/slot-b-postcore-initcall-checkpoint.md` and evidence under
+`artifacts/slot-b-postcore8-20260917/`.

@@ -162,6 +162,69 @@ initcalls did not complete.
 `SLOT_A_WRITTEN=NO`
 
 Final gate: `READY_FOR_R3_SLOT_B_POSTCORE8_DEVICE_CONTROL=YES`.
-`READY_FOR_R3_SLOT_B_POSTCORE1_DEVICE_CONTROL=NO`. This readiness gate is not
-true-device authorization. Recommended next, only after explicit user approval:
-`MAINLINE_V2_R3_SLOT_B_POSTCORE8_TRUE_DEVICE_CONTROL`.
+`READY_FOR_R3_SLOT_B_POSTCORE1_DEVICE_CONTROL=NO`. This readiness gate was not
+itself true-device authorization. The separately approved POSTCORE8 device
+round is recorded below.
+
+## POSTCORE8 true-device member A
+
+`MAINLINE_V2_R3_SLOT_B_POSTCORE8_TRUE_DEVICE_CONTROL` executed exactly one
+RAM-only POSTCORE8 boot. The authoritative artifact retained full SHA256
+`141d67931f8792036119c131d93ffa74649af2c6c44d086b489851230075355c`
+and size 37380096 immediately before Fastboot interaction; frozen observer
+identity validation passed. No image partition was written.
+
+The device began from healthy Android A (`_a`, `boot_completed=1`, Magisk root,
+stock `4.19.157-perf-g9d90dd04aa7c`). All 16 boot-chain hashes and the P15
+prefix matched the frozen baseline. Bootloader preflight returned
+`product=thyme`, `unlocked=yes`, `current-slot=a`; the only metadata transition
+before the experiment was `set_active b`.
+
+| event | UTC / value |
+| --- | --- |
+| `T_COMMAND_START` | `2026-09-17T01:49:20.120523Z` |
+| Sending | OKAY, `0.923s` |
+| Booting | OKAY, `0.221s` |
+| `T_BOOTING_OKAY` | `2026-09-17T01:49:21.295321Z` |
+| `T_FASTBOOT_DISAPPEAR` | `2026-09-17T01:49:22.600013Z` |
+| `T_FASTBOOT_B_RETURN` | `2026-09-17T01:49:56.249332Z` |
+| `POSTCORE8_TOTAL` | `34.936234167s` |
+
+The result was `AUTOMATIC_FASTBOOT_RETURN`; Slot B retry changed 7→6 and no
+manual recovery was needed. Fastboot returned on B, then the sole permitted
+recovery metadata action selected A and rebooted stock Android. Post-test all
+16 hashes and the P15 prefix still matched, so
+`CURRENT_B_UNCHANGED_AFTER_POSTCORE8=YES` and
+`ANDROID_A_RESTORED_AFTER_POSTCORE8=YES`. Pstore was empty, which is not
+negative evidence; stock boot reason `bootloader` is not checkpoint evidence.
+Evidence is under `artifacts/slot-b-postcore8-20260917/`.
+
+This single member proves only `POSTCORE8_MEMBER_A_COMPLETED=YES` and freezes
+its total. Absolute timing is descriptive only. `POSTCORE1_TOTAL=NOT_RUN`,
+`PAIR_DELTA=NOT_AVAILABLE`, and `PAIR_VERDICT=PENDING_POSTCORE1`.
+`POSTCORE_INITCALLS_COMPLETED` and `FIRST_ARCH_INITCALL_ENTRY` remain
+`NOT_PROVEN`; the first arch body and every later initcall level also remain
+`NOT_PROVEN`. POSTCORE1 remains unauthorized pending a separate gate review
+and explicit user approval.
+
+`EXPERIMENTAL_BOOTS=1`
+
+`PARTITION_WRITES=0`
+
+`SLOT_A_WRITTEN=NO`
+
+`POSTCORE8_MEMBER_A_COMPLETED=YES`
+
+`POSTCORE8_BEHAVIOR_CLASS=AUTOMATIC_FASTBOOT_RETURN`
+
+`POSTCORE8_TOTAL_S=34.936234167`
+
+`POSTCORE1_TOTAL=NOT_RUN`
+
+`PAIR_DELTA=NOT_AVAILABLE`
+
+`PAIR_VERDICT=PENDING_POSTCORE1`
+
+Final gate: `MAINLINE_V2_R3_SLOT_B_POSTCORE8_MEMBER_A_COMPLETED`.
+Recommended next: `MAINLINE_V2_R3_SLOT_B_POSTCORE1_DEVICE_GATE_REVIEW`, with
+no device operation in that review.
