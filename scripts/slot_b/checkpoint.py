@@ -36,7 +36,7 @@ INITCALL_BOUNDARIES = {"pure_complete": "__initcall1_start",
                        "arch_complete": "__initcall4_start"}
 INITCALL_MACROS = {"pure_complete": "core_initcall", "core_complete": "postcore_initcall",
                    "postcore_complete": "arch_initcall", "arch_complete": "subsys_initcall"}
-INITCALL_SOURCE_PREFIX = {"postcore_complete": "arch/arm64/"}
+INITCALL_SOURCE_PREFIX = {"postcore_complete": "arch/arm64/", "arch_complete": "arch/arm64/"}
 ULTRACOMPACT_SYMBOLS = frozenset({"core_complete", "postcore_complete", "arch_complete"})
 INITCALL_BOUNDARY_SYMBOLS = ("__initcall1_start", "__initcall2_start", "__initcall3_start",
                              "__initcall4_start", "__initcall5_start")
@@ -536,6 +536,14 @@ def compose(args, bundle):
         target_symbol = initcall_boundary["target_aliases"][0]
         next_va = min(va for va, _ in t3.symbol_table(nm) if va > target_va)
         extent = next_va
+        print(INITCALL_TARGET_LABELS[args.symbol] + "_TABLE_DECODE=" +
+              json.dumps({"boundary": initcall_boundary["boundary_symbol"],
+                          "entry_va": hex(initcall_boundary["entry_va"]),
+                          "entry_word": initcall_boundary["entry_word"],
+                          "relative": initcall_boundary["relative"],
+                          "target_va": hex(target_va),
+                          "aliases": initcall_boundary["target_aliases"]},
+                         sort_keys=True), flush=True)
         initcall_source = find_initcall_source(
             pb.LINUX, initcall_boundary["target_aliases"],
             INITCALL_MACROS[args.symbol], INITCALL_SOURCE_PREFIX.get(args.symbol))
