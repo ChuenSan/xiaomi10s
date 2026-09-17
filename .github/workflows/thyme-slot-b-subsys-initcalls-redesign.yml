@@ -232,7 +232,9 @@ jobs:
           assert m8['target_entry_audit']['entry_audit'] == 'PASS'
           assert not m8['target_entry_audit']['branch_topology']['incoming_window_interior']
           assert m8['target_entry_audit']['runtime_rewrite_safe'] is True
-          assert m8['window_agreement']['verdict'] == 'EXACT'
+          assert m8['window_agreement']['verdict'] == 'SUBSYS_FS_NAME_LITERAL_ADDRESS_DELTA_VERIFIED'
+          refs = m8['window_agreement']['debug_enabled_literal_refs']
+          assert refs['bundle']['text'] == refs['frozen']['text'] == 'debug_enabled'
           changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
           assert changed == [m8['offset'] + 9, m8['offset'] + 10]
           assert p8[:m8['offset']] == frozen[:m8['offset']] and p8[m8['offset']+size:] == frozen[m8['offset']+size:]
@@ -403,7 +405,7 @@ jobs:
           assert words8[13] == words1[13] == 0x17ffffff
           assert all(words8[i] == words1[i] for i in range(14) if i != 2)
           assert a['core_variant'] == 'subsys52_cntpct_elapsed_b_lo'
-          assert a['window_agreement']['verdict'] == 'EXACT'
+          assert a['window_agreement']['verdict'] == 'SUBSYS_FS_NAME_LITERAL_ADDRESS_DELTA_VERIFIED'
           assert a['runtime_dtb_external_initrd'] is False
           assert a['chosen_properties'] == ['bootargs', 'stdout-path']
           assert a['target_entry_audit']['runtime_rewrite_safe'] is True

@@ -415,6 +415,25 @@ class CheckpointTests(unittest.TestCase):
         self.assertFalse(live['cfg_closure_proven'])
         self.assertEqual(live['surviving_sources'][0]['source_offset'], '0x9c')
 
+    def test_subsys_fs_literal_delta_requires_exact_debug_enabled_string(self):
+        bundle = bytearray(56)
+        struct.pack_into('<II', bundle, 12, 0x9000D0E0, 0x91019000)
+        frozen = bytearray(bundle)
+        struct.pack_into('<I', frozen, 16, 0x9101B000)
+        text = b'debug_enabled\0'.hex()
+        refs = {'bundle': {'offset': '0x100', 'bytes_hex': text},
+                'frozen': {'offset': '0x108', 'bytes_hex': text}}
+        checkpoint.gate_subsys_fs_literal_delta(bundle, frozen, refs)
+        for off in (0, 12, 16, 20, 52):
+            changed = bytearray(frozen)
+            changed[off] ^= 1
+            with self.subTest(offset=off), self.assertRaises(ValueError):
+                checkpoint.gate_subsys_fs_literal_delta(bundle, changed, refs)
+        wrong = {'bundle': {'offset': '0x100', 'bytes_hex': text},
+                 'frozen': {'offset': '0x108', 'bytes_hex': b'nope\0'.hex()}}
+        with self.assertRaises(ValueError):
+            checkpoint.gate_subsys_fs_literal_delta(bundle, frozen, wrong)
+
     def test_subsys52_core_is_proven_56_without_daifset(self):
         old = struct.pack('<14I', *checkpoint.ULTRACOMPACT_WORDS)
         new = struct.pack('<13I', *checkpoint.SUBSYS52_WORDS)

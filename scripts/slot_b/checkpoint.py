@@ -268,6 +268,20 @@ def gate_subsys52_core_equivalence(old56, new52):
             "SUBSYS52_PSCI_WFE_MISMATCH")
 
 
+def gate_subsys_fs_literal_delta(bundle, frozen, refs):
+    require(len(bundle) == len(frozen) == 56, "SUBSYS_FS_LITERAL_WINDOW_SIZE")
+    require(bundle[:16] == frozen[:16] and bundle[20:] == frozen[20:],
+            "SUBSYS_FS_LITERAL_ADDITIONAL_CODE_DRIFT")
+    require(struct.unpack_from("<II", bundle, 12) == (0x9000D0E0, 0x91019000)
+            and struct.unpack_from("<II", frozen, 12) == (0x9000D0E0, 0x9101B000),
+            "SUBSYS_FS_LITERAL_INSTRUCTION_CONTEXT")
+    expected = b"debug_enabled\0".hex()
+    require(refs["bundle"]["bytes_hex"] == refs["frozen"]["bytes_hex"] == expected,
+            "SUBSYS_FS_LITERAL_SOURCE_STRING_MISMATCH")
+    require(refs["frozen"]["offset"] == hex(int(refs["bundle"]["offset"], 16) + 8),
+            "SUBSYS_FS_LITERAL_LAYOUT_DELTA_NOT_EIGHT")
+
+
 def gate_core_initcall_literal_delta(bundle, frozen, refs):
     require(len(bundle) == len(frozen) == 60, "CORE_INITCALL_LITERAL_WINDOW_SIZE")
     require(bundle[:16] == frozen[:16] and bundle[20:] == frozen[20:],
@@ -753,6 +767,9 @@ def compose(args, bundle):
     elif args.symbol == "core_complete":
         agreement["core_initcall_name_literal_refs"] = adrp_add_literal_ref_pair(
             image, frozen, text_va, offset + 12, offset + 16)
+    elif args.symbol == "subsys_complete":
+        agreement["debug_enabled_literal_refs"] = adrp_add_literal_ref_pair(
+            image, frozen, text_va, offset + 12, offset + 16)
     agreement["verdict"] = "EXACT" if not differences else "UNRESOLVED"
     try:
         if differences and args.symbol == "smp_init":
@@ -784,6 +801,14 @@ def compose(args, bundle):
                     == t3.nm_symbol(nm, "__cpuhp_setup_state"),
                     "CORE_INITCALL_LITERAL_CALL_TARGET_MISMATCH")
             agreement["verdict"] = "CORE_INITCALL_NAME_LITERAL_ADDRESS_DELTA_VERIFIED"
+        elif differences and args.symbol == "subsys_complete":
+            gate_subsys_fs_literal_delta(
+                image[offset:offset + length], frozen[offset:offset + length],
+                agreement["debug_enabled_literal_refs"])
+            require(branch_target(struct.unpack_from("<I", frozen, offset + 36)[0], target_va + 36)
+                    == t3.nm_symbol(nm, "debugfs_create_bool"),
+                    "SUBSYS_FS_LITERAL_CALL_TARGET_MISMATCH")
+            agreement["verdict"] = "SUBSYS_FS_NAME_LITERAL_ADDRESS_DELTA_VERIFIED"
         else:
             require(not differences, f"TARGET_WINDOW_DIFFERS_FROM_AUDIT_IMAGE:{differences}")
     finally:
