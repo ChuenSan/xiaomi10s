@@ -42,8 +42,11 @@ IMAGES = {
     "subsys1": (37380096, "df14e7bcdf409deeeede70d7217f420091a6e9a292b0670443df50c0a0e8b9a1"),
     "fs8": (37380096, "cfc9f3f9c931126aceb47a5dcc39c12227f34eceb7ad2d9e6642088f3b7e6594"),
     "fs1": (37380096, "2377b227fd0eb4105330eec64f19843d7d64d42f994b12b999571cca6f4e3a1b"),
+    "control8": (37380096, "2feff8bc1c055f5b2fade01e00c992b49277068b6a0f95d145cd31fe9a87ecc1"),
+    "control1": (37380096, "4551a94079ace87062f6a51444bfdbff76982e1b34b4b65658022df9e0c6db99"),
+    "mid8": (37380096, "89614d8a2d85ba53ca34d353db558fe8cbfc775740b85d3b1b899ef35bc7b4b0"),
+    "mid1": (37380096, "b2b7cd68a68886ebcc7f6fc598d22c7a27ecc9698a7397ec97b58271627c1499"),
 
-}
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
     "rest1": ("rest8", "rest_init_entry", "rest_init_body"),
@@ -58,6 +61,8 @@ PAIRS = {
     "arch1": ("arch8", "arch_initcalls_completed", "first_subsys_initcall_body"),
     "subsys1": ("subsys8", "subsys_initcalls_completed", "first_fs_initcall_body"),
     "fs1": ("fs8", "fs_initcalls_completed", "first_device_initcall_body"),
+    "control1": ("control8", "fs_trampoline_control_reached", "first_device_initcall_entry"),
+    "mid1": ("mid8", "fs_midpoint_entry", "first_device_initcall_entry"),
 }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}

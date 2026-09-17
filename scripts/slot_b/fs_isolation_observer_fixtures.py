@@ -45,8 +45,36 @@ def main() -> None:
     print("MID_INDEX_GATE=PASS")
     print("MID_SYMBOL_GATE=PASS")
     print("MID_UNIQUE_TABLE_TARGET_GATE=PASS")
-    print("CONTROL_OBSERVER_IDENTITY=DEFERRED_UNTIL_PRIVATE_PACK")
-    print("MID_OBSERVER_IDENTITY=DEFERRED_UNTIL_PRIVATE_PACK")
+    size8, sha8 = observe.IMAGES["control8"]
+    size1, sha1 = observe.IMAGES["control1"]
+    msize8, msha8 = observe.IMAGES["mid8"]
+    msize1, msha1 = observe.IMAGES["mid1"]
+    observe.validate_identity("control8", size8, sha8)
+    observe.validate_identity("control1", size1, sha1)
+    observe.validate_identity("mid8", msize8, msha8)
+    observe.validate_identity("mid1", msize1, msha1)
+    print("CONTROL8_OBSERVER_EXACT_FULL_SHA_ACCEPT=PASS")
+    print("CONTROL1_OBSERVER_EXACT_FULL_SHA_ACCEPT=PASS")
+    print("MID8_OBSERVER_EXACT_FULL_SHA_ACCEPT=PASS")
+    print("MID1_OBSERVER_EXACT_FULL_SHA_ACCEPT=PASS")
+    try:
+        observe.validate_identity("control8", size8, sha1)
+    except ValueError as exc:
+        if str(exc) != "IMAGE_IDENTITY_MISMATCH":
+            raise
+        print("CONTROL8_OBSERVER_REJECTS_CONTROL1=PASS")
+    else:
+        raise SystemExit("CONTROL8_ACCEPTED_CONTROL1")
+    try:
+        observe.validate_identity("control8", size8, observe.IMAGES["fs8"][1])
+    except ValueError as exc:
+        if str(exc) != "IMAGE_IDENTITY_MISMATCH":
+            raise
+        print("CONTROL8_OBSERVER_REJECTS_FS8=PASS")
+    else:
+        raise SystemExit("CONTROL8_ACCEPTED_FS8")
+    print("CONTROL_OBSERVER_IDENTITY=PASS")
+    print("MID_OBSERVER_IDENTITY=PASS")
     print("FS_ISOLATION_OBSERVER_FIXTURES=PASS")
     print("DEVICE_OPERATION=NO")
 

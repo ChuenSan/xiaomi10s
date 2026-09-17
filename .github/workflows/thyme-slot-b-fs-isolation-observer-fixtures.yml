@@ -56,18 +56,23 @@ jobs:
             MID_INDEX_GATE=PASS \
             MID_SYMBOL_GATE=PASS \
             MID_UNIQUE_TABLE_TARGET_GATE=PASS \
+            CONTROL8_OBSERVER_EXACT_FULL_SHA_ACCEPT=PASS \
+            CONTROL1_OBSERVER_EXACT_FULL_SHA_ACCEPT=PASS \
+            MID8_OBSERVER_EXACT_FULL_SHA_ACCEPT=PASS \
+            MID1_OBSERVER_EXACT_FULL_SHA_ACCEPT=PASS \
+            CONTROL_OBSERVER_IDENTITY=PASS \
+            MID_OBSERVER_IDENTITY=PASS \
             FS_ISOLATION_OBSERVER_FIXTURES=PASS \
             DEVICE_OPERATION=NO; do
             grep -Fxq "$gate" fs-isolation-observer-fixtures.txt
           done
           printf '%s\n' \
             'FS_ISOLATION_OBSERVER_GEOMETRY=PASS' \
-            'CONTROL_OBSERVER_IDENTITY=DEFERRED_UNTIL_PRIVATE_PACK' \
-            'MID_OBSERVER_IDENTITY=DEFERRED_UNTIL_PRIVATE_PACK' \
+            'CONTROL_OBSERVER_IDENTITY=PASS' \
+            'MID_OBSERVER_IDENTITY=PASS' \
             'DEVICE_OPERATION=NO' \
             'PARTITION_WRITES=0' \
             'SLOT_A_WRITTEN=NO' \
-            | tee fs-isolation-observer-gates.txt
       - uses: actions/upload-artifact@v4
         with:
           name: thyme-slot-b-fs-isolation-observer-fixtures
