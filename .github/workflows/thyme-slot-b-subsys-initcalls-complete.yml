@@ -35,6 +35,7 @@ jobs:
       - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
         run: |
           set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
           git submodule update --init --depth 1 linux-6.6
           test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
           for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
@@ -122,6 +123,7 @@ jobs:
       - name: Fetch exact source used by the audit
         run: |
           set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
           git submodule update --init --depth 1 linux-6.6
           test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
           for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
