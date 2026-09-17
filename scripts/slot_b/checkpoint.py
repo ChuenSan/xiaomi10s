@@ -637,6 +637,14 @@ def compose(args, bundle):
         initcall_registration = f"{INITCALL_MACROS[args.symbol]}({target_symbol})"
         require(t3.sysmap_symbol(bundle / "System.map", target_symbol) == target_va,
                 "SYMBOL_MAP_MISMATCH")
+        print("INITCALL_BOUNDARY_VAS=" + json.dumps(
+            {name: hex(info["entry_va"]) for name, info in initcall_boundaries.items()},
+            sort_keys=True), flush=True)
+        if args.symbol == "subsys_complete":
+            print(f"FIRST_FS_FUNCTION_SIZE={extent - target_va}", flush=True)
+            print(f"FIRST_FS_INITCALL_SOURCE={initcall_source}", flush=True)
+            print(f"FIRST_FS_INITCALL_REGISTRATION={initcall_registration}", flush=True)
+            print(f"FIRST_FS_MIN_PROBE={4 + len(core)}", flush=True)
     else:
         source_audit = initcall_boundaries = initcall_source = initcall_registration = None
         target_symbol = args.symbol
