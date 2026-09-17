@@ -711,6 +711,23 @@ still differs only by two delay bytes at `[0x149e9,0x149eb)`, the 56-byte
 window remains in-function, 52-byte core has no daifset, and 60B probes stay
 rejected. Observer fixtures `35197854423` passed with separate full-SHA gates
 plus the 56-byte geometry. Execution is split and ordered SUBSYS8 then
-SUBSYS1. `READY_FOR_R3_SLOT_B_SUBSYS8_DEVICE_CONTROL=YES`.
-`READY_FOR_R3_SLOT_B_SUBSYS1_DEVICE_CONTROL=NO`. This round performed no
-device operation. See `docs/slot-b-subsys-initcall-checkpoint.md`.
+SUBSYS1. The former readiness gate was
+`READY_FOR_R3_SLOT_B_SUBSYS8_DEVICE_CONTROL=YES`.
+
+## SUBSYS8 true-device member A
+
+Exactly one RAM-only Slot B boot of frozen SUBSYS8
+`e082e530e4fce6dbe61f9cbe225851966fa35d1f80e4ab1dd69b5af9ba9175f1`
+(37380096). Sending OKAY 0.941s, Booting OKAY 0.220s. Automatic Fastboot B
+return in `34.702650958s`, retry 7→6. Identity, 56-byte window, 52-byte
+no-daifset core and `debug_enabled` ADD gate passed. Current B 16-chain hashes
+and P15 prefix matched before/after. Android A restored healthy. SUBSYS1 was
+not executed. Absolute ~35s is descriptive only.
+`SUBSYS8_MEMBER_A_COMPLETED=YES`.
+`SUBSYS_INITCALLS_COMPLETED=NOT_PROVEN`.
+`FIRST_FS_INITCALL_ENTRY=NOT_PROVEN`.
+`PAIR_VERDICT=PENDING_SUBSYS1`.
+`READY_FOR_R3_SLOT_B_SUBSYS1_DEVICE_CONTROL=NO`.
+Final gate: `MAINLINE_V2_R3_SLOT_B_SUBSYS8_MEMBER_A_COMPLETED`.
+Recommended next: `MAINLINE_V2_R3_SLOT_B_SUBSYS1_DEVICE_GATE_REVIEW`.
+See `docs/slot-b-subsys-initcall-checkpoint.md`.

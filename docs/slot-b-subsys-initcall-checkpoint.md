@@ -175,18 +175,78 @@ wrong PREL32, wrong `debug_enabled` ADD, wrong delay and wrong PSCI. CORE
 observer regression `35197854428`, POSTCORE observer `35197854432` and ARCH
 observer `35197854485` passed.
 
-Future device execution is split and ordered `SUBSYS8_THEN_SUBSYS1`. The next
-stage may run one SUBSYS8 RAM-only member only after separate user approval.
+Future device execution is split and ordered `SUBSYS8_THEN_SUBSYS1`.
 SUBSYS8 alone can record only `SUBSYS8_MEMBER_A_COMPLETED` and a total.
 SUBSYS1 remains blocked until that result is frozen and the user approves a
 separate stage. No-shift records
 `SUBSYS_INITCALLS_CHECKPOINT_SHIFT_NOT_OBSERVED` and routes to
 `SUBSYS_INITCALLS_FAILURE_ISOLATION_CI`.
 
-`READY_FOR_R3_SLOT_B_SUBSYS8_DEVICE_CONTROL=YES`
+The former readiness gate was `READY_FOR_R3_SLOT_B_SUBSYS8_DEVICE_CONTROL=YES`.
+The separately approved SUBSYS8 true-device round is recorded below.
+
+## SUBSYS8 true-device member A
+
+`MAINLINE_V2_R3_SLOT_B_SUBSYS8_TRUE_DEVICE_CONTROL` executed exactly one
+RAM-only SUBSYS8 boot. The authoritative artifact retained full SHA256
+`e082e530e4fce6dbe61f9cbe225851966fa35d1f80e4ab1dd69b5af9ba9175f1`
+and size 37380096 immediately before Fastboot interaction; frozen observer
+identity validation passed. The 56-byte window, preserved `paciasp`, 52-byte
+no-daifset core, PREL32 target, `debug_enabled` ADD gate and 60-byte rejection
+remained the frozen identity. No image partition was written. SUBSYS1 was not
+present and was not executed.
+
+The device began from healthy Android A (`_a`, `boot_completed=1`, Magisk root,
+stock `4.19.157-perf-g9d90dd04aa7c`). All 16 boot-chain hashes and the P15
+prefix matched the frozen baseline. Bootloader preflight returned
+`product=thyme`, `unlocked=yes`, `current-slot=a`; the only metadata transition
+before the experiment was `set_active b`.
+
+| event | UTC / value |
+| --- | --- |
+| `T_COMMAND_START` | `2026-09-17T08:23:57.121540Z` |
+| Sending | OKAY, `0.941s` |
+| Booting | OKAY, `0.220s` |
+| `T_BOOTING_OKAY` | `2026-09-17T08:23:58.317639Z` |
+| `T_FASTBOOT_DISAPPEAR` | `2026-09-17T08:23:59.685214Z` |
+| `T_FASTBOOT_B_RETURN` | `2026-09-17T08:24:33.055695Z` |
+| `SUBSYS8_TOTAL` | `34.702650958s` |
+
+The result was `AUTOMATIC_FASTBOOT_RETURN`; Slot B retry changed 7→6 and no
+manual recovery was needed. Fastboot returned on B, then the sole permitted
+recovery metadata action selected A and rebooted stock Android. Post-test all
+16 hashes and the P15 prefix still matched, so
+`CURRENT_B_UNCHANGED_AFTER_SUBSYS8=YES` and
+`ANDROID_A_RESTORED_AFTER_SUBSYS8=YES`. Pstore was empty, which is not negative
+evidence. Evidence is under `artifacts/slot-b-subsys8-20260917/`.
+
+This single member proves only `SUBSYS8_MEMBER_A_COMPLETED=YES` and freezes its
+total. Absolute ~35s is descriptive only and is not pair proof.
+`SUBSYS1_TOTAL=NOT_RUN`, `PAIR_DELTA=NOT_AVAILABLE`, and
+`PAIR_VERDICT=PENDING_SUBSYS1`. `SUBSYS_INITCALLS_COMPLETED` and
+`FIRST_FS_INITCALL_ENTRY` remain `NOT_PROVEN`; the first FS body and every
+later initcall level also remain `NOT_PROVEN`. SUBSYS1 remains unauthorized
+pending a separate gate review and explicit user approval.
+
+`EXPERIMENTAL_BOOTS=1`
+
+`PARTITION_WRITES=0`
+
+`SLOT_A_WRITTEN=NO`
+
+`SUBSYS8_MEMBER_A_COMPLETED=YES`
+
+`SUBSYS8_BEHAVIOR_CLASS=AUTOMATIC_FASTBOOT_RETURN`
+
+`SUBSYS8_TOTAL_S=34.702650958`
+
+`SUBSYS1_TOTAL=NOT_RUN`
+
+`PAIR_DELTA=NOT_AVAILABLE`
+
+`PAIR_VERDICT=PENDING_SUBSYS1`
 
 `READY_FOR_R3_SLOT_B_SUBSYS1_DEVICE_CONTROL=NO`
 
-`DEVICE_OPERATION=NO`
-
-Evidence: `artifacts/slot-b-subsys-private-gate-20260917/`.
+Final gate: `MAINLINE_V2_R3_SLOT_B_SUBSYS8_MEMBER_A_COMPLETED`.
+Recommended next, no device: `MAINLINE_V2_R3_SLOT_B_SUBSYS1_DEVICE_GATE_REVIEW`.
