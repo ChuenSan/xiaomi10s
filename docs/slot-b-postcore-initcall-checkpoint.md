@@ -311,7 +311,69 @@ writes, and never retry a rejected boot.
 
 `SLOT_A_WRITTEN=NO`
 
-Final gate: `READY_FOR_R3_SLOT_B_POSTCORE1_DEVICE_CONTROL=YES`. This is
-readiness only: `POSTCORE1_DEVICE_OPERATION=NO`. Recommended next, only after
-separate explicit user approval:
-`MAINLINE_V2_R3_SLOT_B_POSTCORE1_TRUE_DEVICE_CONTROL`.
+The former readiness gate was `READY_FOR_R3_SLOT_B_POSTCORE1_DEVICE_CONTROL=YES`.
+The separately approved POSTCORE1 true-device round is recorded below.
+
+## POSTCORE1 true-device member B
+
+`MAINLINE_V2_R3_SLOT_B_POSTCORE1_TRUE_DEVICE_CONTROL` executed exactly one
+RAM-only POSTCORE1 boot. The authoritative artifact retained full SHA256
+`4762a9fd29e109affb1c8864247887334508d9af2d6b183b7bf0200a05b697f1`
+and size 37380096 immediately before Fastboot interaction. Frozen observer
+identity validation passed against POSTCORE8 baseline
+`total_s=34.936234167`. No image partition was written.
+
+The device began from healthy Android A (`_a`, `boot_completed=1`, Magisk root,
+stock `4.19.157-perf-g9d90dd04aa7c`). All 16 boot-chain hashes and the P15
+prefix matched the frozen baseline. Bootloader preflight returned
+`product=thyme`, `unlocked=yes`, `current-slot=a`; the only metadata transition
+before the experiment was `set_active b`.
+
+| event | UTC / value |
+| --- | --- |
+| `T_COMMAND_START` | `2026-09-17T03:36:16.138690Z` |
+| Sending | OKAY, `0.924s` |
+| Booting | OKAY, `0.221s` |
+| `T_BOOTING_OKAY` | `2026-09-17T03:36:17.310040Z` |
+| `T_FASTBOOT_DISAPPEAR` | `2026-09-17T03:36:18.758025Z` |
+| `T_FASTBOOT_B_RETURN` | `2026-09-17T03:36:45.324432Z` |
+| `POSTCORE1_TOTAL` | `27.996538750s` |
+
+The result was `AUTOMATIC_FASTBOOT_RETURN`; Slot B retry changed 7→6 and no
+manual recovery was needed. Fastboot returned on B, then the sole permitted
+recovery metadata action selected A and rebooted stock Android. Post-test all
+16 hashes and the P15 prefix still matched, so
+`CURRENT_B_UNCHANGED_AFTER_POSTCORE1=YES` and
+`ANDROID_A_RESTORED_AFTER_POSTCORE1=YES`. Pstore was empty, which is not
+negative evidence. Evidence is under `artifacts/slot-b-postcore1-20260917/`.
+
+Frozen pair against the only permitted member-A reference:
+
+| quantity | value |
+| --- | --- |
+| `POSTCORE8_TOTAL` | `34.936234167s` |
+| `POSTCORE1_TOTAL` | `27.996538750s` |
+| `PAIR_DELTA` | `-6.939695417s` |
+| `EXPECTED_DELTA` | `-7.000000000s` |
+| `PAIR_ERROR` | `+0.060304583s` |
+| `ABS_PAIR_ERROR` | `0.060304583s` |
+| `PAIR_VERDICT` | `STRONG` |
+
+Therefore `POSTCORE_INITCALLS_COMPLETED=PROVEN` and
+`FIRST_ARCH_INITCALL_ENTRY=PROVEN`. Absolute POSTCORE1 timing is descriptive
+only. The overwritten arch function body and every later initcall level remain
+`NOT_PROVEN`. CONSOLE, `/init` and USB stay frozen.
+
+`EXPERIMENTAL_BOOTS=1`
+
+`PARTITION_WRITES=0`
+
+`SLOT_A_WRITTEN=NO`
+
+`POSTCORE1_RERUN_FORBIDDEN=YES`
+
+`POSTCORE8_RERUN_FORBIDDEN=YES`
+
+Final gate: `MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_COMPLETED_PROVEN`.
+Recommended next, only after explicit user approval:
+`MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_CHECKPOINT_CI_AUDIT`.

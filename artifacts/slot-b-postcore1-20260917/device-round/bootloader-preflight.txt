@@ -1,0 +1,4 @@
+product=thyme
+unlocked=yes
+initial-slot=a
+after-set-active=b

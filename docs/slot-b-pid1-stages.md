@@ -497,8 +497,29 @@ error `<=1.000s`, SUPPORTED `<=2.000s`. POSTCORE8 cannot be rerun and absolute
 POSTCORE1 timing cannot substitute for the pair. Runtime evidence remains
 unchanged.
 
-Final gate: `READY_FOR_R3_SLOT_B_POSTCORE1_DEVICE_CONTROL=YES`. This review
-performed no device operation. Recommended next only after separate explicit
-approval: `MAINLINE_V2_R3_SLOT_B_POSTCORE1_TRUE_DEVICE_CONTROL`, exactly one
-POSTCORE1 Slot B RAM-only boot. See
-`docs/slot-b-postcore-initcall-checkpoint.md`.
+The former readiness gate was
+`READY_FOR_R3_SLOT_B_POSTCORE1_DEVICE_CONTROL=YES`. The separately approved
+member-B round is now complete.
+
+## POSTCORE1 true-device result
+
+Exactly one identity-gated POSTCORE1 RAM boot used frozen boot SHA256
+`4762a9fd29e109affb1c8864247887334508d9af2d6b183b7bf0200a05b697f1`
+(size 37380096). Sending and Booting were OKAY in 0.924s and 0.221s.
+Automatic Fastboot B return occurred at `POSTCORE1_TOTAL=27.996538750s`, with
+retry 7→6 and no manual recovery. Against frozen
+`POSTCORE8_TOTAL=34.936234167s`, `PAIR_DELTA=-6.939695417s`,
+`PAIR_ERROR=+0.060304583s`, `ABS_PAIR_ERROR=0.060304583s`: **STRONG**.
+Therefore `POSTCORE_INITCALLS_COMPLETED=PROVEN` and
+`FIRST_ARCH_INITCALL_ENTRY=PROVEN`.
+
+The first arch body, later initcall levels, `wait_for_initramfs`, console,
+`/init` and Linux full boot remain NOT_PROVEN; USB remains FROZEN. Current B's
+16-chain hashes and P15 prefix matched before and after. Android A was restored
+healthy. Partition image writes were zero and Slot A was not written.
+POSTCORE8 and POSTCORE1 reruns are forbidden. Evidence:
+`artifacts/slot-b-postcore1-20260917/`.
+
+Final gate: `MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_COMPLETED_PROVEN`.
+Recommended next: `MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_CHECKPOINT_CI_AUDIT`.
+See `docs/slot-b-postcore-initcall-checkpoint.md`.
