@@ -1,0 +1,3 @@
+product=thyme
+current-slot=b
+retry-post=6

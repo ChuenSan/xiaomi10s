@@ -325,5 +325,37 @@ forbidden.
 
 `READY_FOR_R3_SLOT_B_CORE1_DEVICE_CONTROL=YES`
 
-Recommended next, only after separate user approval:
-`MAINLINE_V2_R3_SLOT_B_CORE1_TRUE_DEVICE_CONTROL`.
+The separately approved true-device result is recorded below.
+
+## CORE1 true-device result
+
+The authoritative CORE1 artifact was re-read before boot as
+`a66c3f7a95e05905f5f65d96cb7f378ccdad9edf33814271425829ce10fe3e6c`,
+37380096 bytes. The frozen observer accepted that full identity before issuing
+one and only one experimental command: RAM-only `fastboot boot` on confirmed
+Slot B. Sending was OKAY in 0.931s and Booting was OKAY in 0.222s. The device
+automatically returned to Fastboot B in `27.878020583s`, retry 7→6.
+
+Using only the frozen CORE8 member-A total:
+
+`PAIR_DELTA = 27.878020583 - 34.961135333 = -7.083114750s`
+
+`PAIR_ERROR = -7.083114750 - (-7.000000000) = -0.083114750s`
+
+`ABS_PAIR_ERROR = 0.083114750s`
+
+The result is **STRONG**. `CORE_INITCALLS_COMPLETED=PROVEN` and
+`FIRST_POSTCORE_INITCALL_ENTRY=PROVEN`. The checkpoint body and every later
+boundary remain unproven: `FIRST_POSTCORE_INITCALL_BODY=NOT_PROVEN`,
+`POSTCORE_INITCALLS_COMPLETED=NOT_PROVEN`, arch/subsys/fs/device/late initcall
+completion `NOT_PROVEN`, `WAIT_FOR_INITRAMFS_RETURN=NOT_PROVEN`,
+`CONSOLE_ON_ROOTFS_ENTRY=NOT_PROVEN`, `/init=NOT_PROVEN`, `USB=FROZEN`.
+
+Current B's 16-chain hashes and P15 prefix matched before/after. Android A was
+restored healthy. There were zero partition image writes, Slot A was not
+written, and no manual recovery was used. Evidence:
+`artifacts/slot-b-core1-20260916/`.
+
+Final gate: `MAINLINE_V2_R3_SLOT_B_CORE_INITCALLS_COMPLETED_PROVEN`.
+CORE8, CORE1, PURE and CONSOLE reruns are forbidden. Recommended next:
+`MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_CHECKPOINT_CI_AUDIT`.

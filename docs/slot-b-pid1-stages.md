@@ -359,6 +359,37 @@ SUPPORTED `<=2.000s`. Absolute CORE1 time is secondary. CORE8's result alone
 continues to prove no additional reachability.
 
 `READY_FOR_R3_SLOT_B_CORE1_DEVICE_CONTROL=YES`. This review performed no device
-operation and authorizes no automatic execution. The next separately approved
-stage is `MAINLINE_V2_R3_SLOT_B_CORE1_TRUE_DEVICE_CONTROL`: one CORE1 Slot B
-RAM-only boot, with fresh pre/post Current B readback and Android A recovery.
+operation and authorized the separately approved
+`MAINLINE_V2_R3_SLOT_B_CORE1_TRUE_DEVICE_CONTROL` stage recorded below.
+
+## CORE1 true-device member B
+
+The exact frozen CORE1 boot
+`a66c3f7a95e05905f5f65d96cb7f378ccdad9edf33814271425829ce10fe3e6c`
+(37380096 bytes) passed the observer full-SHA gate and ran exactly once via
+RAM-only `fastboot boot` on confirmed Slot B. Sending was OKAY in 0.931s and
+Booting was OKAY in 0.222s. It automatically returned to Fastboot B in
+`27.878020583s`, retry 7→6; no manual recovery was used.
+
+The frozen member-A reference remains `CORE8_TOTAL=34.961135333s`.
+`PAIR_DELTA=-7.083114750s`, expected `-7.000000000s`,
+`PAIR_ERROR=-0.083114750s`, and `ABS_PAIR_ERROR=0.083114750s`. The primary
+matched-delay verdict is **STRONG**. Absolute CORE1 timing was not used as the
+proof criterion.
+
+This proves `CORE_INITCALLS_COMPLETED=PROVEN` and
+`FIRST_POSTCORE_INITCALL_ENTRY=PROVEN`. It does not prove the overwritten
+`debug_monitors_init` body. `FIRST_POSTCORE_INITCALL_BODY`, postcore and later
+initcall completion, `wait_for_initramfs`, console and `/init` remain
+`NOT_PROVEN`; USB remains `FROZEN`.
+
+All 16 boot-chain hashes and the P15 prefix matched before and after the test.
+Current B remains `STOCK_V14_VENDOR_DTBO_PLUS_PROVEN_P15_RECOVERY`; Android A
+was restored healthy (`_a`, `boot_completed=1`, root, stock 4.19.157-perf).
+`PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`, `EXPERIMENTAL_BOOTS=1`. CORE8,
+CORE1, PURE and CONSOLE reruns are forbidden. Evidence:
+`artifacts/slot-b-core1-20260916/`.
+
+Final gate: `MAINLINE_V2_R3_SLOT_B_CORE_INITCALLS_COMPLETED_PROVEN`.
+Recommended next:
+`MAINLINE_V2_R3_SLOT_B_POSTCORE_INITCALLS_CHECKPOINT_CI_AUDIT`.

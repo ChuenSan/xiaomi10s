@@ -1,0 +1,5 @@
+product=thyme
+unlocked=yes
+initial-slot=a
+after-set-active=b
+retry-pre=7
