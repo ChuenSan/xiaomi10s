@@ -534,8 +534,15 @@ class CheckpointTests(unittest.TestCase):
         self.assertEqual(arch, 'INLINE_PACIASP_PLUS_52B_NO_DAIFSET')
         self.assertTrue(rejected)
         self.assertEqual(checkpoint.select_fs_complete_core(60, old, new)[0], old)
+        core, arch, rejected = checkpoint.select_fs_complete_core(48, old, new)
+        self.assertEqual(core, new)
+        self.assertEqual(arch, 'ENTRY_TRAMPOLINE')
+        self.assertTrue(rejected)
+        core, arch, rejected = checkpoint.select_fs_complete_core(52, old, new)
+        self.assertEqual(core, new)
+        self.assertEqual(arch, 'ENTRY_TRAMPOLINE')
         with self.assertRaises(ValueError):
-            checkpoint.select_fs_complete_core(52, old, new)
+            checkpoint.select_fs_complete_core(4, old, new)
         self.assertIn('fs_complete', checkpoint.CFG_DERIVED_WINDOWS)
         self.assertNotIn('fs_complete', checkpoint.EXPANDED_WINDOWS)
         self.assertNotIn('fs_complete', checkpoint.ULTRACOMPACT_SYMBOLS)
@@ -685,6 +692,21 @@ class CheckpointTests(unittest.TestCase):
             checkpoint.gate_fs_checkpoint_design(dict(fs, boundary='__initcall5_start'))
         with self.assertRaises(ValueError):
             checkpoint.gate_subsys_checkpoint_design(fs)
+        tramp = dict(fs, probe_architecture='ENTRY_TRAMPOLINE', function_size=48, probe_size=8,
+                     diagnostic_core_size=52, island_size=52, island_kind='RESERVED_EFI_HOLE',
+                     sixty_byte_inline_rejected=True, direct_b=True, prel32_retarget_to_island=False,
+                     live_tramp_intact=True, veneer=False, stub_branch='B', live_tramp_overlap=False)
+        checkpoint.gate_fs_checkpoint_design(tramp)
+        with self.assertRaises(ValueError):
+            checkpoint.gate_fs_checkpoint_design(dict(tramp, stub_branch='BL'))
+        with self.assertRaises(ValueError):
+            checkpoint.gate_fs_checkpoint_design(dict(tramp, live_tramp_overlap=True))
+        with self.assertRaises(ValueError):
+            checkpoint.gate_fs_checkpoint_design(dict(tramp, veneer=True))
+        with self.assertRaises(ValueError):
+            checkpoint.gate_fs_checkpoint_design(dict(tramp, prel32_retarget_to_island=True))
+        with self.assertRaises(ValueError):
+            checkpoint.gate_fs_checkpoint_design(dict(tramp, island_kind='RANDOM_CAVE'))
         fixtures = {
             'assume_initcall6_without_audit': ('boundary', '__initcall5_start'),
             'ignore_rootfs_start': ('rootfs_start_is_marker_only', False),
@@ -719,13 +741,68 @@ class CheckpointTests(unittest.TestCase):
             'init_changed': ('init_changed', True),
             'private_pack': ('private_pack', True),
             'device_operation': ('device_operation', True),
-            'short_function': ('function_size', 52),
+            'short_function': ('function_size', 4),
+            'fixed_iteration': ('fixed_iteration_delay', True),
+            'prel32_retarget': ('prel32_target_unchanged', False),
+            'drop_paciasp': ('paciasp_preserved', False),
         }
         for name, (key, value) in fixtures.items():
             bad = dict(fs)
             bad[key] = value
             with self.subTest(name=name), self.assertRaises(ValueError):
                 checkpoint.gate_fs_checkpoint_design(bad)
+
+
+    def test_fs_encode_b_roundtrip_and_range_fail(self):
+        pc = 0xFFFF800081B347BC
+        target = 0xFFFF80008000FFCC
+        word = checkpoint.encode_b(pc, target)
+        self.assertEqual(word & checkpoint.B_OP_MASK, checkpoint.B_OP)
+        self.assertEqual(checkpoint.branch_target(word, pc), target)
+        self.assertEqual(checkpoint.encode_b(pc, pc + 8), 0x14000002)
+        self.assertEqual(checkpoint.encode_b(pc, pc - 4), 0x17FFFFFF)
+        with self.assertRaises(ValueError):
+            checkpoint.encode_b(pc, pc + (1 << 27))
+        with self.assertRaises(ValueError):
+            checkpoint.encode_b(pc, pc + 2)
+        with self.assertRaises(ValueError):
+            checkpoint.encode_b(pc + 1, target)
+
+    def test_fs_island_selector_rejects_live_tramp_overlap(self):
+        tramp = (checkpoint.t3.TRAMP_OFFSET, checkpoint.LIVE_TRAMP_END)
+        self.assertTrue(checkpoint.windows_overlap(tramp, (0x40, 0x40 + 52)))
+        self.assertTrue(checkpoint.windows_overlap(tramp, (0x50, 0x50 + 52)))
+        self.assertTrue(checkpoint.windows_overlap(tramp, (0x3C, 0x3C + 52)))
+        self.assertFalse(checkpoint.windows_overlap(tramp, (0x70, 0x70 + 52)))
+        self.assertTrue(checkpoint.windows_overlap((0x1B347B8, 0x1B347C0), (0x1B347B8, 0x1B347B8 + 52)))
+        frozen = bytearray(0x20000)
+        image = bytearray(0x20000)
+        self.assertEqual(checkpoint.select_reserved_efi_island(frozen, image), 0x10000 - 52)
+        filled = bytearray(b'\xff' * 0x20000)
+        image = bytearray(filled)
+        frozen = bytearray(filled)
+        frozen[0x80:0x80 + 52] = bytes(52)
+        image[0x80:0x80 + 52] = bytes(52)
+        self.assertEqual(checkpoint.select_reserved_efi_island(frozen, image), 0x80)
+        frozen[0x80:0x80 + 52] = b'\xff' * 52
+        image[0x80:0x80 + 52] = b'\xff' * 52
+        with self.assertRaises(ValueError):
+            checkpoint.select_reserved_efi_island(frozen, image)
+
+    def test_fs_patch_windows_are_disjoint(self):
+        base = bytes(range(100))
+        out = checkpoint.patch_windows(base, ((10, b'AB'), (50, b'CD')))
+        self.assertEqual(out[10:12], b'AB')
+        self.assertEqual(out[50:52], b'CD')
+        self.assertEqual(out[:10], base[:10])
+        with self.assertRaises(ValueError):
+            checkpoint.patch_windows(base, ((10, bytes(20)), (20, bytes(8))))
+        stub = (0x1B347B8, 0x1B347C0)
+        island = (0x70, 0x70 + 52)
+        checkpoint.require_disjoint_windows([stub, island])
+        with self.assertRaises(ValueError):
+            checkpoint.require_disjoint_windows([stub, (0x1B347B8, 0x1B347B8 + 52)])
+
 
     def test_composition_changes_only_authorized_window(self):
         before = bytes(range(100))

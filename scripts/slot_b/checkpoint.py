@@ -60,6 +60,13 @@ ULTRACOMPACT_WORDS = (0xD5034FDF, 0xD53BE009, 0xD37DF12A, 0xD53BE02B,
                       0x54FFFF83, 0x52800120, 0x72B08000, 0xD4000003,
                       0xD503205F, 0x17FFFFFF)
 SUBSYS52_WORDS = ULTRACOMPACT_WORDS[1:]
+RESERVED_EFI_HOLE = (0x40, 0x10000)
+FS_STUB_SIZE = 8
+FS_ISLAND_SIZE = 52
+LIVE_TRAMP_END = t3.TRAMP_OFFSET + t3.TRAMP_SIZE
+B_OP = 0x14000000
+B_OP_MASK = 0xFC000000
+FS_HOLE_OWNERS = frozenset({"__EFI_PE_HEADER", "efi_header_end", "_text", "_stext", "primary_entry"})
 INITCALL_BOUNDARY_SYMBOLS = ("__initcall1_start", "__initcall2_start", "__initcall3_start",
                              "__initcall4_start", "__initcall5_start")
 INITCALL_TARGET_LABELS = {"pure_complete": "FIRST_CORE", "core_complete": "FIRST_POSTCORE",
@@ -187,8 +194,18 @@ def gate_fs_checkpoint_design(design):
     for key, value in extra.items():
         require(design.get(key) == value, f"FS_DESIGN_REJECTED:{key}")
     arch = design.get("probe_architecture")
-    require(arch in ("INLINE_PACIASP_PLUS_56B_ULTRACOMPACT", "INLINE_PACIASP_PLUS_52B_NO_DAIFSET"),
-            "FS_DESIGN_REJECTED:probe_architecture")
+    require(arch in ("INLINE_PACIASP_PLUS_56B_ULTRACOMPACT", "INLINE_PACIASP_PLUS_52B_NO_DAIFSET",
+                     "ENTRY_TRAMPOLINE"), "FS_DESIGN_REJECTED:probe_architecture")
+    if arch == "ENTRY_TRAMPOLINE":
+        extra_tr = {
+            "diagnostic_core_size": 52, "sixty_byte_inline_rejected": True, "probe_size": 8,
+            "island_size": 52, "island_kind": "RESERVED_EFI_HOLE", "direct_b": True,
+            "prel32_retarget_to_island": False, "live_tramp_intact": True, "veneer": False,
+            "stub_branch": "B", "live_tramp_overlap": False,
+        }
+        for key, value in extra_tr.items():
+            require(design.get(key) == value, f"FS_DESIGN_REJECTED:{key}")
+        return
     core_size = 56 if arch == "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT" else 52
     require(design.get("diagnostic_core_size") == core_size, "FS_DESIGN_REJECTED:diagnostic_core_size")
     require(design.get("sixty_byte_inline_rejected") is (core_size == 52),
@@ -202,6 +219,8 @@ def select_fs_complete_core(function_size, proven56, proven52):
         return proven56, "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT", False
     if function_size >= 56:
         return proven52, "INLINE_PACIASP_PLUS_52B_NO_DAIFSET", True
+    if function_size >= FS_STUB_SIZE:
+        return proven52, "ENTRY_TRAMPOLINE", True
     raise ValueError("FS_COMPLETE_TARGET_TOO_SMALL")
 
 
@@ -454,6 +473,297 @@ def cfg_closure_report(function_va, function_size, window, topology):
 def patch_window(frozen, offset, probe):
     require(0 <= offset and offset + len(probe) <= len(frozen), "WINDOW_OUT_OF_BOUNDS")
     return frozen[:offset] + probe + frozen[offset + len(probe):]
+
+def windows_overlap(a, b):
+    return not (a[1] <= b[0] or b[1] <= a[0])
+
+
+def require_disjoint_windows(windows):
+    for i, left in enumerate(windows):
+        for right in windows[i + 1:]:
+            require(not windows_overlap(left, right), "WINDOWS_OVERLAP")
+
+
+def encode_b(pc, target):
+    require(pc % 4 == 0 and target % 4 == 0, "B_UNALIGNED")
+    imm = (target - pc) // 4
+    require(-(1 << 25) <= imm < (1 << 25), "B_OUT_OF_RANGE")
+    word = B_OP | (imm & 0x03FFFFFF)
+    require(word & B_OP_MASK == B_OP, "B_NOT_DIRECT_B")
+    require(branch_target(word, pc) == target, "B_ENCODE_ROUNDTRIP")
+    return word
+
+
+def patch_windows(frozen, patches):
+    data = bytearray(frozen)
+    windows = []
+    for offset, blob in patches:
+        require(0 <= offset and offset + len(blob) <= len(data), "WINDOW_OUT_OF_BOUNDS")
+        windows.append((offset, offset + len(blob)))
+    require_disjoint_windows(windows)
+    for offset, blob in patches:
+        data[offset:offset + len(blob)] = blob
+    return bytes(data)
+
+
+def gate_payload_windows(frozen, cand, windows):
+    require(len(cand) == len(frozen), "PAYLOAD_SIZE_DRIFT")
+    require_disjoint_windows(windows)
+    diffs = [i for i, (a, b) in enumerate(zip(frozen, cand)) if a != b]
+    bad = [i for i in diffs if not any(lo <= i < hi for lo, hi in windows)]
+    require(not bad, f"DIFF_OUTSIDE_WINDOWS:{[hex(i) for i in bad[:8]]}")
+    require(diffs, "PAYLOAD_HAS_NO_DIFF")
+    for lo, hi in windows:
+        require(any(lo <= i < hi for i in diffs), f"WINDOW_HAS_NO_DIFF:{lo:#x}")
+    return diffs
+
+
+def incoming_inclusive(image, ranges, text_va, lo, hi):
+    hits = []
+    for begin, end in ranges:
+        for off in range(max(0, begin), min(len(image), end) - 3, 4):
+            pc = text_va + off
+            target = branch_target(struct.unpack_from("<I", image, off)[0], pc)
+            if target is not None and lo <= target < hi and not lo <= pc < hi:
+                hits.append((pc, target))
+    return hits
+
+
+def iter_reserved_efi_islands(frozen, image, size=FS_ISLAND_SIZE, forbidden=()):
+    lo, hi = LIVE_TRAMP_END, RESERVED_EFI_HOLE[1]
+    require(size > 0 and size % 4 == 0, "ISLAND_UNALIGNED")
+    require(hi <= len(image) <= len(frozen), "ISLAND_HOLE_OUTSIDE_IMAGE")
+    zeros = bytes(size)
+    for off in range(hi - size, lo - 1, -4):
+        if any(windows_overlap((off, off + size), span) for span in forbidden):
+            continue
+        if frozen[off:off + size] == zeros and image[off:off + size] == zeros:
+            yield off
+
+
+def select_reserved_efi_island(frozen, image, size=FS_ISLAND_SIZE, forbidden=()):
+    chosen = next(iter_reserved_efi_islands(frozen, image, size, forbidden), None)
+    require(chosen is not None, "FS_ISLAND_NO_ZERO_PADDING")
+    require(chosen >= LIVE_TRAMP_END and chosen + size <= RESERVED_EFI_HOLE[1], "FS_ISLAND_OUTSIDE_HOLE")
+    require(not windows_overlap((chosen, chosen + size), (t3.TRAMP_OFFSET, LIVE_TRAMP_END)),
+            "FS_ISLAND_OVERLAPS_LIVE_TRAMP")
+    return chosen
+
+
+def prove_fs_island(frozen, image, vmlinux, sections, nm, text_va, ranges, sites,
+                    island_off, size, stub_span):
+    island_va = text_va + island_off
+    span = (island_off, island_off + size)
+    require(not windows_overlap(span, (t3.TRAMP_OFFSET, LIVE_TRAMP_END)), "FS_ISLAND_OVERLAPS_LIVE_TRAMP")
+    require(not windows_overlap(span, stub_span), "FS_ISLAND_OVERLAPS_STUB")
+    zeros = bytes(size)
+    require(frozen[island_off:island_off + size] == image[island_off:island_off + size] == zeros,
+            "FS_ISLAND_NOT_SHARED_ZERO")
+    blob = vmlinux_bytes_at(vmlinux, sections, island_va, size)
+    require(blob == zeros, "FS_ISLAND_VMLINUX_NOT_ZERO")
+    section = t3.gate_window_section_scan(island_va, size, sections)
+    require(section["code"] and section["alloc"], "FS_ISLAND_NOT_EXECUTABLE")
+    require(section["name"] in (".head.text", ".text"), f"FS_ISLAND_SECTION_UNEXPECTED:{section['name']}")
+    t3.gate_window_symbol_scan(island_va, size, [va for va, _ in t3.symbol_table(nm)])
+    t3.gate_window_relocation_scan(island_va, size, sites)
+    t3.gate_window_literal_scan(island_va, size, frozen[:len(image)])
+    hits = incoming_inclusive(frozen[:len(image)], ranges, text_va, island_va, island_va + size)
+    require(not hits, f"FS_ISLAND_INCOMING:{[(hex(a), hex(b)) for a, b in hits[:8]]}")
+    symbols = t3.symbol_table(nm)
+    vas = sorted({va for va, _ in symbols})
+    covering = [va for va in vas if va <= island_va]
+    require(covering, "FS_ISLAND_NO_COVERING_SYMBOL")
+    start = covering[-1]
+    names = sorted({name for va, name in symbols if va == start})
+    later = [va for va in vas if va > start]
+    end = later[0] if later else island_va + size
+    require(island_va + size <= end, "FS_ISLAND_CROSSES_NEXT_SYMBOL")
+    efi_end = next((va for va, name in symbols if name == "efi_header_end"), None)
+    if efi_end is not None:
+        require(island_va + size <= efi_end, "FS_ISLAND_PAST_EFI_HEADER_END")
+    require(any(name in FS_HOLE_OWNERS or "efi" in name.lower() for name in names),
+            f"FS_ISLAND_LIVE_FUNCTION:{names}")
+    return {"offset": island_off, "va": hex(island_va), "size": size, "section": section["name"],
+            "kind": "RESERVED_EFI_HOLE", "zero_padding": True, "covering_symbols": names,
+            "covering_va": hex(start), "next_symbol_va": hex(end)}
+
+
+def write_fs_not_ready(out, reason, extra):
+    payload = {**extra, "reason": reason, "payload_generated": False, "private_pack": False,
+               "device_operation": False, "first_device_entry_implies_fs_complete": True,
+               "rootfs_has_separate_runtime_pass": False,
+               "boundary_proven": True, "probe_geometry_or_island_blocked": True}
+    (out / "not-ready.json").write_text(json.dumps(payload, indent=2) + "\n")
+    print(reason, flush=True)
+    print("FS_SELECTED_PROBE_ARCHITECTURE=NONE", flush=True)
+    print("BOUNDARY_PROVEN=YES", flush=True)
+    print("PROBE_GEOMETRY_OR_ISLAND_BLOCKED=YES", flush=True)
+    print("R3_SLOT_B_FS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY", flush=True)
+
+
+def compose_fs_trampoline(args, out, frozen, image, vmlinux, sections, nm, text_va, ranges,
+                          target_va, extent, offset, core, reference_core, pad, cfg,
+                          initcall_boundary, initcall_boundaries, initcall_source,
+                          initcall_registration, fs_span, source_audit, image_size,
+                          dtb_offset, chosen, metadata, probe_architecture,
+                          sixty_byte_inline_rejected, target_symbol, function_dump):
+    require(pad.startswith("paciasp"), "FS_COMPLETE_ENTRY_NOT_PACIASP")
+    require(len(core) == len(reference_core) == FS_ISLAND_SIZE, "FS_TRAMPOLINE_CORE_NOT_52")
+    function_size = extent - target_va
+    require(function_size >= FS_STUB_SIZE, "FS_COMPLETE_TARGET_TOO_SMALL")
+    stub_span = (offset, offset + FS_STUB_SIZE)
+    extra = {"target_symbol": target_symbol, "target_aliases": initcall_boundary["target_aliases"],
+             "target_va": hex(target_va), "image_offset": hex(offset), "function_size": function_size,
+             "initcall_source": initcall_source, "initcall_registration": initcall_registration,
+             "initcall_boundary": initcall_boundary, "fs_runtime_span": fs_span,
+             "probe_architecture": "NONE", "min_inline_probe": 56}
+    sites = relocation_sites(vmlinux, sections)
+    island = island_off = last_error = None
+    for island_off in iter_reserved_efi_islands(frozen, image, FS_ISLAND_SIZE, (stub_span,)):
+        try:
+            island = prove_fs_island(frozen, image, vmlinux, sections, nm, text_va, ranges, sites,
+                                     island_off, FS_ISLAND_SIZE, stub_span)
+            t3.gate_window_inside_image_size(island_off, FS_ISLAND_SIZE, image_size)
+            break
+        except (ValueError, SystemExit) as exc:
+            last_error = exc
+            island = None
+    if island is None:
+        extra["island_error"] = str(last_error or "FS_ISLAND_NO_ZERO_PADDING")
+        write_fs_not_ready(out, "FS_ISLAND_BLOCKED", extra)
+        return
+    island_va = text_va + island_off
+    b_word = encode_b(target_va + 4, island_va)
+    stub = frozen[offset:offset + 4] + struct.pack("<I", b_word)
+    require(struct.unpack_from("<I", stub, 0)[0] == 0xD503233F, "FS_STUB_PACIASP_LOST")
+    length = FS_STUB_SIZE
+    dump = pb.run([TOOLS["objdump"], "-d", f"--start-address={target_va:#x}",
+                   f"--stop-address={target_va + length:#x}", str(vmlinux)])
+    (out / "original-window.txt").write_text(dump)
+    topology = branch_audit(frozen[:len(image)], ranges, text_va,
+                            (target_va, extent), (target_va, target_va + length))
+    cfg_report = cfg_closure_report(target_va, function_size, length, topology)
+    require(cfg_report["cfg_closure_proven"], "FS_CFG_CLOSURE_NOT_PROVEN")
+    require(not topology["incoming_window_interior"], "FS_STUB_INCOMING_INTERIOR")
+    target_section = next(s for s in sections if s["vma"] <= target_va < s["vma"] + s["size"])
+    entry_words = [hex(struct.unpack_from("<I", frozen, offset + i)[0])
+                   for i in range(0, min(128, function_size), 4)]
+    target_audit = {"symbol": target_symbol, "aliases": initcall_boundary["target_aliases"],
+                    "source": initcall_source, "registration": initcall_registration,
+                    "target_va": hex(target_va), "image_offset": hex(offset),
+                    "section": target_section["name"], "function_size": function_size,
+                    "entry_instruction": pad, "entry_bytes": frozen[offset:offset + 4].hex(),
+                    "first_32_instruction_words": entry_words, "pac": True, "bti": False,
+                    "scs": cfg.get("CONFIG_SHADOW_CALL_STACK") == "y",
+                    "cfi": cfg.get("CONFIG_CFI_CLANG") == "y",
+                    "fentry": cfg.get("CONFIG_FUNCTION_TRACER") == "y",
+                    "stack_frame_in_window": any("stp\tx29, x30" in line for line in dump.splitlines()),
+                    "branch_topology": topology, "cfg_closure": cfg_report,
+                    "window_derivation": "TARGET_CFG",
+                    "literal_load_words": [word for word in entry_words
+                                           if int(word, 16) & 0x3b000000 == 0x18000000]}
+    (out / "target-entry-audit.json").write_text(json.dumps(target_audit, indent=2) + "\n")
+    differences = [{"offset": hex(i), "bundle": hex(struct.unpack_from("<I", image, i)[0]),
+                    "frozen": hex(struct.unpack_from("<I", frozen, i)[0])}
+                   for i in range(offset, offset + length, 4)
+                   if image[i:i + 4] != frozen[i:i + 4]]
+    agreement = {"symbol": args.symbol, "offset": hex(offset), "size": length,
+                 "bundle_image_sha256": digest(image), "frozen_payload_sha256": digest(frozen),
+                 "differing_words": differences, "verdict": "EXACT" if not differences else "UNRESOLVED"}
+    require(not differences, f"TARGET_WINDOW_DIFFERS_FROM_AUDIT_IMAGE:{differences}")
+    (out / "window-agreement.json").write_text(json.dumps(agreement, indent=2) + "\n")
+    t3.gate_window_bytes_agree(target_va, offset, dump, image, length // 4)
+    section = t3.gate_window_section_scan(target_va, length, sections)
+    t3.gate_function_extent_scan(target_va, length, extent)
+    t3.gate_window_symbol_scan(target_va, length, [va for va, _ in t3.symbol_table(nm)])
+    incoming = incoming_branches(frozen[:len(image)], ranges, text_va, (target_va, target_va + length))
+    require(not incoming, f"BRANCH_INTO_OVERWRITE_INTERIOR:{[(hex(a), hex(b)) for a, b in incoming[:8]]}")
+    t3.gate_window_literal_scan(target_va, length, frozen[:len(image)])
+    sites = relocation_sites(vmlinux, sections)
+    t3.gate_window_relocation_scan(target_va, length, sites)
+    rewrites = audit_rewrites(out, vmlinux, sections, (target_va, target_va + length))
+    island_rewrites = audit_rewrites(out, vmlinux, sections, (island_va, island_va + FS_ISLAND_SIZE))
+    target_audit.update({"incoming_branch_gate": "PASS", "function_range_safe": True,
+                         "relocations_in_window": 0, "runtime_rewrites": rewrites,
+                         "island_runtime_rewrites": island_rewrites,
+                         "runtime_rewrite_safe": True, "entry_audit": "PASS"})
+    (out / "target-entry-audit.json").write_text(json.dumps(target_audit, indent=2) + "\n")
+    require(digest(vmlinux.read_bytes()) == metadata["files"]["vmlinux"], "AUDIT_MUTATED_VMLINUX")
+    t3.gate_window_inside_image_size(offset, length, image_size)
+    candidate = patch_windows(frozen, ((offset, stub), (island_off, core)))
+    reference = patch_windows(frozen, ((offset, stub), (island_off, reference_core)))
+    expected_reference = args.reference_sha
+    require(args.delay == 8 or expected_reference is not None, "MATCHED_8S_REFERENCE_REQUIRED")
+    if expected_reference is not None:
+        require(digest(reference) == expected_reference, "FROZEN_8S_REFERENCE_MISMATCH")
+    pair_diff = [i for i, (a, b) in enumerate(zip(reference_core, core)) if a != b]
+    require(pair_diff == ([5, 6] if args.delay == 1 else []), "PAIR_NOT_DELAY_ONLY")
+    windows = [stub_span, (island_off, island_off + FS_ISLAND_SIZE)]
+    changed = gate_payload_windows(frozen, candidate, windows)
+    t3.gate_tramp_identity(candidate)
+    require(digest(candidate[t3.TRAMP_OFFSET:LIVE_TRAMP_END]) == t3.TRAMP_SHA, "LIVE_TRAMP_MUTATED")
+    prel = initcall_boundary["entry_image_offset"]
+    require(candidate[prel:prel + 4] == frozen[prel:prel + 4], "PREL32_TARGET_REWRITTEN")
+    require(initcall_boundary["target_va"] == target_va, "PREL32_TARGET_DRIFT")
+    require(candidate[offset + 8:offset + function_size] == frozen[offset + 8:offset + function_size],
+            "FUNCTION_REMAINDER_MUTATED")
+    pb.gate_rt_d(candidate[dtb_offset:])
+    island["b_word"] = hex(b_word)
+    island["b_pc"] = hex(target_va + 4)
+    island["direct_b"] = True
+    island["veneer"] = False
+    (out / "island-audit.json").write_text(json.dumps(island, indent=2) + "\n")
+    (out / "payload.bin").write_bytes(candidate)
+    (out / "checkpoint.bin").write_bytes(stub + core)
+    manifest = {"symbol": args.symbol, "target_symbol": target_symbol, "target_va": hex(target_va),
+                "offset": offset, "checkpoint_size": length, "entry": pad, "section": section["name"],
+                "initcall_boundary": initcall_boundary, "initcall_boundaries": initcall_boundaries,
+                "initcall_source_audit": source_audit, "target_source": initcall_source,
+                "target_aliases": target_audit["aliases"], "target_function_size": function_size,
+                "target_entry_audit": target_audit, "core_size": len(core),
+                "terminal_nop_padding_size": 0, "payload_sha256": digest(candidate),
+                "payload_size": len(candidate), "checkpoint_sha256": digest(stub + core),
+                "core_sha256": digest(core), "reference_core_sha256": digest(reference_core),
+                "delay_seconds": args.delay, "initcall_registration": initcall_registration,
+                "core_variant": "subsys52_cntpct_elapsed_b_lo",
+                "probe_architecture": probe_architecture,
+                "sixty_byte_inline_rejected": sixty_byte_inline_rejected,
+                "inline_48b_total_rejected": True, "fs_runtime_span": fs_span,
+                "pair_reference_sha256": digest(reference),
+                "pair_changed_offsets": [island_off + i for i in pair_diff],
+                "frozen_sha256": digest(frozen), "changed_bytes": len(changed),
+                "outside_window_changed_bytes": 0, "runtime_rewrites": rewrites,
+                "window_agreement": agreement, "cfg_closure": cfg_report,
+                "window_derivation": "TARGET_CFG", "island": island, "island_offset": island_off,
+                "stub_size": FS_STUB_SIZE, "b_word": hex(b_word), "b_pc": hex(target_va + 4),
+                "windows": [[offset, offset + FS_STUB_SIZE], [island_off, island_off + FS_ISLAND_SIZE]],
+                "prel32_target_unchanged": True, "function_remainder_preserved": True,
+                "live_tramp_sha256": t3.TRAMP_SHA, "direct_b": True, "veneer": False,
+                "relocation_sites_checked": len(sites), "audit_elf_unchanged": True,
+                "source_commit": os.environ["GITHUB_SHA"], "run_id": os.environ["GITHUB_RUN_ID"],
+                "bundle": metadata, "normal_boot_candidate": False,
+                "runtime_dtb_external_initrd": False, "chosen_properties": sorted(chosen),
+                "positive_proves": PROOF_BOUNDARIES[args.symbol][0],
+                "positive_does_not_prove": PROOF_BOUNDARIES[args.symbol][1],
+                "init_symbols": {name: hex(t3.nm_symbol(nm, name)) for name in
+                                 ("rest_init", "kernel_init", "kernel_init_freeable", "smp_init")},
+                "device_operation": False}
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    (out / "SHA256SUMS").write_text("".join(f"{digest((out / n).read_bytes())}  {n}\n"
+                                           for n in ("payload.bin", "checkpoint.bin", "manifest.json")))
+    print(json.dumps(manifest, indent=2), flush=True)
+    print("FS_CHECKPOINT_SOURCE_AUDIT=PASS\nFS_CHECKPOINT_BINARY_AUDIT=PASS\n"
+          "FS_LINKER_ORDER_PROVEN=YES\nROOTFS_LINKER_POSITION_PROVEN=YES\n"
+          "ROOTFS_HAS_SEPARATE_RUNTIME_PASS=NO\nROOTFS_INCLUDED_IN_LEVEL5_TRAVERSAL=YES\n"
+          "ROOTFS_START_IS_MARKER_ONLY=YES\nFIRST_DEVICE_ENTRY_IMPLIES_FS_COMPLETE=YES\n"
+          "FS_COMPLETE_TARGET_UNIQUE=PASS\nFS_COMPLETE_TARGET_ENTRY_AUDIT=PASS\n"
+          "FS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=YES\nFS_CFG_CLOSURE_PROVEN=YES\n"
+          "FS_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES\nFS_ALL_PRIOR_STAGE_PROBES_REMOVED=YES\n"
+          "FS_SELECTED_PROBE_ARCHITECTURE=ENTRY_TRAMPOLINE\n"
+          "FS_PACIASP_PRESERVED=YES\nFIRST_DEVICE_PREL32_TARGET_UNCHANGED=YES\n"
+          "FIX8_TRAMPOLINE_IDENTICAL=YES\nFS_DIRECT_B=YES\nFS_ISLAND_KIND=RESERVED_EFI_HOLE\n"
+          f"FS_ISLAND_OFFSET={island_off:#x}\nFS_B_WORD={b_word:#x}\n"
+          "DEVICE_OPERATION=NO\nLOCAL_BUILD=NO", flush=True)
 
 
 def build_bundle(out):
@@ -907,9 +1217,8 @@ def compose(args, bundle):
             (out / "original-function.txt").write_text(
                 pb.run([TOOLS["objdump"], "-dr", f"--start-address={target_va:#x}",
                         f"--stop-address={extent:#x}", str(vmlinux)]))
-            if function_size < 56:
-                (out / "not-ready.json").write_text(json.dumps({
-                    "reason": "FS_COMPLETE_TARGET_TOO_SMALL",
+            if function_size < FS_STUB_SIZE:
+                write_fs_not_ready(out, "FS_COMPLETE_TARGET_TOO_SMALL", {
                     "target_symbol": target_symbol,
                     "target_aliases": initcall_boundary["target_aliases"],
                     "target_va": hex(target_va),
@@ -921,16 +1230,7 @@ def compose(args, bundle):
                     "initcall_boundary": initcall_boundary,
                     "fs_runtime_span": fs_span,
                     "probe_architecture": "NONE",
-                    "first_device_entry_implies_fs_complete": True,
-                    "rootfs_has_separate_runtime_pass": False,
-                    "payload_generated": False,
-                    "private_pack": False,
-                    "device_operation": False,
-                }, indent=2) + "\n")
-                print("FS_COMPLETE_TARGET_TOO_SMALL", flush=True)
-                print("FS_SELECTED_PROBE_ARCHITECTURE=NONE", flush=True)
-                print("FS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=NO", flush=True)
-                print("R3_SLOT_B_FS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY", flush=True)
+                })
                 return
             reference_core, probe_architecture, sixty_byte_inline_rejected = select_fs_complete_core(
                 function_size, proven56, proven52)
@@ -955,7 +1255,11 @@ def compose(args, bundle):
             print(f"FIRST_DEVICE_INITCALL_SOURCE={initcall_source}", flush=True)
             print(f"FIRST_DEVICE_INITCALL_REGISTRATION={initcall_registration}", flush=True)
             print(f"FS_SELECTED_PROBE_ARCHITECTURE={probe_architecture}", flush=True)
-            print(f"FS_COMPLETE_MIN_PROBE={4 + len(core)}", flush=True)
+            if probe_architecture == "ENTRY_TRAMPOLINE":
+                print(f"FS_STUB_SIZE={FS_STUB_SIZE}", flush=True)
+                print(f"FS_ISLAND_CORE_SIZE={len(core)}", flush=True)
+            else:
+                print(f"FS_COMPLETE_MIN_PROBE={4 + len(core)}", flush=True)
     else:
         source_audit = initcall_boundaries = initcall_source = initcall_registration = None
         fs_span = probe_architecture = sixty_byte_inline_rejected = None
@@ -975,6 +1279,14 @@ def compose(args, bundle):
     function_dump = pb.run([TOOLS["objdump"], "-dr", f"--start-address={target_va:#x}",
                             f"--stop-address={extent:#x}", str(vmlinux)])
     (out / "original-function.txt").write_text(function_dump)
+    if args.symbol == "fs_complete" and probe_architecture == "ENTRY_TRAMPOLINE":
+        compose_fs_trampoline(
+            args, out, frozen, image, vmlinux, sections, nm, text_va, ranges, target_va, extent,
+            offset, core, reference_core, pad, cfg, initcall_boundary, initcall_boundaries,
+            initcall_source, initcall_registration, fs_span, source_audit, image_size, dtb_offset,
+            chosen, metadata, probe_architecture, sixty_byte_inline_rejected, target_symbol,
+            function_dump)
+        return
     landing_and_core = frozen[offset:offset + 4] + core
     if args.symbol in CFG_DERIVED_WINDOWS:
         min_probe = len(landing_and_core)
