@@ -288,21 +288,35 @@ matched before/after, Current B is unchanged, and Android A was restored
 healthy. Partition image writes remained zero and Slot A was not written.
 Do not rerun SUBSYS8, SUBSYS1, ARCH, POSTCORE, CORE, PURE or CONSOLE.
 
-The CI-only FS checkpoint trampoline redesign is now complete. Public GHA
+The CI-only FS checkpoint trampoline redesign is complete. Public GHA
 `35215536867` at `150cb9a299a551bd8d90f269c90aed9aae994776` reused bundle
 `35040148509`. Causal boundary remains first device entry
 `register_arm64_panic_block` at `0xffff800081b347b8` / Image `0x1b347b8`,
 48 bytes, `paciasp`. Selected architecture is `ENTRY_TRAMPOLINE`: preserved
 `paciasp` plus direct `B` `0x17936e04` to reserved `.head.text` NOP island
 `[0xffcc,0x10000)`. 52-byte CNTPCT/PSCI `0x84000009` WFE core. PREL32
-unchanged. FS8
+unchanged. FS8 payload
 `1a4da6f924ec09f58bb37edb8bb41d74e9e138b91c9b5c69a4479035da6718ee`, FS1
-`e36d4a18d78bdabbcb209e87472a3240bdbc93d3a5b55cd88f182d295aa75e49`, pair
-DELAY_CONSTANT_ONLY 2 bytes `[0xffd1,0xffd3)`. Independent reverify PASS.
-Runtime evidence is unchanged: `FS_INITCALLS_COMPLETED=NOT_PROVEN` and
-`FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`. The public gate is
-`MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_CHECKPOINT_CI_READY`.
-`READY_FOR_FS_INITCALLS_PRIVATE_GATE=YES`. This is not device authorization.
+payload `e36d4a18d78bdabbcb209e87472a3240bdbc93d3a5b55cd88f182d295aa75e49`,
+pair DELAY_CONSTANT_ONLY 2 bytes `[0xffd1,0xffd3)`.
+
+Private pack `35221241185` and independent reverify `35221411477` froze FS8
+boot `cfc9f3f9c931126aceb47a5dcc39c12227f34eceb7ad2d9e6642088f3b7e6594` and
+FS1 boot `2377b227fd0eb4105330eec64f19843d7d64d42f994b12b999571cca6f4e3a1b`
+(37380096). Observer fixtures `35222087312` passed. Exactly one FS8 then one
+FS1 RAM-only Slot B boot ran in this round. Both automatically returned to
+Fastboot B (retry 7→6). `FS8_TOTAL=31.909265209s`,
+`FS1_TOTAL=31.953695875s`, `PAIR_DELTA=+0.044430666s`,
+`PAIR_ERROR=+7.044430666s`: **SHIFT_NOT_OBSERVED**. Do not write
+`FS_INITCALLS_NOT_COMPLETED`. `FS_INITCALLS_COMPLETED` and
+`FIRST_DEVICE_INITCALL_ENTRY` remain NOT_PROVEN. All 16 boot-chain hashes
+and the P15 prefix matched before/after both members, Current B is
+unchanged, and Android A was restored healthy. Partition image writes
+remained zero and Slot A was not written. Do not rerun FS8, FS1, SUBSYS,
+ARCH, POSTCORE, CORE, PURE or CONSOLE. Final gate:
+`R3_SLOT_B_FS_INITCALLS_CHECKPOINT_SHIFT_NOT_OBSERVED`. Next:
+`MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_FAILURE_ISOLATION_CI`.
+
 
 No Linux boot success is claimed. Details: `docs/slot-b-pid1-stages.md`,
 `docs/slot-b-core-initcall-checkpoint.md`,
@@ -1365,8 +1379,27 @@ FS_PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY
 FS_PAIR_DIFF_RANGES=[0xffd1,0xffd3)
 FS_PAIR_PUBLIC_READY=YES
 READY_FOR_FS_INITCALLS_PRIVATE_GATE=YES
-FS_CHECKPOINT_FINAL_GATE=MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_CHECKPOINT_CI_READY
-FS_CHECKPOINT_NEXT_STAGE=MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_PRIVATE_GATE_FINALIZATION_CI
+FS8_BOOT_SHA=cfc9f3f9c931126aceb47a5dcc39c12227f34eceb7ad2d9e6642088f3b7e6594
+FS1_BOOT_SHA=2377b227fd0eb4105330eec64f19843d7d64d42f994b12b999571cca6f4e3a1b
+FS8_BOOT_SIZE=37380096
+FS1_BOOT_SIZE=37380096
+FS_PRIVATE_PACK_RUN=35221241185
+FS_PRIVATE_REVERIFY_RUN=35221411477
+FS_OBSERVER_RUN=35222087312
+FS8_TOTAL_S=31.909265209
+FS1_TOTAL_S=31.953695875
+FS_PAIR_DELTA=0.044430666
+FS_PAIR_ERROR=7.044430666
+ABS_FS_PAIR_ERROR=7.044430666
+FS_PAIR_VERDICT=SHIFT_NOT_OBSERVED
+FS_INITCALLS_CHECKPOINT_SHIFT_NOT_OBSERVED=YES
+FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN
+FIRST_DEVICE_INITCALL_BODY=NOT_PROVEN
+FS8_RERUN_FORBIDDEN=YES
+FS1_RERUN_FORBIDDEN=YES
+FS_CHECKPOINT_FINAL_GATE=R3_SLOT_B_FS_INITCALLS_CHECKPOINT_SHIFT_NOT_OBSERVED
+FS_CHECKPOINT_NEXT_STAGE=MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_FAILURE_ISOLATION_CI
+
 CORE8_MEMBER_A_COMPLETED=YES
 CORE8_MEMBER_A_FROZEN=YES
 CORE8_TOTAL_S=34.961135333

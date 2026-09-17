@@ -791,3 +791,25 @@ Runtime evidence is unchanged: `FS_INITCALLS_COMPLETED=NOT_PROVEN` and
 Final gate: `MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_CHECKPOINT_CI_READY`.
 `READY_FOR_FS_INITCALLS_PRIVATE_GATE=YES`.
 See `docs/slot-b-fs-initcall-checkpoint.md`.
+
+## FS private gate and device pair
+
+Private pack `35221241185` / reverify `35221411477` froze FS8 boot
+`cfc9f3f9c931126aceb47a5dcc39c12227f34eceb7ad2d9e6642088f3b7e6594` and FS1
+boot `2377b227fd0eb4105330eec64f19843d7d64d42f994b12b999571cca6f4e3a1b`
+(37380096). Observer `35222087312` PASS. One FS8 then one FS1 RAM-only Slot B
+boot. Both automatic Fastboot B return, retry 7→6.
+
+- `FS8_TOTAL=31.909265209s`
+- `FS1_TOTAL=31.953695875s`
+- `PAIR_DELTA=+0.044430666s`
+- `PAIR_ERROR=+7.044430666s`
+- `FS_PAIR_VERDICT=SHIFT_NOT_OBSERVED`
+
+Do not write `FS_INITCALLS_NOT_COMPLETED`. Runtime
+`FS_INITCALLS_COMPLETED` and `FIRST_DEVICE_INITCALL_ENTRY` remain
+`NOT_PROVEN`. Current B hashes and P15 prefix matched; Android A restored.
+FS8/FS1 reruns forbidden. Final gate:
+`R3_SLOT_B_FS_INITCALLS_CHECKPOINT_SHIFT_NOT_OBSERVED`.
+Next: `MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_FAILURE_ISOLATION_CI`.
+

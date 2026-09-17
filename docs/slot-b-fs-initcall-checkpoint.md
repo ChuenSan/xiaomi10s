@@ -119,12 +119,78 @@ Runtime evidence is unchanged:
 
 `FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`
 
-Final gate: `MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_CHECKPOINT_CI_READY`.
+Final gate of the public trampoline CI was
+`MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_CHECKPOINT_CI_READY`.
 
-This is not device authorization.
+## Private gate
 
-Recommended next, after separate approval:
-`MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_PRIVATE_GATE_FINALIZATION_CI`.
+Private pack `35221241185` at private-ci `e9a8293` spliced the frozen public
+payloads without a kernel rebuild. Independent reverify `35221411477` PASS.
+Observer fixtures `35222087312` and CORE/POSTCORE/ARCH/SUBSYS regressions
+`35222087165`/`35222087194`/`35222087181`/`35222087497` PASS at public
+`0b8f7f1`.
+
+| | SHA-256 | size |
+| --- | --- | --- |
+| FS8 boot | `cfc9f3f9c931126aceb47a5dcc39c12227f34eceb7ad2d9e6642088f3b7e6594` | 37380096 |
+| FS1 boot | `2377b227fd0eb4105330eec64f19843d7d64d42f994b12b999571cca6f4e3a1b` | 37380096 |
+
+Extracted payloads match the public pair. Private pair remains
+`DELAY_CONSTANT_ONLY` 2 bytes `[0xffd1,0xffd3)`. Stub, island, PREL32, live
+trampoline `[0x40,0x70)` and P15 envelope identical. Image-wide vs FIX8 is
+stub `[0x1b347bc,0x1b347c0)` plus island `[0xffcc,0x10000)` only.
+
+`READY_FOR_FS8_FS1_DEVICE_PAIR=YES`
+
+## Device pair
+
+Exactly one FS8 then one FS1 RAM-only Slot B boot, each from healthy Android A.
+Both `AUTOMATIC_FASTBOOT_RETURN`, retry 7→6, no manual recovery.
+
+| | Sending | Booting | TOTAL |
+| --- | --- | --- | --- |
+| FS8 | OKAY 0.901s | OKAY 0.222s | `31.909265209s` |
+| FS1 | OKAY 0.920s | OKAY 0.222s | `31.953695875s` |
+
+- `PAIR_DELTA=+0.044430666s`
+- `EXPECTED=-7.000000000s`
+- `PAIR_ERROR=+7.044430666s`
+- `ABS_PAIR_ERROR=7.044430666s`
+- `FS_PAIR_VERDICT=SHIFT_NOT_OBSERVED`
+
+Absolute ~32s is descriptive only. Do not write
+`FS_INITCALLS_NOT_COMPLETED`.
+
+Runtime evidence is unchanged:
+
+`FIRST_FS_INITCALL_BODY=NOT_PROVEN`
+
+`FS_INITCALLS_COMPLETED=NOT_PROVEN`
+
+`FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`
+
+`FIRST_DEVICE_INITCALL_BODY=NOT_PROVEN`
+
+`DEVICE_INITCALLS_COMPLETED=NOT_PROVEN`
+
+`LATE_INITCALLS_COMPLETED=NOT_PROVEN`
+
+`CONSOLE_ON_ROOTFS=NOT_PROVEN`
+
+`/init=NOT_PROVEN`
+
+`USB=FROZEN`
+
+Current B 16-chain hashes and P15 prefix MATCH before/after both members.
+Android A restored healthy. Partition writes 0. Slot A untouched.
+`FS8_RERUN_FORBIDDEN=YES`. `FS1_RERUN_FORBIDDEN=YES`.
 SUBSYS8/SUBSYS1/ARCH/POSTCORE/CORE/PURE/CONSOLE reruns remain forbidden.
 
-Evidence: `artifacts/slot-b-fs-initcall-redesign-20260917-r2/`.
+Final gate: `R3_SLOT_B_FS_INITCALLS_CHECKPOINT_SHIFT_NOT_OBSERVED`.
+
+Recommended next:
+`MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_FAILURE_ISOLATION_CI`.
+
+Evidence: `artifacts/slot-b-fs-private-gate-20260917/`,
+`artifacts/slot-b-fs8-20260917/`, `artifacts/slot-b-fs1-20260917/`.
+

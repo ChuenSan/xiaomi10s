@@ -1,0 +1,3 @@
+PRODUCT=thyme
+UNLOCKED=yes
+CURRENT_SLOT=b
