@@ -351,6 +351,20 @@ class CheckpointTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             checkpoint.delay_core(bytes(76), 1)
 
+    def test_arch_prefix_covers_topology_backedge_without_ignoring_external_entries(self):
+        base = 0xFFFF800081B346FC
+        image = bytearray(struct.pack('<I', 0xD503201F) * 50)
+        struct.pack_into('<I', image, 0x9C, 0x17FFFFE7)
+        ranges = [(0, len(image))]
+        self.assertEqual(checkpoint.incoming_branches(image, ranges, base, (base, base + 60)),
+                         [(base + 0x9C, base + 0x38)])
+        self.assertEqual(checkpoint.incoming_branches(image, ranges, base, (base, base + 160)), [])
+        struct.pack_into('<I', image, 0xA4, 0x14000000 | ((0x38 - 0xA4) // 4 & 0x3FFFFFF))
+        self.assertEqual(checkpoint.incoming_branches(image, ranges, base, (base, base + 160)),
+                         [(base + 0xA4, base + 0x38)])
+        probe = bytes(60)
+        self.assertEqual(len(checkpoint.pad_probe(probe, 160)), 160)
+
     def test_initcall_prefix_covers_backedge_without_ignoring_external_entries(self):
         base = 0xFFFF800081B311D0
         image = bytearray(struct.pack('<I', 0xD503201F) * 40)

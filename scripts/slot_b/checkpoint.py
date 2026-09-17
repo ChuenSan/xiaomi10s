@@ -38,6 +38,7 @@ INITCALL_MACROS = {"pure_complete": "core_initcall", "core_complete": "postcore_
                    "postcore_complete": "arch_initcall", "arch_complete": "subsys_initcall"}
 INITCALL_SOURCE_PREFIX = {"postcore_complete": "arch/arm64/", "arch_complete": "arch/arm64/"}
 ULTRACOMPACT_SYMBOLS = frozenset({"core_complete", "postcore_complete", "arch_complete"})
+EXPANDED_WINDOWS = {"do_initcalls": 96, "arch_complete": 160}
 INITCALL_BOUNDARY_SYMBOLS = ("__initcall1_start", "__initcall2_start", "__initcall3_start",
                              "__initcall4_start", "__initcall5_start")
 INITCALL_TARGET_LABELS = {"pure_complete": "FIRST_CORE", "core_complete": "FIRST_POSTCORE",
@@ -564,7 +565,7 @@ def compose(args, bundle):
     pad = t3.gate_sk_entry_insn(word0, word1, word0)
     t3.gate_instrumentation_audit(cfg, pad.split()[0], word0)
     probe = frozen[offset:offset + 4] + core
-    probe = pad_probe(probe, 96 if args.symbol == "do_initcalls" else len(probe))
+    probe = pad_probe(probe, EXPANDED_WINDOWS.get(args.symbol, len(probe)))
     length = len(probe)
     dump = pb.run([TOOLS["objdump"], "-d", f"--start-address={target_va:#x}",
                    f"--stop-address={target_va + length:#x}", str(vmlinux)])

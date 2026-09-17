@@ -169,7 +169,7 @@ jobs:
                   < boundaries['__initcall4_start']['entry_va']
                   < boundaries['__initcall5_start']['entry_va'])
           assert m8['target_va'] == m1['target_va']
-          assert m8['target_function_size'] >= m8['checkpoint_size'] == 60
+          assert m8['target_function_size'] >= m8['checkpoint_size'] == 160
           assert m8['target_entry_audit']['entry_audit'] == 'PASS'
           assert not m8['target_entry_audit']['branch_topology']['incoming_window_interior']
           assert m8['target_entry_audit']['runtime_rewrite_safe'] is True
@@ -177,14 +177,14 @@ jobs:
           assert m8['initcall_source_audit']['first_subsys_entry_implies_arch_complete'] is True
           changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
           assert changed == [m8['offset'] + 13, m8['offset'] + 14]
-          assert p8[:m8['offset']] == frozen[:m8['offset']] and p8[m8['offset']+60:] == frozen[m8['offset']+60:]
-          assert p1[:m1['offset']] == frozen[:m1['offset']] and p1[m1['offset']+60:] == frozen[m1['offset']+60:]
+          assert p8[:m8['offset']] == frozen[:m8['offset']] and p8[m8['offset']+160:] == frozen[m8['offset']+160:]
+          assert p1[:m1['offset']] == frozen[:m1['offset']] and p1[m1['offset']+160:] == frozen[m1['offset']+160:]
           design = {
               'checkpoint_point': 'FIRST_SUBSYS_INITCALL_EXACT_ENTRY',
               'boundary': '__initcall4_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
               'entry_encoding': 'PREL32', 'cross_function_overwrite': False,
               'function_range_safe': True, 'function_size': m8['target_function_size'],
-              'probe_size': 60, 'incoming_interior_branches': 0,
+              'probe_size': 160, 'incoming_interior_branches': 0,
               'backedge_conflict': False, 'runtime_rewrite_conflict': False,
               'literal_delta': 'EXACT_OR_INDEPENDENTLY_PROVEN',
               'pair_diff': 'DELAY_CONSTANT_ONLY', 'timer': 'CNTPCT',
@@ -221,6 +221,7 @@ jobs:
           print(f"FIRST_SUBSYS_INITCALL_REGISTRATION={m8['initcall_registration']}")
           print(f"FIRST_SUBSYS_INITCALL_SECTION={m8['section']}")
           print(f"FIRST_SUBSYS_INITCALL_SIZE={m8['target_function_size']}")
+          print(f"ARCH_CHECKPOINT_WINDOW={m8['checkpoint_size']}")
           print('FIRST_SUBSYS_INITCALL_TARGET_UNIQUE=PASS')
           print('INITCALL_ENTRY_ENCODING=PREL32')
           print(f"FIRST_SUBSYS_ENTRY0={m8['entry']}")
@@ -307,7 +308,7 @@ jobs:
                   < bounds['__initcall5_start']['entry_va'])
           assert a['target_va'] == hex(a['initcall_boundary']['target_va'])
           off, size = a['offset'], a['checkpoint_size']
-          assert size == 60 and a['target_function_size'] >= size
+          assert size == 160 and a['target_function_size'] >= size
           assert p8[:off] == base[:off] and p8[off+size:] == base[off+size:]
           assert p1[:off] == base[:off] and p1[off+size:] == base[off+size:]
           changed = [i for i, (x, y) in enumerate(zip(p8, p1)) if x != y]
@@ -319,6 +320,8 @@ jobs:
           assert words8[13] == words1[13] == 0xd503205f
           assert words8[14] == words1[14] == 0x17ffffff
           assert all(words8[i] == words1[i] for i in range(15) if i != 3)
+          assert struct.unpack_from('<25I', p8, off + 60) == (0xd503201f,) * 25
+          assert struct.unpack_from('<25I', p1, off + 60) == (0xd503201f,) * 25
           assert a['window_agreement']['verdict'] == 'EXACT'
           assert a['runtime_dtb_external_initrd'] is False
           assert a['chosen_properties'] == ['bootargs', 'stdout-path']
