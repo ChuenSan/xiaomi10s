@@ -32,7 +32,16 @@ TARGETS = {"rest_init": 0x10C1F48, "kernel_init": 0x10C2030,
            "console_on_rootfs": 0x1B30DA4}
 INITCALL_BOUNDARIES = {"pure_complete": "__initcall1_start",
                        "core_complete": "__initcall2_start",
-                       "postcore_complete": "__initcall3_start"}
+                       "postcore_complete": "__initcall3_start",
+                       "arch_complete": "__initcall4_start"}
+INITCALL_MACROS = {"pure_complete": "core_initcall", "core_complete": "postcore_initcall",
+                   "postcore_complete": "arch_initcall", "arch_complete": "subsys_initcall"}
+INITCALL_SOURCE_PREFIX = {"postcore_complete": "arch/arm64/"}
+ULTRACOMPACT_SYMBOLS = frozenset({"core_complete", "postcore_complete", "arch_complete"})
+INITCALL_BOUNDARY_SYMBOLS = ("__initcall1_start", "__initcall2_start", "__initcall3_start",
+                             "__initcall4_start", "__initcall5_start")
+INITCALL_TARGET_LABELS = {"pure_complete": "FIRST_CORE", "core_complete": "FIRST_POSTCORE",
+                          "postcore_complete": "FIRST_ARCH", "arch_complete": "FIRST_SUBSYS"}
 PROOF_BOUNDARIES = {
     "rest_init": ("rest_init entry and preceding normal start_kernel path",
                   "rest_init body, scheduler, SMP or /init"),
@@ -54,6 +63,8 @@ PROOF_BOUNDARIES = {
                       "the first postcore initcall body, postcore completion, later levels, console or /init"),
     "postcore_complete": ("all postcore initcalls completed and the first arch initcall entry was reached",
                           "the first arch initcall body, arch completion, later levels, console or /init"),
+    "arch_complete": ("all arch initcalls completed and the first subsys initcall entry was reached",
+                      "the first subsys initcall body, subsys completion, later levels, console or /init"),
 }
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
 
@@ -76,6 +87,7 @@ def gate_checkpoint_design(design, stage):
     boundaries = {
         "core": ("FIRST_POSTCORE_INITCALL_EXACT_ENTRY", "__initcall2_start"),
         "postcore": ("FIRST_ARCH_INITCALL_EXACT_ENTRY", "__initcall3_start"),
+        "arch": ("FIRST_SUBSYS_INITCALL_EXACT_ENTRY", "__initcall4_start"),
     }
     require(stage in boundaries, "CHECKPOINT_DESIGN_STAGE_INVALID")
     checkpoint_point, boundary = boundaries[stage]
@@ -103,6 +115,17 @@ def gate_core_checkpoint_design(design):
 
 def gate_postcore_checkpoint_design(design):
     gate_checkpoint_design(design, "postcore")
+
+
+def gate_arch_checkpoint_design(design):
+    gate_checkpoint_design(design, "arch")
+    extra = {
+        "reuse_core_narrow_gate": False, "reuse_postcore_probe_window": False,
+        "prior_core_probe": False, "prior_postcore_probe": False,
+        "copied_postcore_probe": False,
+    }
+    for key, value in extra.items():
+        require(design.get(key) == value, f"ARCH_DESIGN_REJECTED:{key}")
 
 
 def compact_core(core):
@@ -383,15 +406,27 @@ def audit_initcall_source(linux):
             "typedef int initcall_entry_t;" in init_h and
             re.search(r'\.long.*__stringify\(__stub\).*" - \.', init_h, re.S),
             "INITCALL_PREL32_SOURCE_MISMATCH")
+    require(re.search(r"#define\s+arch_initcall\s*\(\s*fn\s*\)\s*__define_initcall\s*\(\s*fn\s*,\s*3\s*\)",
+                      init_h), "ARCH_INITCALL_LEVEL_MACRO_MISMATCH")
+    require(re.search(r"#define\s+subsys_initcall\s*\(\s*fn\s*\)\s*__define_initcall\s*\(\s*fn\s*,\s*4\s*\)",
+                      init_h), "SUBSYS_INITCALL_LEVEL_MACRO_MISMATCH")
+    kconfig = (linux / "arch/arm64/Kconfig").read_text()
+    require(re.search(r"^\s*select\s+HAVE_ARCH_PREL32_RELOCATIONS\b", kconfig, re.M),
+            "ARM64_PREL32_KCONFIG_MISSING")
     return {"pure": "__initcall0_start..__initcall1_start",
             "core": "__initcall1_start..__initcall2_start",
             "postcore": "__initcall2_start..__initcall3_start",
+            "arch": "__initcall3_start..__initcall4_start",
+            "subsys": "__initcall4_start..__initcall5_start",
             "pure_level_boundary": "__initcall1_start",
             "core_level_boundary": "__initcall2_start",
             "postcore_level_boundary": "__initcall3_start",
             "arch_level_boundary": "__initcall4_start",
+            "subsys_level_boundary": "__initcall5_start",
             "core_complete_boundary_source_proven": True,
             "postcore_complete_boundary_source_proven": True,
+            "arch_complete_boundary_source_proven": True,
+            "first_subsys_entry_implies_arch_complete": True,
             "entry_encoding_source": "CONFIG_HAVE_ARCH_PREL32_RELOCATIONS => s32 .long target-."}
 
 
@@ -476,7 +511,7 @@ def compose(args, bundle):
         {"external_initrd_advertised": False, "chosen_properties": sorted(chosen),
          "rt_d_sha256": digest(frozen[dtb_offset:])}, indent=2) + "\n")
     require(len(core) == 76 and digest(core) == CORE_SHA, "CHECKPOINT_CORE_MISMATCH")
-    if args.symbol in ("core_complete", "postcore_complete"):
+    if args.symbol in ULTRACOMPACT_SYMBOLS:
         require(args.ultracompact_core is not None, "ULTRACOMPACT_CORE_REQUIRED")
         core = ultracompact_core(args.ultracompact_core.read_bytes())
     elif args.symbol != "rest_init":
@@ -495,8 +530,7 @@ def compose(args, bundle):
     if args.symbol in INITCALL_BOUNDARIES:
         source_audit = audit_initcall_source(pb.LINUX)
         initcall_boundaries = {name: resolve_initcall_boundary(vmlinux, sections, nm, name)
-                               for name in ("__initcall1_start", "__initcall2_start",
-                                            "__initcall3_start", "__initcall4_start")}
+                               for name in INITCALL_BOUNDARY_SYMBOLS}
         initcall_boundary = initcall_boundaries[INITCALL_BOUNDARIES[args.symbol]]
         target_va = initcall_boundary["target_va"]
         target_symbol = initcall_boundary["target_aliases"][0]
@@ -504,13 +538,12 @@ def compose(args, bundle):
         extent = next_va
         initcall_source = find_initcall_source(
             pb.LINUX, initcall_boundary["target_aliases"],
-            {"pure_complete": "core_initcall", "core_complete": "postcore_initcall",
-             "postcore_complete": "arch_initcall"}[args.symbol],
-            "arch/arm64/" if args.symbol == "postcore_complete" else None)
+            INITCALL_MACROS[args.symbol], INITCALL_SOURCE_PREFIX.get(args.symbol))
+        initcall_registration = f"{INITCALL_MACROS[args.symbol]}({target_symbol})"
         require(t3.sysmap_symbol(bundle / "System.map", target_symbol) == target_va,
                 "SYMBOL_MAP_MISMATCH")
     else:
-        source_audit = initcall_boundaries = initcall_source = None
+        source_audit = initcall_boundaries = initcall_source = initcall_registration = None
         target_symbol = args.symbol
         target_va, extent = t3.symbol_extent(nm, target_symbol)
         require(target_va - text_va == TARGETS[args.symbol],
@@ -540,7 +573,8 @@ def compose(args, bundle):
                    for i in range(0, min(128, extent - target_va), 4)]
     target_audit = {"symbol": target_symbol,
                     "aliases": initcall_boundary["target_aliases"] if initcall_boundary else [target_symbol],
-                    "source": initcall_source, "target_va": hex(target_va),
+                    "source": initcall_source, "registration": initcall_registration,
+                    "target_va": hex(target_va),
                     "image_offset": hex(offset), "section": target_section["name"],
                     "function_size": extent - target_va, "entry_instruction": pad,
                     "entry_bytes": frozen[offset:offset + 4].hex(),
@@ -554,7 +588,8 @@ def compose(args, bundle):
                     "literal_load_words": [word for word in entry_words
                         if int(word, 16) & 0x3b000000 == 0x18000000]}
     (out / "target-entry-audit.json").write_text(json.dumps(target_audit, indent=2) + "\n")
-    print("FIRST_POSTCORE_TARGET_PRELIMINARY=" + json.dumps(target_audit, sort_keys=True), flush=True)
+    print(INITCALL_TARGET_LABELS.get(args.symbol, args.symbol.upper()) +
+          "_TARGET_PRELIMINARY=" + json.dumps(target_audit, sort_keys=True), flush=True)
     differences = [{"offset": hex(i), "bundle": hex(struct.unpack_from("<I", image, i)[0]),
                     "frozen": hex(struct.unpack_from("<I", frozen, i)[0])}
                    for i in range(offset, offset + length, 4)
@@ -654,9 +689,10 @@ def compose(args, bundle):
                 "payload_sha256": digest(candidate), "payload_size": len(candidate),
                 "checkpoint_sha256": digest(probe), "core_sha256": digest(core),
                 "reference_core_sha256": CORE_SHA, "delay_seconds": args.delay,
+                "initcall_registration": initcall_registration,
                 "core_variant": ("original_b_hs" if args.symbol == "rest_init" else
                                  "ultracompact_cntpct_elapsed_b_lo" if args.symbol in
-                                 ("core_complete", "postcore_complete") else "compact_b_lo"),
+                                 ULTRACOMPACT_SYMBOLS else "compact_b_lo"),
                 "pair_reference_sha256": digest(reference),
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
                 "frozen_sha256": digest(frozen), "changed_bytes": len(changed),
@@ -684,6 +720,11 @@ def compose(args, bundle):
         print("POSTCORE_CHECKPOINT_SOURCE_AUDIT=PASS\nPOSTCORE_CHECKPOINT_BINARY_AUDIT=PASS\n"
               "FIRST_ARCH_ENTRY_AUDIT=PASS\nPOSTCORE_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES\n"
               "POSTCORE_CHECKPOINT_DIAGNOSTIC_SAFE=YES\nPOSTCORE_ALL_PRIOR_STAGE_PROBES_REMOVED=YES",
+              flush=True)
+    elif args.symbol == "arch_complete":
+        print("ARCH_CHECKPOINT_SOURCE_AUDIT=PASS\nARCH_CHECKPOINT_BINARY_AUDIT=PASS\n"
+              "FIRST_SUBSYS_ENTRY_AUDIT=PASS\nARCH_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES\n"
+              "ARCH_CHECKPOINT_DIAGNOSTIC_SAFE=YES\nARCH_ALL_PRIOR_STAGE_PROBES_REMOVED=YES",
               flush=True)
     print(f"{args.symbol.upper()}_INLINE_AUDIT=PASS\nDEVICE_OPERATION=NO\nLOCAL_BUILD=NO", flush=True)
 

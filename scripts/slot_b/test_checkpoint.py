@@ -222,10 +222,19 @@ class CheckpointTests(unittest.TestCase):
         postcore = dict(valid, checkpoint_point='FIRST_ARCH_INITCALL_EXACT_ENTRY',
                         boundary='__initcall3_start')
         checkpoint.gate_postcore_checkpoint_design(postcore)
+        arch = dict(valid, checkpoint_point='FIRST_SUBSYS_INITCALL_EXACT_ENTRY',
+                    boundary='__initcall4_start', reuse_core_narrow_gate=False,
+                    reuse_postcore_probe_window=False, prior_core_probe=False,
+                    prior_postcore_probe=False, copied_postcore_probe=False)
+        checkpoint.gate_arch_checkpoint_design(arch)
         with self.assertRaises(ValueError):
             checkpoint.gate_postcore_checkpoint_design(valid)
         with self.assertRaises(ValueError):
             checkpoint.gate_core_checkpoint_design(postcore)
+        with self.assertRaises(ValueError):
+            checkpoint.gate_arch_checkpoint_design(postcore)
+        with self.assertRaises(ValueError):
+            checkpoint.gate_arch_checkpoint_design(valid)
         fixtures = {
             'shared_loop': ('checkpoint_point', 'SHARED_DO_INITCALLS_LOOP'),
             'wrong_boundary': ('boundary', '__initcall1_start'),
@@ -257,6 +266,53 @@ class CheckpointTests(unittest.TestCase):
             postcore_bad[key] = value
             with self.subTest(name='postcore_' + name), self.assertRaises(ValueError):
                 checkpoint.gate_postcore_checkpoint_design(postcore_bad)
+            arch_bad = dict(arch)
+            arch_bad[key] = value
+            with self.subTest(name='arch_' + name), self.assertRaises(ValueError):
+                checkpoint.gate_arch_checkpoint_design(arch_bad)
+        arch_fixtures = {
+            'use_initcall3_start': ('boundary', '__initcall3_start'),
+            'shared_do_initcalls': ('checkpoint_point', 'SHARED_DO_INITCALLS_LOOP'),
+            'wrong_first_subsys_target': ('checkpoint_point', 'WRONG_FIRST_SUBSYS_TARGET'),
+            'system_map_guess': ('target_derivation', 'SYSTEM_MAP_ORDER_GUESS'),
+            'before_entry': ('checkpoint_point', 'BEFORE_FIRST_SUBSYS_ENTRY'),
+            'reuse_core_narrow_gate': ('reuse_core_narrow_gate', True),
+            'reuse_postcore_probe': ('reuse_postcore_probe_window', True),
+            'copied_postcore_probe': ('copied_postcore_probe', True),
+            'prior_core_probe': ('prior_core_probe', True),
+            'prior_postcore_probe': ('prior_postcore_probe', True),
+        }
+        for name, (key, value) in arch_fixtures.items():
+            bad = dict(arch)
+            bad[key] = value
+            with self.subTest(name='arch_extra_' + name), self.assertRaises(ValueError):
+                checkpoint.gate_arch_checkpoint_design(bad)
+
+    def test_arch_checkpoint_negative_fixtures(self):
+        arch = {
+            'checkpoint_point': 'FIRST_SUBSYS_INITCALL_EXACT_ENTRY',
+            'boundary': '__initcall4_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
+            'entry_encoding': 'PREL32', 'cross_function_overwrite': False,
+            'function_range_safe': True, 'function_size': 60, 'probe_size': 60,
+            'incoming_interior_branches': 0, 'backedge_conflict': False,
+            'runtime_rewrite_conflict': False,
+            'literal_delta': 'EXACT_OR_INDEPENDENTLY_PROVEN',
+            'pair_diff': 'DELAY_CONSTANT_ONLY', 'timer': 'CNTPCT',
+            'psci_fid': '0x84000009', 'timer_algorithm_changed': False,
+            'prior_pure_probe': False, 'prior_console_probe': False,
+            'reuse_core_narrow_gate': False, 'reuse_postcore_probe_window': False,
+            'prior_core_probe': False, 'prior_postcore_probe': False,
+            'copied_postcore_probe': False,
+            'rt_d_sha256': '4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327',
+            'init_changed': False, 'private_pack': False, 'device_operation': False,
+        }
+        checkpoint.gate_arch_checkpoint_design(arch)
+        with self.assertRaises(ValueError):
+            checkpoint.gate_arch_checkpoint_design(dict(arch, boundary='__initcall3_start'))
+        with self.assertRaises(ValueError):
+            checkpoint.gate_arch_checkpoint_design(dict(arch, function_size=56))
+        with self.assertRaises(ValueError):
+            checkpoint.gate_core_checkpoint_design(arch)
 
     def test_ultracompact_core_and_literal_delta_are_exact(self):
         words = (0xD5034FDF, 0xD53BE009, 0xD37DF12A, 0xD53BE02B,

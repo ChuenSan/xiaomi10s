@@ -1,0 +1,346 @@
+name: ARCH_INITCALLS_COMPLETE_CHECKPOINT_CI
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/checkpoint.py'
+      - 'scripts/slot_b/test_checkpoint.py'
+      - 'scripts/slot_b/checkpoint-ultracompact.S'
+      - '.github/workflows/thyme-slot-b-arch-initcalls-complete.yml'
+  workflow_dispatch:
+    inputs:
+      bundle_run_id:
+        description: Authoritative reconciled Linux 6.6.156 vmlinux bundle
+        required: false
+        default: '35040148509'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: arch-initcalls-complete-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Actions-only workflow lint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-arch-initcalls-complete.yml
+      - name: Exact arch-to-subsys source boundary and negative fixtures
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_*.py' -v 2>&1 | tee arch-source-tests.log
+          grep -q 'test_arch_checkpoint_negative_fixtures.*ok' arch-source-tests.log
+          python3 -B - <<'PY' | tee arch-source-audit.json
+          import json
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          result = checkpoint.audit_initcall_source(Path('linux-6.6'))
+          assert result['postcore_level_boundary'] == '__initcall3_start'
+          assert result['arch_level_boundary'] == '__initcall4_start'
+          assert result['subsys_level_boundary'] == '__initcall5_start'
+          assert result['arch'] == '__initcall3_start..__initcall4_start'
+          assert result['subsys'] == '__initcall4_start..__initcall5_start'
+          assert result['arch_complete_boundary_source_proven'] is True
+          assert result['first_subsys_entry_implies_arch_complete'] is True
+          assert 'PREL32' in result['entry_encoding_source']
+          print(json.dumps(result, indent=2))
+          PY
+          printf '%s\n' \
+            'ARCH_LEVEL_BOUNDARY=__initcall3_start..__initcall4_start' \
+            'SUBSYS_LEVEL_BOUNDARY=__initcall4_start..__initcall5_start' \
+            'ARCH_BOUNDARY_SYMBOL=__initcall4_start' \
+            'ARCH_LEVEL_BOUNDARY_SOURCE_PROVEN=YES' \
+            'FIRST_SUBSYS_ENTRY_IMPLIES_ARCH_COMPLETE=YES' \
+            'INITCALL_ENTRY_ENCODING=PREL32' \
+            'TARGET_DERIVATION=INITCALL_TABLE_DECODE' \
+            'SHARED_LOOP_RETURN_POINT=FORBIDDEN' \
+            'SYSTEM_MAP_ORDER_GUESS=FORBIDDEN' \
+            'CROSS_FUNCTION_OVERWRITE=FORBIDDEN' \
+            'INCOMING_BRANCH_GATE=REQUIRED' \
+            'LITERAL_DELTA_GENERALIZATION=FORBIDDEN' \
+            'REUSE_CORE_NARROW_GATE=FORBIDDEN' \
+            'REUSE_POSTCORE_PROBE_WINDOW=FORBIDDEN' \
+            'PRIVATE_PACK=NO' 'DEVICE_OPERATION=NO' 'LOCAL_BUILD=NO' \
+            | tee arch-source-gates.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-arch-initcalls-source-audit
+          path: |
+            arch-source-audit.json
+            arch-source-gates.txt
+            arch-source-tests.log
+          if-no-files-found: error
+
+  initcall-table-decode:
+    if: github.event_name == 'workflow_dispatch'
+    needs: source-audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact source used by the audit
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Install binary audit tools only
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18
+      - name: Download immutable authoritative inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUNDLE_RUN: ${{ inputs.bundle_run_id || '35040148509' }}
+        run: |
+          set -euo pipefail
+          test "$BUNDLE_RUN" = 35040148509
+          gh run download "$BUNDLE_RUN" -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          gh run download 34980859158 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-reset-pair -D proven-core
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independently assemble 56-byte CNTPCT PSCI core
+        run: |
+          set -euo pipefail
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-ultracompact.S -o ultracompact.o
+          llvm-readelf-18 -r ultracompact.o | tee ultracompact-relocations.log
+          grep -q 'There are no relocations in this file' ultracompact-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text ultracompact.o ultracompact.bin
+          test "$(stat -c %s ultracompact.bin)" = 56
+          llvm-objdump-18 -d ultracompact.o | tee ultracompact-disassembly.log
+      - name: Decode __initcall3/4/5, derive first subsys entry, audit, and prepare public pair
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          for delay in 8 1; do
+            reference=()
+            if test "$delay" = 1; then
+              reference=(--reference-sha "$(jq -r .payload_sha256 arch-pair/8/checkpoint/manifest.json)")
+            fi
+            python3 -u -B scripts/slot_b/checkpoint.py \
+              --symbol arch_complete --delay "$delay" \
+              --ultracompact-core ultracompact.bin \
+              --bundle kernel-bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+              --core proven-core/p1b-t1-core-reference.bin --out "arch-pair/$delay" \
+              "${reference[@]}" | tee "arch-$delay.log"
+          done
+          python3 -B - <<'PY' | tee arch-pair-gates.txt
+          import hashlib, json, os, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          root = Path('arch-pair')
+          m8 = json.loads((root/'8/checkpoint/manifest.json').read_text())
+          m1 = json.loads((root/'1/checkpoint/manifest.json').read_text())
+          p8 = (root/'8/checkpoint/payload.bin').read_bytes()
+          p1 = (root/'1/checkpoint/payload.bin').read_bytes()
+          frozen = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          assert m8['symbol'] == m1['symbol'] == 'arch_complete'
+          assert m8['initcall_boundary']['boundary_symbol'] == '__initcall4_start'
+          assert m8['initcall_boundary']['entry_encoding'] == 'PREL32'
+          assert m8['initcall_boundary'] == m1['initcall_boundary']
+          boundaries = m8['initcall_boundaries']
+          assert (boundaries['__initcall3_start']['entry_va']
+                  < boundaries['__initcall4_start']['entry_va']
+                  < boundaries['__initcall5_start']['entry_va'])
+          assert m8['target_va'] == m1['target_va']
+          assert m8['target_function_size'] >= m8['checkpoint_size'] == 60
+          assert m8['target_entry_audit']['entry_audit'] == 'PASS'
+          assert not m8['target_entry_audit']['branch_topology']['incoming_window_interior']
+          assert m8['target_entry_audit']['runtime_rewrite_safe'] is True
+          assert m8['window_agreement']['verdict'] == 'EXACT'
+          assert m8['initcall_source_audit']['first_subsys_entry_implies_arch_complete'] is True
+          changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
+          assert changed == [m8['offset'] + 13, m8['offset'] + 14]
+          assert p8[:m8['offset']] == frozen[:m8['offset']] and p8[m8['offset']+60:] == frozen[m8['offset']+60:]
+          assert p1[:m1['offset']] == frozen[:m1['offset']] and p1[m1['offset']+60:] == frozen[m1['offset']+60:]
+          design = {
+              'checkpoint_point': 'FIRST_SUBSYS_INITCALL_EXACT_ENTRY',
+              'boundary': '__initcall4_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
+              'entry_encoding': 'PREL32', 'cross_function_overwrite': False,
+              'function_range_safe': True, 'function_size': m8['target_function_size'],
+              'probe_size': 60, 'incoming_interior_branches': 0,
+              'backedge_conflict': False, 'runtime_rewrite_conflict': False,
+              'literal_delta': 'EXACT_OR_INDEPENDENTLY_PROVEN',
+              'pair_diff': 'DELAY_CONSTANT_ONLY', 'timer': 'CNTPCT',
+              'psci_fid': '0x84000009', 'timer_algorithm_changed': False,
+              'prior_pure_probe': False, 'prior_console_probe': False,
+              'reuse_core_narrow_gate': False, 'reuse_postcore_probe_window': False,
+              'prior_core_probe': False, 'prior_postcore_probe': False,
+              'copied_postcore_probe': False,
+              'rt_d_sha256': '4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327',
+              'init_changed': False, 'private_pack': False, 'device_operation': False,
+          }
+          checkpoint.gate_arch_checkpoint_design(design)
+          pair = {
+              'source_commit': os.environ['GITHUB_SHA'], 'public_run': os.environ['GITHUB_RUN_ID'],
+              'bundle_run': '35040148509', 'arch8_payload_sha256': hashlib.sha256(p8).hexdigest(),
+              'arch1_payload_sha256': hashlib.sha256(p1).hexdigest(),
+              'changed_offsets': changed, 'changed_instruction_indices': [3],
+              'attribution': 'DELAY_CONSTANT_ONLY', 'expected_delta_seconds': -7.0,
+              'strong_error_seconds': 1.0, 'supported_error_seconds': 2.0,
+              'private_pack': False, 'device_operation': False,
+          }
+          (root/'pair.json').write_text(json.dumps(pair, indent=2)+'\n')
+          bound = m8['initcall_boundary']
+          print(f"INITCALL3_START_VA={boundaries['__initcall3_start']['entry_va']:#x}")
+          print(f"INITCALL4_START_VA={boundaries['__initcall4_start']['entry_va']:#x}")
+          print(f"INITCALL5_START_VA={boundaries['__initcall5_start']['entry_va']:#x}")
+          print(f"FIRST_SUBSYS_INITCALL_TABLE_ENTRY_VA={bound['entry_va']:#x}")
+          print(f"FIRST_SUBSYS_INITCALL_ENTRY_WORD={bound['entry_word']}")
+          print(f"FIRST_SUBSYS_INITCALL_SIGNED_DISPLACEMENT={bound['relative']}")
+          print(f"FIRST_SUBSYS_INITCALL_TARGET_VA={m8['target_va']}")
+          print(f"FIRST_SUBSYS_INITCALL_IMAGE_OFFSET={m8['offset']:#x}")
+          print(f"FIRST_SUBSYS_INITCALL_SYMBOL={m8['target_symbol']}")
+          print(f"FIRST_SUBSYS_INITCALL_SOURCE={m8['target_source']}")
+          print(f"FIRST_SUBSYS_INITCALL_REGISTRATION={m8['initcall_registration']}")
+          print(f"FIRST_SUBSYS_INITCALL_SECTION={m8['section']}")
+          print(f"FIRST_SUBSYS_INITCALL_SIZE={m8['target_function_size']}")
+          print('FIRST_SUBSYS_INITCALL_TARGET_UNIQUE=PASS')
+          print('INITCALL_ENTRY_ENCODING=PREL32')
+          print(f"FIRST_SUBSYS_ENTRY0={m8['entry']}")
+          print(f"FIRST_SUBSYS_ENTRY_BYTES={m8['target_entry_audit']['entry_bytes']}")
+          print(f"FIRST_SUBSYS_PAC={m8['target_entry_audit']['pac']}")
+          print(f"FIRST_SUBSYS_BTI={m8['target_entry_audit']['bti']}")
+          print('FIRST_SUBSYS_ENTRY_AUDIT=PASS')
+          print('ARCH_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES')
+          print('ARCH_CHECKPOINT_PROBE_SAFE=YES')
+          print('ARCH_PAIR_DIFF_BYTE_COUNT=2')
+          print(f"ARCH_PAIR_DIFF_RANGES=[{changed[0]:#x},{changed[-1]+1:#x})")
+          print('ARCH_PAIR_CHANGED_INSTRUCTIONS=[3]')
+          print('ARCH_PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY')
+          print('PAIR_EXPECTED_DELTA_S=-7.000')
+          print('PAIR_STRONG_TOLERANCE_S=1.000')
+          print('PAIR_SUPPORTED_TOLERANCE_S=2.000')
+          print('ARCH_ALL_PRIOR_STAGE_PROBES_REMOVED=YES')
+          print('ARCH_PAIR_PUBLIC_READY=YES')
+          print('ARCH_PRIVATE_PACK=NO')
+          print('ARCH_DEVICE_OPERATION=NO')
+          PY
+          (cd arch-pair && sha256sum 8/checkpoint/payload.bin 1/checkpoint/payload.bin pair.json > SHA256SUMS)
+      - name: Assert public payload-only scope
+        run: |
+          set -euo pipefail
+          if find arch-pair -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          printf '%s\n' 'PRIVATE_PACK=NO' 'DEVICE_OPERATION=NO' 'ADB_DEVICE_OPERATION=NO' \
+            'FASTBOOT_DEVICE_OPERATION=NO' 'PARTITION_WRITES=0' 'SLOT_A_WRITTEN=NO' \
+            'LOCAL_BUILD=NO' 'LOCAL_IMAGE_GENERATION=NO' 'LOCAL_BINARY_VALIDATION=NO'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-arch-initcalls-complete-audit
+          path: |
+            arch-*.log
+            arch-pair-gates.txt
+            ultracompact-*.log
+            arch-pair/*/checkpoint/original-window.txt
+            arch-pair/*/checkpoint/original-function.txt
+            arch-pair/*/checkpoint/target-entry-audit.json
+            arch-pair/*/checkpoint/window-agreement.json
+            arch-pair/*/checkpoint/manifest.json
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-arch-initcalls-complete-pair
+          path: arch-pair/
+          if-no-files-found: error
+
+  independent-reverify:
+    needs: initcall-table-decode
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Download pair and immutable inputs independently
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" -n thyme-arch-initcalls-complete-pair -D pair
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          (cd pair && sha256sum -c SHA256SUMS)
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independent pair, baseline, boundary, diagnostic and identity verification
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY' | tee independent-reverify.txt
+          import json, struct
+          from pathlib import Path
+          a = json.loads(Path('pair/8/checkpoint/manifest.json').read_text())
+          b = json.loads(Path('pair/1/checkpoint/manifest.json').read_text())
+          p8 = Path('pair/8/checkpoint/payload.bin').read_bytes()
+          p1 = Path('pair/1/checkpoint/payload.bin').read_bytes()
+          base = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          pair = json.loads(Path('pair/pair.json').read_text())
+          bounds = a['initcall_boundaries']
+          assert a['initcall_boundary']['boundary_symbol'] == '__initcall4_start'
+          assert a['initcall_boundary']['entry_encoding'] == 'PREL32'
+          assert (bounds['__initcall3_start']['entry_va']
+                  < bounds['__initcall4_start']['entry_va']
+                  < bounds['__initcall5_start']['entry_va'])
+          assert a['target_va'] == hex(a['initcall_boundary']['target_va'])
+          off, size = a['offset'], a['checkpoint_size']
+          assert size == 60 and a['target_function_size'] >= size
+          assert p8[:off] == base[:off] and p8[off+size:] == base[off+size:]
+          assert p1[:off] == base[:off] and p1[off+size:] == base[off+size:]
+          changed = [i for i, (x, y) in enumerate(zip(p8, p1)) if x != y]
+          assert changed == [off+13, off+14] == pair['changed_offsets']
+          words8 = struct.unpack_from('<15I', p8, off)
+          words1 = struct.unpack_from('<15I', p1, off)
+          assert words8[3] == 0xd37df12a and words1[3] == 0xd340fd2a
+          assert words8[12] == words1[12] == 0xd4000003
+          assert words8[13] == words1[13] == 0xd503205f
+          assert words8[14] == words1[14] == 0x17ffffff
+          assert all(words8[i] == words1[i] for i in range(15) if i != 3)
+          assert a['window_agreement']['verdict'] == 'EXACT'
+          assert a['runtime_dtb_external_initrd'] is False
+          assert a['chosen_properties'] == ['bootargs', 'stdout-path']
+          assert a['target_entry_audit']['runtime_rewrite_safe'] is True
+          assert not a['target_entry_audit']['branch_topology']['incoming_window_interior']
+          assert a['initcall_source_audit']['first_subsys_entry_implies_arch_complete'] is True
+          assert pair['attribution'] == 'DELAY_CONSTANT_ONLY'
+          assert pair['private_pack'] is False and pair['device_operation'] is False
+          print('ARCH_PAIR_STATIC_REVERIFY=PASS')
+          print('ARCH_PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY')
+          print('ARCH_ALL_PRIOR_STAGE_PROBES_REMOVED=YES')
+          print('RT_D_MATCH=YES')
+          print('/init_UNCHANGED=YES')
+          print('INITRAMFS_UNCHANGED=YES')
+          print('ARCH_PAIR_PUBLIC_READY=YES')
+          print('READY_FOR_ARCH_INITCALLS_PRIVATE_GATE=YES')
+          print('MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_CHECKPOINT_CI_READY')
+          print('PRIVATE_PACK=NO')
+          print('DEVICE_OPERATION=NO')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-arch-initcalls-independent-reverify
+          path: independent-reverify.txt
+          if-no-files-found: error
