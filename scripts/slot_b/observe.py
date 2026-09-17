@@ -46,7 +46,7 @@ IMAGES = {
     "control1": (37380096, "4551a94079ace87062f6a51444bfdbff76982e1b34b4b65658022df9e0c6db99"),
     "mid8": (37380096, "89614d8a2d85ba53ca34d353db558fe8cbfc775740b85d3b1b899ef35bc7b4b0"),
     "mid1": (37380096, "b2b7cd68a68886ebcc7f6fc598d22c7a27ecc9698a7397ec97b58271627c1499"),
-
+}
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
     "rest1": ("rest8", "rest_init_entry", "rest_init_body"),
