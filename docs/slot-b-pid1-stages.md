@@ -661,3 +661,26 @@ Final gate: `MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_COMPLETED_PROVEN`.
 Recommended next, only after explicit user approval:
 `MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_CHECKPOINT_CI_AUDIT`. See
 `docs/slot-b-arch-initcall-checkpoint.md`.
+
+## Subsys-initcall completion checkpoint CI
+
+Public GHA `35193200415` at `06f567b7f2f8c207862a937a1418fd8c30b44f7c`
+completed source audit and exact PREL32 table decode without a kernel rebuild.
+It confirmed:
+
+- `__initcall4_start=0xffff800081d0ae0c`
+- `__initcall5_start=0xffff800081d0b0d4`
+- next linker boundary `__initcallrootfs_start=0xffff800081d0b1a4`
+- fs runtime end `__initcall6_start=0xffff800081d0b1a8`
+- first fs initcall `create_debug_debugfs_entry` at `0xffff8000800149e0` /
+  Image `0x149e0`, from `arch/arm64/kernel/debug-monitors.c`
+
+The target is `.text`, 56 bytes, entry `paciasp`, unique table decode,
+`fs_initcall(create_debug_debugfs_entry)`. CFG is a straight line with no
+internal or back-edge. The window is derived from that CFG, not copied from
+ARCH 160B. Proven inline diagnostic needs 60 bytes and does not fit.
+SUBSYS8/SUBSYS1 were not generated. Runtime evidence is unchanged:
+`SUBSYS_INITCALLS_COMPLETED=NOT_PROVEN` and
+`FIRST_FS_INITCALL_ENTRY=NOT_PROVEN`. No private pack or device operation.
+Final gate: `R3_SLOT_B_SUBSYS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY`.
+See `docs/slot-b-subsys-initcall-checkpoint.md`.

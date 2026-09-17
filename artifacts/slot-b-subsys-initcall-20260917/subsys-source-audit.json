@@ -1,0 +1,33 @@
+{
+  "pure": "__initcall0_start..__initcall1_start",
+  "core": "__initcall1_start..__initcall2_start",
+  "postcore": "__initcall2_start..__initcall3_start",
+  "arch": "__initcall3_start..__initcall4_start",
+  "subsys": "__initcall4_start..__initcall5_start",
+  "fs": "__initcall5_start..__initcall6_start",
+  "pure_level_boundary": "__initcall1_start",
+  "core_level_boundary": "__initcall2_start",
+  "postcore_level_boundary": "__initcall3_start",
+  "arch_level_boundary": "__initcall4_start",
+  "subsys_level_boundary": "__initcall5_start",
+  "fs_level_boundary": "__initcall6_start",
+  "fs_next_linker_boundary": "__initcallrootfs_start",
+  "linker_order": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "rootfs",
+    "6",
+    "7"
+  ],
+  "core_complete_boundary_source_proven": true,
+  "postcore_complete_boundary_source_proven": true,
+  "arch_complete_boundary_source_proven": true,
+  "subsys_complete_boundary_source_proven": true,
+  "first_subsys_entry_implies_arch_complete": true,
+  "first_fs_entry_implies_subsys_complete": true,
+  "entry_encoding_source": "CONFIG_HAVE_ARCH_PREL32_RELOCATIONS => s32 .long target-."
+}

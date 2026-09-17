@@ -1,0 +1,9 @@
+P1B_RT_D_SHA_EXACT=PASS
+P1B_RT_D_BOOTARGS_FROZEN=PASS
+T3_SECTION_MAP_SOURCE=readelf-SW sections=44
+FIRST_FS_TABLE_DECODE={"aliases": ["create_debug_debugfs_entry"], "boundary": "__initcall5_start", "entry_va": "0xffff800081d0b0d4", "entry_word": "0xfe30990c", "relative": -30369524, "target_va": "0xffff8000800149e0"}
+INITCALL_BOUNDARY_VAS={"__initcall1_start": "0xffff800081d0a9d0", "__initcall2_start": "0xffff800081d0ab6c", "__initcall3_start": "0xffff800081d0ac48", "__initcall4_start": "0xffff800081d0ae0c", "__initcall5_start": "0xffff800081d0b0d4", "__initcall6_start": "0xffff800081d0b1a8", "__initcallrootfs_start": "0xffff800081d0b1a4"}
+FIRST_FS_FUNCTION_SIZE=56
+FIRST_FS_INITCALL_SOURCE=arch/arm64/kernel/debug-monitors.c
+FIRST_FS_INITCALL_REGISTRATION=fs_initcall(create_debug_debugfs_entry)
+FIRST_FS_MIN_PROBE=60

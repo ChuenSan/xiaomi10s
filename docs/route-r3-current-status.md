@@ -217,14 +217,28 @@ was not written. ARCH8 was not rerun. Evidence:
 `ARCH_INITCALLS_COMPLETED=PROVEN` and `FIRST_SUBSYS_INITCALL_ENTRY=PROVEN`.
 Body, later initcall levels, console, `/init` and USB remain
 NOT_PROVEN/FROZEN. Absolute ARCH1 timing is descriptive only. Final gate:
-`MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_COMPLETED_PROVEN`. Recommended next,
-only after explicit user approval:
-`MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_CHECKPOINT_CI_AUDIT`.
+`MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_COMPLETED_PROVEN`.
+
+The CI-only subsys checkpoint audit is now complete. Public GHA
+`35193200415` at `06f567b7f2f8c207862a937a1418fd8c30b44f7c` decoded exact
+PREL32 boundaries `__initcall4_start=0xffff800081d0ae0c`,
+`__initcall5_start=0xffff800081d0b0d4`, next linker
+`__initcallrootfs_start=0xffff800081d0b1a4` and fs runtime end
+`__initcall6_start=0xffff800081d0b1a8` from the authoritative Linux 6.6.156
+vmlinux. The first fs target is `create_debug_debugfs_entry` at
+`0xffff8000800149e0` / Image `0x149e0`, `.text`, 56 bytes, entry `paciasp`,
+registered by `fs_initcall(create_debug_debugfs_entry)` in
+`arch/arm64/kernel/debug-monitors.c`. The 60-byte proven diagnostic does not
+fit; ARCH 160B was not reused. SUBSYS8/SUBSYS1 were not generated. Runtime
+evidence is unchanged. The public gate is
+`R3_SLOT_B_SUBSYS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY`.
+`READY_FOR_SUBSYS_INITCALLS_PRIVATE_GATE=NO`.
 
 No Linux boot success is claimed. Details: `docs/slot-b-pid1-stages.md`,
 `docs/slot-b-core-initcall-checkpoint.md`,
-`docs/slot-b-postcore-initcall-checkpoint.md` and
-`docs/slot-b-arch-initcall-checkpoint.md`. Older A-return timing records
+`docs/slot-b-postcore-initcall-checkpoint.md`,
+`docs/slot-b-arch-initcall-checkpoint.md` and
+`docs/slot-b-subsys-initcall-checkpoint.md`. Older A-return timing records
 below are historical, not this B baseline.
 
 Maintained rule: this file is the ONLY current-state entry. Older docs keep
@@ -825,6 +839,7 @@ ARCH_INITCALLS_COMPLETED=PROVEN
 FIRST_SUBSYS_INITCALL_ENTRY=PROVEN
 FIRST_SUBSYS_INITCALL_BODY=NOT_PROVEN
 SUBSYS_INITCALLS_COMPLETED=NOT_PROVEN
+FIRST_FS_INITCALL_ENTRY=NOT_PROVEN
 FS_INITCALLS_COMPLETED=NOT_PROVEN
 DEVICE_INITCALLS_COMPLETED=NOT_PROVEN
 LATE_INITCALLS_COMPLETED=NOT_PROVEN
@@ -1077,6 +1092,42 @@ FIRST_SUBSYS_INITCALL_ENTRY=PROVEN
 FIRST_SUBSYS_INITCALL_BODY=NOT_PROVEN
 ARCH_CHECKPOINT_FINAL_GATE=MAINLINE_V2_R3_SLOT_B_ARCH_INITCALLS_COMPLETED_PROVEN
 ARCH_CHECKPOINT_NEXT_STAGE=MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_CHECKPOINT_CI_AUDIT
+SUBSYS_CHECKPOINT_PUBLIC_RUN=35193200415
+SUBSYS_CHECKPOINT_PUBLIC_COMMIT=06f567b7f2f8c207862a937a1418fd8c30b44f7c
+SUBSYS_CHECKPOINT_BUNDLE_RUN=35040148509
+SUBSYS_LEVEL_BOUNDARY=__initcall4_start..__initcall5_start
+FS_LEVEL_BOUNDARY=__initcall5_start..__initcall6_start
+FS_NEXT_LINKER_BOUNDARY=__initcallrootfs_start
+INITCALLROOTFS_START_VA=0xffff800081d0b1a4
+INITCALL6_START_VA=0xffff800081d0b1a8
+SUBSYS_LEVEL_BOUNDARY_SOURCE_PROVEN=YES
+FIRST_FS_ENTRY_IMPLIES_SUBSYS_COMPLETE=YES
+FIRST_FS_INITCALL_SYMBOL=create_debug_debugfs_entry
+FIRST_FS_INITCALL_VA=0xffff8000800149e0
+FIRST_FS_INITCALL_OFFSET=0x149e0
+FIRST_FS_INITCALL_SIZE=56
+FIRST_FS_INITCALL_SOURCE=arch/arm64/kernel/debug-monitors.c
+FIRST_FS_INITCALL_REGISTRATION=fs_initcall(create_debug_debugfs_entry)
+FIRST_FS_INITCALL_SECTION=.text
+FIRST_FS_INITCALL_ENTRY_WORD=0xfe30990c
+FIRST_FS_INITCALL_SIGNED_DISPLACEMENT=-30369524
+FIRST_FS_INITCALL_TARGET_UNIQUE=PASS
+FIRST_FS_ENTRY0=paciasp
+FIRST_FS_ENTRY_BYTES=3f2303d5
+FIRST_FS_PAC=YES
+FIRST_FS_BTI=NO
+FIRST_FS_ENTRY_AUDIT=PASS
+FIRST_FS_MIN_PROBE=60
+SUBSYS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=YES
+SUBSYS_CFG_CLOSURE=FUNCTION_TOO_SHORT
+SUBSYS_CHECKPOINT_PROBE_SAFE=NO
+SUBSYS_PAIR_PUBLIC_READY=NO
+READY_FOR_SUBSYS_INITCALLS_PRIVATE_GATE=NO
+SUBSYS_PRIVATE_PACK=NO
+SUBSYS_DEVICE_OPERATION=NO
+FIRST_FS_INITCALL_ENTRY=NOT_PROVEN
+SUBSYS_CHECKPOINT_FINAL_GATE=R3_SLOT_B_SUBSYS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY
+SUBSYS_CHECKPOINT_NEXT_STAGE=MAINLINE_V2_R3_SLOT_B_SUBSYS_INITCALLS_PROBE_REDESIGN_CI
 CORE8_MEMBER_A_COMPLETED=YES
 CORE8_MEMBER_A_FROZEN=YES
 CORE8_TOTAL_S=34.961135333
