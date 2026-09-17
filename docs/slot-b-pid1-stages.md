@@ -813,3 +813,13 @@ FS8/FS1 reruns forbidden. Final gate:
 `R3_SLOT_B_FS_INITCALLS_CHECKPOINT_SHIFT_NOT_OBSERVED`.
 Next: `MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_FAILURE_ISOLATION_CI`.
 
+## FS failure isolation CI
+
+GHA-only. CONTROL-A applies the failed trampoline architecture to the
+proven first FS entry `create_debug_debugfs_entry`. CONTROL-B probes
+runtime-table midpoint index 26 `proc_meminfo_init`. No device
+operation this round. Runtime `FS_INITCALLS_COMPLETED` and
+`FIRST_DEVICE_INITCALL_ENTRY` stay NOT_PROVEN.
+See `docs/slot-b-fs-initcall-checkpoint.md`.
+
+

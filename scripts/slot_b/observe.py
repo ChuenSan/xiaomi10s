@@ -86,6 +86,19 @@ FS_GEOMETRY = {
     "daifset": "ABSENT", "prel32_unchanged": True, "live_tramp_untouched": True,
     "direct_b": True,
 }
+CONTROL_GEOMETRY = {
+    "target": "create_debug_debugfs_entry", "va": 0xFFFF8000800149E0,
+    "offset": 0x149E0, "function_size": 56, "stub_size": 8, "entry": "paciasp",
+    "architecture": "ENTRY_TRAMPOLINE", "island_offset": 0xFFCC,
+    "island_end": 0x10000, "island_va": 0xFFFF80008000FFCC, "core_size": 52,
+    "daifset": "ABSENT", "prel32_unchanged": True, "live_tramp_untouched": True,
+    "direct_b": True, "force_trampoline": True,
+}
+MID_TABLE = {
+    "index": 26, "symbol": "proc_meminfo_init", "va": 0xFFFF800081B5770C,
+    "table_va": 0xFFFF800081D0B13C, "offset": 0x1B5770C,
+    "registration": "fs_initcall(proc_meminfo_init)", "source": "fs/proc/meminfo.c",
+}
 
 REST_ORIGIN = "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B"
 VARS = ("product", "unlocked", "current-slot", "slot-count",
@@ -142,6 +155,31 @@ def validate_fs_geometry(window):
     require(FS_GEOMETRY["live_tramp_untouched"] is True, "FS_LIVE_TRAMP_MUTATED")
     require(FS_GEOMETRY["direct_b"] is True, "FS_NOT_DIRECT_B")
     require(FS_GEOMETRY["target"] == "register_arm64_panic_block", "FS_WRONG_TARGET")
+
+
+def validate_control_geometry(window):
+    require(window != 56, "CONTROL_56B_INLINE_REJECTED")
+    require(window != 60, "CONTROL_60B_INLINE_REJECTED")
+    require(window == CONTROL_GEOMETRY["stub_size"], "CONTROL_STUB_NOT_8")
+    require(CONTROL_GEOMETRY["target"] == "create_debug_debugfs_entry", "CONTROL_WRONG_TARGET")
+    require(CONTROL_GEOMETRY["offset"] == 0x149E0, "CONTROL_WRONG_OFFSET")
+    require(CONTROL_GEOMETRY["function_size"] == 56, "CONTROL_FUNCTION_NOT_56")
+    require(CONTROL_GEOMETRY["architecture"] == "ENTRY_TRAMPOLINE", "CONTROL_NOT_TRAMPOLINE")
+    require(CONTROL_GEOMETRY["island_offset"] == 0xFFCC, "CONTROL_ISLAND_NOT_FFCC")
+    require(CONTROL_GEOMETRY["core_size"] == 52, "CONTROL_CORE_NOT_52")
+    require(CONTROL_GEOMETRY["daifset"] == "ABSENT", "CONTROL_DAIFSET_PRESENT")
+    require(CONTROL_GEOMETRY["prel32_unchanged"] is True, "CONTROL_PREL32_CHANGED")
+    require(CONTROL_GEOMETRY["live_tramp_untouched"] is True, "CONTROL_LIVE_TRAMP_MUTATED")
+    require(CONTROL_GEOMETRY["direct_b"] is True, "CONTROL_NOT_DIRECT_B")
+    require(CONTROL_GEOMETRY["force_trampoline"] is True, "CONTROL_NOT_FORCED")
+
+
+def validate_mid_table():
+    require(MID_TABLE["index"] == 26, "MID_INDEX_NOT_26")
+    require(MID_TABLE["symbol"] == "proc_meminfo_init", "MID_SYMBOL_DRIFT")
+    require(MID_TABLE["va"] == 0xFFFF800081B5770C, "MID_VA_DRIFT")
+    require(MID_TABLE["table_va"] == 0xFFFF800081D0B13C, "MID_TABLE_VA_DRIFT")
+    require(MID_TABLE["registration"] == "fs_initcall(proc_meminfo_init)", "MID_REGISTRATION_DRIFT")
 
 
 def validate_context(context, case=None):

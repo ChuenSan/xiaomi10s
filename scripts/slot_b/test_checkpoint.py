@@ -548,6 +548,10 @@ class CheckpointTests(unittest.TestCase):
         self.assertNotIn('fs_complete', checkpoint.ULTRACOMPACT_SYMBOLS)
         self.assertNotIn('fs_complete', checkpoint.SUBSYS52_SYMBOLS)
         self.assertEqual(checkpoint.INITCALL_BOUNDARIES['fs_complete'], '__initcall6_start')
+        self.assertEqual(checkpoint.INITCALL_BOUNDARIES['fs_trampoline_control'], '__initcall5_start')
+        self.assertEqual(checkpoint.INITCALL_BOUNDARIES['fs_midpoint'], '__initcall5_start')
+        self.assertEqual(checkpoint.FS_SPAN_SYMBOLS,
+                         frozenset({'fs_complete', 'fs_trampoline_control', 'fs_midpoint'}))
 
     def test_fs_complete_literal_delta_accepts_same_string_add_only(self):
         image, frozen = bytearray(512), bytearray(512)
@@ -804,6 +808,67 @@ class CheckpointTests(unittest.TestCase):
         checkpoint.require_disjoint_windows([stub, island])
         with self.assertRaises(ValueError):
             checkpoint.require_disjoint_windows([stub, (0x1B347B8, 0x1B347B8 + 52)])
+
+
+    def test_fs_isolation_control_and_midpoint_gates(self):
+        pc = 0xFFFF8000800149E4
+        island = 0xFFFF80008000FFCC
+        word = checkpoint.encode_b(pc, island)
+        self.assertEqual(word & checkpoint.B_OP_MASK, checkpoint.B_OP)
+        self.assertEqual(checkpoint.branch_target(word, pc), island)
+        failed_pc = 0xFFFF800081B347BC
+        self.assertEqual(checkpoint.encode_b(failed_pc, island), 0x17936E04)
+        entries = [{'index': i, 'target_va': 0x1000 + i} for i in range(53)]
+        self.assertEqual(checkpoint.select_fs_midpoint_index(entries), 26)
+        with self.assertRaises(ValueError):
+            checkpoint.select_fs_midpoint_index(entries[:-1])
+        control = {
+            'checkpoint_point': 'KNOWN_REACHED_FIRST_FS_ENTRY_TRAMPOLINE_CONTROL',
+            'boundary': '__initcall5_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
+            'entry_encoding': 'PREL32', 'cross_function_overwrite': False,
+            'function_range_safe': True, 'function_size': 56, 'probe_size': 8,
+            'incoming_interior_branches': 0, 'backedge_conflict': False,
+            'runtime_rewrite_conflict': False, 'cfg_closure_proven': True,
+            'window_derivation': 'TARGET_CFG', 'reuse_arch_160b': False, 'reuse_subsys_56b': False,
+            'copied_arch_probe': False, 'copied_subsys_probe': False, 'prior_subsys_probe': False,
+            'prior_arch_probe': False, 'prior_core_probe': False, 'prior_postcore_probe': False,
+            'paciasp_preserved': True, 'cntpct_elapsed': True, 'prel32_target_unchanged': True,
+            'fixed_iteration_delay': False, 'rootfs_has_separate_runtime_pass': False,
+            'rootfs_included_in_level5': True, 'first_device_entry_implies_fs_complete': True,
+            'rootfs_start_is_marker_only': True, 'rewrite_initcall_table': False,
+            'treat_rootfs_marker_as_callable': False,
+            'literal_delta': 'EXACT_OR_INDEPENDENTLY_PROVEN', 'pair_diff': 'DELAY_CONSTANT_ONLY',
+            'timer': 'CNTPCT', 'psci_fid': '0x84000009', 'timer_algorithm_changed': False,
+            'prior_pure_probe': False, 'prior_console_probe': False,
+            'rt_d_sha256': '4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327',
+            'init_changed': False, 'private_pack': False, 'device_operation': False,
+            'known_reached_target': 'create_debug_debugfs_entry',
+            'force_trampoline_despite_inline_fit': True, 'probe_architecture': 'ENTRY_TRAMPOLINE',
+            'diagnostic_core_size': 52, 'island_size': 52, 'island_kind': 'RESERVED_EFI_HOLE',
+            'island_offset': 0xffcc, 'direct_b': True, 'veneer': False, 'stub_branch': 'B',
+            'live_tramp_overlap': False, 'live_tramp_intact': True,
+            'prel32_retarget_to_island': False, 'sixty_byte_inline_rejected': True,
+        }
+        checkpoint.gate_fs_trampoline_control_design(control)
+        with self.assertRaises(ValueError):
+            checkpoint.gate_fs_trampoline_control_design(dict(control, island_offset=0x70))
+        with self.assertRaises(ValueError):
+            checkpoint.gate_fs_trampoline_control_design(
+                dict(control, known_reached_target='register_arm64_panic_block'))
+        mid = dict(control, checkpoint_point='FS_LEVEL_RUNTIME_MIDPOINT_ENTRY',
+                   boundary='__initcall5_index_26',
+                   target_derivation='RUNTIME_TABLE_MIDPOINT_INDEX', midpoint_index=26,
+                   entry_count=53, name_guess=False, function_size=80, probe_size=8)
+        checkpoint.gate_fs_midpoint_design(mid)
+        with self.assertRaises(ValueError):
+            checkpoint.gate_fs_midpoint_design(dict(mid, midpoint_index=0))
+        with self.assertRaises(ValueError):
+            checkpoint.gate_fs_midpoint_design(dict(mid, name_guess=True))
+        stub = (0x149E0, 0x149E8)
+        island_span = (0xFFCC, 0x10000)
+        live = (0x40, 0x70)
+        first_device = (0x1B347B8, 0x1B347C0)
+        checkpoint.require_disjoint_windows([stub, island_span, live, first_device])
 
 
     def test_composition_changes_only_authorized_window(self):

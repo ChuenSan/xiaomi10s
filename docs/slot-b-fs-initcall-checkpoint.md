@@ -194,3 +194,37 @@ Recommended next:
 Evidence: `artifacts/slot-b-fs-private-gate-20260917/`,
 `artifacts/slot-b-fs8-20260917/`, `artifacts/slot-b-fs1-20260917/`.
 
+## Failure isolation CI
+
+`MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_FAILURE_ISOLATION_CI` is GHA-only.
+It does not rerun FS8/FS1, does not rebuild the kernel, and does not
+touch a device or Slot A.
+
+Static forensic of the failed first-device trampoline is encoded in
+`checkpoint.forensic_failed_fs_pair`. Link-time encoding, PAC entry,
+island identity, live trampoline, PREL32 and DELAY_CONSTANT_ONLY are
+re-checked against the frozen public pair. `.head.text` runtime RX after
+EFI-stub exit remains `HYPOTHESIS_UNPROVEN`.
+
+CONTROL-A reuses the same ENTRY_TRAMPOLINE / island `[0xffcc,0x10000)` /
+52B no-daifset core on the already-proven first FS entry
+`create_debug_debugfs_entry` at `0xffff8000800149e0` / Image `0x149e0`.
+PREL32 at `__initcall5_start` is not rewritten. Pair CONTROL8/CONTROL1
+is delay-constant-only.
+
+CONTROL-B midpoint is runtime-table index `26` of 53:
+`proc_meminfo_init` at `0xffff800081b5770c`, table
+`0xffff800081d0b13c`, `fs_initcall(proc_meminfo_init)`. Probe geometry
+is chosen from function size in GHA (`select_fs_complete_core`); a
+trampoline still pins island `0xffcc`.
+
+Runtime evidence is unchanged:
+
+`FS_INITCALLS_COMPLETED=NOT_PROVEN`
+
+`FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`
+
+Public artifacts: `thyme-fs-control-pair`, `thyme-fs-midpoint-pair`.
+Private pack is a separate GHA on `thyme-mainline-private-ci`.
+
+

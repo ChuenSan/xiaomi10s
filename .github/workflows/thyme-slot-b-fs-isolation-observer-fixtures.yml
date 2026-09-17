@@ -1,0 +1,79 @@
+name: thyme-slot-b-fs-isolation-observer-fixtures
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/fs_isolation_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-fs-isolation-observer-fixtures.yml
+  pull_request:
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/fs_isolation_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-fs-isolation-observer-fixtures.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thyme-slot-b-fs-isolation-observer-fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolation-observer-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: GHA-only isolation observer geometry fixtures
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/slot_b/observe.py \
+            scripts/slot_b/test_observe.py scripts/slot_b/fs_isolation_observer_fixtures.py
+          (cd scripts/slot_b && python3 -B -m unittest test_observe.py -v) \
+            2>&1 | tee fs-isolation-observer-unit-tests.log
+          (cd scripts/slot_b && python3 -B fs_isolation_observer_fixtures.py) \
+            | tee fs-isolation-observer-fixtures.txt
+          for gate in \
+            CONTROL_KNOWN_REACHED_TARGET_GATE=PASS \
+            CONTROL_PACIASP_DIRECT_B_STUB_GATE=PASS \
+            CONTROL_ISLAND_FFCC_GATE=PASS \
+            CONTROL_52B_CORE_GATE=PASS \
+            CONTROL_NO_DAIFSET_GATE=PASS \
+            CONTROL_PREL32_UNCHANGED=YES \
+            CONTROL_LIVE_TRAMPOLINE_UNTOUCHED=YES \
+            CONTROL_FORCE_TRAMPOLINE=YES \
+            CONTROL_56B_NEGATIVE_FIXTURE=PASS \
+            MID_INDEX_GATE=PASS \
+            MID_SYMBOL_GATE=PASS \
+            MID_UNIQUE_TABLE_TARGET_GATE=PASS \
+            FS_ISOLATION_OBSERVER_FIXTURES=PASS \
+            DEVICE_OPERATION=NO; do
+            grep -Fxq "$gate" fs-isolation-observer-fixtures.txt
+          done
+          printf '%s\n' \
+            'FS_ISOLATION_OBSERVER_GEOMETRY=PASS' \
+            'CONTROL_OBSERVER_IDENTITY=DEFERRED_UNTIL_PRIVATE_PACK' \
+            'MID_OBSERVER_IDENTITY=DEFERRED_UNTIL_PRIVATE_PACK' \
+            'DEVICE_OPERATION=NO' \
+            'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' \
+            | tee fs-isolation-observer-gates.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-fs-isolation-observer-fixtures
+          path: |
+            fs-isolation-observer-unit-tests.log
+            fs-isolation-observer-fixtures.txt
+            fs-isolation-observer-gates.txt
+          if-no-files-found: error
+          retention-days: 90

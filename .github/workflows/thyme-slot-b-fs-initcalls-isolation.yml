@@ -1,0 +1,475 @@
+name: FS_INITCALLS_FAILURE_ISOLATION_CI
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/checkpoint.py'
+      - 'scripts/slot_b/test_checkpoint.py'
+      - 'scripts/slot_b/checkpoint-ultracompact.S'
+      - 'scripts/slot_b/checkpoint-subsys52.S'
+      - 'scripts/slot_b/observe.py'
+      - 'scripts/slot_b/fs_isolation_observer_fixtures.py'
+      - '.github/workflows/thyme-slot-b-fs-initcalls-isolation.yml'
+  workflow_dispatch:
+    inputs:
+      bundle_run_id:
+        description: Authoritative reconciled Linux 6.6.156 vmlinux bundle
+        required: false
+        default: '35040148509'
+      failed_pair_run_id:
+        description: Frozen public FS8/FS1 pair run
+        required: false
+        default: '35215536867'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: fs-initcalls-isolation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Actions-only workflow lint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-fs-initcalls-isolation.yml
+      - name: Isolation source fixtures
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_*.py' -v 2>&1 | tee isolation-source-tests.log
+          grep -q 'test_fs_isolation_control_and_midpoint_gates.*ok' isolation-source-tests.log
+          grep -q 'test_fs_encode_b_roundtrip_and_range_fail.*ok' isolation-source-tests.log
+          grep -q 'test_fs_checkpoint_negative_fixtures.*ok' isolation-source-tests.log
+          python3 -B - <<'PY' | tee isolation-source-gates.txt
+          import sys
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          assert checkpoint.INITCALL_BOUNDARIES['fs_trampoline_control'] == '__initcall5_start'
+          assert checkpoint.INITCALL_BOUNDARIES['fs_midpoint'] == '__initcall5_start'
+          assert checkpoint.select_fs_midpoint_index([{'index': i} for i in range(53)]) == 26
+          word = checkpoint.encode_b(0xffff8000800149e4, 0xffff80008000ffcc)
+          assert checkpoint.branch_target(word, 0xffff8000800149e4) == 0xffff80008000ffcc
+          assert checkpoint.encode_b(0xffff800081b347bc, 0xffff80008000ffcc) == 0x17936e04
+          print('FS_ISOLATION_SOURCE_AUDIT=PASS')
+          print('CONTROL_A_FORCE_TRAMPOLINE=YES')
+          print('CONTROL_B_MIDPOINT_INDEX=26')
+          print('STATIC_DESIGN_DEFECT_PENDING_FORENSIC=YES')
+          print('PRIVATE_PACK=NO')
+          print('DEVICE_OPERATION=NO')
+          print('LOCAL_BUILD=NO')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-isolation-source-audit
+          path: |
+            isolation-source-tests.log
+            isolation-source-gates.txt
+          if-no-files-found: error
+
+  forensic:
+    if: github.event_name == 'workflow_dispatch'
+    needs: source-audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      defect: ${{ steps.forensic.outputs.defect }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Download frozen failed FS pair and FIX8 payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FAILED_PAIR_RUN: ${{ inputs.failed_pair_run_id || '35215536867' }}
+        run: |
+          set -euo pipefail
+          test "$FAILED_PAIR_RUN" = 35215536867
+          gh run download "$FAILED_PAIR_RUN" -R "$GITHUB_REPOSITORY" -n thyme-fs-initcalls-complete-pair -D failed-pair
+          (cd failed-pair && sha256sum -c SHA256SUMS)
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independent static forensic of failed FS trampoline
+        id: forensic
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY' | tee isolation-forensic.txt
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          p8 = Path('failed-pair/8/checkpoint/payload.bin').read_bytes()
+          p1 = Path('failed-pair/1/checkpoint/payload.bin').read_bytes()
+          frozen = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          report = checkpoint.forensic_failed_fs_pair(p8, p1, frozen)
+          print(f"B_ENCODING={report['b_encoding']}")
+          print(f"PAC_ENTRY={report['pac_entry']}")
+          print(f"ISLAND_IDENTITY={report['island_identity']}")
+          print(f"LIVE_TRAMP_INTACT_STATIC={report['live_tramp']}")
+          print(f"PREL32_UNCHANGED_STATIC={report['prel32']}")
+          print(f"PAIR_DELAY_ONLY={report['pair_delay_only']}")
+          print(f"HEAD_TEXT_RUNTIME_RX={report['head_text_runtime_rx']}")
+          print(f"STATIC_DESIGN_DEFECT={report['static_design_defect']}")
+          print('FS_FORENSIC_STATIC=PASS')
+          print('DEVICE_OPERATION=NO')
+          Path('forensic-defect.txt').write_text(report['static_design_defect'] + '\n')
+          PY
+          defect=$(cat forensic-defect.txt)
+          echo "defect=$defect" >> "$GITHUB_OUTPUT"
+          if test "$defect" = YES; then
+            echo 'R3_SLOT_B_FS_FAILURE_ISOLATED_TO_PROBE_DELIVERY' | tee -a isolation-forensic.txt
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-isolation-forensic
+          path: isolation-forensic.txt
+          if-no-files-found: error
+
+  compose-pairs:
+    if: github.event_name == 'workflow_dispatch' && needs.forensic.outputs.defect != 'YES'
+    needs: forensic
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact source used by the audit
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Install binary audit tools only
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18
+      - name: Download immutable authoritative inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUNDLE_RUN: ${{ inputs.bundle_run_id || '35040148509' }}
+        run: |
+          set -euo pipefail
+          test "$BUNDLE_RUN" = 35040148509
+          gh run download "$BUNDLE_RUN" -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          gh run download 34980859158 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-reset-pair -D proven-core
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independently assemble proven 56-byte and 52-byte cores
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-ultracompact.S -o ultracompact.o
+          llvm-readelf-18 -r ultracompact.o | tee ultracompact-relocations.log
+          grep -q 'There are no relocations in this file' ultracompact-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text ultracompact.o ultracompact.bin
+          test "$(stat -c %s ultracompact.bin)" = 56
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-subsys52.S -o subsys52.o
+          llvm-readelf-18 -r subsys52.o | tee subsys52-relocations.log
+          grep -q 'There are no relocations in this file' subsys52-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text subsys52.o subsys52.bin
+          test "$(stat -c %s subsys52.bin)" = 52
+          python3 -B - <<'PY'
+          import sys
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint, pathlib
+          checkpoint.gate_subsys52_core_equivalence(
+              pathlib.Path('ultracompact.bin').read_bytes(),
+              pathlib.Path('subsys52.bin').read_bytes())
+          print('FS_52B_CORE_INDEPENDENTLY_AUDITED=YES')
+          PY
+      - name: Emit CONTROL8/CONTROL1 and MID8/MID1 public pairs
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p control-pair mid-pair
+          compose() {
+            local symbol="$1" delay="$2" out="$3" ref="${4:-}"
+            local extra=()
+            if test -n "$ref"; then extra+=(--reference-sha "$ref"); fi
+            python3 -u -B scripts/slot_b/checkpoint.py \
+              --symbol "$symbol" --delay "$delay" \
+              --ultracompact-core ultracompact.bin --subsys52-core subsys52.bin \
+              --bundle kernel-bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+              --core proven-core/p1b-t1-core-reference.bin --out "$out" \
+              "${extra[@]}" | tee "${symbol}-${delay}.log"
+            if test -f "$out/checkpoint/not-ready.json"; then
+              echo "NOT_READY:$symbol:$delay" >&2
+              exit 1
+            fi
+          }
+          compose fs_trampoline_control 8 control-pair/8
+          compose fs_trampoline_control 1 control-pair/1 "$(jq -r .payload_sha256 control-pair/8/checkpoint/manifest.json)"
+          compose fs_midpoint 8 mid-pair/8
+          compose fs_midpoint 1 mid-pair/1 "$(jq -r .payload_sha256 mid-pair/8/checkpoint/manifest.json)"
+          python3 -B - <<'PY' | tee isolation-pair-gates.txt
+          import hashlib, json, os, struct, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint, observe
+          frozen = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          tramp = '362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623'
+
+          def load(root):
+              m8 = json.loads((root/'8/checkpoint/manifest.json').read_text())
+              m1 = json.loads((root/'1/checkpoint/manifest.json').read_text())
+              p8 = (root/'8/checkpoint/payload.bin').read_bytes()
+              p1 = (root/'1/checkpoint/payload.bin').read_bytes()
+              return m8, m1, p8, p1
+
+          def gate_pair(m8, m1, p8, p1, symbol, target):
+              assert m8['symbol'] == m1['symbol'] == symbol
+              assert m8['target_symbol'] == m1['target_symbol'] == target
+              assert m8['offset'] == m1['offset']
+              assert m8['entry'] == 'paciasp'
+              assert struct.unpack_from('<I', p8, m8['offset'])[0] == 0xD503233F
+              assert struct.unpack_from('<I', p1, m8['offset'])[0] == 0xD503233F
+              changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
+              assert changed == m1['pair_changed_offsets']
+              assert len(changed) == 2
+              prel = m8['initcall_boundary']['entry_image_offset']
+              assert p8[prel:prel+4] == p1[prel:prel+4] == frozen[prel:prel+4]
+              assert hashlib.sha256(p8[0x40:0x70]).hexdigest() == tramp
+              assert hashlib.sha256(p1[0x40:0x70]).hexdigest() == tramp
+              assert m8['prel32_target_unchanged'] is True
+              return changed
+
+          c8, c1, cp8, cp1 = load(Path('control-pair'))
+          assert c8['probe_architecture'] == 'ENTRY_TRAMPOLINE'
+          assert c8['offset'] == 0x149e0 and c8['target_function_size'] == 56
+          assert c8['island_offset'] == c1['island_offset'] == 0xffcc
+          b_word = int(c8['b_word'], 16)
+          assert checkpoint.branch_target(b_word, int(c8['target_va'], 16) + 4) == 0xffff80008000ffcc
+          assert struct.unpack_from('<I', cp8, c8['offset'] + 4)[0] == b_word
+          island = c8['island_offset']
+          w8 = struct.unpack_from('<13I', cp8, island)
+          w1 = struct.unpack_from('<13I', cp1, island)
+          assert w8[1] == 0xD37DF12A and w1[1] == 0xD340FD2A
+          changed = gate_pair(c8, c1, cp8, cp1, 'fs_trampoline_control', 'create_debug_debugfs_entry')
+          assert changed == [island + 5, island + 6]
+          for payload in (cp8, cp1):
+              diffs = [i for i, (a, b) in enumerate(zip(frozen, payload)) if a != b]
+              assert all((0x149e4 <= i < 0x149e8) or (island <= i < island + 52) for i in diffs)
+              assert payload[0x149e8:0x14a18] == frozen[0x149e8:0x14a18]
+          control_design = {
+              'checkpoint_point': 'KNOWN_REACHED_FIRST_FS_ENTRY_TRAMPOLINE_CONTROL',
+              'boundary': '__initcall5_start', 'target_derivation': 'TABLE_ENTRY_DECODE',
+              'entry_encoding': 'PREL32', 'cross_function_overwrite': False,
+              'function_range_safe': True, 'function_size': 56, 'probe_size': 8,
+              'incoming_interior_branches': 0, 'backedge_conflict': False,
+              'runtime_rewrite_conflict': False, 'cfg_closure_proven': True,
+              'window_derivation': 'TARGET_CFG', 'reuse_arch_160b': False, 'reuse_subsys_56b': False,
+              'copied_arch_probe': False, 'copied_subsys_probe': False, 'prior_subsys_probe': False,
+              'prior_arch_probe': False, 'prior_core_probe': False, 'prior_postcore_probe': False,
+              'paciasp_preserved': True, 'cntpct_elapsed': True, 'prel32_target_unchanged': True,
+              'fixed_iteration_delay': False, 'rootfs_has_separate_runtime_pass': False,
+              'rootfs_included_in_level5': True, 'first_device_entry_implies_fs_complete': True,
+              'rootfs_start_is_marker_only': True, 'rewrite_initcall_table': False,
+              'treat_rootfs_marker_as_callable': False,
+              'literal_delta': 'EXACT_OR_INDEPENDENTLY_PROVEN', 'pair_diff': 'DELAY_CONSTANT_ONLY',
+              'timer': 'CNTPCT', 'psci_fid': '0x84000009', 'timer_algorithm_changed': False,
+              'prior_pure_probe': False, 'prior_console_probe': False,
+              'rt_d_sha256': '4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327',
+              'init_changed': False, 'private_pack': False, 'device_operation': False,
+              'known_reached_target': 'create_debug_debugfs_entry',
+              'force_trampoline_despite_inline_fit': True, 'probe_architecture': 'ENTRY_TRAMPOLINE',
+              'diagnostic_core_size': 52, 'island_size': 52, 'island_kind': 'RESERVED_EFI_HOLE',
+              'island_offset': 0xffcc, 'direct_b': True, 'veneer': False, 'stub_branch': 'B',
+              'live_tramp_overlap': False, 'live_tramp_intact': True,
+              'prel32_retarget_to_island': False, 'sixty_byte_inline_rejected': True,
+          }
+          checkpoint.gate_fs_trampoline_control_design(control_design)
+          observe.validate_control_geometry(8)
+          (Path('control-pair')/'pair.json').write_text(json.dumps({
+              'source_commit': os.environ['GITHUB_SHA'], 'public_run': os.environ['GITHUB_RUN_ID'],
+              'control8_payload_sha256': hashlib.sha256(cp8).hexdigest(),
+              'control1_payload_sha256': hashlib.sha256(cp1).hexdigest(),
+              'changed_offsets': changed, 'attribution': 'DELAY_CONSTANT_ONLY',
+              'probe_architecture': 'ENTRY_TRAMPOLINE', 'island_offset': island,
+              'target_symbol': c8['target_symbol'], 'private_pack': False, 'device_operation': False,
+          }, indent=2) + '\n')
+
+          m8, m1, mp8, mp1 = load(Path('mid-pair'))
+          assert m8['initcall_boundary']['span_index'] == 26
+          assert m8['target_symbol'] == observe.MID_TABLE['symbol'] == 'proc_meminfo_init'
+          assert int(m8['target_va'], 16) == observe.MID_TABLE['va']
+          assert m8['offset'] == observe.MID_TABLE['offset']
+          mid_changed = gate_pair(m8, m1, mp8, mp1, 'fs_midpoint', 'proc_meminfo_init')
+          arch = m8['probe_architecture']
+          mid_design = dict(control_design,
+                            checkpoint_point='FS_LEVEL_RUNTIME_MIDPOINT_ENTRY',
+                            boundary=m8['initcall_boundary']['boundary_symbol'],
+                            target_derivation='RUNTIME_TABLE_MIDPOINT_INDEX',
+                            midpoint_index=26, entry_count=53, name_guess=False,
+                            function_size=m8['target_function_size'],
+                            probe_architecture=arch)
+          if arch == 'ENTRY_TRAMPOLINE':
+              assert m8['island_offset'] == 0xffcc
+              mid_design.update(probe_size=8, diagnostic_core_size=52, island_size=52,
+                                island_kind='RESERVED_EFI_HOLE', island_offset=0xffcc,
+                                direct_b=True, veneer=False, stub_branch='B',
+                                live_tramp_overlap=False, live_tramp_intact=True,
+                                prel32_retarget_to_island=False, sixty_byte_inline_rejected=True)
+          else:
+              mid_design['probe_size'] = m8['checkpoint_size']
+              mid_design['diagnostic_core_size'] = m8['core_size']
+              mid_design['sixty_byte_inline_rejected'] = bool(m8.get('sixty_byte_inline_rejected'))
+              mid_design.pop('island_offset', None)
+          checkpoint.gate_fs_midpoint_design(mid_design)
+          observe.validate_mid_table()
+          (Path('mid-pair')/'pair.json').write_text(json.dumps({
+              'source_commit': os.environ['GITHUB_SHA'], 'public_run': os.environ['GITHUB_RUN_ID'],
+              'mid8_payload_sha256': hashlib.sha256(mp8).hexdigest(),
+              'mid1_payload_sha256': hashlib.sha256(mp1).hexdigest(),
+              'changed_offsets': mid_changed, 'attribution': 'DELAY_CONSTANT_ONLY',
+              'probe_architecture': arch, 'midpoint_index': 26,
+              'target_symbol': m8['target_symbol'], 'function_size': m8['target_function_size'],
+              'private_pack': False, 'device_operation': False,
+          }, indent=2) + '\n')
+          print(f"CONTROL8_PAYLOAD_SHA={hashlib.sha256(cp8).hexdigest()}")
+          print(f"CONTROL1_PAYLOAD_SHA={hashlib.sha256(cp1).hexdigest()}")
+          print(f"MID8_PAYLOAD_SHA={hashlib.sha256(mp8).hexdigest()}")
+          print(f"MID1_PAYLOAD_SHA={hashlib.sha256(mp1).hexdigest()}")
+          print(f"MID_INDEX=26")
+          print(f"MID_SYMBOL={m8['target_symbol']}")
+          print(f"MID_TARGET_VA={m8['target_va']}")
+          print(f"MID_FUNCTION_SIZE={m8['target_function_size']}")
+          print(f"MID_PROBE_ARCHITECTURE={arch}")
+          print('CONTROL_PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY')
+          print('MID_PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY')
+          print('CONTROL_PREL32_UNCHANGED=YES')
+          print('MID_PREL32_UNCHANGED=YES')
+          print('FIX8_TRAMPOLINE_IDENTICAL=YES')
+          print('STATIC_DESIGN_DEFECT=NO')
+          print('FS_CONTROL_PAIR_PUBLIC_READY=YES')
+          print('FS_MIDPOINT_PAIR_PUBLIC_READY=YES')
+          print('PRIVATE_PACK=NO')
+          print('DEVICE_OPERATION=NO')
+          PY
+          (cd control-pair && sha256sum 8/checkpoint/payload.bin 1/checkpoint/payload.bin pair.json > SHA256SUMS)
+          (cd mid-pair && sha256sum 8/checkpoint/payload.bin 1/checkpoint/payload.bin pair.json > SHA256SUMS)
+      - name: Assert public payload-only scope
+        run: |
+          set -euo pipefail
+          if find control-pair mid-pair -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          printf '%s\n' 'PRIVATE_PACK=NO' 'DEVICE_OPERATION=NO' 'SLOT_A_WRITTEN=NO' 'LOCAL_BUILD=NO'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-fs-isolation-audit
+          path: |
+            isolation-pair-gates.txt
+            control-pair/*/checkpoint/manifest.json
+            control-pair/*/checkpoint/island-audit.json
+            control-pair/*/checkpoint/target-entry-audit.json
+            mid-pair/*/checkpoint/manifest.json
+            mid-pair/*/checkpoint/island-audit.json
+            mid-pair/*/checkpoint/target-entry-audit.json
+            mid-pair/*/checkpoint/original-function.txt
+            fs_trampoline_control-8.log
+            fs_trampoline_control-1.log
+            fs_midpoint-8.log
+            fs_midpoint-1.log
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-control-pair
+          path: control-pair/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-midpoint-pair
+          path: mid-pair/
+          if-no-files-found: error
+
+  independent-reverify:
+    needs: compose-pairs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Download pairs and frozen payload independently
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" -n thyme-fs-control-pair -D control-pair
+          gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" -n thyme-fs-midpoint-pair -D mid-pair
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          (cd control-pair && sha256sum -c SHA256SUMS)
+          (cd mid-pair && sha256sum -c SHA256SUMS)
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independent CONTROL and MID pair reverify
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY' | tee isolation-independent-reverify.txt
+          import hashlib, json, struct
+          from pathlib import Path
+          frozen = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          tramp = '362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623'
+
+          def check(root, symbol, target):
+              m8 = json.loads((root/'8/checkpoint/manifest.json').read_text())
+              m1 = json.loads((root/'1/checkpoint/manifest.json').read_text())
+              p8 = (root/'8/checkpoint/payload.bin').read_bytes()
+              p1 = (root/'1/checkpoint/payload.bin').read_bytes()
+              pair = json.loads((root/'pair.json').read_text())
+              assert m8['symbol'] == symbol and m8['target_symbol'] == target
+              assert hashlib.sha256(p8[0x40:0x70]).hexdigest() == tramp
+              changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
+              assert changed == pair['changed_offsets'] == m1['pair_changed_offsets']
+              assert pair['attribution'] == 'DELAY_CONSTANT_ONLY'
+              prel = m8['initcall_boundary']['entry_image_offset']
+              assert p8[prel:prel+4] == frozen[prel:prel+4]
+              assert pair['private_pack'] is False and pair['device_operation'] is False
+              return m8, p8, p1
+
+          c8, cp8, cp1 = check(Path('control-pair'), 'fs_trampoline_control', 'create_debug_debugfs_entry')
+          assert c8['probe_architecture'] == 'ENTRY_TRAMPOLINE' and c8['island_offset'] == 0xffcc
+          assert c8['offset'] == 0x149e0
+          m8, mp8, mp1 = check(Path('mid-pair'), 'fs_midpoint', 'proc_meminfo_init')
+          assert m8['initcall_boundary']['span_index'] == 26
+          print('CONTROL_PAIR_STATIC_REVERIFY=PASS')
+          print('MID_PAIR_STATIC_REVERIFY=PASS')
+          print('FS_ISOLATION_STATIC_REVERIFY=PASS')
+          print(f"MID_PROBE_ARCHITECTURE={m8['probe_architecture']}")
+          print(f"MID_FUNCTION_SIZE={m8['target_function_size']}")
+          print('READY_FOR_FS_ISOLATION_PRIVATE_GATE=YES')
+          print('DEVICE_OPERATION=NO')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-isolation-independent-reverify
+          path: isolation-independent-reverify.txt
+          if-no-files-found: error

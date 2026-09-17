@@ -306,6 +306,22 @@ class SafetyTests(unittest.TestCase):
         self.assertTrue(geo["live_tramp_untouched"])
         self.assertTrue(geo["direct_b"])
 
+    def test_fs_isolation_control_geometry_and_mid_table(self):
+        observe.validate_control_geometry(8)
+        with self.assertRaisesRegex(ValueError, "CONTROL_56B_INLINE_REJECTED"):
+            observe.validate_control_geometry(56)
+        geo = observe.CONTROL_GEOMETRY
+        self.assertEqual(geo["target"], "create_debug_debugfs_entry")
+        self.assertEqual(geo["offset"], 0x149E0)
+        self.assertEqual(geo["function_size"], 56)
+        self.assertEqual(geo["architecture"], "ENTRY_TRAMPOLINE")
+        self.assertEqual(geo["island_offset"], 0xFFCC)
+        self.assertTrue(geo["force_trampoline"])
+        observe.validate_mid_table()
+        self.assertEqual(observe.MID_TABLE["index"], 26)
+        self.assertEqual(observe.MID_TABLE["symbol"], "proc_meminfo_init")
+
+
     def test_fs_pair_proof_boundary_and_no_shift_route(self):
         baseline = {**self.record("fs8", 35.0),
                     "bootloader_origin": observe.REST_ORIGIN}

@@ -35,15 +35,19 @@ INITCALL_BOUNDARIES = {"pure_complete": "__initcall1_start",
                        "postcore_complete": "__initcall3_start",
                        "arch_complete": "__initcall4_start",
                        "subsys_complete": "__initcall5_start",
-                       "fs_complete": "__initcall6_start"}
+                       "fs_complete": "__initcall6_start",
+                       "fs_trampoline_control": "__initcall5_start",
+                       "fs_midpoint": "__initcall5_start"}
 INITCALL_MACROS = {"pure_complete": "core_initcall", "core_complete": "postcore_initcall",
                    "postcore_complete": "arch_initcall", "arch_complete": "subsys_initcall",
-                   "subsys_complete": "fs_initcall", "fs_complete": "device_initcall"}
+                   "subsys_complete": "fs_initcall", "fs_complete": "device_initcall",
+                   "fs_trampoline_control": "fs_initcall", "fs_midpoint": "fs_initcall"}
 INITCALL_SOURCE_PREFIX = {"postcore_complete": "arch/arm64/", "arch_complete": "arch/arm64/"}
 ULTRACOMPACT_SYMBOLS = frozenset({"core_complete", "postcore_complete", "arch_complete"})
 SUBSYS52_SYMBOLS = frozenset({"subsys_complete"})
 EXPANDED_WINDOWS = {"do_initcalls": 96, "arch_complete": 160}
-CFG_DERIVED_WINDOWS = frozenset({"subsys_complete", "fs_complete"})
+CFG_DERIVED_WINDOWS = frozenset({"subsys_complete", "fs_complete", "fs_trampoline_control",
+                                "fs_midpoint"})
 FROZEN_FIRST_FS_SYMBOL = "create_debug_debugfs_entry"
 FROZEN_FIRST_FS_VA = 0xffff8000800149e0
 FS_SPAN_TYPES = frozenset({"fs_initcall", "fs_initcall_sync"})
@@ -63,6 +67,9 @@ SUBSYS52_WORDS = ULTRACOMPACT_WORDS[1:]
 RESERVED_EFI_HOLE = (0x40, 0x10000)
 FS_STUB_SIZE = 8
 FS_ISLAND_SIZE = 52
+FROZEN_FS_ISLAND_OFFSET = 0xffcc
+FROZEN_FS_SPAN_COUNT = 53
+FS_SPAN_SYMBOLS = frozenset({"fs_complete", "fs_trampoline_control", "fs_midpoint"})
 LIVE_TRAMP_END = t3.TRAMP_OFFSET + t3.TRAMP_SIZE
 B_OP = 0x14000000
 B_OP_MASK = 0xFC000000
@@ -71,7 +78,8 @@ INITCALL_BOUNDARY_SYMBOLS = ("__initcall1_start", "__initcall2_start", "__initca
                              "__initcall4_start", "__initcall5_start")
 INITCALL_TARGET_LABELS = {"pure_complete": "FIRST_CORE", "core_complete": "FIRST_POSTCORE",
                           "postcore_complete": "FIRST_ARCH", "arch_complete": "FIRST_SUBSYS",
-                          "subsys_complete": "FIRST_FS", "fs_complete": "FIRST_DEVICE"}
+                          "subsys_complete": "FIRST_FS", "fs_complete": "FIRST_DEVICE",
+                          "fs_trampoline_control": "CONTROL_FIRST_FS", "fs_midpoint": "FS_MIDPOINT"}
 PROOF_BOUNDARIES = {
     "rest_init": ("rest_init entry and preceding normal start_kernel path",
                   "rest_init body, scheduler, SMP or /init"),
@@ -99,6 +107,10 @@ PROOF_BOUNDARIES = {
                         "the first fs initcall body, fs completion, later levels, console or /init"),
     "fs_complete": ("all fs and rootfs initcalls completed and the first device initcall entry was reached",
                     "the first device initcall body, device completion, later levels, console or /init"),
+    "fs_trampoline_control": ("the already-proven first fs initcall entry was reached through the frozen trampoline/island",
+                             "first-device entry, fs-level completion, later levels, console or /init"),
+    "fs_midpoint": ("the selected fs-level midpoint initcall entry was reached",
+                    "later fs initcalls, first-device entry, later levels, console or /init"),
 }
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
 
@@ -222,6 +234,114 @@ def select_fs_complete_core(function_size, proven56, proven52):
     if function_size >= FS_STUB_SIZE:
         return proven52, "ENTRY_TRAMPOLINE", True
     raise ValueError("FS_COMPLETE_TARGET_TOO_SMALL")
+
+def select_fs_midpoint_index(entries):
+    require(len(entries) == FROZEN_FS_SPAN_COUNT, "FS_SPAN_COUNT_DRIFT")
+    index = len(entries) // 2
+    require(0 < index < len(entries) - 1, "FS_MIDPOINT_NOT_INTERIOR")
+    return index
+
+
+def span_entry_as_boundary(entry):
+    return {"boundary_symbol": f"__initcall5_index_{entry['index']}", "entry_va": entry["entry_va"],
+            "entry_image_offset": entry["entry_image_offset"], "entry_section": ".init.data",
+            "entry_size": 4, "entry_encoding": "PREL32", "relative": entry["relative"],
+            "entry_word": entry["entry_word"], "target_va": entry["target_va"],
+            "target_aliases": entry["aliases"], "table_entries_checked": FROZEN_FS_SPAN_COUNT,
+            "span_index": entry["index"]}
+
+
+def _isolation_design_base(checkpoint_point, boundary):
+    return {"checkpoint_point": checkpoint_point, "boundary": boundary,
+            "target_derivation": "TABLE_ENTRY_DECODE", "entry_encoding": "PREL32",
+            "cross_function_overwrite": False, "function_range_safe": True,
+            "incoming_interior_branches": 0, "backedge_conflict": False,
+            "runtime_rewrite_conflict": False, "cfg_closure_proven": True,
+            "window_derivation": "TARGET_CFG", "reuse_arch_160b": False, "reuse_subsys_56b": False,
+            "copied_arch_probe": False, "copied_subsys_probe": False, "prior_subsys_probe": False,
+            "prior_arch_probe": False, "prior_core_probe": False, "prior_postcore_probe": False,
+            "paciasp_preserved": True, "cntpct_elapsed": True, "prel32_target_unchanged": True,
+            "fixed_iteration_delay": False, "rootfs_has_separate_runtime_pass": False,
+            "rootfs_included_in_level5": True, "first_device_entry_implies_fs_complete": True,
+            "rootfs_start_is_marker_only": True, "rewrite_initcall_table": False,
+            "treat_rootfs_marker_as_callable": False,
+            "literal_delta": "EXACT_OR_INDEPENDENTLY_PROVEN", "pair_diff": "DELAY_CONSTANT_ONLY",
+            "timer": "CNTPCT", "psci_fid": "0x84000009", "timer_algorithm_changed": False,
+            "prior_pure_probe": False, "prior_console_probe": False,
+            "rt_d_sha256": "4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327",
+            "init_changed": False, "private_pack": False, "device_operation": False}
+
+
+def gate_fs_trampoline_control_design(design):
+    expected = _isolation_design_base("KNOWN_REACHED_FIRST_FS_ENTRY_TRAMPOLINE_CONTROL",
+                                      "__initcall5_start")
+    expected.update({"known_reached_target": FROZEN_FIRST_FS_SYMBOL,
+                     "force_trampoline_despite_inline_fit": True,
+                     "probe_architecture": "ENTRY_TRAMPOLINE", "diagnostic_core_size": 52,
+                     "probe_size": 8, "island_size": 52, "island_kind": "RESERVED_EFI_HOLE",
+                     "island_offset": FROZEN_FS_ISLAND_OFFSET, "direct_b": True, "veneer": False,
+                     "stub_branch": "B", "live_tramp_overlap": False, "live_tramp_intact": True,
+                     "prel32_retarget_to_island": False, "sixty_byte_inline_rejected": True})
+    for key, value in expected.items():
+        require(design.get(key) == value, f"FS_CONTROL_DESIGN_REJECTED:{key}")
+    require(design.get("function_size", 0) >= FS_STUB_SIZE, "FS_CONTROL_DESIGN_REJECTED:function_size")
+
+
+def gate_fs_midpoint_design(design):
+    expected = _isolation_design_base("FS_LEVEL_RUNTIME_MIDPOINT_ENTRY",
+                                      design.get("boundary"))
+    expected.update({"target_derivation": "RUNTIME_TABLE_MIDPOINT_INDEX",
+                     "midpoint_index": 26, "entry_count": FROZEN_FS_SPAN_COUNT,
+                     "name_guess": False})
+    for key, value in expected.items():
+        require(design.get(key) == value, f"FS_MIDPOINT_DESIGN_REJECTED:{key}")
+    arch = design.get("probe_architecture")
+    require(arch in ("INLINE_PACIASP_PLUS_56B_ULTRACOMPACT", "INLINE_PACIASP_PLUS_52B_NO_DAIFSET",
+                     "ENTRY_TRAMPOLINE"), "FS_MIDPOINT_DESIGN_REJECTED:probe_architecture")
+    require(design.get("function_size", 0) >= design.get("probe_size", 1),
+            "FS_MIDPOINT_DESIGN_REJECTED:function_shorter_than_probe")
+    if arch == "ENTRY_TRAMPOLINE":
+        require(design.get("island_offset") == FROZEN_FS_ISLAND_OFFSET,
+                "FS_MIDPOINT_DESIGN_REJECTED:island_offset")
+        require(design.get("direct_b") is True and design.get("veneer") is False,
+                "FS_MIDPOINT_DESIGN_REJECTED:branch")
+
+
+def forensic_failed_fs_pair(p8, p1, frozen):
+    stub, island, prel = 0x1b347b8, FROZEN_FS_ISLAND_OFFSET, 0x1d0b1a8
+    tramp = "362d9c6e08863f79327364532372c6ecc9086e6211635e7fa4a6db4d747dc623"
+    require(len(p8) == len(p1) == len(frozen), "FS_FORENSIC_SIZE_DRIFT")
+    require(digest(p8) == "1a4da6f924ec09f58bb37edb8bb41d74e9e138b91c9b5c69a4479035da6718ee",
+            "FS8_PAYLOAD_SHA_DRIFT")
+    require(digest(p1) == "e36d4a18d78bdabbcb209e87472a3240bdbc93d3a5b55cd88f182d295aa75e49",
+            "FS1_PAYLOAD_SHA_DRIFT")
+    b_word = encode_b(0xffff800081b347bc, 0xffff80008000ffcc)
+    require(b_word == 0x17936e04, "FS_FORENSIC_B_MISMATCH")
+    require(struct.unpack_from("<I", p8, stub)[0] == struct.unpack_from("<I", p1, stub)[0] == 0xD503233F,
+            "FS_FORENSIC_PACIASP")
+    require(struct.unpack_from("<I", p8, stub + 4)[0] == struct.unpack_from("<I", p1, stub + 4)[0] == b_word,
+            "FS_FORENSIC_STUB_B")
+    w8, w1 = struct.unpack_from("<13I", p8, island), struct.unpack_from("<13I", p1, island)
+    require(w8[0] == w1[0] == 0xD53BE009 and w8[1] == 0xD37DF12A and w1[1] == 0xD340FD2A,
+            "FS_FORENSIC_DELAY")
+    require(w8[10] == w1[10] == 0xD4000003 and w8[11] == w1[11] == 0xD503205F
+            and w8[12] == w1[12] == 0x17FFFFFF, "FS_FORENSIC_PSCI_WFE")
+    require(all(w8[i] == w1[i] for i in range(13) if i != 1), "FS_FORENSIC_CORE_DRIFT")
+    require([i for i, (a, b) in enumerate(zip(p8, p1)) if a != b] == [island + 5, island + 6],
+            "FS_FORENSIC_PAIR_NOT_DELAY_ONLY")
+    require(p8[prel:prel + 4] == p1[prel:prel + 4] == frozen[prel:prel + 4], "FS_FORENSIC_PREL32")
+    require(struct.unpack_from("<I", frozen, prel)[0] == 0xffe29610, "FS_FORENSIC_PREL32_WORD")
+    require(digest(p8[0x40:0x70]) == digest(p1[0x40:0x70]) == tramp, "FS_FORENSIC_LIVE_TRAMP")
+    require(p8[stub + 8:stub + 48] == frozen[stub + 8:stub + 48], "FS_FORENSIC_REMAINDER")
+    for payload in (p8, p1):
+        diffs = [i for i, (a, b) in enumerate(zip(frozen, payload)) if a != b]
+        require(all((stub + 4 <= i < stub + 8) or (island <= i < island + 52) for i in diffs),
+                "FS_FORENSIC_DIFF_OUTSIDE_WINDOWS")
+    return {"b_encoding": "PASS", "pac_entry": "PASS", "island_identity": "PASS",
+            "live_tramp": "PASS", "prel32": "PASS", "pair_delay_only": "PASS",
+            "static_design_defect": "NO",
+            "head_text_runtime_rx": "HYPOTHESIS_UNPROVEN"}
+
 
 
 def compact_core(core):
@@ -609,7 +729,8 @@ def write_fs_not_ready(out, reason, extra):
     print("FS_SELECTED_PROBE_ARCHITECTURE=NONE", flush=True)
     print("BOUNDARY_PROVEN=YES", flush=True)
     print("PROBE_GEOMETRY_OR_ISLAND_BLOCKED=YES", flush=True)
-    print("R3_SLOT_B_FS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY", flush=True)
+    print(extra.get("not_ready_gate", "R3_SLOT_B_FS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY"),
+          flush=True)
 
 
 def compose_fs_trampoline(args, out, frozen, image, vmlinux, sections, nm, text_va, ranges,
@@ -627,10 +748,16 @@ def compose_fs_trampoline(args, out, frozen, image, vmlinux, sections, nm, text_
              "target_va": hex(target_va), "image_offset": hex(offset), "function_size": function_size,
              "initcall_source": initcall_source, "initcall_registration": initcall_registration,
              "initcall_boundary": initcall_boundary, "fs_runtime_span": fs_span,
-             "probe_architecture": "NONE", "min_inline_probe": 56}
+             "probe_architecture": "NONE", "min_inline_probe": 56,
+             "not_ready_gate": ("R3_SLOT_B_FS_FAILURE_ISOLATION_CI_NOT_READY"
+                                if args.symbol != "fs_complete"
+                                else "R3_SLOT_B_FS_INITCALLS_CHECKPOINT_PREDEVICE_NOT_READY")}
     sites = relocation_sites(vmlinux, sections)
     island = island_off = last_error = None
-    for island_off in iter_reserved_efi_islands(frozen, image, FS_ISLAND_SIZE, (stub_span,)):
+    island_iter = list(iter_reserved_efi_islands(frozen, image, FS_ISLAND_SIZE, (stub_span,)))
+    if args.symbol in ("fs_trampoline_control", "fs_midpoint"):
+        island_iter = [FROZEN_FS_ISLAND_OFFSET]
+    for island_off in island_iter:
         try:
             island = prove_fs_island(frozen, image, vmlinux, sections, nm, text_va, ranges, sites,
                                      island_off, FS_ISLAND_SIZE, stub_span)
@@ -641,10 +768,11 @@ def compose_fs_trampoline(args, out, frozen, image, vmlinux, sections, nm, text_
             island = None
     if island is None:
         extra["island_error"] = str(last_error or "FS_ISLAND_NO_CANDIDATE")
-        extra["island_candidates"] = sum(1 for _ in iter_reserved_efi_islands(
-            frozen, image, FS_ISLAND_SIZE, (stub_span,)))
+        extra["island_candidates"] = len(island_iter)
         write_fs_not_ready(out, "FS_ISLAND_BLOCKED", extra)
         return
+    if args.symbol in ("fs_trampoline_control", "fs_midpoint"):
+        require(island_off == FROZEN_FS_ISLAND_OFFSET, "FS_ISLAND_NOT_PINNED")
     island_va = text_va + island_off
     b_word = encode_b(target_va + 4, island_va)
     stub = frozen[offset:offset + 4] + struct.pack("<I", b_word)
@@ -777,6 +905,11 @@ def compose_fs_trampoline(args, out, frozen, image, vmlinux, sections, nm, text_
           "FIX8_TRAMPOLINE_IDENTICAL=YES\nFS_DIRECT_B=YES\nFS_ISLAND_KIND=RESERVED_EFI_HOLE\n"
           f"FS_ISLAND_OFFSET={island_off:#x}\nFS_B_WORD={b_word:#x}\n"
           "DEVICE_OPERATION=NO\nLOCAL_BUILD=NO", flush=True)
+    if args.symbol != "fs_complete":
+        print(f"{args.symbol.upper()}_TARGET={target_symbol}", flush=True)
+        print("PREL32_TARGET_UNCHANGED=YES", flush=True)
+        print(f"FS_ISLAND_PINNED={'YES' if island_off == FROZEN_FS_ISLAND_OFFSET else 'NO'}",
+              flush=True)
 
 
 def build_bundle(out):
@@ -1112,7 +1245,7 @@ def compose(args, bundle):
         proven56 = ultracompact_core(args.ultracompact_core.read_bytes())
         core = subsys52_core(args.subsys52_core.read_bytes())
         gate_subsys52_core_equivalence(proven56, core)
-    elif args.symbol == "fs_complete":
+    elif args.symbol in FS_SPAN_SYMBOLS:
         require(args.subsys52_core is not None and args.ultracompact_core is not None,
                 "FS_COMPLETE_CORES_REQUIRED")
         proven56 = ultracompact_core(args.ultracompact_core.read_bytes())
@@ -1127,7 +1260,7 @@ def compose(args, bundle):
         require(args.compact_core is not None and args.compact_core.read_bytes() == core,
                 "COMPACT_CORE_ASSEMBLY_MISMATCH")
     reference_core = core
-    if args.symbol != "fs_complete":
+    if args.symbol not in FS_SPAN_SYMBOLS:
         core = delay_core(core, args.delay)
     image = (bundle / "Image").read_bytes()
     require(len(image) == t3.FIX8_IMAGE_FILE_SIZE, "AUDIT_IMAGE_SIZE_DRIFT")
@@ -1144,7 +1277,7 @@ def compose(args, bundle):
             for extra in (source_audit["fs_next_linker_boundary"], source_audit["fs_level_boundary"]):
                 if extra not in boundary_names:
                     boundary_names.append(extra)
-        elif args.symbol == "fs_complete":
+        elif args.symbol in FS_SPAN_SYMBOLS:
             for extra in (source_audit["rootfs_start_symbol"], source_audit["fs_level_boundary"],
                           source_audit["device_level_boundary"]):
                 if extra not in boundary_names:
@@ -1159,7 +1292,7 @@ def compose(args, bundle):
             va_end = initcall_boundaries[source_audit["fs_level_boundary"]]["entry_va"]
             require(va4 < va5 < va_next <= va_end, "FS_LEVEL_LINKER_ORDER_MISMATCH")
         fs_span = probe_architecture = sixty_byte_inline_rejected = None
-        if args.symbol == "fs_complete":
+        if args.symbol in FS_SPAN_SYMBOLS:
             require(source_audit["first_device_entry_implies_fs_complete"]
                     and source_audit["rootfs_included_in_level5_traversal"]
                     and not source_audit["rootfs_has_separate_runtime_pass"],
@@ -1199,6 +1332,21 @@ def compose(args, bundle):
                  "begin": fs_span["begin"], "rootfs_start": fs_span["rootfs_start"], "end": fs_span["end"],
                  "rootfs_symbols": [entry["symbol"] for entry in rootfs_entries]},
                 sort_keys=True), flush=True)
+            require(len(classified) == FROZEN_FS_SPAN_COUNT, "FS_SPAN_COUNT_DRIFT")
+            if args.symbol == "fs_midpoint":
+                mid_index = select_fs_midpoint_index(classified)
+                mid = classified[mid_index]
+                require(sum(1 for entry in classified if entry["target_va"] == mid["target_va"]) == 1,
+                        "MIDPOINT_TARGET_NOT_UNIQUE")
+                initcall_boundary = span_entry_as_boundary(mid)
+                initcall_source = mid["source"]
+                initcall_registration = mid["registration"]
+                print(f"FS_MIDPOINT_INDEX={mid_index}", flush=True)
+                print(f"FS_MIDPOINT_SYMBOL={mid['symbol']}", flush=True)
+                print(f"FS_MIDPOINT_REGISTRATION={mid['registration']}", flush=True)
+            elif args.symbol == "fs_trampoline_control":
+                initcall_source = classified[0]["source"]
+                initcall_registration = classified[0]["registration"]
         target_va = initcall_boundary["target_va"]
         target_symbol = initcall_boundary["target_aliases"][0]
         next_va = min(va for va, _ in t3.symbol_table(nm) if va > target_va)
@@ -1248,6 +1396,34 @@ def compose(args, bundle):
             reference_core, probe_architecture, sixty_byte_inline_rejected = select_fs_complete_core(
                 function_size, proven56, proven52)
             core = delay_core(reference_core, args.delay)
+        elif args.symbol in ("fs_trampoline_control", "fs_midpoint"):
+            if args.symbol == "fs_trampoline_control":
+                require(FROZEN_FIRST_FS_SYMBOL in initcall_boundary["target_aliases"]
+                        and target_va == FROZEN_FIRST_FS_VA, "CONTROL_TARGET_NOT_FIRST_FS")
+            function_size = extent - target_va
+            print(f"{INITCALL_TARGET_LABELS[args.symbol]}_FUNCTION_SIZE={function_size}", flush=True)
+            print(f"{INITCALL_TARGET_LABELS[args.symbol]}_SOURCE={initcall_source}", flush=True)
+            print(f"{INITCALL_TARGET_LABELS[args.symbol]}_REGISTRATION={initcall_registration}",
+                  flush=True)
+            if function_size < FS_STUB_SIZE:
+                write_fs_not_ready(out, "FS_ISOLATION_TARGET_TOO_SMALL", {
+                    "target_symbol": target_symbol, "target_aliases": initcall_boundary["target_aliases"],
+                    "target_va": hex(target_va), "image_offset": hex(target_va - text_va),
+                    "function_size": function_size, "min_inline_probe": 56,
+                    "initcall_source": initcall_source, "initcall_registration": initcall_registration,
+                    "initcall_boundary": initcall_boundary, "fs_runtime_span": fs_span,
+                    "probe_architecture": "NONE",
+                    "not_ready_gate": "R3_SLOT_B_FS_FAILURE_ISOLATION_CI_NOT_READY",
+                })
+                return
+            if args.symbol == "fs_trampoline_control":
+                reference_core, probe_architecture, sixty_byte_inline_rejected = (
+                    proven52, "ENTRY_TRAMPOLINE", True)
+            else:
+                reference_core, probe_architecture, sixty_byte_inline_rejected = select_fs_complete_core(
+                    function_size, proven56, proven52)
+            core = delay_core(reference_core, args.delay)
+            print(f"FS_SELECTED_PROBE_ARCHITECTURE={probe_architecture}", flush=True)
         else:
             initcall_source = find_initcall_source(
                 pb.LINUX, initcall_boundary["target_aliases"],
@@ -1292,7 +1468,7 @@ def compose(args, bundle):
     function_dump = pb.run([TOOLS["objdump"], "-dr", f"--start-address={target_va:#x}",
                             f"--stop-address={extent:#x}", str(vmlinux)])
     (out / "original-function.txt").write_text(function_dump)
-    if args.symbol == "fs_complete" and probe_architecture == "ENTRY_TRAMPOLINE":
+    if args.symbol in FS_SPAN_SYMBOLS and probe_architecture == "ENTRY_TRAMPOLINE":
         compose_fs_trampoline(
             args, out, frozen, image, vmlinux, sections, nm, text_va, ranges, target_va, extent,
             offset, core, reference_core, pad, cfg, initcall_boundary, initcall_boundaries,
@@ -1318,7 +1494,7 @@ def compose(args, bundle):
                             (target_va, extent), (target_va, target_va + length))
     if args.symbol in CFG_DERIVED_WINDOWS:
         cfg_report = cfg_closure_report(target_va, extent - target_va, length, topology)
-        tag = "FS" if args.symbol == "fs_complete" else "SUBSYS"
+        tag = "FS" if args.symbol in FS_SPAN_SYMBOLS else "SUBSYS"
         require(cfg_report["cfg_closure_proven"], f"{tag}_CFG_CLOSURE_NOT_PROVEN")
     target_section = next(s for s in sections if s["vma"] <= target_va < s["vma"] + s["size"])
     entry_words = [hex(struct.unpack_from("<I", frozen, offset + i)[0])
@@ -1404,7 +1580,7 @@ def compose(args, bundle):
                     == t3.nm_symbol(nm, "debugfs_create_bool"),
                     "SUBSYS_FS_LITERAL_CALL_TARGET_MISMATCH")
             agreement["verdict"] = "SUBSYS_FS_NAME_LITERAL_ADDRESS_DELTA_VERIFIED"
-        elif differences and args.symbol == "fs_complete":
+        elif differences and args.symbol in FS_SPAN_SYMBOLS:
             agreement["fs_layout_literal_refs"] = prove_fs_complete_window_literals(
                 image, frozen, text_va, offset, length)
             agreement["verdict"] = "FS_COMPLETE_LAYOUT_LITERAL_ADDRESS_DELTA_VERIFIED"
@@ -1510,7 +1686,7 @@ def compose(args, bundle):
               "SUBSYS_SELECTED_PROBE_ARCHITECTURE=INLINE_56B_TOTAL\n"
               "SUBSYS_INLINE_FUNCTION_RANGE_SAFE=YES\nFIRST_FS_PREL32_TARGET_UNCHANGED=YES",
               flush=True)
-    elif args.symbol == "fs_complete":
+    elif args.symbol in FS_SPAN_SYMBOLS:
         require(4 + len(core) <= length <= extent - target_va, "FS_COMPLETE_WINDOW_OUT_OF_FUNCTION")
         require(pad.startswith("paciasp"), "FS_COMPLETE_ENTRY_NOT_PACIASP")
         print("FS_CHECKPOINT_SOURCE_AUDIT=PASS\nFS_CHECKPOINT_BINARY_AUDIT=PASS\n"
@@ -1521,6 +1697,7 @@ def compose(args, bundle):
               "FS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=YES\nFS_CFG_CLOSURE_PROVEN=YES\n"
               "FS_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES\nFS_ALL_PRIOR_STAGE_PROBES_REMOVED=YES",
               flush=True)
+        print(f"FS_SELECTED_PROBE_ARCHITECTURE={probe_architecture}", flush=True)
     print(f"{args.symbol.upper()}_INLINE_AUDIT=PASS\nDEVICE_OPERATION=NO\nLOCAL_BUILD=NO", flush=True)
 
 
