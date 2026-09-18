@@ -389,6 +389,19 @@ Default `initramfs_async=true` (RT-D bootargs have no `initramfs_async=`), so
 `POPULATE_ROOTFS_ENTRY=PROVEN`, `FS_INITCALLS_COMPLETED=NOT_PROVEN`,
 `FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`. Final gate of this round:
 `R3_SLOT_B_POPULATE_ROOTFS_RETURN_ISOLATION_NOT_READY`. No device, Slot A untouched.
+`MAINLINE_V2_R3_SLOT_B_FS_LAST_INITCALL_RETURN_GATED_PROBE` then completed CI-only at `040e167`:
+public `35343586849`, reusing bundle `35040148509` and frozen FIX8 payload
+`4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41`. The causal boundary was
+re-audited: `INIT_CALLS_LEVEL(5)` -> `(rootfs)` -> `(6)`, so `populate_rootfs` is the last of the
+53 level-5 entries and a checkpoint firing after `do_initcall_level(5)` returns would imply level-5
+completion (`LEVEL5_RETURN_IMPLIES_FS_COMPLETE=YES`). No gated inline site fits: gate plus the
+frozen 52B core needs 60B minimum, while the `do_initcall_level` loop-exit window is a shared 20B
+epilogue, the `do_initcalls` post-level window is 64B with 40B live and 0B spare, the
+`do_one_initcall` post-call tail is 104B fully live and its 68B trace block is static-key gated.
+`MIN_INLINE_FOOTPRINT=60`, `MIN_INLINE_DEFICIT_BYTES=60`. No LASTRET8/LASTRET1 pair, no private
+pack, no observer and no device boot. Runtime unchanged: `POPULATE_ROOTFS_RETURN=NOT_PROVEN`,
+`FS_INITCALLS_COMPLETED=NOT_PROVEN`, `FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`. Final gate of this
+round: `R3_SLOT_B_FS_LAST_RETURN_GATED_PROBE_NOT_READY`.
 No Linux boot success is claimed. Details: `docs/slot-b-pid1-stages.md`,
 `docs/slot-b-core-initcall-checkpoint.md`,
 `docs/slot-b-postcore-initcall-checkpoint.md`,

@@ -925,3 +925,17 @@ and shared caller-boundary rejected. No pair. Default
 First-device trampoline `SHIFT_NOT_OBSERVED` is not non-return proof.
 
 Final gate: `R3_SLOT_B_POPULATE_ROOTFS_RETURN_ISOLATION_NOT_READY`.
+
+## Last level-5 return gated inline probe
+
+CI-only. Public `35343586849` at `040e167`. `do_initcall_level(5)` returns
+only after all 53 level-5 entries returned, and `populate_rootfs` is the last
+of them (`INIT_CALLS_LEVEL(5)` -> `(rootfs)` -> `(6)`), so
+`LEVEL5_RETURN_IMPLIES_FS_COMPLETE=YES` is established statically. What is not
+available is a legal trigger site: gate plus the frozen 52B core needs 60B
+minimum, but the loop-exit window is a shared 20B epilogue, the `do_initcalls`
+post-level window is 64B with 40B live, the `do_one_initcall` post-call tail is
+104B fully live and its trace block is static-key gated. `MIN_INLINE_FOOTPRINT=60`,
+`MIN_INLINE_DEFICIT_BYTES=60`. No pair, no private pack, no device.
+
+Final gate: `R3_SLOT_B_FS_LAST_RETURN_GATED_PROBE_NOT_READY`.

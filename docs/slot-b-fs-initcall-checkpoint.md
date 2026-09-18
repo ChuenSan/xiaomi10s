@@ -494,3 +494,71 @@ Runtime unchanged:
 Final gate: `R3_SLOT_B_POPULATE_ROOTFS_RETURN_ISOLATION_NOT_READY`.
 
 Evidence: `artifacts/slot-b-fs-rootfs-return-20260918/`.
+
+## Last level-5 return gated inline probe
+
+`MAINLINE_V2_R3_SLOT_B_FS_LAST_INITCALL_RETURN_GATED_PROBE` is a CI-only
+static audit. Public GHA run `35343586849` at `040e167` reused the
+authoritative Linux 6.6.156 bundle `35040148509` and downloaded the frozen
+FIX8 payload (sha256
+`4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41`). It did
+not rebuild the kernel, pack a private boot image, access a device or write a
+partition.
+
+Causal boundary (source at `8b73de7da85fde281a385e0b26eda9bffd3ca477`):
+`INIT_CALLS_LEVEL(5)` -> `INIT_CALLS_LEVEL(rootfs)` -> `INIT_CALLS_LEVEL(6)`
+in `include/asm-generic/vmlinux.lds.h`, so the single
+`rootfs_initcall(populate_rootfs)` entry sits at the END of level 5, at table
+slot `0xffff800081d0b1a4` (`__initcall6_start - 4`), PREL32 `-1936924`
+decoding to `0xffff800081b32388`. `do_initcall_level(5)` iterates
+`[__initcall5_start, __initcall6_start)` = 53 PREL32 entries sequentially and
+returns only after `do_one_initcall` returned for all of them, last of which
+is `populate_rootfs`. So `LEVEL5_RETURN_IMPLIES_FS_COMPLETE=YES`.
+
+Gated condition audited: level == 5 AND the current initcall slot ==
+`0xffff800081d0b1a4` (or equivalently the decoded fn == `populate_rootfs`).
+Candidate inline sites and spare bytes:
+
+- `do_initcall_level` loop-exit block `0xffff800081b312fc`: 20B, the shared
+  epilogue entered by both the normal loop exit and the `b.hs` early skip at
+  `0xffff800081b312dc`; spare 0B.
+- `do_initcalls` post-level block `0xffff800081b31224`: 64B, of which 40B is
+  live on every level (loop increment + boundary check + epilogue) and 24B is
+  a cold kmalloc-failure block whose repurposing changes caller semantics;
+  spare 0B.
+- `do_one_initcall` post-`blr x19` tail `0xffff800080014458`: 104B, fully
+  live for every initcall; spare 0B.
+- `do_one_initcall` tracepoint-finish block `0xffff80008001454c`: 68B, guarded
+  by the runtime-patchable static key read at `0xffff800080014458`
+  (`cbnz w8`) and therefore neither provably dead nor uniquely bound.
+
+Probe geometry: a unique gate needs an absolute comparison
+(adrp + add + cmp + b.cond = 16B), or 8B where the level register is already
+live; the frozen, device-proven CNTPCT + PSCI `0x84000009` + WFE core is 52B.
+Minimum inline footprint is therefore 60B, and every displaced live
+instruction must be re-materialised inside the same function. No candidate
+function carries trailing padding (`do_initcalls` ends exactly at
+`0xffff800081b31264`; `do_initcall_level` exactly at `0xffff800081b31310`),
+so the tightest deficit is `MIN_INLINE_DEFICIT_BYTES=60`.
+
+Rejected: unconditional shared-caller probe, out-of-function trampoline,
+island, code cave, `PREL32` or table-order change, any change to a non-target
+iteration, loss of the loop increment or boundary check, cross-function
+overwrite, runtime rewrite / incoming-branch conflict.
+
+No 8s/1s pair was generated (`PAIR_GENERATED=NO`, `LASTRET8_GENERATED=NO`,
+`LASTRET1_GENERATED=NO`), so no public pack, no private pack, no observer and
+no device boot occurred this round. The old first-device trampoline
+`SHIFT_NOT_OBSERVED` still does not prove `populate_rootfs` non-return.
+
+Runtime unchanged:
+
+`POPULATE_ROOTFS_RETURN=NOT_PROVEN`
+
+`FS_INITCALLS_COMPLETED=NOT_PROVEN`
+
+`FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`
+
+Final gate: `R3_SLOT_B_FS_LAST_RETURN_GATED_PROBE_NOT_READY`.
+
+Evidence: `artifacts/slot-b-fs-lastinitcall-gated-20260918/`.
