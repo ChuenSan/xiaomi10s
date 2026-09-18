@@ -364,6 +364,59 @@ class SafetyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "IMAGE_IDENTITY_MISMATCH"):
                 observe.validate_identity(case, size, digest)
 
+    def test_upper_member_full_sha_gates_and_cross_rejection(self):
+        size8, sha8 = observe.IMAGES["upper8"]
+        size1, sha1 = observe.IMAGES["upper1"]
+        self.assertEqual(size8, size1)
+        self.assertNotEqual(sha8, sha1)
+        self.assertEqual(sha8, "bae4daac1fff579deaaf81707312373240a01bac7cf4a73b4abeac514d8fe9e9")
+        self.assertEqual(sha1, "e68e1786d906258f46d15b66fb70b87e72b499698dca89c337f48d038dd5aa44")
+        observe.validate_identity("upper8", size8, sha8)
+        observe.validate_identity("upper1", size1, sha1)
+        rejected = (("upper8", size8 + 1, sha8), ("upper1", size1, "0" * 64),
+                    ("upper8", size1, sha1), ("upper1", size8, sha8))
+        for old in ("mid8", "mid1", "control8", "control1", "fs8", "fs1"):
+            rejected += (("upper8", *observe.IMAGES[old]),
+                         ("upper1", *observe.IMAGES[old]))
+        for case, size, digest in rejected:
+            with self.subTest(case=case, digest=digest), \
+                    self.assertRaisesRegex(ValueError, "IMAGE_IDENTITY_MISMATCH"):
+                observe.validate_identity(case, size, digest)
+
+    def test_upper_geometry_and_table_are_frozen(self):
+        observe.validate_upper_geometry(56)
+        with self.assertRaisesRegex(ValueError, "UPPER_60B_WINDOW_REJECTED"):
+            observe.validate_upper_geometry(60)
+        observe.validate_upper_table()
+        geo = observe.UPPER_GEOMETRY
+        self.assertEqual(geo["function_size"], 184)
+        self.assertEqual(geo["core_size"], 52)
+        self.assertEqual(geo["architecture"], "INLINE_PACIASP_PLUS_52B_NO_DAIFSET")
+        self.assertTrue(geo["inline_only"])
+        self.assertTrue(geo["prel32_unchanged"])
+        table = observe.UPPER_TABLE
+        self.assertEqual(table["index"], 39)
+        self.assertEqual(table["table_va"], 0xFFFF800081D0B170)
+        self.assertEqual(table["va"], 0xFFFF800081B8CD40)
+
+    def test_upper_pair_proves_only_upper_half_entry(self):
+        baseline = {**self.record("upper8", 35.0),
+                    "bootloader_origin": observe.REST_ORIGIN}
+        strong = {**self.record("upper1", 28.0),
+                  "bootloader_origin": observe.REST_ORIGIN}
+        verdict = observe.pair_verdict(baseline, strong)
+        self.assertEqual(verdict["verdict"], "STRONG")
+        self.assertEqual(verdict["fs_upper_half_entry"], "PROVEN")
+        self.assertEqual(verdict["first_device_initcall_entry"], "NOT_PROVEN")
+        self.assertEqual(verdict["init_executed"], "NOT_PROVEN")
+        no_shift = observe.pair_verdict(
+            baseline, {**strong, "total_s": baseline["total_s"]})
+        self.assertEqual(no_shift["verdict"], "SHIFT_NOT_OBSERVED")
+        self.assertEqual(no_shift["fs_upper_half_entry"], "NOT_PROVEN")
+        self.assertEqual(no_shift["first_device_initcall_entry"], "NOT_PROVEN")
+        self.assertEqual(no_shift["upper_checkpoint_shift_not_observed"], "YES")
+        self.assertFalse(any("not_reached" in key for key in no_shift))
+
     def test_pair_delta_not_old_slot_a_absolute_timing(self):
         baseline = self.record("reset8", 50.0)
         strong = observe.pair_verdict(baseline, self.record("reset1", 43.1))

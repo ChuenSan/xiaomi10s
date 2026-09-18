@@ -42,6 +42,8 @@ IMAGES = {
     "subsys1": (37380096, "df14e7bcdf409deeeede70d7217f420091a6e9a292b0670443df50c0a0e8b9a1"),
     "fs8": (37380096, "cfc9f3f9c931126aceb47a5dcc39c12227f34eceb7ad2d9e6642088f3b7e6594"),
     "fs1": (37380096, "2377b227fd0eb4105330eec64f19843d7d64d42f994b12b999571cca6f4e3a1b"),
+    "upper8": (37380096, "bae4daac1fff579deaaf81707312373240a01bac7cf4a73b4abeac514d8fe9e9"),
+    "upper1": (37380096, "e68e1786d906258f46d15b66fb70b87e72b499698dca89c337f48d038dd5aa44"),
     "control8": (37380096, "2feff8bc1c055f5b2fade01e00c992b49277068b6a0f95d145cd31fe9a87ecc1"),
     "control1": (37380096, "4551a94079ace87062f6a51444bfdbff76982e1b34b4b65658022df9e0c6db99"),
     "mid8": (37380096, "89614d8a2d85ba53ca34d353db558fe8cbfc775740b85d3b1b899ef35bc7b4b0"),
@@ -61,6 +63,7 @@ PAIRS = {
     "arch1": ("arch8", "arch_initcalls_completed", "first_subsys_initcall_body"),
     "subsys1": ("subsys8", "subsys_initcalls_completed", "first_fs_initcall_body"),
     "fs1": ("fs8", "fs_initcalls_completed", "first_device_initcall_body"),
+    "upper1": ("upper8", "fs_upper_half_entry", "first_device_initcall_entry"),
     "control1": ("control8", "fs_trampoline_control_reached", "first_device_initcall_entry"),
     "mid1": ("mid8", "fs_midpoint_entry", "first_device_initcall_entry"),
 }
@@ -90,6 +93,18 @@ FS_GEOMETRY = {
     "island_end": 0x10000, "island_va": 0xFFFF80008000FFCC, "core_size": 52,
     "daifset": "ABSENT", "prel32_unchanged": True, "live_tramp_untouched": True,
     "direct_b": True,
+}
+UPPER_GEOMETRY = {
+    "target": "chr_dev_init", "va": 0xFFFF800081B8CD40,
+    "offset": 0x1B8CD40, "function_size": 184, "window": 56,
+    "core_size": 52, "architecture": "INLINE_PACIASP_PLUS_52B_NO_DAIFSET",
+    "entry": "paciasp", "daifset": "ABSENT", "inline_only": True,
+    "prel32_unchanged": True,
+}
+UPPER_TABLE = {
+    "index": 39, "symbol": "chr_dev_init", "va": 0xFFFF800081B8CD40,
+    "table_va": 0xFFFF800081D0B170, "offset": 0x1B8CD40,
+    "registration": "fs_initcall(chr_dev_init)", "source": "drivers/char/mem.c",
 }
 CONTROL_GEOMETRY = {
     "target": "create_debug_debugfs_entry", "va": 0xFFFF8000800149E0,
@@ -160,6 +175,35 @@ def validate_fs_geometry(window):
     require(FS_GEOMETRY["live_tramp_untouched"] is True, "FS_LIVE_TRAMP_MUTATED")
     require(FS_GEOMETRY["direct_b"] is True, "FS_NOT_DIRECT_B")
     require(FS_GEOMETRY["target"] == "register_arm64_panic_block", "FS_WRONG_TARGET")
+
+
+def validate_upper_geometry(window):
+    require(window != 60, "UPPER_60B_WINDOW_REJECTED")
+    require(window == UPPER_GEOMETRY["window"], "UPPER_WINDOW_NOT_56")
+    require(UPPER_GEOMETRY["target"] == "chr_dev_init", "UPPER_TARGET_DRIFT")
+    require(UPPER_GEOMETRY["va"] == 0xFFFF800081B8CD40, "UPPER_VA_DRIFT")
+    require(UPPER_GEOMETRY["offset"] == 0x1B8CD40, "UPPER_OFFSET_DRIFT")
+    require(UPPER_GEOMETRY["window"] <= UPPER_GEOMETRY["function_size"],
+            "UPPER_WINDOW_EXCEEDS_FUNCTION")
+    require(UPPER_GEOMETRY["function_size"] == 184, "UPPER_FUNCTION_NOT_184")
+    require(UPPER_GEOMETRY["core_size"] == 52, "UPPER_CORE_NOT_52")
+    require(UPPER_GEOMETRY["architecture"] == "INLINE_PACIASP_PLUS_52B_NO_DAIFSET",
+            "UPPER_ARCHITECTURE_DRIFT")
+    require(UPPER_GEOMETRY["entry"] == "paciasp", "UPPER_ENTRY_NOT_PACIASP")
+    require(UPPER_GEOMETRY["daifset"] == "ABSENT", "UPPER_DAIFSET_PRESENT")
+    require(UPPER_GEOMETRY["inline_only"] is True, "UPPER_NOT_INLINE_ONLY")
+    require(UPPER_GEOMETRY["prel32_unchanged"] is True, "UPPER_PREL32_CHANGED")
+
+
+def validate_upper_table():
+    require(UPPER_TABLE["index"] == 39, "UPPER_INDEX_NOT_39")
+    require(UPPER_TABLE["symbol"] == "chr_dev_init", "UPPER_SYMBOL_DRIFT")
+    require(UPPER_TABLE["table_va"] == 0xFFFF800081D0B170, "UPPER_TABLE_VA_DRIFT")
+    require(UPPER_TABLE["va"] == 0xFFFF800081B8CD40, "UPPER_TARGET_VA_DRIFT")
+    require(UPPER_TABLE["offset"] == 0x1B8CD40, "UPPER_OFFSET_DRIFT")
+    require(UPPER_TABLE["source"] == "drivers/char/mem.c", "UPPER_SOURCE_DRIFT")
+    require(UPPER_TABLE["registration"] == "fs_initcall(chr_dev_init)",
+            "UPPER_REGISTRATION_DRIFT")
 
 
 def validate_control_geometry(window):
@@ -300,6 +344,17 @@ def pair_verdict(baseline, result):
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(fs_initcalls_checkpoint_shift_not_observed="YES",
                        next="FS_INITCALLS_FAILURE_ISOLATION_CI")
+    elif second == "upper1":
+        out.update(fs_initcalls_completed="NOT_PROVEN",
+                   first_device_initcall_entry="NOT_PROVEN",
+                   first_device_initcall_body="NOT_PROVEN",
+                   device_initcalls_completed="NOT_PROVEN",
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(upper_checkpoint_shift_not_observed="YES")
     return out
 
 

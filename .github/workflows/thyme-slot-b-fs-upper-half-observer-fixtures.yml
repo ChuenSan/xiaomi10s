@@ -1,0 +1,96 @@
+name: thyme-slot-b-fs-upper-half-observer-fixtures
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/fs_upper_half_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-fs-upper-half-observer-fixtures.yml
+  pull_request:
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/fs_upper_half_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-fs-upper-half-observer-fixtures.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thyme-slot-b-fs-upper-half-observer-fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  observer-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Lint workflow
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-fs-upper-half-observer-fixtures.yml
+      - name: GHA-only PUBLIC observer fixtures
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/slot_b/observe.py \
+            scripts/slot_b/test_observe.py \
+            scripts/slot_b/fs_upper_half_observer_fixtures.py
+          (cd scripts/slot_b && python3 -B -m unittest test_observe.py -v) \
+            2>&1 | tee fs-upper-half-observer-unit-tests.log
+          (cd scripts/slot_b && python3 -B fs_upper_half_observer_fixtures.py) \
+            | tee fs-upper-half-observer-fixtures.txt
+          for gate in \
+            UPPER8_EXACT_FULL_SHA_ACCEPT=PASS \
+            UPPER1_EXACT_FULL_SHA_ACCEPT=PASS \
+            UPPER_WRONG_SIZE_REJECT=PASS \
+            UPPER_WRONG_SHA_REJECT=PASS \
+            UPPER8_REJECTS_UPPER1_SWAP=PASS \
+            UPPER1_REJECTS_UPPER8_SWAP=PASS \
+            UPPER8_REJECTS_MID8=PASS \
+            UPPER1_REJECTS_MID8=PASS \
+            UPPER8_REJECTS_MID1=PASS \
+            UPPER1_REJECTS_MID1=PASS \
+            UPPER8_REJECTS_CONTROL8=PASS \
+            UPPER1_REJECTS_CONTROL8=PASS \
+            UPPER8_REJECTS_CONTROL1=PASS \
+            UPPER1_REJECTS_CONTROL1=PASS \
+            UPPER8_REJECTS_FS8=PASS \
+            UPPER1_REJECTS_FS8=PASS \
+            UPPER8_REJECTS_FS1=PASS \
+            UPPER1_REJECTS_FS1=PASS \
+            UPPER_CROSS_IDENTITY_REJECTION=PASS \
+            UPPER_60B_NEGATIVE_FIXTURE=PASS \
+            UPPER_56B_INLINE_GEOMETRY=PASS \
+            UPPER_INDEX39_TABLE_GATE=PASS \
+            UPPER_PACIASP_52B_NO_DAIFSET=PASS \
+            UPPER_PREL32_UNCHANGED=PASS \
+            UPPER_STRONG_PROVES_ONLY_FS_UPPER_HALF_ENTRY=PASS \
+            UPPER_NO_SHIFT_DOES_NOT_CLAIM_NOT_REACHED=PASS \
+            FS_UPPER_HALF_OBSERVER_FIXTURES=PASS \
+            DEVICE_OPERATION=NO; do
+            grep -Fxq "$gate" fs-upper-half-observer-fixtures.txt
+          done
+          printf '%s\n' \
+            'FS_UPPER_HALF_OBSERVER_GATES=PASS' \
+            'DEVICE_OPERATION=NO' \
+            'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' \
+            | tee fs-upper-half-observer-gates.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-fs-upper-half-observer-fixtures
+          path: |
+            fs-upper-half-observer-unit-tests.log
+            fs-upper-half-observer-fixtures.txt
+            fs-upper-half-observer-gates.txt
+          if-no-files-found: error
+          retention-days: 90
