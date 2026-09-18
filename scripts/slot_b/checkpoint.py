@@ -1631,7 +1631,7 @@ def compose(args, bundle):
             reference_core, probe_architecture, sixty_byte_inline_rejected = select_fs_complete_core(
                 function_size, proven56, proven52)
             core = delay_core(reference_core, args.delay)
-        elif args.symbol in ("fs_trampoline_control", "fs_midpoint", "fs_upper_half", "fs_post39", "fs_post46"):
+        elif args.symbol in ("fs_trampoline_control", "fs_midpoint", "fs_upper_half", "fs_post39", "fs_post46", "fs_post49"):
             if args.symbol == "fs_trampoline_control":
                 require(FROZEN_FIRST_FS_SYMBOL in initcall_boundary["target_aliases"]
                         and target_va == FROZEN_FIRST_FS_VA, "CONTROL_TARGET_NOT_FIRST_FS")
@@ -1664,6 +1664,10 @@ def compose(args, bundle):
                     proven56, "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT", False)
             elif args.symbol == "fs_post46":
                 require(function_size == FROZEN_FS_POST46_FUNCTION_SIZE, "FS_POST46_FUNCTION_SIZE_DRIFT")
+                reference_core, probe_architecture, sixty_byte_inline_rejected = (
+                    proven56, "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT", False)
+            elif args.symbol == "fs_post49":
+                require(function_size >= 60, "FS_POST49_FUNCTION_SIZE_DRIFT")
                 reference_core, probe_architecture, sixty_byte_inline_rejected = (
                     proven56, "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT", False)
             else:
