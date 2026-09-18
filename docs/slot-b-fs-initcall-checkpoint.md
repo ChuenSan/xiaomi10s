@@ -282,9 +282,53 @@ Slot A untouched. `UPPER8_RERUN_FORBIDDEN=YES`.
 
 Final gate: `R3_SLOT_B_FS_UPPER_HALF_ENTRY_PROVEN`.
 
-Next: continue inline-only bisection in index 39 → first-device.
+## Post-39 inline pair
 
-Evidence: `artifacts/slot-b-fs-upper-20260918/`.
+`MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_POST39_INLINE_BISECTION` used
+authoritative 53-entry table index 46 `af_unix_init`
+(`0xffff800081bae798` / `0x1bae798`, `net/unix/af_unix.c`, 216B). Floor
+midpoint of proven index 39 and first-device pseudo-index 53. INLINE
+only: preserved `paciasp` + 56B ultracompact, CFG window 60. PREL32
+unchanged. Trampoline/island not used.
+
+Public `35315008166` at `762edbc`. POST39_8 payload
+`cec40af0f6096e330e2455c30cbc34ed935bbd5cb8473e39c6865654a48accc0`,
+POST39_1 payload
+`e9e4bcca4d8d3226005990d6eb24ebb658c11ef5d921baa6d9519d0a9c1b936b`.
+Pair DELAY_CONSTANT_ONLY 2 bytes `[0x1bae7a5,0x1bae7a7)`. Independent
+reverify PASS. Private pack `35315583867` / reverify `35315692138`.
+Observer `35315984122` plus CORE/POSTCORE/ARCH/SUBSYS/FS/isolation
+regressions PASS at `57485ba`.
+
+| | SHA-256 | size |
+| --- | --- | --- |
+| POST39_8 boot | `b1ba8335dd671a9d026783e5539547fb2df3d314e7d8757b769b823967d1d4d6` | 37380096 |
+| POST39_1 boot | `23a24d95ac8fe17229b3e425d777b3b7938d32c110a8070546836aaba79f6e8f` | 37380096 |
+
+One POST39_8 then one POST39_1 RAM-only Slot B boot. Both
+`AUTOMATIC_FASTBOOT_RETURN`, retry 7→6.
+
+| | Sending | Booting | TOTAL |
+| --- | --- | --- | --- |
+| POST39_8 | OKAY 0.919s | OKAY 0.221s | `35.401581125s` |
+| POST39_1 | OKAY 0.914s | OKAY 0.220s | `28.351287500s` |
+
+- `PAIR_DELTA=-7.050293625s`
+- `EXPECTED=-7.000000000s`
+- `PAIR_ERROR=-0.050293625s`
+- `POST39_PAIR_VERDICT=STRONG`
+
+`AF_UNIX_INIT_ENTRY=PROVEN`. Do not upgrade
+`FS_INITCALLS_COMPLETED` or `FIRST_DEVICE_INITCALL_ENTRY`. Current B
+16-chain and P15 prefix MATCH. Android A restored. Partition writes 0.
+Slot A untouched. `POST398_RERUN_FORBIDDEN=YES`.
+`POST391_RERUN_FORBIDDEN=YES`.
+
+Final gate: `R3_SLOT_B_FS_POST39_ENTRY_PROVEN`.
+
+Next: continue inline-only bisection in index 46 → first-device.
+
+Evidence: `artifacts/slot-b-fs-post39-20260918/`.
 
 
 

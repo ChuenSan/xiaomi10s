@@ -844,5 +844,24 @@ Android A restored. UPPER8/UPPER1 reruns forbidden. Final gate:
 `R3_SLOT_B_FS_UPPER_HALF_ENTRY_PROVEN`. Next: index 39 → first-device
 inline-only bisection.
 
+## FS post-39 inline pair
+
+Index 46 `af_unix_init` INLINE 60B (`paciasp` + 56B ultracompact). Public
+`35315008166`, private pack `35315583867`, reverify `35315692138`,
+observer `35315984122`. One POST39_8 then one POST39_1 RAM-only Slot B
+boot.
+
+- `POST39_8_TOTAL=35.401581125s`
+- `POST39_1_TOTAL=28.351287500s`
+- `PAIR_DELTA=-7.050293625s`
+- `PAIR_ERROR=-0.050293625s`
+- `POST39_PAIR_VERDICT=STRONG`
+
+`AF_UNIX_INIT_ENTRY=PROVEN`. `FS_INITCALLS_COMPLETED` and
+`FIRST_DEVICE_INITCALL_ENTRY` remain NOT_PROVEN. Current B unchanged;
+Android A restored. POST398/POST391 reruns forbidden. Final gate:
+`R3_SLOT_B_FS_POST39_ENTRY_PROVEN`. Next: index 46 → first-device
+inline-only bisection.
+
 
 
