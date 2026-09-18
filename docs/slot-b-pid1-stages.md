@@ -819,9 +819,30 @@ GHA-only complete. Forensic `STATIC_DESIGN_DEFECT=NO`. CONTROL-A
 trampoline on proven `create_debug_debugfs_entry`. CONTROL-B midpoint
 index 26 `proc_meminfo_init` INLINE_56B size 76. Public `35230518371`,
 private pack `35233229575`, reverify `35234689905`, observer
-`35234636839`. Both pairs READY. No device. Runtime
-`FS_INITCALLS_COMPLETED` and `FIRST_DEVICE_INITCALL_ENTRY` stay
-NOT_PROVEN. Final gate: `R3_SLOT_B_FS_FAILURE_ISOLATION_CONTROLS_READY`.
+`35234636839`. Isolation device later froze CONTROL
+`SHIFT_NOT_OBSERVED` and MID `STRONG`, so
+`PROC_MEMINFO_INIT_ENTRY=PROVEN`. Trampoline/island remain unusable as
+reachability probes. `FS_INITCALLS_COMPLETED` and
+`FIRST_DEVICE_INITCALL_ENTRY` stay NOT_PROVEN.
 See `docs/slot-b-fs-initcall-checkpoint.md`.
+
+## FS upper-half inline pair
+
+Index 39 `chr_dev_init` INLINE 56B (`paciasp` + 52B no-daifset). Public
+`35301142854`, private pack `35301554578`, reverify `35301624269`,
+observer `35302378493`. One UPPER8 then one UPPER1 RAM-only Slot B boot.
+
+- `UPPER8_TOTAL=35.331862750s`
+- `UPPER1_TOTAL=28.487730667s`
+- `PAIR_DELTA=-6.844132083s`
+- `PAIR_ERROR=+0.155867917s`
+- `UPPER_PAIR_VERDICT=STRONG`
+
+`CHR_DEV_INIT_ENTRY=PROVEN`. `FS_INITCALLS_COMPLETED` and
+`FIRST_DEVICE_INITCALL_ENTRY` remain NOT_PROVEN. Current B unchanged;
+Android A restored. UPPER8/UPPER1 reruns forbidden. Final gate:
+`R3_SLOT_B_FS_UPPER_HALF_ENTRY_PROVEN`. Next: index 39 → first-device
+inline-only bisection.
+
 
 

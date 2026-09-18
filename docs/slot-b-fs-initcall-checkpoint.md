@@ -238,8 +238,53 @@ Runtime unchanged: `FS_INITCALLS_COMPLETED=NOT_PROVEN`,
 
 Final gate: `R3_SLOT_B_FS_FAILURE_ISOLATION_CONTROLS_READY`.
 
-WAIT FOR USER APPROVAL before any device boot. Future device: serial
-CONTROL8 then CONTROL1 then MID8 then MID1, each one RAM-only Slot B
-boot, observer `total_s`.
+## Upper-half inline pair
+
+`MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_UPPER_HALF_BISECTION` used authoritative
+53-entry table index 39 `chr_dev_init` (`0xffff800081b8cd40` / `0x1b8cd40`,
+`drivers/char/mem.c`, 184B). Floor midpoint of proven index 26 and
+first-device pseudo-index 53. INLINE only: preserved `paciasp` + 52B
+no-daifset, CFG window 56. 60B ultracompact rejected (`cdac → cd78`).
+PREL32 unchanged. Trampoline/island not used.
+
+Public `35301142854` at `772fa97`. UPPER8 payload
+`0f5b6e63b34e14260252a54afa7c9ec9f9ee7fb358a5a8ff90b3b712179d24ca`,
+UPPER1 payload
+`3a357674992f6be6e5adef14b774c7cf673218f38a4b14e237827947eca5b329`.
+Pair DELAY_CONSTANT_ONLY 2 bytes `[0x1b8cd49,0x1b8cd4b)`. Independent
+reverify PASS. Private pack `35301554578` / reverify `35301624269`.
+Observer `35302378493` plus CORE/POSTCORE/ARCH/SUBSYS/FS/isolation
+regressions PASS at `a177b95`.
+
+| | SHA-256 | size |
+| --- | --- | --- |
+| UPPER8 boot | `bae4daac1fff579deaaf81707312373240a01bac7cf4a73b4abeac514d8fe9e9` | 37380096 |
+| UPPER1 boot | `e68e1786d906258f46d15b66fb70b87e72b499698dca89c337f48d038dd5aa44` | 37380096 |
+
+One UPPER8 then one UPPER1 RAM-only Slot B boot. Both
+`AUTOMATIC_FASTBOOT_RETURN`, retry 7→6.
+
+| | Sending | Booting | TOTAL |
+| --- | --- | --- | --- |
+| UPPER8 | OKAY 0.910s | OKAY 0.221s | `35.331862750s` |
+| UPPER1 | OKAY 0.903s | OKAY 0.220s | `28.487730667s` |
+
+- `PAIR_DELTA=-6.844132083s`
+- `EXPECTED=-7.000000000s`
+- `PAIR_ERROR=+0.155867917s`
+- `UPPER_PAIR_VERDICT=STRONG`
+
+`CHR_DEV_INIT_ENTRY=PROVEN`. Do not upgrade
+`FS_INITCALLS_COMPLETED` or `FIRST_DEVICE_INITCALL_ENTRY`. Current B
+16-chain and P15 prefix MATCH. Android A restored. Partition writes 0.
+Slot A untouched. `UPPER8_RERUN_FORBIDDEN=YES`.
+`UPPER1_RERUN_FORBIDDEN=YES`.
+
+Final gate: `R3_SLOT_B_FS_UPPER_HALF_ENTRY_PROVEN`.
+
+Next: continue inline-only bisection in index 39 → first-device.
+
+Evidence: `artifacts/slot-b-fs-upper-20260918/`.
+
 
 

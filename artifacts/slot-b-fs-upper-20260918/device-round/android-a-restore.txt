@@ -1,0 +1,6 @@
+SLOT_SUFFIX=_a
+BOOT_COMPLETED=1
+PRODUCT=thyme
+KERNEL=4.19.157-perf-g9d90dd04aa7c
+ADB_ROOT=uid=0(root) gid=0(root) groups=0(root) context=u:r:magisk:s0
+ANDROID_A_RESTORED_AFTER_UPPER8=YES
