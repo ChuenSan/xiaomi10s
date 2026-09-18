@@ -54,8 +54,8 @@ IMAGES = {
     "post461": (37380096, "f0b80158e90f91f8dbbb47cd84f8b92be93d86cad9690514859af3629061ea32"),
     "post498": (37380096, "c8ff8dc637d80ef1b0d0a3dbab6869f3879450998a9df546e2af25cea64b2a14"),
     "post491": (37380096, "73c63cf6360a962d7fc555f65281aef23da1864ff185f30dfa693d69e8862a6c"),
-    "post518": (37380096, "a" * 64),
-    "post511": (37380096, "b" * 64),
+    "post518": (37380096, "7d6e527c977b3dd08d9f4896d44648bc7b9020993a8841e91285c84c67cc81ae"),
+    "post511": (37380096, "3c825488ba0b41a534369a476f05f3b20c1279f017275212dc52d4761e3d9d1a"),
     }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),

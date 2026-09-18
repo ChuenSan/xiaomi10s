@@ -1,0 +1,112 @@
+name: thyme-slot-b-fs-post51-observer-fixtures
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/fs_post51_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-fs-post51-observer-fixtures.yml
+  pull_request:
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/fs_post51_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-fs-post51-observer-fixtures.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thyme-slot-b-fs-post51-observer-fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  observer-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Lint workflow
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-fs-post51-observer-fixtures.yml
+      - name: GHA-only PUBLIC observer fixtures
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/slot_b/observe.py \
+            scripts/slot_b/test_observe.py \
+            scripts/slot_b/fs_post51_observer_fixtures.py
+          (cd scripts/slot_b && python3 -B -m unittest test_observe.py -v) \
+            2>&1 | tee fs-post51-observer-unit-tests.log
+          (cd scripts/slot_b && python3 -B fs_post51_observer_fixtures.py) \
+            | tee fs-post51-observer-fixtures.txt
+          for gate in \
+            POST518_EXACT_FULL_SHA_ACCEPT=PASS \
+            POST511_EXACT_FULL_SHA_ACCEPT=PASS \
+            POST51_WRONG_SIZE_REJECT=PASS \
+            POST51_WRONG_SHA_REJECT=PASS \
+            POST518_REJECTS_POST511_SWAP=PASS \
+            POST511_REJECTS_POST518_SWAP=PASS \
+            POST518_REJECTS_POST498=PASS \
+            POST511_REJECTS_POST498=PASS \
+            POST518_REJECTS_POST491=PASS \
+            POST511_REJECTS_POST491=PASS \
+            POST518_REJECTS_POST468=PASS \
+            POST511_REJECTS_POST468=PASS \
+            POST518_REJECTS_POST461=PASS \
+            POST511_REJECTS_POST461=PASS \
+            POST518_REJECTS_POST398=PASS \
+            POST511_REJECTS_POST398=PASS \
+            POST518_REJECTS_POST391=PASS \
+            POST511_REJECTS_POST391=PASS \
+            POST518_REJECTS_UPPER8=PASS \
+            POST511_REJECTS_UPPER8=PASS \
+            POST518_REJECTS_UPPER1=PASS \
+            POST511_REJECTS_UPPER1=PASS \
+            POST518_REJECTS_MID8=PASS \
+            POST511_REJECTS_MID8=PASS \
+            POST518_REJECTS_MID1=PASS \
+            POST511_REJECTS_MID1=PASS \
+            POST518_REJECTS_CONTROL8=PASS \
+            POST511_REJECTS_CONTROL8=PASS \
+            POST518_REJECTS_CONTROL1=PASS \
+            POST511_REJECTS_CONTROL1=PASS \
+            POST518_REJECTS_FS8=PASS \
+            POST511_REJECTS_FS8=PASS \
+            POST518_REJECTS_FS1=PASS \
+            POST511_REJECTS_FS1=PASS \
+            POST51_CROSS_IDENTITY_REJECTION=PASS \
+            POST51_56B_NEGATIVE_FIXTURE=PASS \
+            POST51_60B_INLINE_GEOMETRY=PASS \
+            POST51_INDEX52_TABLE_GATE=PASS \
+            POST51_PACIASP_56B_ULTRACOMPACT=PASS \
+            POST51_PREL32_UNCHANGED=PASS \
+            POST51_STRONG_PROVES_ONLY_FS_POST51_ENTRY=PASS \
+            POST51_NO_SHIFT_DOES_NOT_CLAIM_NOT_REACHED=PASS \
+            FS_POST51_OBSERVER_FIXTURES=PASS \
+            DEVICE_OPERATION=NO; do
+            grep -Fxq "$gate" fs-post51-observer-fixtures.txt
+          done
+          printf '%s\n' \
+            'FS_POST51_OBSERVER_GATES=PASS' \
+            'DEVICE_OPERATION=NO' \
+            'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' \
+            | tee fs-post51-observer-gates.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-fs-post51-observer-fixtures
+          path: |
+            fs-post51-observer-unit-tests.log
+            fs-post51-observer-fixtures.txt
+            fs-post51-observer-gates.txt
+          if-no-files-found: error
+          retention-days: 90
