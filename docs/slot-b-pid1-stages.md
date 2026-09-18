@@ -860,7 +860,25 @@ boot.
 `AF_UNIX_INIT_ENTRY=PROVEN`. `FS_INITCALLS_COMPLETED` and
 `FIRST_DEVICE_INITCALL_ENTRY` remain NOT_PROVEN. Current B unchanged;
 Android A restored. POST398/POST391 reruns forbidden. Final gate:
-`R3_SLOT_B_FS_POST39_ENTRY_PROVEN`. Next: index 46 → first-device
+`R3_SLOT_B_FS_POST39_ENTRY_PROVEN`.
+
+## FS post-46 inline pair
+
+Index 49 `vlan_offload_init` INLINE 60B (`paciasp` + 56B ultracompact). Public
+`35319626212`, private pack `35320432106`, reverify `35320507360`,
+observer `35320679232`. One POST46_8 then one POST46_1 RAM-only Slot B
+boot.
+
+- `POST46_8_TOTAL=35.374136875s`
+- `POST46_1_TOTAL=28.311953000s`
+- `PAIR_DELTA=-7.062183875s`
+- `PAIR_ERROR=-0.062183875s`
+- `POST46_PAIR_VERDICT=STRONG`
+
+`VLAN_OFFLOAD_INIT_ENTRY=PROVEN`. `FS_INITCALLS_COMPLETED` and
+`FIRST_DEVICE_INITCALL_ENTRY` remain NOT_PROVEN. Current B unchanged;
+Android A restored. POST468/POST461 reruns forbidden. Final gate:
+`R3_SLOT_B_FS_POST46_ENTRY_PROVEN`. Next: index 49 → first-device (pseudo 53)
 inline-only bisection.
 
 

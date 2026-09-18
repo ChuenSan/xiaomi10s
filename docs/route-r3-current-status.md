@@ -344,8 +344,21 @@ RAM-only Slot B boot. `POST39_8_TOTAL=35.401581125s`,
 NOT_PROVEN. Current B hashes and P15 prefix matched; Android A restored.
 Partition writes 0. Slot A untouched. Do not rerun POST398/POST391,
 UPPER8/UPPER1, MID, CONTROL, FS8/FS1, SUBSYS, ARCH, POSTCORE, CORE,
-PURE or CONSOLE. Final gate: `R3_SLOT_B_FS_POST39_ENTRY_PROVEN`. Next:
-inline-only bisection in index 46 → first-device.
+PURE or CONSOLE. Final gate: `R3_SLOT_B_FS_POST39_ENTRY_PROVEN`. The
+post-46 inline pair then selected index 49 `vlan_offload_init`
+(`0xffff800081baedfc`, 60B, window 60, `paciasp` + 56B ultracompact).
+Public `35319626212`, private pack `35320432106`, reverify
+`35320507360`, observer `35320679232`. One POST46_8 then one POST46_1
+RAM-only Slot B boot. `POST46_8_TOTAL=35.374136875s`,
+`POST46_1_TOTAL=28.311953000s`, `PAIR_DELTA=-7.062183875s`,
+`PAIR_ERROR=-0.062183875s`: **STRONG**. `VLAN_OFFLOAD_INIT_ENTRY=PROVEN`.
+`FS_INITCALLS_COMPLETED` and `FIRST_DEVICE_INITCALL_ENTRY` stay
+NOT_PROVEN. Current B hashes and P15 prefix matched; Android A restored.
+Partition writes 0. Slot A untouched. Do not rerun POST468/POST461,
+POST398/POST391, UPPER8/UPPER1, MID, CONTROL, FS8/FS1, SUBSYS, ARCH,
+POSTCORE, CORE, PURE or CONSOLE. Final gate:
+`R3_SLOT_B_FS_POST46_ENTRY_PROVEN`. Next: inline-only bisection in index
+49 → first-device.
 
 
 

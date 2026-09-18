@@ -321,14 +321,57 @@ One POST39_8 then one POST39_1 RAM-only Slot B boot. Both
 `AF_UNIX_INIT_ENTRY=PROVEN`. Do not upgrade
 `FS_INITCALLS_COMPLETED` or `FIRST_DEVICE_INITCALL_ENTRY`. Current B
 16-chain and P15 prefix MATCH. Android A restored. Partition writes 0.
-Slot A untouched. `POST398_RERUN_FORBIDDEN=YES`.
-`POST391_RERUN_FORBIDDEN=YES`.
-
 Final gate: `R3_SLOT_B_FS_POST39_ENTRY_PROVEN`.
 
-Next: continue inline-only bisection in index 46 → first-device.
-
 Evidence: `artifacts/slot-b-fs-post39-20260918/`.
+
+## Post-46 inline pair
+
+`MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_POST46_INLINE_BISECTION` used
+authoritative 53-entry table index 49 `vlan_offload_init`
+(`0xffff800081baedfc` / `0x1baedfc`, `net/8021q/vlan_core.c`, 60B). Floor
+midpoint of proven index 46 and first-device pseudo-index 53. INLINE
+only: preserved `paciasp` + 56B ultracompact, CFG window 60. PREL32
+unchanged. Trampoline/island not used.
+
+Public `35319626212` at `38c12e1`. POST46_8 payload
+`fe4d52eae539b1d65afe71f6d067da341a48842540e46cf5a493d4f221b5c2d1`,
+POST46_1 payload
+`ef0da933d52f9ba2a5c432bccecded31cf497843240e720fa386ebbd637f6490`.
+Pair DELAY_CONSTANT_ONLY 2 bytes `[0x1baee09,0x1baee0a)`. Independent
+reverify PASS. Private pack `35320432106` / reverify `35320507360`.
+Observer `35320679232` plus CORE/POSTCORE/ARCH/SUBSYS/FS/isolation
+regressions PASS at `9bea4d7`.
+
+| | SHA-256 | size |
+| --- | --- | --- |
+| POST46_8 boot | `4092ceaedb54f94fe6079cdf987fd719620a712465fee30d9fd20b8a3e5dc843` | 37380096 |
+| POST46_1 boot | `f0b80158e90f91f8dbbb47cd84f8b92be93d86cad9690514859af3629061ea32` | 37380096 |
+
+One POST46_8 then one POST46_1 RAM-only Slot B boot. Both
+`AUTOMATIC_FASTBOOT_RETURN`, retry 7→6.
+
+| | Sending | Booting | TOTAL |
+| --- | --- | --- | --- |
+| POST46_8 | OKAY 0.912s | OKAY 0.220s | `35.374136875s` |
+| POST46_1 | OKAY 0.939s | OKAY 0.227s | `28.311953000s` |
+
+- `PAIR_DELTA=-7.062183875s`
+- `EXPECTED=-7.000000000s`
+- `PAIR_ERROR=-0.062183875s`
+- `POST46_PAIR_VERDICT=STRONG`
+
+`VLAN_OFFLOAD_INIT_ENTRY=PROVEN`. Do not upgrade
+`FS_INITCALLS_COMPLETED` or `FIRST_DEVICE_INITCALL_ENTRY`. Current B
+16-chain and P15 prefix MATCH. Android A restored. Partition writes 0.
+Slot A untouched. `POST468_RERUN_FORBIDDEN=YES`.
+`POST461_RERUN_FORBIDDEN=YES`.
+
+Final gate: `R3_SLOT_B_FS_POST46_ENTRY_PROVEN`.
+
+Next: continue inline-only bisection in index 49 → first-device (pseudo 53).
+
+Evidence: `artifacts/slot-b-fs-post46-20260918/`.
 
 
 
