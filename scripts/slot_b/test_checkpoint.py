@@ -551,9 +551,10 @@ class CheckpointTests(unittest.TestCase):
         self.assertEqual(checkpoint.INITCALL_BOUNDARIES['fs_trampoline_control'], '__initcall5_start')
         self.assertEqual(checkpoint.INITCALL_BOUNDARIES['fs_midpoint'], '__initcall5_start')
         self.assertEqual(checkpoint.INITCALL_BOUNDARIES['fs_upper_half'], '__initcall5_start')
+        self.assertEqual(checkpoint.INITCALL_BOUNDARIES['fs_post39'], '__initcall5_start')
         self.assertEqual(checkpoint.FS_SPAN_SYMBOLS,
                          frozenset({'fs_complete', 'fs_trampoline_control', 'fs_midpoint',
-                                    'fs_upper_half'}))
+                                    'fs_upper_half', 'fs_post39'}))
 
     def test_fs_complete_literal_delta_accepts_same_string_add_only(self):
         image, frozen = bytearray(512), bytearray(512)
@@ -903,6 +904,37 @@ class CheckpointTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 checkpoint.gate_fs_upper_half_design(dict(design, **{key: value}))
 
+    def test_fs_post39_design_negative_fixtures(self):
+        entries = [{'index': i, 'target_va': 0x1000 + i} for i in range(53)]
+        self.assertEqual(checkpoint.select_fs_post39_index(entries), 46)
+        with self.assertRaises(ValueError):
+            checkpoint.select_fs_post39_index(entries[:-1])
+        design = checkpoint._isolation_design_base(
+            'FS_LEVEL_POST39_MIDPOINT_ENTRY', '__initcall5_index_46')
+        design.update({
+            'target_derivation': 'PROVEN_POST39_MIDPOINT_FLOOR',
+            'lower_index': 39, 'first_device_index': 53, 'midpoint_index': 46,
+            'entry_count': 53, 'name_guess': False, 'target_symbol': 'af_unix_init',
+            'table_entry_va': 0xffff800081d0b18c, 'target_va': 0xffff800081bae798,
+            'target_source': 'net/unix/af_unix.c',
+            'initcall_registration': 'fs_initcall(af_unix_init)',
+            'probe_architecture': 'INLINE_PACIASP_PLUS_56B_ULTRACOMPACT',
+            'diagnostic_core_size': 56, 'function_size': 216, 'probe_size': 60,
+            'sixty_byte_inline_rejected': False, 'inline_only': True,
+            'trampoline_permitted': False,
+        })
+        checkpoint.gate_fs_post39_design(design)
+        drifts = {
+            'index': ('midpoint_index', 45), 'span': ('entry_count', 52),
+            'architecture': ('probe_architecture', 'ENTRY_TRAMPOLINE'),
+            'core': ('diagnostic_core_size', 52), 'window': ('probe_size', 56),
+            'name_guess': ('name_guess', True),
+            'table_identity': ('table_entry_va', 0xffff800081d0b190),
+            'sixty': ('sixty_byte_inline_rejected', True),
+        }
+        for name, (key, value) in drifts.items():
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                checkpoint.gate_fs_post39_design(dict(design, **{key: value}))
 
     def test_composition_changes_only_authorized_window(self):
         before = bytes(range(100))
