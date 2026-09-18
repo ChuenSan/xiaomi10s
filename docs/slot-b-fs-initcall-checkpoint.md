@@ -562,3 +562,102 @@ Runtime unchanged:
 Final gate: `R3_SLOT_B_FS_LAST_RETURN_GATED_PROBE_NOT_READY`.
 
 Evidence: `artifacts/slot-b-fs-lastinitcall-gated-20260918/`.
+
+## Level-6 earliest safe inline checkpoint
+
+`MAINLINE_V2_R3_SLOT_B_FS_COMPLETE_VIA_LEVEL6_INLINE_CHECKPOINT` retires the
+non-injectable `LAST_LEVEL5_RETURN` checkpoint and instead proves FS completion
+from the **level-6 side**: it selects the earliest *safe* level-6
+(`device_initcall`) entry and places the inline matched-delay probe there.
+
+Causal chain (source `8b73de7`, bundle `35040148509`): `do_initcall_level(5)`
+walks `[__initcall5_start, __initcall6_start)` and returns only after the last
+of its 53 entries; `__initcall6_start` then begins the level-6 span. Reaching
+any real level-6 entry N therefore implies level-5 returned, hence
+`FS_INITCALLS_COMPLETED=PROVEN` and `FIRST_DEVICE_INITCALL_ENTRY=PROVEN`. When N
+is not the first entry the entries before it are recorded as sequentially
+completed, but `DEVICE_INITCALLS_COMPLETED` is **not** upgraded.
+
+### Selection rule and target
+
+Additive `checkpoint.py` symbol `level6_earliest` decodes
+`[__initcall6_start, __initcall7_start)` (1100 PREL32 entries), then walks from
+index 0 and returns the first entry whose function extent fits an inline probe
+(`>=56B` for the proven 52B core, `>=60B` for the proven 56B core) and whose
+entry window is CFG-closed (no incoming branch into the window interior, no
+incoming branch to the entry). Trampoline, island, code cave, `PREL32`
+retarget, table-order change and shared `do_initcall*` checkpoints remain
+rejected.
+
+Decoded and frozen:
+
+| index | symbol | VA / offset | size | registration | result |
+| --- | --- | --- | --- | --- | --- |
+| 0 | `register_arm64_panic_block` | `0xffff800081b347b8` / `0x1b347b8` | 48 | `device_initcall` | skipped `TOO_SMALL` |
+| **1** | **`cpuinfo_regs_init`** | **`0xffff800081b34d8c` / `0x1b34d8c`** | **220** | **`device_initcall(cpuinfo_regs_init)`** | **selected** |
+
+Selected target: table slot `0xffff800081d0b1ac` (PREL32 `-1926176`), source
+`arch/arm64/kernel/cpuinfo.c`, entry `paciasp`, `BTI=ABSENT`. Probe =
+`INLINE_PACIASP_PLUS_56B_ULTRACOMPACT`, window 60B, 56B core, `DAIFSET=PRESENT`;
+its first internal branch source lies at `+0x5c` (outside the 60B window), so
+the window does not grow. `CFG_CLOSURE_PROVEN=YES`, incoming-window-interior
+count 0, runtime rewrite safe, `PREL32_TARGET_UNCHANGED=YES`.
+
+### CI closure (all Actions-only, no local build)
+
+- Public `LEVEL6_EARLIEST_INLINE_CHECKPOINT_CI` run `35347353966` at `64f12bf`:
+  `source-tests`, `level6-earliest-decode`, `independent-reverify` all PASS.
+  Pair diff is exactly two bytes at `[0x1b34d99,0x1b34d9b)`,
+  `PAIR_DIFF=DELAY_CONSTANT_ONLY`.
+- Private pack `35347030524`:
+  `DEVPROBE8_BOOT_SHA256=94ae6d10…f64b31`,
+  `DEVPROBE1_BOOT_SHA256=2e8b1f5b…a2b90f`, both 37380096 bytes.
+- Independent private reverify `35348155046`: PASS.
+- Observer fixtures `35347354061`: PASS (80 cross-identity rejections, geometry
+  and verdict-boundary fixtures).
+
+A labelling defect in the first decode run (`35346116687`) published the
+level-5 runtime span count under the name `LEVEL6_SPAN_ENTRY_COUNT`. It is
+recorded here rather than reinterpreted: that run's `=53` is the level-5 span,
+the level-6 span is 1100, and the corrected labels are published by
+`35347353966`. Both runs carry identical payload SHA256s
+(`98023192…9c9b2b`, `fb1660ec…5256ef`).
+
+### Device pair
+
+Two RAM-only boots, one per member, serial `41a5627b`:
+
+| member | total_s | retry | status |
+| --- | --- | --- | --- |
+| DEVPROBE8 | 35.33681691699894 | 7→6 | `AUTOMATIC_FASTBOOT_RETURN` |
+| DEVPROBE1 | 28.199255542000174 | 6 | `AUTOMATIC_FASTBOOT_RETURN` |
+
+`PAIR_DELTA=-7.137561374998768s`, expected `-7.000s`, error
+`-0.13756137499876786s` → `abs(error) <= 1s` → **STRONG**.
+
+16-chain partition hashes matched before, between and after the two members;
+`boot_b` P15 prefix `133e063b…ea87d34` MATCH throughout; Android A restored
+healthy (kernel `4.19.157-perf-g9d90dd04aa7c`, slot `_a`) after each member.
+`PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`, `SECOND_MEMBER_BOOT=FORBIDDEN_NOT_TAKEN`.
+
+Runtime after this round:
+
+`FS_INITCALLS_COMPLETED=PROVEN`
+
+`FIRST_DEVICE_INITCALL_ENTRY=PROVEN`
+
+`CPUINFO_REGS_INIT_ENTRY=PROVEN`
+
+`DEVICE_INITCALLS_COMPLETED=NOT_PROVEN`
+
+`LATE_INITCALLS_COMPLETED=NOT_PROVEN`
+
+`CONSOLE_ON_ROOTFS=NOT_PROVEN`
+
+`INIT_EXECUTED=NOT_PROVEN`
+
+`USB=FROZEN`
+
+Final gate: `MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_COMPLETED_PROVEN`.
+
+Evidence: `artifacts/slot-b-level6-inline-20260918/`.
