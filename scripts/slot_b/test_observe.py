@@ -417,6 +417,60 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(no_shift["upper_checkpoint_shift_not_observed"], "YES")
         self.assertFalse(any("not_reached" in key for key in no_shift))
 
+    def test_post39_member_full_sha_gates_and_cross_rejection(self):
+        size8, sha8 = observe.IMAGES["post398"]
+        size1, sha1 = observe.IMAGES["post391"]
+        self.assertEqual(size8, size1)
+        self.assertNotEqual(sha8, sha1)
+        self.assertEqual(sha8, "b1ba8335dd671a9d026783e5539547fb2df3d314e7d8757b769b823967d1d4d6")
+        self.assertEqual(sha1, "23a24d95ac8fe17229b3e425d777b3b7938d32c110a8070546836aaba79f6e8f")
+        observe.validate_identity("post398", size8, sha8)
+        observe.validate_identity("post391", size1, sha1)
+        rejected = (("post398", size8 + 1, sha8), ("post391", size1, "0" * 64),
+                    ("post398", size1, sha1), ("post391", size8, sha8))
+        for old in ("upper8", "upper1", "mid8", "mid1", "control8", "control1", "fs8", "fs1"):
+            rejected += (("post398", *observe.IMAGES[old]),
+                         ("post391", *observe.IMAGES[old]))
+        for case, size, digest in rejected:
+            with self.subTest(case=case, digest=digest), \
+                    self.assertRaisesRegex(ValueError, "IMAGE_IDENTITY_MISMATCH"):
+                observe.validate_identity(case, size, digest)
+
+    def test_post39_geometry_and_table_are_frozen(self):
+        observe.validate_post39_geometry(60)
+        with self.assertRaisesRegex(ValueError, "POST39_56B_WINDOW_REJECTED"):
+            observe.validate_post39_geometry(56)
+        observe.validate_post39_table()
+        geo = observe.POST39_GEOMETRY
+        self.assertEqual(geo["function_size"], 216)
+        self.assertEqual(geo["core_size"], 56)
+        self.assertEqual(geo["architecture"], "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT")
+        self.assertEqual(geo["daifset"], "PRESENT")
+        self.assertTrue(geo["inline_only"])
+        self.assertTrue(geo["prel32_unchanged"])
+        table = observe.POST39_TABLE
+        self.assertEqual(table["index"], 46)
+        self.assertEqual(table["table_va"], 0xFFFF800081D0B18C)
+        self.assertEqual(table["va"], 0xFFFF800081BAE798)
+
+    def test_post39_pair_proves_only_post39_entry(self):
+        baseline = {**self.record("post398", 35.0),
+                    "bootloader_origin": observe.REST_ORIGIN}
+        strong = {**self.record("post391", 28.0),
+                  "bootloader_origin": observe.REST_ORIGIN}
+        verdict = observe.pair_verdict(baseline, strong)
+        self.assertEqual(verdict["verdict"], "STRONG")
+        self.assertEqual(verdict["fs_post39_entry"], "PROVEN")
+        self.assertEqual(verdict["first_device_initcall_entry"], "NOT_PROVEN")
+        self.assertEqual(verdict["fs_initcalls_completed"], "NOT_PROVEN")
+        self.assertEqual(verdict["init_executed"], "NOT_PROVEN")
+        no_shift = observe.pair_verdict(
+            baseline, {**strong, "total_s": baseline["total_s"]})
+        self.assertEqual(no_shift["verdict"], "SHIFT_NOT_OBSERVED")
+        self.assertEqual(no_shift["fs_post39_entry"], "NOT_PROVEN")
+        self.assertEqual(no_shift["first_device_initcall_entry"], "NOT_PROVEN")
+        self.assertEqual(no_shift["post39_checkpoint_shift_not_observed"], "YES")
+        self.assertFalse(any("not_reached" in key for key in no_shift))
     def test_pair_delta_not_old_slot_a_absolute_timing(self):
         baseline = self.record("reset8", 50.0)
         strong = observe.pair_verdict(baseline, self.record("reset1", 43.1))

@@ -48,7 +48,9 @@ IMAGES = {
     "control1": (37380096, "4551a94079ace87062f6a51444bfdbff76982e1b34b4b65658022df9e0c6db99"),
     "mid8": (37380096, "89614d8a2d85ba53ca34d353db558fe8cbfc775740b85d3b1b899ef35bc7b4b0"),
     "mid1": (37380096, "b2b7cd68a68886ebcc7f6fc598d22c7a27ecc9698a7397ec97b58271627c1499"),
-}
+    "post398": (37380096, "b1ba8335dd671a9d026783e5539547fb2df3d314e7d8757b769b823967d1d4d6"),
+    "post391": (37380096, "23a24d95ac8fe17229b3e425d777b3b7938d32c110a8070546836aaba79f6e8f"),
+    }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
     "rest1": ("rest8", "rest_init_entry", "rest_init_body"),
@@ -66,7 +68,8 @@ PAIRS = {
     "upper1": ("upper8", "fs_upper_half_entry", "first_device_initcall_entry"),
     "control1": ("control8", "fs_trampoline_control_reached", "first_device_initcall_entry"),
     "mid1": ("mid8", "fs_midpoint_entry", "first_device_initcall_entry"),
-}
+    "post391": ("post398", "fs_post39_entry", "first_device_initcall_entry"),
+    }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
 CONTEXT = {
@@ -118,6 +121,18 @@ MID_TABLE = {
     "index": 26, "symbol": "proc_meminfo_init", "va": 0xFFFF800081B5770C,
     "table_va": 0xFFFF800081D0B13C, "offset": 0x1B5770C,
     "registration": "fs_initcall(proc_meminfo_init)", "source": "fs/proc/meminfo.c",
+}
+POST39_GEOMETRY = {
+    "target": "af_unix_init", "va": 0xFFFF800081BAE798,
+    "offset": 0x1BAE798, "function_size": 216, "window": 60,
+    "core_size": 56, "architecture": "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT",
+    "entry": "paciasp", "daifset": "PRESENT", "inline_only": True,
+    "prel32_unchanged": True,
+}
+POST39_TABLE = {
+    "index": 46, "symbol": "af_unix_init", "va": 0xFFFF800081BAE798,
+    "table_va": 0xFFFF800081D0B18C, "offset": 0x1BAE798,
+    "registration": "fs_initcall(af_unix_init)", "source": "net/unix/af_unix.c",
 }
 
 REST_ORIGIN = "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B"
@@ -230,6 +245,34 @@ def validate_mid_table():
     require(MID_TABLE["table_va"] == 0xFFFF800081D0B13C, "MID_TABLE_VA_DRIFT")
     require(MID_TABLE["registration"] == "fs_initcall(proc_meminfo_init)", "MID_REGISTRATION_DRIFT")
 
+
+def validate_post39_geometry(window):
+    require(window != 56, "POST39_56B_WINDOW_REJECTED")
+    require(window == POST39_GEOMETRY["window"], "POST39_WINDOW_NOT_60")
+    require(POST39_GEOMETRY["target"] == "af_unix_init", "POST39_TARGET_DRIFT")
+    require(POST39_GEOMETRY["va"] == 0xFFFF800081BAE798, "POST39_VA_DRIFT")
+    require(POST39_GEOMETRY["offset"] == 0x1BAE798, "POST39_OFFSET_DRIFT")
+    require(POST39_GEOMETRY["window"] <= POST39_GEOMETRY["function_size"],
+            "POST39_WINDOW_EXCEEDS_FUNCTION")
+    require(POST39_GEOMETRY["function_size"] == 216, "POST39_FUNCTION_NOT_216")
+    require(POST39_GEOMETRY["core_size"] == 56, "POST39_CORE_NOT_56")
+    require(POST39_GEOMETRY["architecture"] == "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT",
+            "POST39_ARCHITECTURE_DRIFT")
+    require(POST39_GEOMETRY["entry"] == "paciasp", "POST39_ENTRY_NOT_PACIASP")
+    require(POST39_GEOMETRY["daifset"] == "PRESENT", "POST39_DAIFSET_ABSENT")
+    require(POST39_GEOMETRY["inline_only"] is True, "POST39_NOT_INLINE_ONLY")
+    require(POST39_GEOMETRY["prel32_unchanged"] is True, "POST39_PREL32_CHANGED")
+
+
+def validate_post39_table():
+    require(POST39_TABLE["index"] == 46, "POST39_INDEX_NOT_46")
+    require(POST39_TABLE["symbol"] == "af_unix_init", "POST39_SYMBOL_DRIFT")
+    require(POST39_TABLE["table_va"] == 0xFFFF800081D0B18C, "POST39_TABLE_VA_DRIFT")
+    require(POST39_TABLE["va"] == 0xFFFF800081BAE798, "POST39_TARGET_VA_DRIFT")
+    require(POST39_TABLE["offset"] == 0x1BAE798, "POST39_OFFSET_DRIFT")
+    require(POST39_TABLE["source"] == "net/unix/af_unix.c", "POST39_SOURCE_DRIFT")
+    require(POST39_TABLE["registration"] == "fs_initcall(af_unix_init)",
+            "POST39_REGISTRATION_DRIFT")
 
 def validate_context(context, case=None):
     require(all(context.get(k) == v for k, v in CONTEXT.items()), "B_CONTEXT_MISMATCH")
@@ -355,6 +398,17 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(upper_checkpoint_shift_not_observed="YES")
+    elif second == "post391":
+        out.update(fs_initcalls_completed="NOT_PROVEN",
+                   first_device_initcall_entry="NOT_PROVEN",
+                   first_device_initcall_body="NOT_PROVEN",
+                   device_initcalls_completed="NOT_PROVEN",
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(post39_checkpoint_shift_not_observed="YES")
     return out
 
 
