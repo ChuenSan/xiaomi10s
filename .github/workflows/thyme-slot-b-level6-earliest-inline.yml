@@ -1,0 +1,488 @@
+name: LEVEL6_EARLIEST_INLINE_CHECKPOINT_CI
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/checkpoint.py'
+      - 'scripts/slot_b/test_checkpoint.py'
+      - 'scripts/slot_b/test_level6_earliest_inline.py'
+      - 'scripts/slot_b/checkpoint-ultracompact.S'
+      - 'scripts/slot_b/checkpoint-subsys52.S'
+      - '.github/workflows/thyme-slot-b-level6-earliest-inline.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: level6-earliest-inline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Actions-only workflow lint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-level6-earliest-inline.yml
+      - name: Source tests and level-6 selection negative fixtures
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_*.py' -v 2>&1 | tee l6-source-tests.log
+          grep -q 'test_selects_earliest_entry_after_too_small_prefix.*ok' l6-source-tests.log
+          grep -q 'test_cfg_not_closed_advances_to_next_entry.*ok' l6-source-tests.log
+          grep -q 'test_no_safe_target_reports_not_ready.*ok' l6-source-tests.log
+          grep -q 'test_scan_limit_excludes_later_entries.*ok' l6-source-tests.log
+          grep -q 'test_incoming_interior_branch_rejects_window.*ok' l6-source-tests.log
+          grep -q 'test_incoming_entry_branch_rejects_window.*ok' l6-source-tests.log
+          grep -q 'test_backward_branch_grows_window_to_cover_source.*ok' l6-source-tests.log
+          grep -q 'test_inline_only_never_permits_a_trampoline.*ok' l6-source-tests.log
+          grep -q 'test_existing_fs_complete_contract_is_untouched.*ok' l6-source-tests.log
+          python3 -B - <<'PY' | tee l6-source-audit.json
+          import json, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          result = checkpoint.audit_initcall_source(Path('linux-6.6'))
+          assert result['device'] == '__initcall6_start..__initcall7_start'
+          assert result['device_level_boundary'] == '__initcall7_start'
+          assert result['fs_level_boundary'] == '__initcall6_start'
+          assert result['linker_order'] == ['0', '1', '2', '3', '4', '5', 'rootfs', '6', '7']
+          assert result['fs_complete_causal_boundary'] == '__initcall6_start'
+          assert result['first_device_entry_implies_fs_complete'] is True
+          assert result['rootfs_included_in_level5_traversal'] is True
+          assert result['rootfs_has_separate_runtime_pass'] is False
+          print(json.dumps(result, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-level6-earliest-source-audit
+          path: |
+            l6-source-tests.log
+            l6-source-audit.json
+          if-no-files-found: error
+
+  level6-earliest-decode:
+    needs: source-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Install binary audit tools only
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18
+      - name: Download immutable authoritative inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          gh run download 34980859158 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-reset-pair -D proven-core
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independently assemble proven 56-byte and 52-byte cores
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-ultracompact.S -o ultracompact.o
+          llvm-readelf-18 -r ultracompact.o | tee ultracompact-relocations.log
+          grep -q 'There are no relocations in this file' ultracompact-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text ultracompact.o ultracompact.bin
+          test "$(stat -c %s ultracompact.bin)" = 56
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-subsys52.S -o subsys52.o
+          llvm-readelf-18 -r subsys52.o | tee subsys52-relocations.log
+          grep -q 'There are no relocations in this file' subsys52-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text subsys52.o subsys52.bin
+          test "$(stat -c %s subsys52.bin)" = 52
+          python3 -B - <<'PY'
+          import sys
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint, pathlib
+          checkpoint.gate_subsys52_core_equivalence(
+              pathlib.Path('ultracompact.bin').read_bytes(),
+              pathlib.Path('subsys52.bin').read_bytes())
+          print('L6_52B_CORE_INDEPENDENTLY_AUDITED=YES')
+          print('L6_56B_CORE_INDEPENDENTLY_AUDITED=YES')
+          PY
+      - name: Decode level-6 span, select earliest safe inline target, compose public pair
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -u -B scripts/slot_b/checkpoint.py \
+            --symbol level6_earliest --delay 8 \
+            --ultracompact-core ultracompact.bin --subsys52-core subsys52.bin \
+            --bundle kernel-bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core proven-core/p1b-t1-core-reference.bin --out l6-pair/8 | tee l6-8.log
+          if test -f l6-pair/8/checkpoint/not-ready.json; then
+            python3 -B - <<'PY' | tee l6-gates.txt
+          import json
+          from pathlib import Path
+          ready = json.loads(Path('l6-pair/8/checkpoint/not-ready.json').read_text())
+          print(f"LEVEL6_SPAN_ENTRY_COUNT={ready['level6_span_entry_count']}")
+          print(f"LEVEL6_SCAN_LIMIT={ready['level6_scan_limit']}")
+          print('LEVEL6_EARLIEST_SAFE_TARGET=NONE')
+          print('FS_SELECTED_PROBE_ARCHITECTURE=NONE')
+          print('PAIR_GENERATED=NO')
+          print('TRAMPOLINE_PERMITTED=NO')
+          print('ISLAND_PERMITTED=NO')
+          print('DEVICE_OPERATION=NO')
+          print('KERNEL_REBUILD=NO')
+          print('PARTITION_WRITES=0')
+          print('SLOT_A_WRITTEN=NO')
+          print('R3_SLOT_B_LEVEL6_EARLIEST_INLINE_TARGET_NOT_READY')
+          PY
+            (cd l6-pair && sha256sum 8/checkpoint/not-ready.json 8/checkpoint/fs-runtime-span.json > SHA256SUMS)
+          else
+          python3 -u -B scripts/slot_b/checkpoint.py \
+            --symbol level6_earliest --delay 1 \
+            --ultracompact-core ultracompact.bin --subsys52-core subsys52.bin \
+            --bundle kernel-bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core proven-core/p1b-t1-core-reference.bin --out l6-pair/1 \
+            --reference-sha "$(jq -r .payload_sha256 l6-pair/8/checkpoint/manifest.json)" | tee l6-1.log
+          python3 -B - <<'PY' | tee l6-gates.txt
+          import hashlib, json, os, struct, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          root = Path('l6-pair')
+          m8 = json.loads((root/'8/checkpoint/manifest.json').read_text())
+          m1 = json.loads((root/'1/checkpoint/manifest.json').read_text())
+          p8 = (root/'8/checkpoint/payload.bin').read_bytes()
+          p1 = (root/'1/checkpoint/payload.bin').read_bytes()
+          frozen = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          assert m8['symbol'] == m1['symbol'] == 'level6_earliest'
+          assert m8['initcall_boundary']['boundary_symbol'].startswith('__initcall6_index_')
+          assert m8['initcall_boundary']['entry_encoding'] == 'PREL32'
+          assert m8['initcall_boundary'] == m1['initcall_boundary']
+          assert m8['window_derivation'] == m1['window_derivation'] == 'TARGET_CFG'
+          source = m8['initcall_source_audit']
+          assert source['first_device_entry_implies_fs_complete'] is True
+          assert source['rootfs_included_in_level5_traversal'] is True
+          assert source['fs_complete_causal_boundary'] == '__initcall6_start'
+          span = m8['fs_runtime_span']
+          assert span['entry_count'] == len(span['entries']) == 53
+          assert span['rootfs_entry_count'] == 1
+          assert any(entry['symbol'] == 'populate_rootfs' for entry in span['rootfs_entries'])
+          size = m8['checkpoint_size']
+          core_size = m8['core_size']
+          assert size == m1['checkpoint_size'] == m8['cfg_closure']['candidate_window_length']
+          assert m8['target_function_size'] >= size >= 4 + core_size
+          assert core_size in (52, 56)
+          assert m8['probe_architecture'] in (
+              'INLINE_PACIASP_PLUS_56B_ULTRACOMPACT', 'INLINE_PACIASP_PLUS_52B_NO_DAIFSET')
+          assert m8['sixty_byte_inline_rejected'] is (core_size == 52)
+          assert m8['cfg_closure']['cfg_closure_proven'] is True
+          assert not m8['cfg_closure']['surviving_into_interior']
+          audit = m8['target_entry_audit']
+          assert audit['entry_audit'] == 'PASS'
+          assert audit['pac'] is True
+          assert not audit['branch_topology']['incoming_window_interior']
+          assert audit['runtime_rewrite_safe'] is True
+          assert m8['inline_only'] is True and m8['trampoline_permitted'] is False
+          bound = m8['initcall_boundary']
+          skipped = bound['level6_skipped']
+          sel_index = bound['span_index']
+          assert bound['level6_scanned'] == sel_index + 1
+          assert [row['index'] for row in skipped] == list(range(sel_index))
+          assert all(row['reason'] in ('TOO_SMALL', 'CFG_NOT_CLOSED') for row in skipped)
+          assert all(row['function_size'] < 56 for row in skipped if row['reason'] == 'TOO_SMALL')
+          assert bound['level6_symbol'] == m8['target_symbol']
+          assert m8['window_agreement']['verdict'] in (
+              'EXACT', 'FS_COMPLETE_LAYOUT_LITERAL_ADDRESS_DELTA_VERIFIED')
+          delay_index = 2 if core_size == 52 else 3
+          changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
+          assert changed == [m8['offset'] + 4 * delay_index + 1, m8['offset'] + 4 * delay_index + 2]
+          assert p8[:m8['offset']] == frozen[:m8['offset']]
+          assert p8[m8['offset']+size:] == frozen[m8['offset']+size:]
+          assert p1[:m1['offset']] == frozen[:m1['offset']]
+          assert p1[m1['offset']+size:] == frozen[m1['offset']+size:]
+          core_delay = m8['offset'] + 4 + (4 if core_size == 52 else 8)
+          assert struct.unpack_from('<I', p8, core_delay)[0] == 0xD37DF12A
+          assert struct.unpack_from('<I', p1, core_delay)[0] == 0xD340FD2A
+          paired = {
+              'source_commit': os.environ['GITHUB_SHA'], 'public_run': os.environ['GITHUB_RUN_ID'],
+              'bundle_run': '35040148509', 'devprobe8_payload_sha256': hashlib.sha256(p8).hexdigest(),
+              'devprobe1_payload_sha256': hashlib.sha256(p1).hexdigest(),
+              'changed_offsets': changed, 'changed_instruction_indices': [delay_index],
+              'probe_architecture': m8['probe_architecture'], 'attribution': 'DELAY_CONSTANT_ONLY',
+              'expected_delta_seconds': -7.0, 'strong_error_seconds': 1.0,
+              'supported_error_seconds': 2.0, 'window_derivation': 'TARGET_CFG',
+              'checkpoint_size': size, 'core_size': core_size,
+              'target_symbol': m8['target_symbol'], 'target_va': m8['target_va'],
+              'target_offset': hex(m8['offset']), 'target_function_size': m8['target_function_size'],
+              'span_index': m8['initcall_boundary']['span_index'],
+              'private_pack': False, 'device_operation': False,
+          }
+          (root/'pair.json').write_text(json.dumps(paired, indent=2)+'\n')
+          print(f"LEVEL6_SPAN_ENTRY_COUNT={span['entry_count']}")
+          print(f"LEVEL6_SCAN_LIMIT={checkpoint.LEVEL6_SCAN_LIMIT}")
+          print('LEVEL6_EARLIEST_SAFE_TARGET=' + m8['target_symbol'])
+          print(f"LEVEL6_EARLIEST_INDEX={m8['initcall_boundary']['span_index']}")
+          print(f"LEVEL6_EARLIEST_TABLE_ENTRY_VA={m8['initcall_boundary']['entry_va']:#x}")
+          print(f"LEVEL6_EARLIEST_PREL32={m8['initcall_boundary']['relative']}")
+          print(f"LEVEL6_EARLIEST_TARGET_VA={m8['target_va']}")
+          print(f"LEVEL6_EARLIEST_IMAGE_OFFSET={m8['offset']:#x}")
+          print(f"LEVEL6_EARLIEST_FUNCTION_SIZE={m8['target_function_size']}")
+          print(f"LEVEL6_EARLIEST_REGISTRATION={m8['initcall_registration']}")
+          print(f"LEVEL6_EARLIEST_SOURCE={m8['target_source']}")
+          print(f"SELECTED_DEVICE_TARGET_ENTRY_BYTES={audit['entry_bytes']}")
+          print(f"SELECTED_DEVICE_TARGET_PAC={audit['pac']}")
+          print(f"SELECTED_DEVICE_TARGET_BTI={audit['bti']}")
+          print('FS_COMPLETE_CAUSAL_BOUNDARY=__initcall6_start')
+          print('FIRST_DEVICE_ENTRY_IMPLIES_FS_COMPLETE=YES')
+          print('LEVEL6_SCAN_IS_CONTIGUOUS=YES')
+          print('FS_SELECTED_PROBE_ARCHITECTURE=' + m8['probe_architecture'])
+          print(f"FS_CHECKPOINT_WINDOW={size}")
+          print(f"FS_DIAGNOSTIC_CORE_SIZE={core_size}")
+          print('FS_60B_INLINE_REJECTED=' + ('YES' if m8['sixty_byte_inline_rejected'] else 'NO'))
+          print('FS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=YES')
+          print('FS_CFG_CLOSURE_PROVEN=YES')
+          print('FS_CHECKPOINT_RUNTIME_REWRITE_SAFE=YES')
+          print('FS_INLINE_ONLY=YES')
+          print('FS_TRAMPOLINE_PERMITTED=NO')
+          print('TRAMPOLINE_PERMITTED=NO')
+          print('ISLAND_PERMITTED=NO')
+          print('PREL32_TARGET_UNCHANGED=YES')
+          print(f"DEVPROBE8_PAYLOAD_SHA={hashlib.sha256(p8).hexdigest()}")
+          print(f"DEVPROBE1_PAYLOAD_SHA={hashlib.sha256(p1).hexdigest()}")
+          print(f"FS_PAIR_DIFF_BYTE_COUNT={len(changed)}")
+          print(f"FS_PAIR_DIFF_RANGES=[{changed[0]:#x},{changed[-1]+1:#x})")
+          print(f"FS_PAIR_CHANGED_INSTRUCTIONS=[{delay_index}]")
+          print('FS_PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY')
+          print('PAIR_DIFF=DELAY_CONSTANT_ONLY')
+          print('FS_PAIR_PUBLIC_READY=YES')
+          print('READY_FOR_LEVEL6_EARLIEST_PRIVATE_GATE=YES')
+          print('FS_PRIVATE_PACK=NO')
+          print('DEVICE_OPERATION=NO')
+          print('KERNEL_REBUILD=NO')
+          print('PARTITION_WRITES=0')
+          print('SLOT_A_WRITTEN=NO')
+          PY
+          for gate in PAIR_DIFF=DELAY_CONSTANT_ONLY FS_PAIR_DIFF_BYTE_COUNT=2 \
+            FS_CFG_CLOSURE_PROVEN=YES FS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=YES \
+            FS_PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY FS_PAIR_PUBLIC_READY=YES \
+            READY_FOR_LEVEL6_EARLIEST_PRIVATE_GATE=YES TRAMPOLINE_PERMITTED=NO \
+            ISLAND_PERMITTED=NO PREL32_TARGET_UNCHANGED=YES FS_INLINE_ONLY=YES \
+            DEVICE_OPERATION=NO KERNEL_REBUILD=NO PARTITION_WRITES=0 SLOT_A_WRITTEN=NO; do
+            grep -Fxq "$gate" l6-gates.txt
+          done
+          (cd l6-pair && sha256sum 8/checkpoint/payload.bin 1/checkpoint/payload.bin pair.json > SHA256SUMS)
+          fi
+      - name: Assert public payload-only scope
+        run: |
+          set -euo pipefail
+          if find l6-pair -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          printf '%s\n' 'PRIVATE_PACK=NO' 'DEVICE_OPERATION=NO' 'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' 'LOCAL_BUILD=NO' 'LOCAL_IMAGE_GENERATION=NO'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-level6-earliest-decode
+          path: |
+            l6-8.log
+            l6-1.log
+            l6-gates.txt
+            ultracompact-*.log
+            subsys52-*.log
+            l6-pair/*/checkpoint/original-window.txt
+            l6-pair/*/checkpoint/original-function.txt
+            l6-pair/*/checkpoint/target-entry-audit.json
+            l6-pair/*/checkpoint/window-agreement.json
+            l6-pair/*/checkpoint/fs-runtime-span.json
+            l6-pair/*/checkpoint/manifest.json
+            l6-pair/*/checkpoint/not-ready.json
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-level6-earliest-pair
+          path: l6-pair/
+          if-no-files-found: error
+
+  independent-reverify:
+    needs: level6-earliest-decode
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Download pair and immutable inputs independently
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" -n thyme-level6-earliest-pair -D pair
+          gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+          if test -f pair/8/checkpoint/not-ready.json; then
+            python3 -B - <<'PY'
+          import json
+          from pathlib import Path
+          ready = json.loads(Path('pair/8/checkpoint/not-ready.json').read_text())
+          assert ready['reason'] == 'LEVEL6_EARLIEST_INLINE_TARGET_NOT_READY'
+          assert ready['probe_architecture'] == 'NONE'
+          print('LEVEL6_EARLIEST_INLINE_TARGET_NOT_READY')
+          print('INDEPENDENT_REVERIFY_NOT_READY=PASS')
+          print('DEVICE_OPERATION=NO')
+          print('PARTITION_WRITES=0')
+          print('SLOT_A_WRITTEN=NO')
+          PY
+            (cd pair && sha256sum -c SHA256SUMS)
+            exit 0
+          fi
+      - name: Independently re-decode level-6 span and re-select the earliest safe inline target
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          if test -f pair/8/checkpoint/not-ready.json; then
+            echo 'NOT_READY_PAIR_ALREADY_REVERIFIED'
+            exit 0
+          fi
+          (cd pair && sha256sum -c SHA256SUMS)
+          python3 -B - <<'PY' | tee l6-reverify.txt
+          import bisect, hashlib, json, struct, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          frozen = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          image = Path('kernel-bundle/Image').read_bytes()
+          symbols = []
+          for line in Path('kernel-bundle/System.map').read_text().splitlines():
+              parts = line.split()
+              if len(parts) >= 3:
+                  symbols.append((int(parts[0], 16), parts[2]))
+          symbols.sort()
+          vas = [va for va, _ in symbols]
+          by_va = {}
+          for va, name in symbols:
+              by_va.setdefault(va, []).append(name)
+          first = lambda name: next(va for va, names in by_va.items() if name in names)
+          text_va, begin, end = first('_text'), first('__initcall6_start'), first('__initcall7_start')
+          assert begin == 0xFFFF800081D0B1A8 and end > begin
+          entries = []
+          for i in range((end - begin) // 4):
+              va = begin + 4 * i
+              rel = struct.unpack_from('<i', frozen, va - text_va)[0]
+              target = va + rel
+              aliases = sorted(by_va.get(target, []))
+              assert aliases, hex(target)
+              entries.append({"index": i, "entry_va": va, "target_va": target,
+                              "aliases": aliases, "symbol": aliases[0]})
+          assert len(entries) == 1100
+          ranges = [(0, len(image))]
+          extent_of = lambda target: vas[bisect.bisect_right(vas, target)]
+          audit = lambda target, size, min_probe: checkpoint.level6_window_audit(
+              frozen[:len(image)], ranges, text_va, target, size, min_probe)
+          sel = checkpoint.select_level6_earliest_inline(entries, extent_of, audit)
+          m8 = json.loads(Path('pair/8/checkpoint/manifest.json').read_text())
+          m1 = json.loads(Path('pair/1/checkpoint/manifest.json').read_text())
+          pair = json.loads(Path('pair/pair.json').read_text())
+          p8 = Path('pair/8/checkpoint/payload.bin').read_bytes()
+          p1 = Path('pair/1/checkpoint/payload.bin').read_bytes()
+          bound = m8['initcall_boundary']
+          assert sel['selected_index'] == bound['span_index']
+          assert sel['selected']['symbol'] == m8['target_symbol']
+          assert hex(sel['selected']['target_va']) == m8['target_va']
+          assert sel['function_size'] == m8['target_function_size']
+          assert sel['window'] == m8['checkpoint_size']
+          assert sel['min_probe'] == 4 + m8['core_size']
+          assert len(sel['skipped']) == sel['selected_index']
+          assert [row['index'] for row in sel['skipped']] == list(range(sel['selected_index']))
+          assert all(row['reason'] in ('TOO_SMALL', 'CFG_NOT_CLOSED') for row in sel['skipped'])
+          assert all(row['function_size'] < 56 for row in sel['skipped']
+                     if row['reason'] == 'TOO_SMALL')
+          assert sel['skipped'] == bound['level6_skipped']
+          assert m8['target_symbol'] == 'cpuinfo_regs_init'
+          assert m8['initcall_registration'] == 'device_initcall(cpuinfo_regs_init)'
+          assert m8['target_source'] == 'arch/arm64/kernel/cpuinfo.c'
+          assert bound['span_index'] == 1
+          assert bound['entry_va'] == 0xFFFF800081D0B1AC
+          assert m8['target_va'] == '0xffff800081b34d8c'
+          assert m8['target_function_size'] == 220
+          assert m8['checkpoint_size'] == 60
+          assert m8['probe_architecture'] == 'INLINE_PACIASP_PLUS_56B_ULTRACOMPACT'
+          assert hashlib.sha256(p8).hexdigest() == pair['devprobe8_payload_sha256']
+          assert hashlib.sha256(p1).hexdigest() == pair['devprobe1_payload_sha256']
+          size = m8['checkpoint_size']
+          changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
+          assert changed == [m8['offset'] + 13, m8['offset'] + 14]
+          assert p8[:m8['offset']] == frozen[:m8['offset']]
+          assert p8[m8['offset']+size:] == frozen[m8['offset']+size:]
+          assert p1[:m1['offset']] == frozen[:m1['offset']]
+          assert p1[m1['offset']+size:] == frozen[m1['offset']+size:]
+          assert struct.unpack_from('<I', p8, m8['offset'] + 12)[0] == 0xD37DF12A
+          assert struct.unpack_from('<I', p1, m1['offset'] + 12)[0] == 0xD340FD2A
+          assert m8['prel32_target_unchanged'] is True
+          assert m8['inline_only'] is True and m8['trampoline_permitted'] is False
+          assert m8['cfg_closure']['cfg_closure_proven'] is True
+          assert m8['target_entry_audit']['runtime_rewrite_safe'] is True
+          print('LEVEL6_REVERIFY_INDEX=%d' % sel['selected_index'])
+          print('LEVEL6_REVERIFY_SYMBOL=' + sel['selected']['symbol'])
+          print('LEVEL6_REVERIFY_TARGET_VA=' + m8['target_va'])
+          print('LEVEL6_REVERIFY_FUNCTION_SIZE=%d' % sel['function_size'])
+          print('LEVEL6_REVERIFY_WINDOW=%d' % sel['window'])
+          print('LEVEL6_REVERIFY_SKIPPED=' + json.dumps(sel['skipped'], sort_keys=True))
+          print('DEVPROBE8_PAYLOAD_SHA=' + hashlib.sha256(p8).hexdigest())
+          print('DEVPROBE1_PAYLOAD_SHA=' + hashlib.sha256(p1).hexdigest())
+          print('PAIR_DIFF=DELAY_CONSTANT_ONLY')
+          print('LEVEL6_EARLIEST_INLINE_TARGET_INDEPENDENTLY_DERIVED=YES')
+          print('FS_INITCALLS_COMPLETION_NOT_YET_CLAIMED=YES')
+          print('KERNEL_REBUILD=NO')
+          print('DEVICE_OPERATION=NO')
+          print('PARTITION_WRITES=0')
+          print('SLOT_A_WRITTEN=NO')
+          PY
+          for gate in PAIR_DIFF=DELAY_CONSTANT_ONLY \
+            LEVEL6_EARLIEST_INLINE_TARGET_INDEPENDENTLY_DERIVED=YES \
+            FS_INITCALLS_COMPLETION_NOT_YET_CLAIMED=YES KERNEL_REBUILD=NO \
+            DEVICE_OPERATION=NO PARTITION_WRITES=0 SLOT_A_WRITTEN=NO; do
+            grep -Fxq "$gate" l6-reverify.txt
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-level6-earliest-reverify
+          path: l6-reverify.txt
+          if-no-files-found: error
