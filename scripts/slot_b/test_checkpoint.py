@@ -870,6 +870,37 @@ class CheckpointTests(unittest.TestCase):
         first_device = (0x1B347B8, 0x1B347C0)
         checkpoint.require_disjoint_windows([stub, island_span, live, first_device])
 
+    def test_fs_upper_half_design_negative_fixtures(self):
+        entries = [{'index': i, 'target_va': 0x1000 + i} for i in range(53)]
+        self.assertEqual(checkpoint.select_fs_upper_half_index(entries), 39)
+        with self.assertRaises(ValueError):
+            checkpoint.select_fs_upper_half_index(entries[:-1])
+        design = checkpoint._isolation_design_base(
+            'FS_LEVEL_UPPER_HALF_MIDPOINT_ENTRY', '__initcall5_index_39')
+        design.update({
+            'target_derivation': 'PROVEN_UPPER_HALF_MIDPOINT_FLOOR',
+            'lower_index': 26, 'first_device_index': 53, 'midpoint_index': 39,
+            'entry_count': 53, 'name_guess': False, 'target_symbol': 'chr_dev_init',
+            'table_entry_va': 0xffff800081d0b170, 'target_va': 0xffff800081b8cd40,
+            'target_source': 'drivers/char/mem.c',
+            'initcall_registration': 'fs_initcall(chr_dev_init)',
+            'probe_architecture': 'INLINE_PACIASP_PLUS_52B_NO_DAIFSET',
+            'diagnostic_core_size': 52, 'function_size': 184, 'probe_size': 56,
+            'sixty_byte_inline_rejected': True, 'inline_only': True,
+            'trampoline_permitted': False,
+        })
+        checkpoint.gate_fs_upper_half_design(design)
+        drifts = {
+            'index': ('midpoint_index', 38), 'span': ('entry_count', 52),
+            'architecture': ('probe_architecture', 'ENTRY_TRAMPOLINE'),
+            'core': ('diagnostic_core_size', 56), 'window': ('probe_size', 60),
+            'name_guess': ('name_guess', True),
+            'table_identity': ('table_entry_va', 0xffff800081d0b174),
+        }
+        for name, (key, value) in drifts.items():
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                checkpoint.gate_fs_upper_half_design(dict(design, **{key: value}))
+
 
     def test_composition_changes_only_authorized_window(self):
         before = bytes(range(100))
