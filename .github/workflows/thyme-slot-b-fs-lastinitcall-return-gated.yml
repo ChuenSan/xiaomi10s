@@ -1,0 +1,144 @@
+name: FS_INITCALLS_LASTINITCALL_RETURN_GATED_CI
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/lastinitcall_return_gated_probe.py'
+      - 'scripts/slot_b/test_lastinitcall_return_gated_probe.py'
+      - '.github/workflows/thyme-slot-b-fs-lastinitcall-return-gated.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: fs-lastinitcall-return-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch frozen source tree
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-fs-lastinitcall-return-gated.yml
+      - name: Source tests and last-level5-return geometry gate
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_*.py' -v 2>&1 | tee source-tests.log
+          grep -q 'test_last_return_negative_fixtures.*ok' source-tests.log
+          grep -q 'test_geometry_not_ready.*ok' source-tests.log
+          grep -q 'test_select_last_return_probe_rejected.*ok' source-tests.log
+          grep -q 'test_source_chain.*ok' source-tests.log
+          python3 -B - <<'PY' | tee source-audit.json
+          import json, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          import lastinitcall_return_gated_probe as lrp
+          lrp.bind_post51(checkpoint)
+          src = lrp.audit_source(Path('linux-6.6'))
+          report = lrp.gate_report(lrp.report())
+          assert src['level5_return_implies_fs_complete'] is True
+          assert src['rootfs_between_level5_and_level6'] is True
+          assert src['initramfs_async_default'] is True
+          assert report['gate'] == lrp.GATE
+          assert report['pair_generated'] is False
+          print(json.dumps({'source': src, 'report': report}, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-lastinitcall-return-source-audit
+          path: |
+            source-tests.log
+            source-audit.json
+          if-no-files-found: error
+
+  frozen-payload-audit:
+    needs: source-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Download frozen FIX8 payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Freeze caller bytes, index-52 identity and inline deficits
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY' | tee last-return-gates.txt
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          import lastinitcall_return_gated_probe as lrp
+          lrp.bind_post51(checkpoint)
+          payload = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          report = lrp.verify_payload_words(payload)
+          print('LAST_RETURN_GEOMETRY=PASS')
+          print('LEVEL5_ENTRIES=%d' % report['level5_entries'])
+          print('LAST_SLOT_VA=%s' % report['last_slot_va'])
+          print('LAST_SLOT_TARGET=%s' % report['last_slot_target'])
+          print('LAST_SLOT_PREL32=%d' % report['last_slot_prel32'])
+          print('MIN_INLINE_FOOTPRINT=%d' % report['min_inline_footprint'])
+          print('MIN_INLINE_DEFICIT_BYTES=%d' % report['min_inline_deficit_bytes'])
+          print('LVLXIT_BYTES=%d' % report['lvlxit_bytes'])
+          print('LVLXIT_SPARE=%d' % report['lvlxit_spare'])
+          print('POSTLVL_BYTES=%d' % report['postlvl_bytes'])
+          print('POSTLVL_LIVE_BYTES=%d' % report['postlvl_live_bytes'])
+          print('POSTLVL_COLD_BYTES=%d' % report['postlvl_cold_bytes'])
+          print('POSTLVL_SPARE=%d' % report['postlvl_spare'])
+          print('POSTCALL_BYTES=%d' % report['postcall_bytes'])
+          print('POSTCALL_SPARE=%d' % report['postcall_spare'])
+          print('KEYBLK_BYTES=%d' % report['keyblk_bytes'])
+          print('KEYBLK_PROVABLY_DEAD=NO')
+          print('ISLAND_PERMITTED=NO')
+          print('TRAMPOLINE_PERMITTED=NO')
+          print('CODE_CAVE_PERMITTED=NO')
+          print('SHARED_CALLER_UNCONDITIONAL=NO')
+          print('PREL32_TABLE_MODIFIED=NO')
+          print('PAIR_GENERATED=NO')
+          print('LASTRET8_GENERATED=NO')
+          print('LASTRET1_GENERATED=NO')
+          print('KERNEL_REBUILD=NO')
+          print('DEVICE_OPERATION=NO')
+          print('PARTITION_WRITES=0')
+          print('SLOT_A_WRITTEN=NO')
+          print('FINAL_GATE=' + report['gate'])
+          PY
+          grep -Fxq 'FINAL_GATE=R3_SLOT_B_FS_LAST_RETURN_GATED_PROBE_NOT_READY' last-return-gates.txt
+          grep -Fxq 'PAIR_GENERATED=NO' last-return-gates.txt
+          grep -Fxq 'MIN_INLINE_FOOTPRINT=60' last-return-gates.txt
+          grep -Fxq 'MIN_INLINE_DEFICIT_BYTES=60' last-return-gates.txt
+          test ! -d pair
+          test ! -d lastret
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-lastinitcall-return-gates
+          path: last-return-gates.txt
+          if-no-files-found: error
