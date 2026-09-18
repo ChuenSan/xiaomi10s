@@ -357,8 +357,20 @@ NOT_PROVEN. Current B hashes and P15 prefix matched; Android A restored.
 Partition writes 0. Slot A untouched. Do not rerun POST468/POST461,
 POST398/POST391, UPPER8/UPPER1, MID, CONTROL, FS8/FS1, SUBSYS, ARCH,
 POSTCORE, CORE, PURE or CONSOLE. Final gate:
-`R3_SLOT_B_FS_POST46_ENTRY_PROVEN`. Next: inline-only bisection in index
-49 → first-device.
+`R3_SLOT_B_FS_POST46_ENTRY_PROVEN`. The post-49 inline pair then selected
+index 51 `acpi_reserve_resources` (`0xffff800081b6b2fc`, 256B, window 60,
+`paciasp` + 56B ultracompact). Public `35329721571`, private pack
+`35330249339`, reverify `35330316795`, observer `35330479511`. One
+POST49_8 then one POST49_1 RAM-only Slot B boot.
+`POST49_8_TOTAL=35.434585083s`, `POST49_1_TOTAL=28.439815292s`,
+`PAIR_DELTA=-6.994769791s`, `PAIR_ERROR=0.005230209s`: **STRONG**.
+`ACPI_RESERVE_RESOURCES_ENTRY=PROVEN`. `FS_INITCALLS_COMPLETED` and
+`FIRST_DEVICE_INITCALL_ENTRY` stay NOT_PROVEN. Current B hashes and P15
+prefix matched; Android A restored. Partition writes 0. Slot A
+untouched. Do not rerun POST498/POST491, POST468/POST461, POST398/POST391,
+UPPER8/UPPER1, MID, CONTROL, FS8/FS1, SUBSYS, ARCH, POSTCORE, CORE, PURE or
+CONSOLE. Final gate: `R3_SLOT_B_FS_POST49_ENTRY_PROVEN`. Next:
+inline-only bisection in index 51 → first-device (pseudo 53), targeting index 52 `populate_rootfs`.
 
 
 

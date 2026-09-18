@@ -373,5 +373,53 @@ Next: continue inline-only bisection in index 49 → first-device (pseudo 53).
 
 Evidence: `artifacts/slot-b-fs-post46-20260918/`.
 
+## Post-49 inline pair
+
+`MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_POST49_INLINE_BISECTION` used
+authoritative 53-entry table index 51 `acpi_reserve_resources`
+(`0xffff800081b6b2fc` / `0x1b6b2fc`, `drivers/acpi/osl.c`, 256B). Floor
+midpoint of proven index 49 and first-device pseudo-index 53. INLINE
+only: preserved `paciasp` + 56B ultracompact, CFG window 60. PREL32
+unchanged. Trampoline/island not used.
+
+Public `35329721571` at `8696732`. POST49_8 payload
+`ce749ac143dd42bc6ded9fe9bcc0808c31b9347b84e7e2122ae4dba6b6a88378`,
+POST49_1 payload
+`2be85c5beac519c80cdd1c8b42847a9f70735174366578cf35ed1a3ba930797a`.
+Pair DELAY_CONSTANT_ONLY 2 bytes `[0x1b6b309,0x1b6b30a)`. Independent
+reverify PASS. Private pack `35330249339` / reverify `35330316795`.
+Observer `35330479511` PASS at `dcc2168`.
+
+| | SHA-256 | size |
+| --- | --- | --- |
+| POST49_8 boot | `c8ff8dc637d80ef1b0d0a3dbab6869f3879450998a9df546e2af25cea64b2a14` | 37380096 |
+| POST49_1 boot | `73c63cf6360a962d7fc555f65281aef23da1864ff185f30dfa693d69e8862a6c` | 37380096 |
+
+One POST49_8 then one POST49_1 RAM-only Slot B boot. Both
+`AUTOMATIC_FASTBOOT_RETURN`, retry 7→6.
+
+| | Sending | Booting | TOTAL |
+| --- | --- | --- | --- |
+| POST49_8 | OKAY 0.917s | OKAY 0.221s | `35.434585083s` |
+| POST49_1 | OKAY 0.913s | OKAY 0.221s | `28.439815292s` |
+
+- `PAIR_DELTA=-6.994769791s`
+- `EXPECTED=-7.000000000s`
+- `PAIR_ERROR=0.005230209s`
+- `POST49_PAIR_VERDICT=STRONG`
+
+`ACPI_RESERVE_RESOURCES_ENTRY=PROVEN`. Do not upgrade
+`FS_INITCALLS_COMPLETED` or `FIRST_DEVICE_INITCALL_ENTRY`. Current B
+16-chain and P15 prefix MATCH. Android A restored. Partition writes 0.
+Slot A untouched. `POST498_RERUN_FORBIDDEN=YES`.
+`POST491_RERUN_FORBIDDEN=YES`.
+
+Final gate: `R3_SLOT_B_FS_POST49_ENTRY_PROVEN`.
+
+Next: continue inline-only bisection in index 51 → first-device (pseudo 53), target index 52 `populate_rootfs`.
+
+Evidence: `artifacts/slot-b-fs-post49-20260918/`.
+
+
 
 
