@@ -50,6 +50,8 @@ IMAGES = {
     "mid1": (37380096, "b2b7cd68a68886ebcc7f6fc598d22c7a27ecc9698a7397ec97b58271627c1499"),
     "post398": (37380096, "b1ba8335dd671a9d026783e5539547fb2df3d314e7d8757b769b823967d1d4d6"),
     "post391": (37380096, "23a24d95ac8fe17229b3e425d777b3b7938d32c110a8070546836aaba79f6e8f"),
+    "post468": (37380096, "4092ceaedb54f94fe6079cdf987fd719620a712465fee30d9fd20b8a3e5dc843"),
+    "post461": (37380096, "f0b80158e90f91f8dbbb47cd84f8b92be93d86cad9690514859af3629061ea32"),
     }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
@@ -69,6 +71,7 @@ PAIRS = {
     "control1": ("control8", "fs_trampoline_control_reached", "first_device_initcall_entry"),
     "mid1": ("mid8", "fs_midpoint_entry", "first_device_initcall_entry"),
     "post391": ("post398", "fs_post39_entry", "first_device_initcall_entry"),
+    "post461": ("post468", "fs_post46_entry", "first_device_initcall_entry"),
     }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -86,7 +89,6 @@ ARCH_GEOMETRY = {
 SUBSYS_GEOMETRY = {
     "target": "create_debug_debugfs_entry", "va": 0xFFFF8000800149E0,
     "offset": 0x149E0, "function_size": 56, "window": 56, "entry": "paciasp",
-    "core_size": 52, "daifset": "ABSENT", "prel32_unchanged": True,
     "core_size": 52, "daifset": "ABSENT", "prel32_unchanged": True,
 }
 FS_GEOMETRY = {
@@ -133,6 +135,18 @@ POST39_TABLE = {
     "index": 46, "symbol": "af_unix_init", "va": 0xFFFF800081BAE798,
     "table_va": 0xFFFF800081D0B18C, "offset": 0x1BAE798,
     "registration": "fs_initcall(af_unix_init)", "source": "net/unix/af_unix.c",
+}
+POST46_GEOMETRY = {
+    "target": "vlan_offload_init", "va": 0xFFFF800081BAEDFC,
+    "offset": 0x1BAEDFC, "function_size": 60, "window": 60,
+    "core_size": 56, "architecture": "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT",
+    "entry": "paciasp", "daifset": "PRESENT", "inline_only": True,
+    "prel32_unchanged": True,
+}
+POST46_TABLE = {
+    "index": 49, "symbol": "vlan_offload_init", "va": 0xFFFF800081BAEDFC,
+    "table_va": 0xFFFF800081D0B198, "offset": 0x1BAEDFC,
+    "registration": "fs_initcall(vlan_offload_init)", "source": "net/8021q/vlan_core.c",
 }
 
 REST_ORIGIN = "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B"
@@ -274,6 +288,34 @@ def validate_post39_table():
     require(POST39_TABLE["registration"] == "fs_initcall(af_unix_init)",
             "POST39_REGISTRATION_DRIFT")
 
+def validate_post46_geometry(window):
+    require(window != 56, "POST46_56B_WINDOW_REJECTED")
+    require(window == POST46_GEOMETRY["window"], "POST46_WINDOW_NOT_60")
+    require(POST46_GEOMETRY["target"] == "vlan_offload_init", "POST46_TARGET_DRIFT")
+    require(POST46_GEOMETRY["va"] == 0xFFFF800081BAEDFC, "POST46_VA_DRIFT")
+    require(POST46_GEOMETRY["offset"] == 0x1BAEDFC, "POST46_OFFSET_DRIFT")
+    require(POST46_GEOMETRY["window"] <= POST46_GEOMETRY["function_size"],
+            "POST46_WINDOW_EXCEEDS_FUNCTION")
+    require(POST46_GEOMETRY["function_size"] == 60, "POST46_FUNCTION_NOT_60")
+    require(POST46_GEOMETRY["core_size"] == 56, "POST46_CORE_NOT_56")
+    require(POST46_GEOMETRY["architecture"] == "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT",
+            "POST46_ARCHITECTURE_DRIFT")
+    require(POST46_GEOMETRY["entry"] == "paciasp", "POST46_ENTRY_NOT_PACIASP")
+    require(POST46_GEOMETRY["daifset"] == "PRESENT", "POST46_DAIFSET_ABSENT")
+    require(POST46_GEOMETRY["inline_only"] is True, "POST46_NOT_INLINE_ONLY")
+    require(POST46_GEOMETRY["prel32_unchanged"] is True, "POST46_PREL32_CHANGED")
+
+
+def validate_post46_table():
+    require(POST46_TABLE["index"] == 49, "POST46_INDEX_NOT_49")
+    require(POST46_TABLE["symbol"] == "vlan_offload_init", "POST46_SYMBOL_DRIFT")
+    require(POST46_TABLE["table_va"] == 0xFFFF800081D0B198, "POST46_TABLE_VA_DRIFT")
+    require(POST46_TABLE["va"] == 0xFFFF800081BAEDFC, "POST46_TARGET_VA_DRIFT")
+    require(POST46_TABLE["offset"] == 0x1BAEDFC, "POST46_OFFSET_DRIFT")
+    require(POST46_TABLE["source"] == "net/8021q/vlan_core.c", "POST46_SOURCE_DRIFT")
+    require(POST46_TABLE["registration"] == "fs_initcall(vlan_offload_init)",
+            "POST46_REGISTRATION_DRIFT")
+
 def validate_context(context, case=None):
     require(all(context.get(k) == v for k, v in CONTEXT.items()), "B_CONTEXT_MISMATCH")
     require(context.get("slot_a_unchanged") is True, "SLOT_A_UNCHANGED_NOT_VERIFIED")
@@ -409,6 +451,17 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(post39_checkpoint_shift_not_observed="YES")
+    elif second == "post461":
+        out.update(fs_initcalls_completed="NOT_PROVEN",
+                   first_device_initcall_entry="NOT_PROVEN",
+                   first_device_initcall_body="NOT_PROVEN",
+                   device_initcalls_completed="NOT_PROVEN",
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(post46_checkpoint_shift_not_observed="YES")
     return out
 
 

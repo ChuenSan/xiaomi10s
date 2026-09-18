@@ -471,6 +471,42 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(no_shift["first_device_initcall_entry"], "NOT_PROVEN")
         self.assertEqual(no_shift["post39_checkpoint_shift_not_observed"], "YES")
         self.assertFalse(any("not_reached" in key for key in no_shift))
+
+    def test_post46_geometry_and_table(self):
+        observe.validate_post46_geometry(60)
+        with self.assertRaisesRegex(ValueError, "POST46_56B_WINDOW_REJECTED"):
+            observe.validate_post46_geometry(56)
+        observe.validate_post46_table()
+        geo = observe.POST46_GEOMETRY
+        self.assertEqual(geo["function_size"], 60)
+        self.assertEqual(geo["core_size"], 56)
+        self.assertEqual(geo["architecture"], "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT")
+        self.assertEqual(geo["daifset"], "PRESENT")
+        self.assertTrue(geo["inline_only"])
+        self.assertTrue(geo["prel32_unchanged"])
+        table = observe.POST46_TABLE
+        self.assertEqual(table["index"], 49)
+        self.assertEqual(table["table_va"], 0xFFFF800081D0B198)
+        self.assertEqual(table["va"], 0xFFFF800081BAEDFC)
+
+    def test_post46_pair_proves_only_post46_entry(self):
+        baseline = {**self.record("post468", 35.0),
+                    "bootloader_origin": observe.REST_ORIGIN}
+        strong = {**self.record("post461", 28.0),
+                  "bootloader_origin": observe.REST_ORIGIN}
+        verdict = observe.pair_verdict(baseline, strong)
+        self.assertEqual(verdict["verdict"], "STRONG")
+        self.assertEqual(verdict["fs_post46_entry"], "PROVEN")
+        self.assertEqual(verdict["first_device_initcall_entry"], "NOT_PROVEN")
+        self.assertEqual(verdict["fs_initcalls_completed"], "NOT_PROVEN")
+        self.assertEqual(verdict["init_executed"], "NOT_PROVEN")
+        no_shift = observe.pair_verdict(
+            baseline, {**strong, "total_s": baseline["total_s"]})
+        self.assertEqual(no_shift["verdict"], "SHIFT_NOT_OBSERVED")
+        self.assertEqual(no_shift["fs_post46_entry"], "NOT_PROVEN")
+        self.assertEqual(no_shift["first_device_initcall_entry"], "NOT_PROVEN")
+        self.assertEqual(no_shift["post46_checkpoint_shift_not_observed"], "YES")
+        self.assertFalse(any("not_reached" in key for key in no_shift))
     def test_pair_delta_not_old_slot_a_absolute_timing(self):
         baseline = self.record("reset8", 50.0)
         strong = observe.pair_verdict(baseline, self.record("reset1", 43.1))
