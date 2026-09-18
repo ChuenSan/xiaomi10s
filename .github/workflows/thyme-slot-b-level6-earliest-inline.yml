@@ -244,7 +244,8 @@ jobs:
               'private_pack': False, 'device_operation': False,
           }
           (root/'pair.json').write_text(json.dumps(paired, indent=2)+'\n')
-          print(f"LEVEL6_SPAN_ENTRY_COUNT={span['entry_count']}")
+          print(f"LEVEL5_RUNTIME_SPAN_ENTRY_COUNT={span['entry_count']}")
+          print(f"LEVEL6_SPAN_ENTRY_COUNT={bound['table_entries_checked']}")
           print(f"LEVEL6_SCAN_LIMIT={checkpoint.LEVEL6_SCAN_LIMIT}")
           print('LEVEL6_EARLIEST_SAFE_TARGET=' + m8['target_symbol'])
           print(f"LEVEL6_EARLIEST_INDEX={m8['initcall_boundary']['span_index']}")
@@ -289,6 +290,7 @@ jobs:
           print('SLOT_A_WRITTEN=NO')
           PY
           for gate in PAIR_DIFF=DELAY_CONSTANT_ONLY FS_PAIR_DIFF_BYTE_COUNT=2 \
+            LEVEL6_SPAN_ENTRY_COUNT=1100 LEVEL5_RUNTIME_SPAN_ENTRY_COUNT=53 \
             FS_CFG_CLOSURE_PROVEN=YES FS_PROBE_WINDOW_DERIVED_FROM_TARGET_CFG=YES \
             FS_PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY FS_PAIR_PUBLIC_READY=YES \
             READY_FOR_LEVEL6_EARLIEST_PRIVATE_GATE=YES TRAMPOLINE_PERMITTED=NO \
@@ -460,6 +462,8 @@ jobs:
           assert m8['cfg_closure']['cfg_closure_proven'] is True
           assert m8['target_entry_audit']['runtime_rewrite_safe'] is True
           print('LEVEL6_REVERIFY_INDEX=%d' % sel['selected_index'])
+          print('LEVEL6_SPAN_ENTRY_COUNT=%d' % len(entries))
+          print('LEVEL5_RUNTIME_SPAN_ENTRY_COUNT=%d' % len(m8['fs_runtime_span']['entries']))
           print('LEVEL6_REVERIFY_SYMBOL=' + sel['selected']['symbol'])
           print('LEVEL6_REVERIFY_TARGET_VA=' + m8['target_va'])
           print('LEVEL6_REVERIFY_FUNCTION_SIZE=%d' % sel['function_size'])
@@ -475,7 +479,7 @@ jobs:
           print('PARTITION_WRITES=0')
           print('SLOT_A_WRITTEN=NO')
           PY
-          for gate in PAIR_DIFF=DELAY_CONSTANT_ONLY \
+          for gate in PAIR_DIFF=DELAY_CONSTANT_ONLY LEVEL6_SPAN_ENTRY_COUNT=1100 \
             LEVEL6_EARLIEST_INLINE_TARGET_INDEPENDENTLY_DERIVED=YES \
             FS_INITCALLS_COMPLETION_NOT_YET_CLAIMED=YES KERNEL_REBUILD=NO \
             DEVICE_OPERATION=NO PARTITION_WRITES=0 SLOT_A_WRITTEN=NO; do

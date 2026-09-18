@@ -56,6 +56,8 @@ IMAGES = {
     "post491": (37380096, "73c63cf6360a962d7fc555f65281aef23da1864ff185f30dfa693d69e8862a6c"),
     "post518": (37380096, "7d6e527c977b3dd08d9f4896d44648bc7b9020993a8841e91285c84c67cc81ae"),
     "post511": (37380096, "3c825488ba0b41a534369a476f05f3b20c1279f017275212dc52d4761e3d9d1a"),
+    "devprobe8": (37380096, "94ae6d101ee0e0092d5041367a70747fac95e8eaf5b51d1f79857264b2f64b31"),
+    "devprobe1": (37380096, "2e8b1f5b313195b86ac8a4de14f3a2eb7bf33c7efa575bb425ddb981d1a2b90f"),
     }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
@@ -78,6 +80,7 @@ PAIRS = {
     "post461": ("post468", "fs_post46_entry", "first_device_initcall_entry"),
     "post491": ("post498", "fs_post49_entry", "first_device_initcall_entry"),
     "post511": ("post518", "fs_post51_entry", "first_device_initcall_entry"),
+    "devprobe1": ("devprobe8", "fs_initcalls_completed", "device_initcalls_completed"),
     }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -177,6 +180,20 @@ POST51_TABLE = {
     "index": 52, "symbol": "populate_rootfs", "va": 0xFFFF800081B32388,
     "table_va": 0xFFFF800081D0B1A4, "offset": 0x1B32388,
     "registration": "rootfs_initcall(populate_rootfs)", "source": "init/initramfs.c",
+}
+
+DEVPROBE_GEOMETRY = {
+    "target": "cpuinfo_regs_init", "va": 0xFFFF800081B34D8C,
+    "offset": 0x1B34D8C, "function_size": 220, "window": 60,
+    "core_size": 56, "architecture": "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT",
+    "entry": "paciasp", "daifset": "PRESENT", "inline_only": True,
+    "prel32_unchanged": True, "level6_index": 1,
+}
+DEVPROBE_TABLE = {
+    "index": 1, "symbol": "cpuinfo_regs_init", "va": 0xFFFF800081B34D8C,
+    "table_va": 0xFFFF800081D0B1AC, "offset": 0x1B34D8C,
+    "registration": "device_initcall(cpuinfo_regs_init)",
+    "source": "arch/arm64/kernel/cpuinfo.c",
 }
 
 REST_ORIGIN = "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B"
@@ -404,6 +421,37 @@ def validate_post51_table():
     require(POST51_TABLE["registration"] == "rootfs_initcall(populate_rootfs)",
             "POST51_REGISTRATION_DRIFT")
 
+def validate_devprobe_geometry(window):
+    require(window != 56, "DEVPROBE_56B_WINDOW_REJECTED")
+    require(window == DEVPROBE_GEOMETRY["window"], "DEVPROBE_WINDOW_NOT_60")
+    require(DEVPROBE_GEOMETRY["target"] == "cpuinfo_regs_init", "DEVPROBE_TARGET_DRIFT")
+    require(DEVPROBE_GEOMETRY["va"] == 0xFFFF800081B34D8C, "DEVPROBE_VA_DRIFT")
+    require(DEVPROBE_GEOMETRY["offset"] == 0x1B34D8C, "DEVPROBE_OFFSET_DRIFT")
+    require(DEVPROBE_GEOMETRY["window"] <= DEVPROBE_GEOMETRY["function_size"],
+            "DEVPROBE_WINDOW_EXCEEDS_FUNCTION")
+    require(DEVPROBE_GEOMETRY["function_size"] == 220, "DEVPROBE_FUNCTION_NOT_220")
+    require(DEVPROBE_GEOMETRY["core_size"] == 56, "DEVPROBE_CORE_NOT_56")
+    require(DEVPROBE_GEOMETRY["architecture"] == "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT",
+            "DEVPROBE_ARCHITECTURE_DRIFT")
+    require(DEVPROBE_GEOMETRY["entry"] == "paciasp", "DEVPROBE_ENTRY_NOT_PACIASP")
+    require(DEVPROBE_GEOMETRY["daifset"] == "PRESENT", "DEVPROBE_DAIFSET_ABSENT")
+    require(DEVPROBE_GEOMETRY["inline_only"] is True, "DEVPROBE_NOT_INLINE_ONLY")
+    require(DEVPROBE_GEOMETRY["prel32_unchanged"] is True, "DEVPROBE_PREL32_CHANGED")
+    require(DEVPROBE_GEOMETRY["level6_index"] == 1, "DEVPROBE_LEVEL6_INDEX_DRIFT")
+
+
+def validate_devprobe_table():
+    require(DEVPROBE_TABLE["index"] == 1, "DEVPROBE_INDEX_NOT_1")
+    require(DEVPROBE_TABLE["symbol"] == "cpuinfo_regs_init", "DEVPROBE_SYMBOL_DRIFT")
+    require(DEVPROBE_TABLE["table_va"] == 0xFFFF800081D0B1AC, "DEVPROBE_TABLE_VA_DRIFT")
+    require(DEVPROBE_TABLE["va"] == 0xFFFF800081B34D8C, "DEVPROBE_TARGET_VA_DRIFT")
+    require(DEVPROBE_TABLE["offset"] == 0x1B34D8C, "DEVPROBE_OFFSET_DRIFT")
+    require(DEVPROBE_TABLE["source"] == "arch/arm64/kernel/cpuinfo.c",
+            "DEVPROBE_SOURCE_DRIFT")
+    require(DEVPROBE_TABLE["registration"] == "device_initcall(cpuinfo_regs_init)",
+            "DEVPROBE_REGISTRATION_DRIFT")
+
+
 def validate_context(context, case=None):
     require(all(context.get(k) == v for k, v in CONTEXT.items()), "B_CONTEXT_MISMATCH")
     require(context.get("slot_a_unchanged") is True, "SLOT_A_UNCHANGED_NOT_VERIFIED")
@@ -572,6 +620,19 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(post51_checkpoint_shift_not_observed="YES")
+    elif second == "devprobe1":
+        out.update(fs_initcalls_completed=grade,
+                   first_device_initcall_entry=grade,
+                   cpuinfo_regs_init_entry=grade,
+                   first_device_initcall_body="NOT_PROVEN",
+                   device_initcalls_completed="NOT_PROVEN",
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   init_executed="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(level6_inline_checkpoint_shift_not_observed="YES")
     return out
 
 

@@ -1,0 +1,87 @@
+name: thyme-slot-b-fs-devprobe-observer-fixtures
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/fs_devprobe_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-fs-devprobe-observer-fixtures.yml
+  pull_request:
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/fs_devprobe_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-fs-devprobe-observer-fixtures.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thyme-slot-b-fs-devprobe-observer-fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  observer-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Lint workflow
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-fs-devprobe-observer-fixtures.yml
+      - name: GHA-only PUBLIC observer fixtures
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/slot_b/observe.py \
+            scripts/slot_b/test_observe.py \
+            scripts/slot_b/fs_devprobe_observer_fixtures.py
+          (cd scripts/slot_b && python3 -B -m unittest test_observe.py -v) \
+            2>&1 | tee fs-devprobe-observer-unit-tests.log
+          (cd scripts/slot_b && python3 -B fs_devprobe_observer_fixtures.py) \
+            | tee fs-devprobe-observer-fixtures.txt
+          for gate in \
+            DEVPROBE8_EXACT_FULL_SHA_ACCEPT=PASS \
+            DEVPROBE1_EXACT_FULL_SHA_ACCEPT=PASS \
+            DEVPROBE_WRONG_SIZE_REJECT=PASS \
+            DEVPROBE_WRONG_SHA_REJECT=PASS \
+            DEVPROBE8_REJECTS_DEVPROBE1_SWAP=PASS \
+            DEVPROBE1_REJECTS_DEVPROBE8_SWAP=PASS \
+            DEVPROBE_CROSS_IDENTITY_REJECTIONS=80 \
+            DEVPROBE_CROSS_IDENTITY_REJECTION=PASS \
+            DEVPROBE_56B_NEGATIVE_FIXTURE=PASS \
+            DEVPROBE_60B_INLINE_GEOMETRY=PASS \
+            DEVPROBE_INDEX1_TABLE_GATE=PASS \
+            DEVPROBE_PACIASP_56B_ULTRACOMPACT=PASS \
+            DEVPROBE_PREL32_UNCHANGED=PASS \
+            DEVPROBE_STRONG_PROVES_FS_AND_FIRST_DEVICE=PASS \
+            DEVPROBE_DEVICE_AND_LATE_REMAIN_NOT_PROVEN=PASS \
+            DEVPROBE_SUPPORTED_GRADE=PASS \
+            DEVPROBE_NO_SHIFT_DOES_NOT_CLAIM_NOT_REACHED=PASS \
+            FS_DEVPROBE_OBSERVER_FIXTURES=PASS \
+            DEVICE_OPERATION=NO; do
+            grep -Fxq "$gate" fs-devprobe-observer-fixtures.txt
+          done
+          printf '%s\n' \
+            'FS_DEVPROBE_OBSERVER_GATES=PASS' \
+            'DEVICE_OPERATION=NO' \
+            'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' \
+            | tee fs-devprobe-observer-gates.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-fs-devprobe-observer-fixtures
+          path: |
+            fs-devprobe-observer-unit-tests.log
+            fs-devprobe-observer-fixtures.txt
+            fs-devprobe-observer-gates.txt
+          if-no-files-found: error
+          retention-days: 90

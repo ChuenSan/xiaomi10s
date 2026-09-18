@@ -1717,6 +1717,7 @@ def compose(args, bundle):
                 initcall_boundary["level6_symbol"] = chosen["symbol"]
                 initcall_boundary["level6_scanned"] = selection["scanned"]
                 initcall_boundary["level6_skipped"] = selection["skipped"]
+                initcall_boundary["level6_span_entry_count"] = len(level6_span)
                 initcall_source = chosen["source"]
                 initcall_registration = chosen["registration"]
                 print(f"LEVEL6_EARLIEST_INDEX={chosen['index']}", flush=True)
