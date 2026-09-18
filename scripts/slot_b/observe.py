@@ -52,6 +52,8 @@ IMAGES = {
     "post391": (37380096, "23a24d95ac8fe17229b3e425d777b3b7938d32c110a8070546836aaba79f6e8f"),
     "post468": (37380096, "4092ceaedb54f94fe6079cdf987fd719620a712465fee30d9fd20b8a3e5dc843"),
     "post461": (37380096, "f0b80158e90f91f8dbbb47cd84f8b92be93d86cad9690514859af3629061ea32"),
+    "post498": (37380096, "c8ff8dc637d80ef1b0d0a3dbab6869f3879450998a9df546e2af25cea64b2a14"),
+    "post491": (37380096, "73c63cf6360a962d7fc555f65281aef23da1864ff185f30dfa693d69e8862a6c"),
     }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
@@ -72,6 +74,7 @@ PAIRS = {
     "mid1": ("mid8", "fs_midpoint_entry", "first_device_initcall_entry"),
     "post391": ("post398", "fs_post39_entry", "first_device_initcall_entry"),
     "post461": ("post468", "fs_post46_entry", "first_device_initcall_entry"),
+    "post491": ("post498", "fs_post49_entry", "first_device_initcall_entry"),
     }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -147,6 +150,18 @@ POST46_TABLE = {
     "index": 49, "symbol": "vlan_offload_init", "va": 0xFFFF800081BAEDFC,
     "table_va": 0xFFFF800081D0B198, "offset": 0x1BAEDFC,
     "registration": "fs_initcall(vlan_offload_init)", "source": "net/8021q/vlan_core.c",
+}
+POST49_GEOMETRY = {
+    "target": "acpi_reserve_resources", "va": 0xFFFF800081B6B2FC,
+    "offset": 0x1B6B2FC, "function_size": 256, "window": 60,
+    "core_size": 56, "architecture": "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT",
+    "entry": "paciasp", "daifset": "PRESENT", "inline_only": True,
+    "prel32_unchanged": True,
+}
+POST49_TABLE = {
+    "index": 51, "symbol": "acpi_reserve_resources", "va": 0xFFFF800081B6B2FC,
+    "table_va": 0xFFFF800081D0B1A0, "offset": 0x1B6B2FC,
+    "registration": "fs_initcall_sync(acpi_reserve_resources)", "source": "drivers/acpi/osl.c",
 }
 
 REST_ORIGIN = "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B"
@@ -316,6 +331,35 @@ def validate_post46_table():
     require(POST46_TABLE["registration"] == "fs_initcall(vlan_offload_init)",
             "POST46_REGISTRATION_DRIFT")
 
+
+def validate_post49_geometry(window):
+    require(window != 56, "POST49_56B_WINDOW_REJECTED")
+    require(window == POST49_GEOMETRY["window"], "POST49_WINDOW_NOT_60")
+    require(POST49_GEOMETRY["target"] == "acpi_reserve_resources", "POST49_TARGET_DRIFT")
+    require(POST49_GEOMETRY["va"] == 0xFFFF800081B6B2FC, "POST49_VA_DRIFT")
+    require(POST49_GEOMETRY["offset"] == 0x1B6B2FC, "POST49_OFFSET_DRIFT")
+    require(POST49_GEOMETRY["window"] <= POST49_GEOMETRY["function_size"],
+            "POST49_WINDOW_EXCEEDS_FUNCTION")
+    require(POST49_GEOMETRY["function_size"] == 256, "POST49_FUNCTION_NOT_256")
+    require(POST49_GEOMETRY["core_size"] == 56, "POST49_CORE_NOT_56")
+    require(POST49_GEOMETRY["architecture"] == "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT",
+            "POST49_ARCHITECTURE_DRIFT")
+    require(POST49_GEOMETRY["entry"] == "paciasp", "POST49_ENTRY_NOT_PACIASP")
+    require(POST49_GEOMETRY["daifset"] == "PRESENT", "POST49_DAIFSET_ABSENT")
+    require(POST49_GEOMETRY["inline_only"] is True, "POST49_NOT_INLINE_ONLY")
+    require(POST49_GEOMETRY["prel32_unchanged"] is True, "POST49_PREL32_CHANGED")
+
+
+def validate_post49_table():
+    require(POST49_TABLE["index"] == 51, "POST49_INDEX_NOT_51")
+    require(POST49_TABLE["symbol"] == "acpi_reserve_resources", "POST49_SYMBOL_DRIFT")
+    require(POST49_TABLE["table_va"] == 0xFFFF800081D0B1A0, "POST49_TABLE_VA_DRIFT")
+    require(POST49_TABLE["va"] == 0xFFFF800081B6B2FC, "POST49_TARGET_VA_DRIFT")
+    require(POST49_TABLE["offset"] == 0x1B6B2FC, "POST49_OFFSET_DRIFT")
+    require(POST49_TABLE["source"] == "drivers/acpi/osl.c", "POST49_SOURCE_DRIFT")
+    require(POST49_TABLE["registration"] == "fs_initcall_sync(acpi_reserve_resources)",
+            "POST49_REGISTRATION_DRIFT")
+
 def validate_context(context, case=None):
     require(all(context.get(k) == v for k, v in CONTEXT.items()), "B_CONTEXT_MISMATCH")
     require(context.get("slot_a_unchanged") is True, "SLOT_A_UNCHANGED_NOT_VERIFIED")
@@ -462,6 +506,17 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(post46_checkpoint_shift_not_observed="YES")
+    elif second == "post491":
+        out.update(fs_initcalls_completed="NOT_PROVEN",
+                   first_device_initcall_entry="NOT_PROVEN",
+                   first_device_initcall_body="NOT_PROVEN",
+                   device_initcalls_completed="NOT_PROVEN",
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(post49_checkpoint_shift_not_observed="YES")
     return out
 
 
