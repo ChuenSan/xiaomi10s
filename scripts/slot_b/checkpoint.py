@@ -84,6 +84,7 @@ FROZEN_FS_POST49_TARGET_VA = 0xffff800081b6b2fc
 FROZEN_FS_POST49_SYMBOL = "acpi_reserve_resources"
 FROZEN_FS_POST49_SOURCE = "drivers/acpi/osl.c"
 FROZEN_FS_POST49_REGISTRATION = "fs_initcall_sync(acpi_reserve_resources)"
+FROZEN_FS_POST49_FUNCTION_SIZE = 256
 ROOTFS_SPAN_TYPES = frozenset({"rootfs_initcall"})
 DEVICE_SPAN_TYPES = frozenset({"device_initcall", "device_initcall_sync", "__initcall"})
 INITCALL_MACRO_RE = re.compile(
@@ -152,6 +153,8 @@ PROOF_BOUNDARIES = {
     "fs_post39": ("the floor midpoint of the proven post-39 fs interval was reached",
                   "later fs initcalls, first-device entry, later levels, console or /init"),
     "fs_post46": ("the floor midpoint of the proven post-46 fs interval was reached",
+                  "later fs initcalls, first-device entry, later levels, console or /init"),
+    "fs_post49": ("the floor midpoint of the proven post-49 fs interval (acpi_reserve_resources) was reached",
                   "later fs initcalls, first-device entry, later levels, console or /init"),
 }
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
@@ -1996,8 +1999,8 @@ def compose(args, bundle):
                                  "compact_b_lo"),
                 "probe_architecture": probe_architecture,
                 "sixty_byte_inline_rejected": sixty_byte_inline_rejected,
-                "inline_only": args.symbol in ("fs_upper_half", "fs_post39", "fs_post46"),
-                "trampoline_permitted": args.symbol not in ("fs_upper_half", "fs_post39", "fs_post46"),
+                "inline_only": args.symbol in ("fs_upper_half", "fs_post39", "fs_post46", "fs_post49"),
+                "trampoline_permitted": args.symbol not in ("fs_upper_half", "fs_post39", "fs_post46", "fs_post49"),
                 "prel32_target_unchanged": True, "fs_runtime_span": fs_span,
                 "pair_reference_sha256": digest(reference),
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
@@ -2069,6 +2072,11 @@ def compose(args, bundle):
                     and len(core) == 56 and length == 60
                     and extent - target_va == FROZEN_FS_POST46_FUNCTION_SIZE,
                     "FS_POST46_INLINE_ONLY_GEOMETRY_MISMATCH")
+        elif args.symbol == "fs_post49":
+            require(probe_architecture == "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT"
+                    and len(core) == 56 and length == 60
+                    and extent - target_va == FROZEN_FS_POST49_FUNCTION_SIZE,
+                    "FS_POST49_INLINE_ONLY_GEOMETRY_MISMATCH")
         print(f"FS_SELECTED_PROBE_ARCHITECTURE={probe_architecture}", flush=True)
     print(f"{args.symbol.upper()}_INLINE_AUDIT=PASS\nDEVICE_OPERATION=NO\nLOCAL_BUILD=NO", flush=True)
 

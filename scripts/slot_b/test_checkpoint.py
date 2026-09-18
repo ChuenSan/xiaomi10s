@@ -552,6 +552,9 @@ class CheckpointTests(unittest.TestCase):
         self.assertEqual(checkpoint.INITCALL_BOUNDARIES['fs_midpoint'], '__initcall5_start')
         self.assertEqual(checkpoint.INITCALL_BOUNDARIES['fs_upper_half'], '__initcall5_start')
         self.assertEqual(checkpoint.INITCALL_BOUNDARIES['fs_post39'], '__initcall5_start')
+        self.assertEqual(checkpoint.INITCALL_BOUNDARIES['fs_post46'], '__initcall5_start')
+        self.assertEqual(checkpoint.INITCALL_BOUNDARIES['fs_post49'], '__initcall5_start')
+        self.assertIn('fs_post49', checkpoint.PROOF_BOUNDARIES)
         self.assertEqual(checkpoint.FS_SPAN_SYMBOLS,
                          frozenset({'fs_complete', 'fs_trampoline_control', 'fs_midpoint',
                                     'fs_upper_half', 'fs_post39', 'fs_post46', 'fs_post49'}))
