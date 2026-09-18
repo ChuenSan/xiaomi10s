@@ -41,23 +41,31 @@ INITCALL_BOUNDARIES = {"pure_complete": "__initcall1_start",
                        "fs_midpoint": "__initcall5_start", "fs_upper_half": "__initcall5_start",
                        "fs_post39": "__initcall5_start", "fs_post46": "__initcall5_start",
                        "fs_post49": "__initcall5_start", "fs_post51": "__initcall5_start",
-                       "level6_earliest": "__initcall6_start"}
+                       "level6_earliest": "__initcall6_start",
+                       "level7_earliest": "__initcall7_start"}
 INITCALL_MACROS = {"pure_complete": "core_initcall", "core_complete": "postcore_initcall",
                    "postcore_complete": "arch_initcall", "arch_complete": "subsys_initcall",
                    "subsys_complete": "fs_initcall", "fs_complete": "device_initcall",
                    "fs_trampoline_control": "fs_initcall", "fs_midpoint": "fs_initcall",
                    "fs_upper_half": "fs_initcall", "fs_post39": "fs_initcall",
                    "fs_post46": "fs_initcall", "fs_post49": "fs_initcall",
-                   "fs_post51": "rootfs_initcall", "level6_earliest": "device_initcall"}
+                   "fs_post51": "rootfs_initcall", "level6_earliest": "device_initcall",
+                   "level7_earliest": "late_initcall"}
 INITCALL_SOURCE_PREFIX = {"postcore_complete": "arch/arm64/", "arch_complete": "arch/arm64/"}
 ULTRACOMPACT_SYMBOLS = frozenset({"core_complete", "postcore_complete", "arch_complete"})
 SUBSYS52_SYMBOLS = frozenset({"subsys_complete"})
 EXPANDED_WINDOWS = {"do_initcalls": 96, "arch_complete": 160}
 CFG_DERIVED_WINDOWS = frozenset({"subsys_complete", "fs_complete", "fs_trampoline_control",
                                  "fs_midpoint", "fs_upper_half", "fs_post39", "fs_post46",
-                                 "fs_post49", "fs_post51", "level6_earliest"})
+                                 "fs_post49", "fs_post51", "level6_earliest",
+                                 "level7_earliest"})
 LEVEL6_SCAN_LIMIT = 64
 LEVEL6_MIN_INLINE_PROBE = 56
+LEVEL7_SCAN_LIMIT = 16
+LEVEL7_MIN_INLINE_PROBE = 56
+LATE_SPAN_TYPES = frozenset({"late_initcall", "late_initcall_sync"})
+FROZEN_LEVEL6_SPAN_COUNT = 1100
+FROZEN_LEVEL7_SPAN_COUNT = 86
 FROZEN_FIRST_FS_SYMBOL = "create_debug_debugfs_entry"
 FROZEN_FIRST_FS_VA = 0xffff8000800149e0
 FS_SPAN_TYPES = frozenset({"fs_initcall", "fs_initcall_sync"})
@@ -117,7 +125,8 @@ FROZEN_FS_ISLAND_OFFSET = 0xffcc
 FROZEN_FS_SPAN_COUNT = 53
 FS_SPAN_SYMBOLS = frozenset({"fs_complete", "fs_trampoline_control", "fs_midpoint",
                             "fs_upper_half", "fs_post39", "fs_post46", "fs_post49",
-                            "fs_post51", "level6_earliest"})
+                            "fs_post51", "level6_earliest",
+                            "level7_earliest"})
 LIVE_TRAMP_END = t3.TRAMP_OFFSET + t3.TRAMP_SIZE
 B_OP = 0x14000000
 B_OP_MASK = 0xFC000000
@@ -130,7 +139,8 @@ INITCALL_TARGET_LABELS = {"pure_complete": "FIRST_CORE", "core_complete": "FIRST
                           "fs_trampoline_control": "CONTROL_FIRST_FS", "fs_midpoint": "FS_MIDPOINT",
                           "fs_upper_half": "FS_UPPER_HALF", "fs_post39": "FS_POST39",
                           "fs_post46": "FS_POST46", "fs_post49": "FS_POST49",
-                          "fs_post51": "FS_POST51", "level6_earliest": "LEVEL6_EARLIEST"}
+                          "fs_post51": "FS_POST51", "level6_earliest": "LEVEL6_EARLIEST",
+                          "level7_earliest": "LEVEL7_EARLIEST"}
 PROOF_BOUNDARIES = {
     "rest_init": ("rest_init entry and preceding normal start_kernel path",
                   "rest_init body, scheduler, SMP or /init"),
@@ -174,6 +184,8 @@ PROOF_BOUNDARIES = {
                   "first-device entry, later levels, console or /init"),
     "level6_earliest": ("all fs and rootfs initcalls completed and the earliest safe level-6 device initcall entry was reached",
                         "the target device initcall body, remaining device initcalls, device completion, later levels, console or /init"),
+    "level7_earliest": ("all device initcalls completed and the earliest safe level-7 late initcall entry was reached",
+                        "the target late initcall body, remaining late initcalls, console or /init"),
 }
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
 
@@ -368,6 +380,25 @@ def level6_window_audit(image, ranges, text_va, target_va, function_size, min_pr
                                    else "INLINE_PACIASP_PLUS_52B_NO_DAIFSET")}
 
 
+def level7_window_audit(image, ranges, text_va, target_va, function_size, min_probe):
+    function = (target_va, target_va + function_size)
+    prelim = branch_audit(image, ranges, text_va, function, (target_va, target_va + min_probe))
+    try:
+        length = derive_inline_window(target_va, function_size, prelim["internal_branches"],
+                                      min_probe)
+    except ValueError:
+        return None
+    topology = branch_audit(image, ranges, text_va, function, (target_va, target_va + length))
+    if topology["incoming_entry"] or topology["incoming_window_interior"]:
+        return None
+    report = cfg_closure_report(target_va, function_size, length, topology)
+    if not report["cfg_closure_proven"]:
+        return None
+    return {"window": length, "min_probe": min_probe, "cfg_closure": report, "topology": topology,
+            "probe_architecture": ("INLINE_PACIASP_PLUS_56B_ULTRACOMPACT" if min_probe >= 60
+                                   else "INLINE_PACIASP_PLUS_52B_NO_DAIFSET")}
+
+
 def select_level6_earliest_inline(entries, extent_of, window_audit, scan_limit=LEVEL6_SCAN_LIMIT):
     require(bool(entries) and scan_limit > 0, "LEVEL6_SELECTION_INPUT_INVALID")
     skipped = []
@@ -389,12 +420,42 @@ def select_level6_earliest_inline(entries, extent_of, window_audit, scan_limit=L
     raise ValueError("LEVEL6_EARLIEST_INLINE_TARGET_NOT_READY")
 
 
+def select_level7_earliest_inline(entries, extent_of, window_audit, scan_limit=LEVEL7_SCAN_LIMIT):
+    require(bool(entries) and scan_limit > 0, "LEVEL7_SELECTION_INPUT_INVALID")
+    skipped = []
+    for entry in entries[:scan_limit]:
+        target_va = entry["target_va"]
+        function_size = extent_of(target_va) - target_va
+        if function_size < LEVEL7_MIN_INLINE_PROBE:
+            skipped.append({"index": entry["index"], "target_va": hex(target_va),
+                            "function_size": function_size, "reason": "TOO_SMALL"})
+            continue
+        min_probe = 4 + (56 if function_size >= 60 else 52)
+        verdict = window_audit(target_va, function_size, min_probe)
+        if verdict is None:
+            skipped.append({"index": entry["index"], "target_va": hex(target_va),
+                            "function_size": function_size, "reason": "CFG_NOT_CLOSED"})
+            continue
+        return {"selected": entry, "selected_index": entry["index"], "function_size": function_size,
+                "scanned": entry["index"] + 1, "skipped": skipped, **verdict}
+    raise ValueError("LEVEL7_EARLIEST_INLINE_TARGET_NOT_READY")
+
+
 def span_entry_as_boundary(entry):
     return {"boundary_symbol": f"__initcall5_index_{entry['index']}", "entry_va": entry["entry_va"],
             "entry_image_offset": entry["entry_image_offset"], "entry_section": ".init.data",
             "entry_size": 4, "entry_encoding": "PREL32", "relative": entry["relative"],
             "entry_word": entry["entry_word"], "target_va": entry["target_va"],
             "target_aliases": entry["aliases"], "table_entries_checked": FROZEN_FS_SPAN_COUNT,
+            "span_index": entry["index"]}
+
+
+def level7_span_entry_as_boundary(entry):
+    return {"boundary_symbol": f"__initcall7_index_{entry['index']}", "entry_va": entry["entry_va"],
+            "entry_image_offset": entry["entry_image_offset"], "entry_section": ".init.data",
+            "entry_size": 4, "entry_encoding": "PREL32", "relative": entry["relative"],
+            "entry_word": entry["entry_word"], "target_va": entry["target_va"],
+            "target_aliases": entry["aliases"], "table_entries_checked": FROZEN_LEVEL7_SPAN_COUNT,
             "span_index": entry["index"]}
 
 
@@ -1357,7 +1418,13 @@ def audit_initcall_source(linux):
             "subsys_complete_boundary_source_proven": True,
             "first_subsys_entry_implies_arch_complete": True,
             "first_fs_entry_implies_subsys_complete": True,
-            "entry_encoding_source": "CONFIG_HAVE_ARCH_PREL32_RELOCATIONS => s32 .long target-."}
+            "entry_encoding_source": "CONFIG_HAVE_ARCH_PREL32_RELOCATIONS => s32 .long target-.",
+            "late_span": "__initcall7_start..__initcall_end",
+            "late_level_boundary": "__initcall7_start",
+            "late_end_boundary": "__initcall_end",
+            "late_span_entry_count": 86,
+            "first_late_entry_implies_device_complete": True,
+            "device_complete_causal_boundary": "__initcall7_start"}
 
 
 def decode_initcall_span(vmlinux, sections, nm, begin_va, end_va):
@@ -1531,6 +1598,8 @@ def compose(args, bundle):
                           source_audit["device_level_boundary"]):
                 if extra not in boundary_names:
                     boundary_names.append(extra)
+        if args.symbol == "level7_earliest" and source_audit["late_end_boundary"] not in boundary_names:
+            boundary_names.append(source_audit["late_end_boundary"])
         initcall_boundaries = {name: resolve_initcall_boundary(vmlinux, sections, nm, name)
                                for name in boundary_names}
         initcall_boundary = initcall_boundaries[INITCALL_BOUNDARIES[args.symbol]]
@@ -1725,6 +1794,58 @@ def compose(args, bundle):
                 print(f"LEVEL6_EARLIEST_REGISTRATION={chosen['registration']}", flush=True)
                 print("LEVEL6_EARLIEST_SKIPPED=" + json.dumps(selection["skipped"], sort_keys=True),
                       flush=True)
+            elif args.symbol == "level7_earliest":
+                va7 = initcall_boundaries[source_audit["device_level_boundary"]]["entry_va"]
+                va_end = initcall_boundaries[source_audit["late_end_boundary"]]["entry_va"]
+                level6_span = decode_initcall_span(vmlinux, sections, nm, va6, va7)
+                level7_span = decode_initcall_span(vmlinux, sections, nm, va7, va_end)
+                require(va6 < va7 < va_end, "LEVEL7_LINKER_ORDER_MISMATCH")
+                require(len(level6_span) == FROZEN_LEVEL6_SPAN_COUNT, "LEVEL7_LEVEL6_SPAN_COUNT_DRIFT")
+                require(len(level7_span) == FROZEN_LEVEL7_SPAN_COUNT, "LEVEL7_SPAN_COUNT_DRIFT")
+                level7_vas = sorted(va for va, _ in t3.symbol_table(nm))
+                scan_ranges = [(s["vma"] - text_va, s["vma"] - text_va + s["size"])
+                               for s in sections if s["code"] and s["alloc"]]
+                print(f"LEVEL7_SPAN_ENTRY_COUNT={len(level7_span)}", flush=True)
+                print(f"LEVEL6_SPAN_ENTRY_COUNT={len(level6_span)}", flush=True)
+                print(f"LEVEL7_SCAN_LIMIT={LEVEL7_SCAN_LIMIT}", flush=True)
+                try:
+                    selection = select_level7_earliest_inline(
+                        level7_span,
+                        lambda target: level7_vas[bisect.bisect_right(level7_vas, target)],
+                        lambda target, size, min_probe: level7_window_audit(
+                            frozen[:len(image)], scan_ranges, text_va, target, size, min_probe))
+                except ValueError as exc:
+                    require(str(exc) == "LEVEL7_EARLIEST_INLINE_TARGET_NOT_READY", str(exc))
+                    write_fs_not_ready(out, "LEVEL7_EARLIEST_INLINE_TARGET_NOT_READY", {
+                        "target_symbol": None, "target_aliases": [], "target_va": None,
+                        "image_offset": None, "function_size": None,
+                        "min_inline_probe": LEVEL7_MIN_INLINE_PROBE,
+                        "initcall_source": None, "initcall_registration": None,
+                        "initcall_boundary": None, "fs_runtime_span": fs_span,
+                        "probe_architecture": "NONE",
+                        "level7_span_entry_count": len(level7_span),
+                        "level6_span_entry_count": len(level6_span),
+                        "level7_scan_limit": LEVEL7_SCAN_LIMIT,
+                    })
+                    return
+                chosen = classify_span_entry(selection["selected"], index)
+                require(chosen["registration_type"] in LATE_SPAN_TYPES,
+                        f"LEVEL7_EARLIEST_NOT_LATE_INITCALL:{chosen['registration_type']}")
+                require(sum(1 for entry in level7_span if entry["target_va"] == chosen["target_va"]) == 1,
+                        "LEVEL7_EARLIEST_TARGET_NOT_UNIQUE")
+                initcall_boundary = level7_span_entry_as_boundary(chosen)
+                initcall_boundary["table_entries_checked"] = len(level7_span)
+                initcall_boundary["level7_symbol"] = chosen["symbol"]
+                initcall_boundary["level7_scanned"] = selection["scanned"]
+                initcall_boundary["level7_skipped"] = selection["skipped"]
+                initcall_boundary["level7_span_entry_count"] = len(level7_span)
+                initcall_source = chosen["source"]
+                initcall_registration = chosen["registration"]
+                print(f"LEVEL7_EARLIEST_INDEX={chosen['index']}", flush=True)
+                print(f"LEVEL7_EARLIEST_SYMBOL={chosen['symbol']}", flush=True)
+                print(f"LEVEL7_EARLIEST_REGISTRATION={chosen['registration']}", flush=True)
+                print("LEVEL7_EARLIEST_SKIPPED=" + json.dumps(selection["skipped"], sort_keys=True),
+                      flush=True)
             elif args.symbol == "fs_trampoline_control":
                 initcall_source = classified[0]["source"]
                 initcall_registration = classified[0]["registration"]
@@ -1750,13 +1871,14 @@ def compose(args, bundle):
                           "target_va": hex(target_va),
                           "aliases": initcall_boundary["target_aliases"]},
                          sort_keys=True), flush=True)
-        if args.symbol in ("fs_complete", "level6_earliest"):
+        if args.symbol in ("fs_complete", "level6_earliest", "level7_earliest"):
+            permitted_macros = LATE_SPAN_TYPES if args.symbol == "level7_earliest" else DEVICE_SPAN_TYPES
             hits = []
             for alias in initcall_boundary["target_aliases"]:
                 hits.extend(index.get(alias, []))
             require(hits, f"FIRST_DEVICE_UNREGISTERED:{initcall_boundary['target_aliases']}")
             macros = {hit["macro"] for hit in hits}
-            require(macros <= DEVICE_SPAN_TYPES and len({hit["source"] for hit in hits}) == 1,
+            require(macros <= permitted_macros and len({hit["source"] for hit in hits}) == 1,
                     f"FIRST_DEVICE_REGISTRATION_AMBIGUOUS:{sorted(macros)}")
             initcall_source = hits[0]["source"]
             initcall_registration = f"{hits[0]['macro']}({target_symbol})"
@@ -2178,8 +2300,8 @@ def compose(args, bundle):
                                  "compact_b_lo"),
                 "probe_architecture": probe_architecture,
                 "sixty_byte_inline_rejected": sixty_byte_inline_rejected,
-                "inline_only": args.symbol in ("fs_upper_half", "fs_post39", "fs_post46", "fs_post49", "fs_post51", "level6_earliest"),
-                "trampoline_permitted": args.symbol not in ("fs_upper_half", "fs_post39", "fs_post46", "fs_post49", "fs_post51", "level6_earliest"),
+                "inline_only": args.symbol in ("fs_upper_half", "fs_post39", "fs_post46", "fs_post49", "fs_post51", "level6_earliest", "level7_earliest"),
+                "trampoline_permitted": args.symbol not in ("fs_upper_half", "fs_post39", "fs_post46", "fs_post49", "fs_post51", "level6_earliest", "level7_earliest"),
                 "prel32_target_unchanged": True, "fs_runtime_span": fs_span,
                 "pair_reference_sha256": digest(reference),
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],

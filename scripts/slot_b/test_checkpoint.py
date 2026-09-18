@@ -562,7 +562,9 @@ class CheckpointTests(unittest.TestCase):
         self.assertEqual(checkpoint.FS_SPAN_SYMBOLS,
                          frozenset({'fs_complete', 'fs_trampoline_control', 'fs_midpoint',
                                     'fs_upper_half', 'fs_post39', 'fs_post46', 'fs_post49',
-                                    'fs_post51', 'level6_earliest'}))
+                                    'fs_post51', 'level6_earliest', 'level7_earliest'}))
+        self.assertEqual(checkpoint.INITCALL_BOUNDARIES['level7_earliest'], '__initcall7_start')
+        self.assertIn('level7_earliest', checkpoint.PROOF_BOUNDARIES)
 
     def test_fs_complete_literal_delta_accepts_same_string_add_only(self):
         image, frozen = bytearray(512), bytearray(512)
