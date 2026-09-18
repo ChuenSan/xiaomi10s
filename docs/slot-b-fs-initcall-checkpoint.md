@@ -414,12 +414,36 @@ One POST49_8 then one POST49_1 RAM-only Slot B boot. Both
 Slot A untouched. `POST498_RERUN_FORBIDDEN=YES`.
 `POST491_RERUN_FORBIDDEN=YES`.
 
-Final gate: `R3_SLOT_B_FS_POST49_ENTRY_PROVEN`.
+## Post-51 inline pair (Final Level 5 entry: populate_rootfs)
 
-Next: continue inline-only bisection in index 51 → first-device (pseudo 53), target index 52 `populate_rootfs`.
+`MAINLINE_V2_R3_SLOT_B_FS_INITCALLS_FINAL_INLINE_BISECTION` tested authoritative 53-entry table index 52 `populate_rootfs` (`0xffff800081b32388` / `0x1b32388`, `init/initramfs.c`, `rootfs_initcall`, 88B). This is the final initcall in Level 5 before `__initcall6_start`. INLINE only: preserved `paciasp` + 56B ultracompact, CFG window 60B. PREL32 unchanged. Trampoline/island not used.
 
-Evidence: `artifacts/slot-b-fs-post49-20260918/`.
+Public `35332535696` at `55e8ddc`. POST51_8 payload `841fbb7135d2bc8881beeedf3f97a6842290ff934a406b7c287cddef565208b5`, POST51_1 payload `60477426b24458e19204fc4a3f0b9479968059eb174bbf045ea4e18e7027748b`. Pair DELAY_CONSTANT_ONLY 2 bytes `[0x1b32395,0x1b32397)`. Independent reverify PASS. Private pack `35333095217` / reverify `35333156029`. Observer `35333239931` PASS at `7629ea4`.
 
+| | SHA-256 | size |
+| --- | --- | --- |
+| POST51_8 boot | `7d6e527c977b3dd08d9f4896d44648bc7b9020993a8841e91285c84c67cc81ae` | 37380096 |
+| POST51_1 boot | `3c825488ba0b41a534369a476f05f3b20c1279f017275212dc52d4761e3d9d1a` | 37380096 |
 
+One POST51_8 then one POST51_1 RAM-only Slot B boot. Both `AUTOMATIC_FASTBOOT_RETURN`, retry 7→6.
 
+| | Sending | Booting | TOTAL |
+| --- | --- | --- | --- |
+| POST51_8 | OKAY 0.902s | OKAY 0.220s | `35.055794459s` |
+| POST51_1 | OKAY 0.915s | OKAY 0.220s | `28.236344500s` |
 
+- `PAIR_DELTA=-6.819449959s`
+- `EXPECTED=-7.000000000s`
+- `PAIR_ERROR=0.180550041s`
+- `POST51_PAIR_VERDICT=STRONG`
+
+`POPULATE_ROOTFS_ENTRY=PROVEN`. All 53 initcalls in Level 5 (`[__initcall5_start, __initcall6_start)`) have their entry execution PROVEN.
+Do not upgrade `FS_INITCALLS_COMPLETED` or `FIRST_DEVICE_INITCALL_ENTRY`. Current B 16-chain and P15 prefix MATCH. Android A restored. Partition writes 0. Slot A untouched. `POST518_RERUN_FORBIDDEN=YES`. `POST511_RERUN_FORBIDDEN=YES`.
+
+Final gate: `R3_SLOT_B_FS_POST51_ENTRY_PROVEN`.
+
+Final unresolved boundary: Adjacent initcalls `[52, 53)`:
+- Index 52: `populate_rootfs` entry (**PROVEN**)
+- Index 53: `register_arm64_panic_block` entry (`device_initcall`, first device initcall, **SHIFT_NOT_OBSERVED**)
+
+Evidence: `artifacts/slot-b-fs-post51-20260918/`.

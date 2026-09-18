@@ -367,13 +367,18 @@ POST49_8 then one POST49_1 RAM-only Slot B boot.
 `ACPI_RESERVE_RESOURCES_ENTRY=PROVEN`. `FS_INITCALLS_COMPLETED` and
 `FIRST_DEVICE_INITCALL_ENTRY` stay NOT_PROVEN. Current B hashes and P15
 prefix matched; Android A restored. Partition writes 0. Slot A
-untouched. Do not rerun POST498/POST491, POST468/POST461, POST398/POST391,
-UPPER8/UPPER1, MID, CONTROL, FS8/FS1, SUBSYS, ARCH, POSTCORE, CORE, PURE or
-CONSOLE. Final gate: `R3_SLOT_B_FS_POST49_ENTRY_PROVEN`. Next:
-inline-only bisection in index 51 → first-device (pseudo 53), targeting index 52 `populate_rootfs`.
-
-
-
+CONSOLE. Final gate: `R3_SLOT_B_FS_POST49_ENTRY_PROVEN`. The post-51
+inline pair then selected index 52 `populate_rootfs` (`0xffff800081b32388`, 88B, window 60,
+`paciasp` + 56B ultracompact). Public `35332535696`, private pack `35333095217`, reverify
+`35333156029`, observer `35333239931`. One POST51_8 then one POST51_1 RAM-only Slot B boot.
+`POST51_8_TOTAL=35.055794459s`, `POST51_1_TOTAL=28.236344500s`, `PAIR_DELTA=-6.819449959s`,
+`PAIR_ERROR=0.180550041s`: **STRONG**. `POPULATE_ROOTFS_ENTRY=PROVEN`. All 53 Level 5 initcalls
+[0..52] entries are proven. `FS_INITCALLS_COMPLETED` and `FIRST_DEVICE_INITCALL_ENTRY` stay
+NOT_PROVEN. Current B hashes and P15 prefix matched; Android A restored. Partition writes 0.
+Slot A untouched. Do not rerun POST518/POST511, POST498/POST491, POST468/POST461, POST398/POST391,
+UPPER8/UPPER1, MID, CONTROL, FS8/FS1, SUBSYS, ARCH, POSTCORE, CORE, PURE or CONSOLE.
+Final gate: `R3_SLOT_B_FS_POST51_ENTRY_PROVEN`. Final unresolved boundary: adjacent initcalls
+[52, 53) (`populate_rootfs` -> `register_arm64_panic_block`). Next: failure isolation / diagnostic analysis of rootfs completion and transition to device initcalls.
 No Linux boot success is claimed. Details: `docs/slot-b-pid1-stages.md`,
 `docs/slot-b-core-initcall-checkpoint.md`,
 `docs/slot-b-postcore-initcall-checkpoint.md`,
