@@ -1,0 +1,125 @@
+name: FS_INITCALLS_ROOTFS_RETURN_ISOLATION_CI
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/rootfs_return_isolation.py'
+      - 'scripts/slot_b/test_rootfs_return_isolation.py'
+      - 'scripts/slot_b/fs_rootfs_return_observer_fixtures.py'
+      - '.github/workflows/thyme-slot-b-fs-initcalls-return-isolation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: fs-rootfs-return-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch frozen source tree
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-fs-initcalls-return-isolation.yml
+      - name: Source tests and return-isolation geometry gate
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_*.py' -v 2>&1 | tee source-tests.log
+          grep -q 'test_fs_post51_design_negative_fixtures.*ok' source-tests.log
+          grep -q 'test_geometry_not_ready.*ok' source-tests.log
+          grep -q 'test_select_return_probe_rejected.*ok' source-tests.log
+          python3 -B - <<'PY' | tee source-audit.json
+          import json, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          import rootfs_return_isolation as iso
+          iso.bind_post51(checkpoint)
+          src = iso.audit_source(Path('linux-6.6'))
+          report = iso.gate_report(iso.report())
+          assert src['initramfs_async_default'] is True
+          assert src['populate_rootfs_waits_by_default'] is False
+          assert report['gate'] == iso.GATE
+          assert report['pair_generated'] is False
+          print(json.dumps({'source': src, 'report': report}, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-rootfs-return-source-audit
+          path: |
+            source-tests.log
+            source-audit.json
+          if-no-files-found: error
+
+  fix8-byte-audit:
+    needs: source-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Download frozen FIX8 payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Verify 88B populate_rootfs and remaining windows
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY' | tee rootfs-return-gates.txt
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          import rootfs_return_isolation as iso
+          iso.bind_post51(checkpoint)
+          payload = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          report = iso.verify_payload_words(payload)
+          print('POPULATE_ROOTFS_BYTES=PASS')
+          print('P1_SITE=0xffff800081b323b0')
+          print('P1_REMAINING=48')
+          print('P2_SITE=0xffff800081b323d0')
+          print('P2_REMAINING=16')
+          print('P1_FITS_52=NO')
+          print('P2_FITS_52=NO')
+          print('ISLAND_PERMITTED=NO')
+          print('TRAMPOLINE_PERMITTED=NO')
+          print('SHARED_DO_INITCALL_LEVEL=NO')
+          print('PAIR_GENERATED=NO')
+          print('KERNEL_REBUILD=NO')
+          print('DEVICE_OPERATION=NO')
+          print('FINAL_GATE=' + report['gate'])
+          PY
+          grep -Fxq 'FINAL_GATE=R3_SLOT_B_POPULATE_ROOTFS_RETURN_ISOLATION_NOT_READY' rootfs-return-gates.txt
+          grep -Fxq 'PAIR_GENERATED=NO' rootfs-return-gates.txt
+          test ! -d pair
+          test ! -d post51
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-rootfs-return-gates
+          path: rootfs-return-gates.txt
+          if-no-files-found: error
