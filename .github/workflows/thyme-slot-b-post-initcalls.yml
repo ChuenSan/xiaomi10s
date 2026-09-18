@@ -1,0 +1,164 @@
+name: thyme-slot-b-post-initcalls
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/post_initcalls.py'
+      - 'scripts/slot_b/test_post_initcalls.py'
+      - '.github/workflows/thyme-slot-b-post-initcalls.yml'
+  workflow_dispatch:
+    inputs:
+      symbol:
+        description: Caller-specific boundary; never a global wait helper entry
+        type: choice
+        options: [late_complete, wait_complete]
+        default: late_complete
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-post-initcalls.yml
+      - name: Actions-only safety regression tests
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p test_post_initcalls.py -v 2>&1 | tee source-tests.log
+          python3 -B -m unittest discover -s scripts/slot_b -p test_observe.py -v 2>&1 | tee observer-tests.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-post-initcalls-source-tests
+          path: '*-tests.log'
+          if-no-files-found: error
+
+  audit-pair:
+    if: github.event_name == 'workflow_dispatch'
+    needs: source-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CHECKPOINT_SYMBOL: ${{ inputs.symbol }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch pinned source without kernel build
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+          sudo apt-get update
+          sudo apt-get install -y llvm-18 clang-18
+      - name: Acquire immutable Actions inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          gh run download 34980859158 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-reset-pair -D proven-core
+      - name: Assemble proven compact cores only
+        run: |
+          set -euo pipefail
+          for variant in ultracompact subsys52; do
+            clang-18 --target=aarch64-linux-gnu -c "scripts/slot_b/checkpoint-$variant.S" -o "$variant.o"
+            llvm-readelf-18 -r "$variant.o" | tee "$variant-relocations.log"
+            grep -q 'There are no relocations in this file' "$variant-relocations.log"
+            llvm-objcopy-18 -O binary --only-section=.text "$variant.o" "$variant.bin"
+          done
+      - name: Audit exact caller and compose one delay-only pair
+        run: |
+          set -euo pipefail
+          python3 -u -B scripts/slot_b/post_initcalls.py \
+            --symbol "$CHECKPOINT_SYMBOL" --bundle kernel-bundle \
+            --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --proven-core proven-core/p1b-t1-core-reference.bin \
+            --core56 ultracompact.bin --core52 subsys52.bin --out audit | tee audit.log
+          grep -q '^POST_INITCALLS_PAIR_AUDIT=PASS$' audit.log
+          (cd audit/pair && sha256sum pair.json > pair.sha256)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-post-initcalls-pair
+          path: audit/pair/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-slot-b-post-initcalls-audit
+          path: |
+            audit.log
+            *-relocations.log
+            audit/*.json
+            audit/*.txt
+            audit/pair/pair.json
+            audit/pair/pair.sha256
+            audit/pair/*/checkpoint/manifest.json
+          if-no-files-found: warn
+
+  independent-reverify:
+    needs: audit-pair
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CHECKPOINT_SYMBOL: ${{ inputs.symbol }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact source and binary audit tools on a fresh runner
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+          sudo apt-get update
+          sudo apt-get install -y llvm-18 clang-18
+      - name: Independently download and validate public pair
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" -n thyme-slot-b-post-initcalls-pair -D pair
+          gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          gh run download 34980859158 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-reset-pair -D proven-core
+          (cd pair && sha256sum -c pair.sha256)
+          for variant in ultracompact subsys52; do
+            clang-18 --target=aarch64-linux-gnu -c "scripts/slot_b/checkpoint-$variant.S" -o "$variant.o"
+            llvm-readelf-18 -r "$variant.o" | tee "$variant-relocations.log"
+            grep -q 'There are no relocations in this file' "$variant-relocations.log"
+            llvm-objcopy-18 -O binary --only-section=.text "$variant.o" "$variant.bin"
+          done
+          python3 -u -B scripts/slot_b/post_initcalls.py \
+            --symbol "$CHECKPOINT_SYMBOL" --bundle kernel-bundle \
+            --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --proven-core proven-core/p1b-t1-core-reference.bin \
+            --core56 ultracompact.bin --core52 subsys52.bin \
+            --verify-pair pair --out verified | tee reverify.log
+          grep -q '^POST_INITCALLS_INDEPENDENT_REVERIFY=PASS$' reverify.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-slot-b-post-initcalls-reverified
+          path: |
+            reverify.log
+            verified/*.json
+            verified/*.txt
+          if-no-files-found: warn
