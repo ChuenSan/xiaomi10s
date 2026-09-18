@@ -57,7 +57,7 @@ jobs:
           assert checkpoint.FROZEN_FS_POST39_INDEX == 46
           assert checkpoint.FROZEN_FS_FIRST_DEVICE_INDEX == 53
           assert checkpoint.FROZEN_FS_POST46_INDEX == (46 + 53) // 2 == 49
-          entries = [{index: i, 'target_va': i} for i in range(53)]
+          entries = [{'index': i, 'target_va': i} for i in range(53)]
           assert checkpoint.select_fs_post46_index(entries) == 49
           assert 'fs_post46' in checkpoint.CFG_DERIVED_WINDOWS
           assert checkpoint.FROZEN_FS_POST46_SYMBOL == 'vlan_offload_init'
