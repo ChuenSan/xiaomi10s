@@ -447,3 +447,50 @@ Final unresolved boundary: Adjacent initcalls `[52, 53)`:
 - Index 53: `register_arm64_panic_block` entry (`device_initcall`, first device initcall, **SHIFT_NOT_OBSERVED**)
 
 Evidence: `artifacts/slot-b-fs-post51-20260918/`.
+
+## Populate_rootfs return isolation
+
+`MAINLINE_V2_R3_SLOT_B_FS_POPULATE_ROOTFS_RETURN_ISOLATION` is CI-only.
+Public isolation `35339942693` and observer `35339942856` at `31efc13`.
+Authoritative Linux 6.6.156 bundle `35040148509` / FIX8
+`4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41`.
+No kernel rebuild, no pair composition, no private pack, no device.
+
+Exact 88B `populate_rootfs` at `0xffff800081b32388` / Image `0x1b32388`:
+
+| off | insn | meaning |
+| --- | --- | --- |
+| `+0x00` | `paciasp` | POST51 ENTRY (PROVEN) |
+| `+0x24` | `bl async_schedule_node_domain` | schedule only |
+| `+0x28` | cookie `str` | P1 first post-schedule insn |
+| `+0x34` | `bl __usermodehelper_set_disable_depth` | `usermodehelper_enable` |
+| `+0x40` | `cbnz` → `+0x48` | default `initramfs_async=true` skips wait |
+| `+0x44` | `bl wait_for_initramfs` | dead on thyme cmdline |
+| `+0x48` | `mov w0, wzr` | P2 join / epilogue |
+| `+0x54` | `ret` | function end; next is `do_populate_rootfs` |
+
+P1 remaining `[+0x28, +0x58)` = 48B `<` 52B proven core.
+P2 remaining `[+0x48, +0x58)` = 16B.
+48B `select_fs_complete_core` would pick `ENTRY_TRAMPOLINE`; island is
+forbidden. Shared `do_initcall_level` / `do_one_initcall` after-return
+sites are rejected (`SHARED_DO_INITCALL_LEVEL`). Cross-function into
+`do_populate_rootfs` is rejected.
+
+Thyme RT-D bootargs `rdinit=/init panic=5 loglevel=7` do not set
+`initramfs_async=`. Default true: `populate_rootfs` returns without
+waiting for `do_populate_rootfs`. Old first-device trampoline
+`SHIFT_NOT_OBSERVED` does not prove non-return.
+
+No 8s/1s pair was generated.
+
+Runtime unchanged:
+
+`POPULATE_ROOTFS_ENTRY=PROVEN`
+
+`FS_INITCALLS_COMPLETED=NOT_PROVEN`
+
+`FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`
+
+Final gate: `R3_SLOT_B_POPULATE_ROOTFS_RETURN_ISOLATION_NOT_READY`.
+
+Evidence: `artifacts/slot-b-fs-rootfs-return-20260918/`.

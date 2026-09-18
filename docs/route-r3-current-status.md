@@ -378,7 +378,17 @@ NOT_PROVEN. Current B hashes and P15 prefix matched; Android A restored. Partiti
 Slot A untouched. Do not rerun POST518/POST511, POST498/POST491, POST468/POST461, POST398/POST391,
 UPPER8/UPPER1, MID, CONTROL, FS8/FS1, SUBSYS, ARCH, POSTCORE, CORE, PURE or CONSOLE.
 Final gate: `R3_SLOT_B_FS_POST51_ENTRY_PROVEN`. Final unresolved boundary: adjacent initcalls
-[52, 53) (`populate_rootfs` -> `register_arm64_panic_block`). Next: failure isolation / diagnostic analysis of rootfs completion and transition to device initcalls.
+[52, 53) (`populate_rootfs` -> `register_arm64_panic_block`).
+`MAINLINE_V2_R3_SLOT_B_FS_POPULATE_ROOTFS_RETURN_ISOLATION` then completed CI-only
+at `31efc13`: public isolation `35339942693`, observer `35339942856`.
+Exact 88B CFG: P1 after `async_schedule_node_domain` remaining 48B, P2 join remaining 16B.
+Proven 52B/56B cores do not fit; island and shared `do_initcall_level` rejected; no pair.
+Default `initramfs_async=true` (RT-D bootargs have no `initramfs_async=`), so
+`populate_rootfs` returns without waiting for unpack. First-device trampoline
+`SHIFT_NOT_OBSERVED` must not be read as non-return. Runtime unchanged:
+`POPULATE_ROOTFS_ENTRY=PROVEN`, `FS_INITCALLS_COMPLETED=NOT_PROVEN`,
+`FIRST_DEVICE_INITCALL_ENTRY=NOT_PROVEN`. Final gate of this round:
+`R3_SLOT_B_POPULATE_ROOTFS_RETURN_ISOLATION_NOT_READY`. No device, Slot A untouched.
 No Linux boot success is claimed. Details: `docs/slot-b-pid1-stages.md`,
 `docs/slot-b-core-initcall-checkpoint.md`,
 `docs/slot-b-postcore-initcall-checkpoint.md`,

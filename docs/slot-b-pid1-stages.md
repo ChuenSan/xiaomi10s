@@ -881,5 +881,47 @@ Android A restored. POST468/POST461 reruns forbidden. Final gate:
 `R3_SLOT_B_FS_POST46_ENTRY_PROVEN`. Next: index 49 → first-device (pseudo 53)
 inline-only bisection.
 
+## FS post-49 inline pair
 
+Index 51 `acpi_reserve_resources` INLINE 60B (`paciasp` + 56B ultracompact).
+Public `35329721571`, private pack `35330249339`, reverify `35330316795`,
+observer `35330479511`. One POST49_8 then one POST49_1 RAM-only Slot B
+boot.
 
+- `POST49_8_TOTAL=35.434585083s`
+- `POST49_1_TOTAL=28.439815292s`
+- `PAIR_DELTA=-6.994769791s`
+- `PAIR_ERROR=0.005230209s`
+- `POST49_PAIR_VERDICT=STRONG`
+
+`ACPI_RESERVE_RESOURCES_ENTRY=PROVEN`. `FS_INITCALLS_COMPLETED` and
+`FIRST_DEVICE_INITCALL_ENTRY` remain NOT_PROVEN. Final gate:
+`R3_SLOT_B_FS_POST49_ENTRY_PROVEN`.
+
+## FS post-51 inline pair
+
+Index 52 `populate_rootfs` INLINE 60B (`paciasp` + 56B ultracompact).
+Public `35332535696`, private pack `35333095217`, reverify `35333156029`,
+observer `35333239931`. One POST51_8 then one POST51_1 RAM-only Slot B
+boot.
+
+- `POST51_8_TOTAL=35.055794459s`
+- `POST51_1_TOTAL=28.236344500s`
+- `PAIR_DELTA=-6.819449959s`
+- `PAIR_ERROR=0.180550041s`
+- `POST51_PAIR_VERDICT=STRONG`
+
+`POPULATE_ROOTFS_ENTRY=PROVEN`. All 53 Level-5 entries proven.
+`FS_INITCALLS_COMPLETED` and `FIRST_DEVICE_INITCALL_ENTRY` remain
+NOT_PROVEN. Final gate: `R3_SLOT_B_FS_POST51_ENTRY_PROVEN`.
+
+## Populate_rootfs return isolation
+
+CI-only. Public isolation `35339942693`, observer `35339942856` at
+`31efc13`. 88B CFG: P1 post-`async_schedule_node_domain` remaining 48B,
+P2 return-join remaining 16B. Proven 52B/56B cores do not fit. Island
+and shared caller-boundary rejected. No pair. Default
+`initramfs_async=true`; wait inside `populate_rootfs` is skipped.
+First-device trampoline `SHIFT_NOT_OBSERVED` is not non-return proof.
+
+Final gate: `R3_SLOT_B_POPULATE_ROOTFS_RETURN_ISOLATION_NOT_READY`.

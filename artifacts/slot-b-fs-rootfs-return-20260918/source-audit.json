@@ -1,0 +1,30 @@
+{
+  "source": {
+    "initramfs_async_default": true,
+    "populate_rootfs_waits_by_default": false
+  },
+  "report": {
+    "function_size": 88,
+    "p1_offset": 40,
+    "p1_va": "0xffff800081b323b0",
+    "p1_remaining": 48,
+    "p2_offset": 72,
+    "p2_va": "0xffff800081b323d0",
+    "p2_remaining": 16,
+    "min_inline_core": 52,
+    "p1_fits_52": false,
+    "p2_fits_52": false,
+    "initramfs_async_default": true,
+    "wait_path_live_on_thyme": false,
+    "island_permitted": false,
+    "trampoline_permitted": false,
+    "shared_do_initcall_level": false,
+    "rewrite_initcall_table": false,
+    "cross_function_overwrite": false,
+    "pair_generated": false,
+    "first_device_shift_not_observed_does_not_prove_non_return": true,
+    "fs_initcalls_completed": "NOT_PROVEN",
+    "first_device_initcall_entry": "NOT_PROVEN",
+    "gate": "R3_SLOT_B_POPULATE_ROOTFS_RETURN_ISOLATION_NOT_READY"
+  }
+}
