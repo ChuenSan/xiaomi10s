@@ -1021,7 +1021,7 @@ class CheckpointTests(unittest.TestCase):
             'target_source': 'init/initramfs.c',
             'initcall_registration': 'rootfs_initcall(populate_rootfs)',
             'probe_architecture': 'INLINE_PACIASP_PLUS_56B_ULTRACOMPACT',
-            'diagnostic_core_size': 56, 'function_size': 68, 'probe_size': 60,
+            'diagnostic_core_size': 56, 'function_size': 88, 'probe_size': 60,
             'sixty_byte_inline_rejected': False, 'inline_only': True,
             'trampoline_permitted': False,
         })

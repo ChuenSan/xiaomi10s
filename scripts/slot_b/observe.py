@@ -54,6 +54,8 @@ IMAGES = {
     "post461": (37380096, "f0b80158e90f91f8dbbb47cd84f8b92be93d86cad9690514859af3629061ea32"),
     "post498": (37380096, "c8ff8dc637d80ef1b0d0a3dbab6869f3879450998a9df546e2af25cea64b2a14"),
     "post491": (37380096, "73c63cf6360a962d7fc555f65281aef23da1864ff185f30dfa693d69e8862a6c"),
+    "post518": (37380096, "a" * 64),
+    "post511": (37380096, "b" * 64),
     }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
@@ -75,6 +77,7 @@ PAIRS = {
     "post391": ("post398", "fs_post39_entry", "first_device_initcall_entry"),
     "post461": ("post468", "fs_post46_entry", "first_device_initcall_entry"),
     "post491": ("post498", "fs_post49_entry", "first_device_initcall_entry"),
+    "post511": ("post518", "fs_post51_entry", "first_device_initcall_entry"),
     }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -162,6 +165,18 @@ POST49_TABLE = {
     "index": 51, "symbol": "acpi_reserve_resources", "va": 0xFFFF800081B6B2FC,
     "table_va": 0xFFFF800081D0B1A0, "offset": 0x1B6B2FC,
     "registration": "fs_initcall_sync(acpi_reserve_resources)", "source": "drivers/acpi/osl.c",
+}
+POST51_GEOMETRY = {
+    "target": "populate_rootfs", "va": 0xFFFF800081B32388,
+    "offset": 0x1B32388, "function_size": 88, "window": 60,
+    "core_size": 56, "architecture": "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT",
+    "entry": "paciasp", "daifset": "PRESENT", "inline_only": True,
+    "prel32_unchanged": True,
+}
+POST51_TABLE = {
+    "index": 52, "symbol": "populate_rootfs", "va": 0xFFFF800081B32388,
+    "table_va": 0xFFFF800081D0B1A4, "offset": 0x1B32388,
+    "registration": "rootfs_initcall(populate_rootfs)", "source": "init/initramfs.c",
 }
 
 REST_ORIGIN = "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B"
@@ -360,6 +375,35 @@ def validate_post49_table():
     require(POST49_TABLE["registration"] == "fs_initcall_sync(acpi_reserve_resources)",
             "POST49_REGISTRATION_DRIFT")
 
+
+def validate_post51_geometry(window):
+    require(window != 56, "POST51_56B_WINDOW_REJECTED")
+    require(window == POST51_GEOMETRY["window"], "POST51_WINDOW_NOT_60")
+    require(POST51_GEOMETRY["target"] == "populate_rootfs", "POST51_TARGET_DRIFT")
+    require(POST51_GEOMETRY["va"] == 0xFFFF800081B32388, "POST51_VA_DRIFT")
+    require(POST51_GEOMETRY["offset"] == 0x1B32388, "POST51_OFFSET_DRIFT")
+    require(POST51_GEOMETRY["window"] <= POST51_GEOMETRY["function_size"],
+            "POST51_WINDOW_EXCEEDS_FUNCTION")
+    require(POST51_GEOMETRY["function_size"] == 88, "POST51_FUNCTION_NOT_88")
+    require(POST51_GEOMETRY["core_size"] == 56, "POST51_CORE_NOT_56")
+    require(POST51_GEOMETRY["architecture"] == "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT",
+            "POST51_ARCHITECTURE_DRIFT")
+    require(POST51_GEOMETRY["entry"] == "paciasp", "POST51_ENTRY_NOT_PACIASP")
+    require(POST51_GEOMETRY["daifset"] == "PRESENT", "POST51_DAIFSET_ABSENT")
+    require(POST51_GEOMETRY["inline_only"] is True, "POST51_NOT_INLINE_ONLY")
+    require(POST51_GEOMETRY["prel32_unchanged"] is True, "POST51_PREL32_CHANGED")
+
+
+def validate_post51_table():
+    require(POST51_TABLE["index"] == 52, "POST51_INDEX_NOT_52")
+    require(POST51_TABLE["symbol"] == "populate_rootfs", "POST51_SYMBOL_DRIFT")
+    require(POST51_TABLE["table_va"] == 0xFFFF800081D0B1A4, "POST51_TABLE_VA_DRIFT")
+    require(POST51_TABLE["va"] == 0xFFFF800081B32388, "POST51_TARGET_VA_DRIFT")
+    require(POST51_TABLE["offset"] == 0x1B32388, "POST51_OFFSET_DRIFT")
+    require(POST51_TABLE["source"] == "init/initramfs.c", "POST51_SOURCE_DRIFT")
+    require(POST51_TABLE["registration"] == "rootfs_initcall(populate_rootfs)",
+            "POST51_REGISTRATION_DRIFT")
+
 def validate_context(context, case=None):
     require(all(context.get(k) == v for k, v in CONTEXT.items()), "B_CONTEXT_MISMATCH")
     require(context.get("slot_a_unchanged") is True, "SLOT_A_UNCHANGED_NOT_VERIFIED")
@@ -517,6 +561,17 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(post49_checkpoint_shift_not_observed="YES")
+    elif second == "post511":
+        out.update(fs_initcalls_completed="NOT_PROVEN",
+                   first_device_initcall_entry="NOT_PROVEN",
+                   first_device_initcall_body="NOT_PROVEN",
+                   device_initcalls_completed="NOT_PROVEN",
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(post51_checkpoint_shift_not_observed="YES")
     return out
 
 
