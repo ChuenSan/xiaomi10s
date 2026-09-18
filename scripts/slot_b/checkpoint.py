@@ -38,18 +38,19 @@ INITCALL_BOUNDARIES = {"pure_complete": "__initcall1_start",
                        "fs_complete": "__initcall6_start",
                        "fs_trampoline_control": "__initcall5_start",
                        "fs_midpoint": "__initcall5_start", "fs_upper_half": "__initcall5_start",
-                       "fs_post39": "__initcall5_start"}
+                       "fs_post39": "__initcall5_start", "fs_post46": "__initcall5_start"}
 INITCALL_MACROS = {"pure_complete": "core_initcall", "core_complete": "postcore_initcall",
                    "postcore_complete": "arch_initcall", "arch_complete": "subsys_initcall",
                    "subsys_complete": "fs_initcall", "fs_complete": "device_initcall",
                    "fs_trampoline_control": "fs_initcall", "fs_midpoint": "fs_initcall",
-                   "fs_upper_half": "fs_initcall", "fs_post39": "fs_initcall"}
+                   "fs_upper_half": "fs_initcall", "fs_post39": "fs_initcall",
+                   "fs_post46": "fs_initcall"}
 INITCALL_SOURCE_PREFIX = {"postcore_complete": "arch/arm64/", "arch_complete": "arch/arm64/"}
 ULTRACOMPACT_SYMBOLS = frozenset({"core_complete", "postcore_complete", "arch_complete"})
 SUBSYS52_SYMBOLS = frozenset({"subsys_complete"})
 EXPANDED_WINDOWS = {"do_initcalls": 96, "arch_complete": 160}
 CFG_DERIVED_WINDOWS = frozenset({"subsys_complete", "fs_complete", "fs_trampoline_control",
-                                "fs_midpoint", "fs_upper_half", "fs_post39"})
+                                "fs_midpoint", "fs_upper_half", "fs_post39", "fs_post46"})
 FROZEN_FIRST_FS_SYMBOL = "create_debug_debugfs_entry"
 FROZEN_FIRST_FS_VA = 0xffff8000800149e0
 FS_SPAN_TYPES = frozenset({"fs_initcall", "fs_initcall_sync"})
@@ -68,6 +69,13 @@ FROZEN_FS_POST39_SYMBOL = "af_unix_init"
 FROZEN_FS_POST39_SOURCE = "net/unix/af_unix.c"
 FROZEN_FS_POST39_REGISTRATION = "fs_initcall(af_unix_init)"
 FROZEN_FS_POST39_FUNCTION_SIZE = 216
+FROZEN_FS_POST46_INDEX = 49
+FROZEN_FS_POST46_TABLE_VA = 0xffff800081d0b198
+FROZEN_FS_POST46_TARGET_VA = 0xffff800081baedfc
+FROZEN_FS_POST46_SYMBOL = "vlan_offload_init"
+FROZEN_FS_POST46_SOURCE = "net/8021q/vlan_core.c"
+FROZEN_FS_POST46_REGISTRATION = "fs_initcall(vlan_offload_init)"
+FROZEN_FS_POST46_FUNCTION_SIZE = 60
 ROOTFS_SPAN_TYPES = frozenset({"rootfs_initcall"})
 DEVICE_SPAN_TYPES = frozenset({"device_initcall", "device_initcall_sync", "__initcall"})
 INITCALL_MACRO_RE = re.compile(
@@ -87,7 +95,7 @@ FS_ISLAND_SIZE = 52
 FROZEN_FS_ISLAND_OFFSET = 0xffcc
 FROZEN_FS_SPAN_COUNT = 53
 FS_SPAN_SYMBOLS = frozenset({"fs_complete", "fs_trampoline_control", "fs_midpoint",
-                            "fs_upper_half", "fs_post39"})
+                            "fs_upper_half", "fs_post39", "fs_post46"})
 LIVE_TRAMP_END = t3.TRAMP_OFFSET + t3.TRAMP_SIZE
 B_OP = 0x14000000
 B_OP_MASK = 0xFC000000
@@ -98,7 +106,8 @@ INITCALL_TARGET_LABELS = {"pure_complete": "FIRST_CORE", "core_complete": "FIRST
                           "postcore_complete": "FIRST_ARCH", "arch_complete": "FIRST_SUBSYS",
                           "subsys_complete": "FIRST_FS", "fs_complete": "FIRST_DEVICE",
                           "fs_trampoline_control": "CONTROL_FIRST_FS", "fs_midpoint": "FS_MIDPOINT",
-                          "fs_upper_half": "FS_UPPER_HALF", "fs_post39": "FS_POST39"}
+                          "fs_upper_half": "FS_UPPER_HALF", "fs_post39": "FS_POST39",
+                          "fs_post46": "FS_POST46"}
 PROOF_BOUNDARIES = {
     "rest_init": ("rest_init entry and preceding normal start_kernel path",
                   "rest_init body, scheduler, SMP or /init"),
@@ -133,6 +142,8 @@ PROOF_BOUNDARIES = {
     "fs_upper_half": ("the floor midpoint of the proven upper fs half was reached",
                       "later fs initcalls, first-device entry, later levels, console or /init"),
     "fs_post39": ("the floor midpoint of the proven post-39 fs interval was reached",
+                  "later fs initcalls, first-device entry, later levels, console or /init"),
+    "fs_post46": ("the floor midpoint of the proven post-46 fs interval was reached",
                   "later fs initcalls, first-device entry, later levels, console or /init"),
 }
 REST8_SHA = "22086188014e015c2aa0c79783a06de1036234e211064415dbd18e896ae04360"
@@ -282,6 +293,15 @@ def select_fs_post39_index(entries):
     return index
 
 
+def select_fs_post46_index(entries):
+    require(len(entries) == FROZEN_FS_SPAN_COUNT, "FS_POST46_SPAN_COUNT_DRIFT")
+    require(FROZEN_FS_POST39_INDEX == select_fs_post39_index(entries), "FS_POST46_LOWER_INDEX_DRIFT")
+    require(FROZEN_FS_FIRST_DEVICE_INDEX == len(entries), "FS_POST46_DEVICE_INDEX_DRIFT")
+    index = (FROZEN_FS_POST39_INDEX + FROZEN_FS_FIRST_DEVICE_INDEX) // 2
+    require(index == FROZEN_FS_POST46_INDEX, "FS_POST46_INDEX_DRIFT")
+    return index
+
+
 def span_entry_as_boundary(entry):
     return {"boundary_symbol": f"__initcall5_index_{entry['index']}", "entry_va": entry["entry_va"],
             "entry_image_offset": entry["entry_image_offset"], "entry_section": ".init.data",
@@ -385,6 +405,27 @@ def gate_fs_post39_design(design):
                      "trampoline_permitted": False})
     for key, value in expected.items():
         require(design.get(key) == value, f"FS_POST39_DESIGN_REJECTED:{key}")
+
+
+def gate_fs_post46_design(design):
+    expected = _isolation_design_base("FS_LEVEL_POST46_MIDPOINT_ENTRY", "__initcall5_index_49")
+    expected.update({"target_derivation": "PROVEN_POST46_MIDPOINT_FLOOR",
+                     "lower_index": FROZEN_FS_POST39_INDEX,
+                     "first_device_index": FROZEN_FS_FIRST_DEVICE_INDEX,
+                     "midpoint_index": FROZEN_FS_POST46_INDEX,
+                     "entry_count": FROZEN_FS_SPAN_COUNT, "name_guess": False,
+                     "target_symbol": FROZEN_FS_POST46_SYMBOL,
+                     "table_entry_va": FROZEN_FS_POST46_TABLE_VA,
+                     "target_va": FROZEN_FS_POST46_TARGET_VA,
+                     "target_source": FROZEN_FS_POST46_SOURCE,
+                     "initcall_registration": FROZEN_FS_POST46_REGISTRATION,
+                     "probe_architecture": "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT",
+                     "diagnostic_core_size": 56, "function_size": FROZEN_FS_POST46_FUNCTION_SIZE,
+                     "probe_size": 60, "sixty_byte_inline_rejected": False, "inline_only": True,
+                     "trampoline_permitted": False})
+    for key, value in expected.items():
+        require(design.get(key) == value, f"FS_POST46_DESIGN_REJECTED:{key}")
+
 
 def forensic_failed_fs_pair(p8, p1, frozen):
     stub, island, prel = 0x1b347b8, FROZEN_FS_ISLAND_OFFSET, 0x1d0b1a8
@@ -1458,6 +1499,23 @@ def compose(args, bundle):
                 initcall_registration = post["registration"]
                 print(f"FS_POST39_INDEX={post_index}", flush=True)
                 print(f"FS_POST39_SYMBOL={post['symbol']}", flush=True)
+            elif args.symbol == "fs_post46":
+                post_index = select_fs_post46_index(classified)
+                post = classified[post_index]
+                require(post["entry_va"] == FROZEN_FS_POST46_TABLE_VA, "FS_POST46_TABLE_IDENTITY_DRIFT")
+                require(post["target_va"] == FROZEN_FS_POST46_TARGET_VA
+                        and FROZEN_FS_POST46_SYMBOL in post["aliases"],
+                        "FS_POST46_TARGET_IDENTITY_DRIFT")
+                require(post["source"] == FROZEN_FS_POST46_SOURCE
+                        and post["registration"] == FROZEN_FS_POST46_REGISTRATION,
+                        "FS_POST46_SOURCE_IDENTITY_DRIFT")
+                require(sum(1 for entry in classified if entry["target_va"] == post["target_va"]) == 1,
+                        "FS_POST46_TARGET_NOT_UNIQUE")
+                initcall_boundary = span_entry_as_boundary(post)
+                initcall_source = post["source"]
+                initcall_registration = post["registration"]
+                print(f"FS_POST46_INDEX={post_index}", flush=True)
+                print(f"FS_POST46_SYMBOL={post['symbol']}", flush=True)
             elif args.symbol == "fs_trampoline_control":
                 initcall_source = classified[0]["source"]
                 initcall_registration = classified[0]["registration"]
@@ -1467,6 +1525,8 @@ def compose(args, bundle):
             target_symbol = FROZEN_FS_UPPER_SYMBOL
         elif args.symbol == "fs_post39":
             target_symbol = FROZEN_FS_POST39_SYMBOL
+        elif args.symbol == "fs_post46":
+            target_symbol = FROZEN_FS_POST46_SYMBOL
         next_va = min(va for va, _ in t3.symbol_table(nm) if va > target_va)
         extent = next_va
         print(INITCALL_TARGET_LABELS[args.symbol] + "_TABLE_DECODE=" +
@@ -1514,7 +1574,7 @@ def compose(args, bundle):
             reference_core, probe_architecture, sixty_byte_inline_rejected = select_fs_complete_core(
                 function_size, proven56, proven52)
             core = delay_core(reference_core, args.delay)
-        elif args.symbol in ("fs_trampoline_control", "fs_midpoint", "fs_upper_half", "fs_post39"):
+        elif args.symbol in ("fs_trampoline_control", "fs_midpoint", "fs_upper_half", "fs_post39", "fs_post46"):
             if args.symbol == "fs_trampoline_control":
                 require(FROZEN_FIRST_FS_SYMBOL in initcall_boundary["target_aliases"]
                         and target_va == FROZEN_FIRST_FS_VA, "CONTROL_TARGET_NOT_FIRST_FS")
@@ -1543,6 +1603,10 @@ def compose(args, bundle):
                     proven52, "INLINE_PACIASP_PLUS_52B_NO_DAIFSET", True)
             elif args.symbol == "fs_post39":
                 require(function_size == FROZEN_FS_POST39_FUNCTION_SIZE, "FS_POST39_FUNCTION_SIZE_DRIFT")
+                reference_core, probe_architecture, sixty_byte_inline_rejected = (
+                    proven56, "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT", False)
+            elif args.symbol == "fs_post46":
+                require(function_size == FROZEN_FS_POST46_FUNCTION_SIZE, "FS_POST46_FUNCTION_SIZE_DRIFT")
                 reference_core, probe_architecture, sixty_byte_inline_rejected = (
                     proven56, "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT", False)
             else:
@@ -1677,6 +1741,31 @@ def compose(args, bundle):
                 "inline_only": True, "trampoline_permitted": False,
             })
             gate_fs_post39_design(post_design)
+        elif args.symbol == "fs_post46":
+            require(length == 60 and extent - target_va == FROZEN_FS_POST46_FUNCTION_SIZE,
+                    "FS_POST46_GEOMETRY_DRIFT")
+            require(derive_inline_window(target_va, extent - target_va,
+                                         topology["internal_branches"], 60) == 60,
+                    "FS_POST46_60B_NOT_CLOSED")
+            require(not cfg_report["surviving_into_interior"], "FS_POST46_CFG_NOT_CLOSED")
+            cfg_report["sixty_byte_candidate_rejected"] = False
+            post_design = _isolation_design_base(
+                "FS_LEVEL_POST46_MIDPOINT_ENTRY", initcall_boundary["boundary_symbol"])
+            post_design.update({
+                "target_derivation": "PROVEN_POST46_MIDPOINT_FLOOR",
+                "lower_index": FROZEN_FS_POST39_INDEX,
+                "first_device_index": FROZEN_FS_FIRST_DEVICE_INDEX,
+                "midpoint_index": initcall_boundary["span_index"],
+                "entry_count": fs_span["entry_count"], "name_guess": False,
+                "target_symbol": target_symbol, "table_entry_va": initcall_boundary["entry_va"],
+                "target_va": target_va, "target_source": initcall_source,
+                "initcall_registration": initcall_registration,
+                "probe_architecture": probe_architecture, "diagnostic_core_size": len(core),
+                "function_size": extent - target_va, "probe_size": length,
+                "sixty_byte_inline_rejected": sixty_byte_inline_rejected,
+                "inline_only": True, "trampoline_permitted": False,
+            })
+            gate_fs_post46_design(post_design)
     target_section = next(s for s in sections if s["vma"] <= target_va < s["vma"] + s["size"])
     entry_words = [hex(struct.unpack_from("<I", frozen, offset + i)[0])
                    for i in range(0, min(128, extent - target_va), 4)]
@@ -1821,8 +1910,8 @@ def compose(args, bundle):
                                  "compact_b_lo"),
                 "probe_architecture": probe_architecture,
                 "sixty_byte_inline_rejected": sixty_byte_inline_rejected,
-                "inline_only": args.symbol in ("fs_upper_half", "fs_post39"),
-                "trampoline_permitted": args.symbol not in ("fs_upper_half", "fs_post39"),
+                "inline_only": args.symbol in ("fs_upper_half", "fs_post39", "fs_post46"),
+                "trampoline_permitted": args.symbol not in ("fs_upper_half", "fs_post39", "fs_post46"),
                 "prel32_target_unchanged": True, "fs_runtime_span": fs_span,
                 "pair_reference_sha256": digest(reference),
                 "pair_changed_offsets": [offset + 4 + i for i in pair_diff],
@@ -1889,6 +1978,11 @@ def compose(args, bundle):
                     and len(core) == 56 and length == 60
                     and extent - target_va == FROZEN_FS_POST39_FUNCTION_SIZE,
                     "FS_POST39_INLINE_ONLY_GEOMETRY_MISMATCH")
+        elif args.symbol == "fs_post46":
+            require(probe_architecture == "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT"
+                    and len(core) == 56 and length == 60
+                    and extent - target_va == FROZEN_FS_POST46_FUNCTION_SIZE,
+                    "FS_POST46_INLINE_ONLY_GEOMETRY_MISMATCH")
         print(f"FS_SELECTED_PROBE_ARCHITECTURE={probe_architecture}", flush=True)
     print(f"{args.symbol.upper()}_INLINE_AUDIT=PASS\nDEVICE_OPERATION=NO\nLOCAL_BUILD=NO", flush=True)
 

@@ -1,0 +1,274 @@
+name: FS_INITCALLS_POST46_PAIR_CI
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/checkpoint.py'
+      - 'scripts/slot_b/test_checkpoint.py'
+      - 'scripts/slot_b/checkpoint-ultracompact.S'
+      - 'scripts/slot_b/checkpoint-subsys52.S'
+      - '.github/workflows/thyme-slot-b-fs-initcalls-post46.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: fs-post46-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch frozen source tree
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-fs-initcalls-post46.yml
+      - name: Source tests and post46 design gate
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_*.py' -v 2>&1 | tee source-tests.log
+          grep -q 'test_fs_post46_design_negative_fixtures.*ok' source-tests.log
+          python3 -B - <<'PY' | tee source-audit.json
+          import json, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          a = checkpoint.audit_initcall_source(Path('linux-6.6'))
+          assert a['fs'] == '__initcall5_start..__initcall6_start'
+          assert checkpoint.FROZEN_FS_SPAN_COUNT == 53
+          assert checkpoint.FROZEN_FS_UPPER_INDEX == 39
+          assert checkpoint.FROZEN_FS_POST39_INDEX == 46
+          assert checkpoint.FROZEN_FS_FIRST_DEVICE_INDEX == 53
+          assert checkpoint.FROZEN_FS_POST46_INDEX == (46 + 53) // 2 == 49
+          entries = [{index: i, 'target_va': i} for i in range(53)]
+          assert checkpoint.select_fs_post46_index(entries) == 49
+          assert 'fs_post46' in checkpoint.CFG_DERIVED_WINDOWS
+          assert checkpoint.FROZEN_FS_POST46_SYMBOL == 'vlan_offload_init'
+          assert checkpoint.FROZEN_FS_POST46_FUNCTION_SIZE == 60
+          print(json.dumps(a, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-post46-source-audit
+          path: |
+            source-tests.log
+            source-audit.json
+          if-no-files-found: error
+
+  compose-pair:
+    if: github.event_name == 'workflow_dispatch'
+    needs: source-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch frozen source tree
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Install audit tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18
+      - name: Download immutable bundle and FIX8 inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          gh run download 34980859158 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-reset-pair -D proven-core
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Assemble and audit both cores
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          for core in ultracompact subsys52; do
+            src=checkpoint-$core.S
+            clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/$src -o $core.o
+            llvm-readelf-18 -r $core.o | tee $core-relocations.log
+            grep -q 'There are no relocations in this file' $core-relocations.log
+            llvm-objcopy-18 -O binary --only-section=.text $core.o $core.bin
+            llvm-objdump-18 -d $core.o | tee $core-disassembly.log
+          done
+          test "$(stat -c %s ultracompact.bin)" = 56
+          test "$(stat -c %s subsys52.bin)" = 52
+          GITHUB_ACTIONS=true python3 -B - <<'PY'
+          import pathlib, sys
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint
+          checkpoint.gate_subsys52_core_equivalence(
+              pathlib.Path('ultracompact.bin').read_bytes(), pathlib.Path('subsys52.bin').read_bytes())
+          PY
+      - name: Compose POST46_8 then matched POST46_1
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          common=(--symbol fs_post46 --ultracompact-core ultracompact.bin
+            --subsys52-core subsys52.bin --bundle kernel-bundle
+            --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin
+            --core proven-core/p1b-t1-core-reference.bin)
+          python3 -u -B scripts/slot_b/checkpoint.py "${common[@]}" --delay 8 --out post46/8 | tee post468.log
+          ref=$(jq -r .payload_sha256 post46/8/checkpoint/manifest.json)
+          python3 -u -B scripts/slot_b/checkpoint.py "${common[@]}" --delay 1 --out post46/1 --reference-sha "$ref" | tee post461.log
+      - name: Exact identity, geometry, closure and pair audit
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY' | tee post46-audit.txt
+          import hashlib, json, struct
+          from pathlib import Path
+          root = Path('post46')
+          a = json.loads((root/'8/checkpoint/manifest.json').read_text())
+          b = json.loads((root/'1/checkpoint/manifest.json').read_text())
+          p8 = (root/'8/checkpoint/payload.bin').read_bytes()
+          p1 = (root/'1/checkpoint/payload.bin').read_bytes()
+          base = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          for m in (a, b):
+              assert m['symbol'] == 'fs_post46' and m['target_symbol'] == 'vlan_offload_init'
+              assert m['initcall_boundary']['span_index'] == 49
+              assert m['initcall_boundary']['entry_va'] == 0xffff800081d0b198
+              assert m['initcall_boundary']['target_va'] == 0xffff800081baedfc
+              assert m['initcall_boundary']['entry_encoding'] == 'PREL32'
+              assert m['target_source'] == 'net/8021q/vlan_core.c'
+              assert m['initcall_registration'] == 'fs_initcall(vlan_offload_init)'
+              assert m['fs_runtime_span']['entry_count'] == 53
+              assert m['target_function_size'] == 60 and m['checkpoint_size'] == 60
+              assert m['core_size'] == 56
+              assert m['probe_architecture'] == 'INLINE_PACIASP_PLUS_56B_ULTRACOMPACT'
+              assert m['sixty_byte_inline_rejected'] is False
+              assert m['inline_only'] is True
+              assert m['trampoline_permitted'] is False
+              assert m.get('island_offset') is None
+              assert m.get('island') in (None, {})
+              assert m['target_entry_audit']['pac'] is True
+              assert m['target_entry_audit']['bti'] is False
+              assert m['target_entry_audit']['entry_audit'] == 'PASS'
+              assert m['target_entry_audit']['relocations_in_window'] == 0
+              assert m['target_entry_audit']['runtime_rewrite_safe'] is True
+              assert not m['target_entry_audit']['branch_topology']['incoming_window_interior']
+              assert m['cfg_closure']['sixty_byte_candidate_rejected'] is False
+              assert m['cfg_closure']['cfg_closure_proven'] is True
+              assert m['cfg_closure']['candidate_window_length'] == 60
+              assert not m['cfg_closure']['surviving_into_interior']
+              assert m['runtime_dtb_external_initrd'] is False
+              assert m['chosen_properties'] == ['bootargs', 'stdout-path']
+          assert a['init_symbols'] == b['init_symbols']
+          off = 0x1baedfc
+          assert a['offset'] == b['offset'] == off
+          changed = [i for i, (x, y) in enumerate(zip(p8, p1)) if x != y]
+          assert changed == [off + 13, off + 14]
+          assert p8[:off] == p1[:off] == base[:off]
+          assert p8[off+60:] == p1[off+60:] == base[off+60:]
+          prel = 0x1d0b198
+          assert p8[prel:prel+4] == p1[prel:prel+4] == base[prel:prel+4]
+          tramp = hashlib.sha256(base[0x40:0x70]).digest()
+          assert hashlib.sha256(p8[0x40:0x70]).digest() == hashlib.sha256(p1[0x40:0x70]).digest() == tramp
+          words8 = struct.unpack_from('<15I', p8, off)
+          words1 = struct.unpack_from('<15I', p1, off)
+          assert words8[0] == words1[0] == 0xd503233f
+          assert words8[1] == words1[1] == 0xd5034fdf
+          assert words8[3] == 0xd37df12a and words1[3] == 0xd340fd2a
+          assert all(words8[i] == words1[i] for i in range(15) if i != 3)
+          assert len(changed) == 2
+          print('PAIR_DIFF=DELAY_CONSTANT_ONLY')
+          print('TARGET_INDEX_FUNCTION_WINDOW_ARCH_PREL32=PASS')
+          print('LIVE_TRAMP_RT_D_INIT_UNCHANGED=PASS')
+          PY
+          (cd post46 && sha256sum 8/checkpoint/payload.bin 1/checkpoint/payload.bin > SHA256SUMS)
+          ! find post46 -name '*.img' -print -quit | grep -q .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-post46-pair
+          path: post46/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-fs-post46-detailed-audit
+          path: |
+            post468.log
+            post461.log
+            post46-audit.txt
+            *-relocations.log
+            *-disassembly.log
+            post46/*/checkpoint/*.json
+            post46/*/checkpoint/original-*.txt
+          if-no-files-found: error
+
+  independent-reverify:
+    needs: compose-pair
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Download payloads and frozen baseline independently
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" -n thyme-fs-post46-pair -D pair
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          (cd pair && sha256sum -c SHA256SUMS)
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independently derive offsets and core words
+        run: |
+          python3 -B - <<'PY' | tee independent-reverify.txt
+          import hashlib, struct
+          from pathlib import Path
+          text_va = 0xffff800080000000
+          target_va = 0xffff800081baedfc
+          table_va = 0xffff800081d0b198
+          off, prel = target_va - text_va, table_va - text_va
+          p8 = Path('pair/8/checkpoint/payload.bin').read_bytes()
+          p1 = Path('pair/1/checkpoint/payload.bin').read_bytes()
+          base = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          changed = [i for i, (x, y) in enumerate(zip(p8, p1)) if x != y]
+          delay_word_index = 1 + 2  # preserved PACIASP plus daifset plus CNTPCT, then delay
+          expected = [off + 4 * delay_word_index + 1, off + 4 * delay_word_index + 2]
+          assert changed == expected and len(changed) == 2
+          w8 = struct.unpack_from('<15I', p8, off)
+          w1 = struct.unpack_from('<15I', p1, off)
+          expected8 = (0xd503233f, 0xd5034fdf, 0xd53be009, 0xd37df12a, 0xd53be02b,
+                       0xd5033fdf, 0xd53be02c, 0xcb0b018d, 0xeb0a01bf, 0x54ffff83,
+                       0x52800120, 0x72b08000, 0xd4000003, 0xd503205f, 0x17ffffff)
+          expected1 = expected8[:3] + (0xd340fd2a,) + expected8[4:]
+          assert w8 == expected8 and w1 == expected1
+          assert p8[:off] == p1[:off] == base[:off]
+          assert p8[off+60:] == p1[off+60:] == base[off+60:]
+          assert p8[prel:prel+4] == p1[prel:prel+4] == base[prel:prel+4]
+          tramp = hashlib.sha256(base[0x40:0x70]).digest()
+          assert hashlib.sha256(p8[0x40:0x70]).digest() == hashlib.sha256(p1[0x40:0x70]).digest() == tramp
+          assert not list(Path('pair').rglob('*.img'))
+          print('INDEPENDENT_DELAY_OFFSETS_AND_CORE_WORDS=PASS')
+          print('PREL32_AND_LIVE_TRAMPOLINE_UNCHANGED=PASS')
+          print('PAIR_DIFF=DELAY_CONSTANT_ONLY')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-fs-post46-independent-reverify
+          path: independent-reverify.txt
+          if-no-files-found: error
