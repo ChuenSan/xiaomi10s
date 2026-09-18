@@ -1598,8 +1598,6 @@ def compose(args, bundle):
                           source_audit["device_level_boundary"]):
                 if extra not in boundary_names:
                     boundary_names.append(extra)
-        if args.symbol == "level7_earliest" and source_audit["late_end_boundary"] not in boundary_names:
-            boundary_names.append(source_audit["late_end_boundary"])
         initcall_boundaries = {name: resolve_initcall_boundary(vmlinux, sections, nm, name)
                                for name in boundary_names}
         initcall_boundary = initcall_boundaries[INITCALL_BOUNDARIES[args.symbol]]
@@ -1796,10 +1794,10 @@ def compose(args, bundle):
                       flush=True)
             elif args.symbol == "level7_earliest":
                 va7 = initcall_boundaries[source_audit["device_level_boundary"]]["entry_va"]
-                va_end = initcall_boundaries[source_audit["late_end_boundary"]]["entry_va"]
+                va_end = t3.nm_symbol(nm, source_audit["late_end_boundary"])
+                require(va6 < va7 < va_end and not va_end & 3, "LEVEL7_LINKER_ORDER_MISMATCH")
                 level6_span = decode_initcall_span(vmlinux, sections, nm, va6, va7)
                 level7_span = decode_initcall_span(vmlinux, sections, nm, va7, va_end)
-                require(va6 < va7 < va_end, "LEVEL7_LINKER_ORDER_MISMATCH")
                 require(len(level6_span) == FROZEN_LEVEL6_SPAN_COUNT, "LEVEL7_LEVEL6_SPAN_COUNT_DRIFT")
                 require(len(level7_span) == FROZEN_LEVEL7_SPAN_COUNT, "LEVEL7_SPAN_COUNT_DRIFT")
                 level7_vas = sorted(va for va, _ in t3.symbol_table(nm))
