@@ -124,10 +124,13 @@ jobs:
           GITHUB_ACTIONS: 'true'
         run: |
           set -euo pipefail
-          common='--symbol fs_upper_half --ultracompact-core ultracompact.bin --subsys52-core subsys52.bin --bundle kernel-bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin --core proven-core/p1b-t1-core-reference.bin'
-          python3 -u -B scripts/slot_b/checkpoint.py $common --delay 8 --out upper/8 | tee upper8.log
+          common=(--symbol fs_upper_half --ultracompact-core ultracompact.bin
+            --subsys52-core subsys52.bin --bundle kernel-bundle
+            --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin
+            --core proven-core/p1b-t1-core-reference.bin)
+          python3 -u -B scripts/slot_b/checkpoint.py "${common[@]}" --delay 8 --out upper/8 | tee upper8.log
           ref=$(jq -r .payload_sha256 upper/8/checkpoint/manifest.json)
-          python3 -u -B scripts/slot_b/checkpoint.py $common --delay 1 --out upper/1 --reference-sha "$ref" | tee upper1.log
+          python3 -u -B scripts/slot_b/checkpoint.py "${common[@]}" --delay 1 --out upper/1 --reference-sha "$ref" | tee upper1.log
       - name: Exact identity, geometry, closure and pair audit
         run: |
           set -euo pipefail
