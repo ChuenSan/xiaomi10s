@@ -482,15 +482,33 @@ def prove_layout_literal_window(image, frozen, text_va, offset, window, sections
         if o in covered:
             continue
         w_img, w_frz = word_at(image, o), word_at(frozen, o)
+        pc = text_va + o
         if (w_img >> 24) == 0x91 or (w_frz >> 24) == 0x91:
             rn = (w_img >> 5) & 0x1F
             p = adrp_partner(o, rn)
             require(p is not None, f"WINDOW_DELTA_ORPHAN_ADD:{hex(o)}")
             pair = [(p, o)]
-        elif (w_img >> 24) & 0x9F == 0x90 and (w_frz >> 24) & 0x9F == 0x90:
+        elif ((w_img >> 24) & 0x9F == 0x90 and (w_frz >> 24) & 0x9F == 0x90
+              and (w_img >> 31) and (w_frz >> 31)):
             q = add_partner(o, w_img & 0x1F)
             require(q is not None, f"WINDOW_DELTA_ORPHAN_ADRP:{hex(o)}")
             pair = [(o, q)]
+        elif ((w_img >> 24) & 0x9F == 0x10 and (w_frz >> 24) & 0x9F == 0x10
+              and not (w_img >> 31) and not (w_frz >> 31)):
+            addresses = {}
+            for tag, blob in (("bundle", image), ("frozen", frozen)):
+                word = word_at(blob, o)
+                immlo = (word >> 29) & 0x3
+                immhi = (word >> 5) & 0x7FFFF
+                addresses[tag] = pc + signed((immhi << 2) | immlo, 21)
+            require(all(addr_in_sections(addr, sections)
+                        for addr in addresses.values()),
+                    f"WINDOW_DELTA_ADDRESS_NOT_IN_SECTIONS:{hex(o)}")
+            refs.append({"offset": hex(o), "form": "adr",
+                         "bundle": hex(addresses["bundle"]),
+                         "frozen": hex(addresses["frozen"])})
+            covered.add(o)
+            continue
         else:
             require(False, f"WINDOW_DELTA_NOT_ADDRESS_FORM:{hex(o)}")
         for adrp_off, add_off in pair:
