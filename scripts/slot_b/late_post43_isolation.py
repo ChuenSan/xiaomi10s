@@ -427,6 +427,101 @@ def compose_member(frozen, offset, window, entry_word, core, delay):
     return base.compose_member(frozen, offset, window, entry_word, core, delay)
 
 
+def decode_adrp(word, pc):
+    require((word >> 24) & 0x9F == 0x90, "NOT_ADRP")
+    immlo = (word >> 29) & 0x3
+    immhi = (word >> 5) & 0x7FFFF
+    page = (pc & ~0xFFF) + (signed((immhi << 2) | immlo, 21) << 12)
+    return word & 0x1F, page
+
+
+def decode_add_imm(word):
+    require((word >> 24) == 0x91, "NOT_ADD_IMM")
+    return word & 0x1F, (word >> 5) & 0x1F, (word >> 10) & 0xFFF
+
+
+def addr_in_sections(addr, sections):
+    return any(s["vma"] <= addr < s["vma"] + s["size"]
+               for s in sections if s.get("size"))
+
+
+def prove_layout_literal_window(image, frozen, text_va, offset, window, sections):
+    """Benign build-layout deltas inside a window (bundle vs frozen FIX8).
+
+    Accepts ADRP+ADD literal pairs where either or both halves differ between
+    the two builds (superset of the FS-round ADD-pair proof): every differing
+    word must belong to a pair whose BOTH builds resolve into an alloc section,
+    with no intervening write to the pair register. Anything else fails loudly.
+    """
+    word_at = lambda blob, o: struct.unpack_from("<I", blob, o)[0]
+    diffs = [o for o in range(offset, offset + window, 4)
+             if image[o:o + 4] != frozen[o:o + 4]]
+    if not diffs:
+        return {"verdict": "EXACT", "differing_words": [], "literal_refs": []}
+    covered = set()
+    refs = []
+
+    def adrp_partner(add_off, rn):
+        for p in range(add_off - 4, max(offset - 1024, 0) - 1, -4):
+            w_img, w_frz = word_at(image, p), word_at(frozen, p)
+            if (w_img & 0x1F) == rn or (w_frz & 0x1F) == rn:
+                if ((w_img >> 24) & 0x9F == 0x90
+                        and (w_frz >> 24) & 0x9F == 0x90):
+                    return p
+                return None
+        return None
+
+    def add_partner(adrp_off, rd):
+        for q in range(adrp_off + 4, min(adrp_off + 68, offset + window), 4):
+            w_img = word_at(image, q)
+            if (w_img >> 24) == 0x91 and (w_img >> 5) & 0x1F == rd:
+                return q
+        return None
+
+    for o in diffs:
+        if o in covered:
+            continue
+        w_img, w_frz = word_at(image, o), word_at(frozen, o)
+        if (w_img >> 24) == 0x91 or (w_frz >> 24) == 0x91:
+            rn = (w_img >> 5) & 0x1F
+            p = adrp_partner(o, rn)
+            require(p is not None, f"WINDOW_DELTA_ORPHAN_ADD:{hex(o)}")
+            pair = [(p, o)]
+        elif (w_img >> 24) & 0x9F == 0x90 and (w_frz >> 24) & 0x9F == 0x90:
+            q = add_partner(o, w_img & 0x1F)
+            require(q is not None, f"WINDOW_DELTA_ORPHAN_ADRP:{hex(o)}")
+            pair = [(o, q)]
+        else:
+            require(False, f"WINDOW_DELTA_NOT_ADDRESS_FORM:{hex(o)}")
+        for adrp_off, add_off in pair:
+            addresses = {}
+            for tag, blob in (("bundle", image), ("frozen", frozen)):
+                _rd, page = decode_adrp(word_at(blob, adrp_off),
+                                        text_va + adrp_off)
+                _r, _n, imm = decode_add_imm(word_at(blob, add_off))
+                addresses[tag] = page + imm
+            require(all(addr_in_sections(addr, sections)
+                        for addr in addresses.values()),
+                    f"WINDOW_DELTA_ADDRESS_NOT_IN_SECTIONS:{hex(o)}")
+            refs.append({"offset": hex(adrp_off), "add_offset": hex(add_off),
+                         "bundle": hex(addresses["bundle"]),
+                         "frozen": hex(addresses["frozen"])})
+            covered.update((adrp_off, add_off))
+    require(covered >= set(diffs), "UNEXPLAINED_WINDOW_DELTA")
+    return {"verdict": "LAYOUT_LITERAL_ADDRESS_DELTA_VERIFIED",
+            "differing_words": [hex(o) for o in diffs],
+            "literal_refs": refs}
+
+
+def window_agreement_round(image, frozen, text_va, offset, window, sections):
+    """Bundle Image vs frozen FIX8 inside the window: EXACT or proven deltas."""
+    proof = prove_layout_literal_window(image, frozen, text_va, offset, window,
+                                        sections)
+    return {"offset": hex(offset), "size": window, "verdict": proof["verdict"],
+            "differing_words": proof["differing_words"],
+            "layout_literal_refs": proof.get("literal_refs", [])}
+
+
 def build_pairs(args, selections, ctx, metadata, out):
     """One DELAY_CONSTANT_ONLY payload pair per family from the frozen FIX8 base."""
     image_size = ctx["image_size"]
@@ -460,8 +555,9 @@ def build_pairs(args, selections, ctx, metadata, out):
             cp.pb.run([cp.TOOLS["objdump"], "-d", f"--start-address={target:#x}",
                        f"--stop-address={target + window:#x}",
                        str(args.bundle / "vmlinux")]))
-        agreement = base.window_agreement(ctx["image"], ctx["frozen"],
-                                          ctx["text_va"], offset, window)
+        agreement = window_agreement_round(ctx["image"], ctx["frozen"],
+                                           ctx["text_va"], offset, window,
+                                           ctx["sections"])
         write_json(family_dir / "window-agreement.json", agreement)
         forensic = window_reference_forensic(
             ctx["image"], ctx["text_va"], ctx["ranges"],

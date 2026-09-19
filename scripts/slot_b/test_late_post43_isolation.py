@@ -361,6 +361,58 @@ class WindowReferenceForensic(unittest.TestCase):
                                   "size": 0x800000}], target, 60, 0x200)
 
 
+class LayoutLiteralProof(unittest.TestCase):
+    SECTIONS = [{"name": ".rodata", "vma": TEXT_VA + 0x400000, "size": 0x10000}]
+
+    def build_pair_image(self, add_imm_bundle, add_imm_frozen):
+        base_off = 0x8000
+        page = (TEXT_VA + base_off) & ~0xFFF
+        target_page = TEXT_VA + 0x400000
+        delta = (target_page - page) >> 12
+        enc = delta & 0x1FFFFF
+        adrp = 0x90000000 | ((enc & 0x3) << 29) | (((enc >> 2) & 0x7FFFF) << 5) | 2
+        frozen = bytearray(struct.pack("<I", NOP) * 0x9000)
+        image = bytearray(frozen)
+        add = lambda imm: 0x91000000 | (imm << 10) | (2 << 5) | 2
+        struct.pack_into("<I", image, base_off, adrp)
+        struct.pack_into("<I", frozen, base_off, adrp)
+        struct.pack_into("<I", image, base_off + 4, add(add_imm_bundle))
+        struct.pack_into("<I", frozen, base_off + 4, add(add_imm_frozen))
+        return bytes(image), bytes(frozen), base_off
+
+    def test_same_page_add_imm_delta_verified(self):
+        image, frozen, base_off = self.build_pair_image(0x100, 0x108)
+        proof = lp.prove_layout_literal_window(image, frozen, TEXT_VA, base_off,
+                                               60, self.SECTIONS)
+        self.assertEqual(proof["verdict"], "LAYOUT_LITERAL_ADDRESS_DELTA_VERIFIED")
+        self.assertEqual(len(proof["literal_refs"]), 1)
+        ref = proof["literal_refs"][0]
+        self.assertEqual(int(ref["bundle"], 16), TEXT_VA + 0x400000 + 0x100)
+        self.assertEqual(int(ref["frozen"], 16), TEXT_VA + 0x400000 + 0x108)
+
+    def test_exact_window(self):
+        image, frozen, base_off = self.build_pair_image(0x100, 0x100)
+        proof = lp.prove_layout_literal_window(image, frozen, TEXT_VA, base_off,
+                                               60, self.SECTIONS)
+        self.assertEqual(proof["verdict"], "EXACT")
+
+    def test_non_address_delta_rejected(self):
+        image, frozen, base_off = self.build_pair_image(0x100, 0x100)
+        bad = bytearray(frozen)
+        struct.pack_into("<I", bad, base_off + 8, 0x52800060)
+        with self.assertRaisesRegex(ValueError, "WINDOW_DELTA_NOT_ADDRESS_FORM"):
+            lp.prove_layout_literal_window(image, bytes(bad), TEXT_VA, base_off,
+                                           60, self.SECTIONS)
+
+    def test_orphan_add_rejected(self):
+        image, frozen, base_off = self.build_pair_image(0x100, 0x108)
+        bad = bytearray(frozen)
+        struct.pack_into("<I", bad, base_off, 0x91000000)
+        with self.assertRaisesRegex(ValueError, "WINDOW_DELTA_ORPHAN_ADD"):
+            lp.prove_layout_literal_window(image, bytes(bad), TEXT_VA, base_off,
+                                           60, self.SECTIONS)
+
+
 class PairComposition(unittest.TestCase):
     OFFSET = 0x2000
     ENTRY_WORD = PACIASP
