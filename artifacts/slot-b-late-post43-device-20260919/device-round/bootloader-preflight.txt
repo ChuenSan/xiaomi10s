@@ -1,0 +1,11 @@
+=== bootloader-preflight 2026-09-19T10:47:41Z ===
+product: thyme
+unlocked: yes
+current-slot: a
+slot-count: 2
+snapshot-update-status: none
+battery-soc-ok: yes
+max-download-size: 805306368
+slot-unbootable:b: no
+slot-retry-count:b: 7
+slot-successful:a: yes
