@@ -19,6 +19,7 @@ SYNTHETIC = {
     "late_mid": {"8": "a" * 64, "1": "b" * 64},
     "late_low": {"8": "c" * 64, "1": "d" * 64},
     "late_high": {"8": "e" * 64, "1": "f" * 64},
+    "late_post43": {"8": "g" * 64, "1": "h" * 64},
 }
 FROZEN_GEOMETRY = {
     "late_mid": {"label": "LATE_MID", "index": 43, "nominal_index": 43,
@@ -40,6 +41,14 @@ FROZEN_GEOMETRY = {
                   "prel32_word": "0xffe9dd88", "relative": -1450616,
                   "pair_diff": [0x1BAA169, 0x1BAA16A],
                   "deviation": {"nominal_index": 64, "chosen_index": 63, "distance": 1}},
+    "late_post43": {"label": "POST43", "index": 55, "nominal_index": 53,
+                    "target": "genpd_debug_init", "va": 0xFFFF800081B8E964,
+                    "offset": 0x1B8E964, "function_size": 128, "window": 60,
+                    "core_size": 56, "table_va": 0xFFFF800081D0C3B4,
+                    "prel32_word": "0xffe825b0", "relative": -1563216,
+                    "pair_diff": [0x1B8E971, 0x1B8E972],
+                    "deviation": {"nominal_index": 53, "chosen_index": 55,
+                                  "distance": 2}},
 }
 
 
@@ -51,7 +60,8 @@ class FrozenRegistryTests(unittest.TestCase):
     def test_prior_families_exist_in_observe_registry(self):
         families = {case[:-1] for case in observe.IMAGES if case != "recovery"}
         self.assertLessEqual(set(lf.PRIOR_FAMILIES),
-                             families - {"late_mid", "late_low", "late_high"})
+                             families - {"late_mid", "late_low", "late_high",
+                                         "late_post43"})
         for family in lf.PRIOR_FAMILIES:
             self.assertIn(family + "8", observe.IMAGES)
             self.assertIn(family + "1", observe.IMAGES)

@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       family:
-        description: Late-level family to verify (mid|low|high); identities must be frozen
+        description: Late-level family to verify (mid|low|high|post43); identities must be frozen
         required: true
 
 permissions:
@@ -60,6 +60,7 @@ jobs:
             mid) LABEL=LATE_MID; INDEX=43 ;;
             low) LABEL=LATE_LOW; INDEX=21 ;;
             high) LABEL=LATE_HIGH; INDEX=63 ;;
+            post43) LABEL=POST43; INDEX=55 ;;
             *) echo "unknown family $FAMILY" >&2; exit 1 ;;
           esac
           python3 -B scripts/slot_b/late_level_observer_fixtures.py --family "$FAMILY" \

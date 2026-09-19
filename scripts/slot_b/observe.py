@@ -70,6 +70,8 @@ IMAGES = {
     "late_low1": (37380096, "536459c464c4576e684fd5080ba41e1c8f40a010b6d520d948737ef36914cb4a"),
     "late_high8": (37380096, "b5da8e368df68ead77d9f702ff0c668d09413413c932f15a053e722843fd8629"),
     "late_high1": (37380096, "7b95a512fdb917fe39ed9991c7c2bb361929ca71b354b33146892e85120555cc"),
+    "late_post438": (37380096, "00f8bdbb546e346a00d08182e269293ef4f3bb892810a46de06a77da2ca73a26"),
+    "late_post431": (37380096, "c9fb8d39383cec9c86f02d73b20ab864c53d5c3e9439c8c9cd7abb322e8ff8cc"),
     }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
@@ -99,6 +101,7 @@ PAIRS = {
     "late_mid1": ("late_mid8", "late_mid_entry", "late_initcalls_completed"),
     "late_low1": ("late_low8", "late_low_entry", "late_initcalls_completed"),
     "late_high1": ("late_high8", "late_high_entry", "late_initcalls_completed"),
+    "late_post431": ("late_post438", "late_post43_entry", "late_initcalls_completed"),
     }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -829,6 +832,16 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(late_high_checkpoint_shift_not_observed="YES")
+    elif second == "late_post431":
+        out.update(late_post43_entry=grade,
+                   genpd_debug_init_entry=grade,
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   init_executed="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(late_post43_checkpoint_shift_not_observed="YES")
     return out
 
 
