@@ -302,39 +302,52 @@ def adrp_add_scan(image, text_va, ranges, target, window):
 
 
 def relative_reference_scan(image, text_va, target, window, slot_offset,
-                            symbols):
+                            symbols, sections):
     """G4: 4-byte data references resolving into the window.
 
-    The candidate's own initcall PREL32 slot must be the only non-kallsyms
-    site; kallsyms_* regions hold compressed data whose words may coincidentally
-    resolve anywhere and are recorded as excluded, never silently dropped.
+    The candidate's own initcall PREL32 slot must be the only non-stream site.
+    Stream-data coincidences are documented, never silently dropped: sites in
+    .rodata (no relative pointer arrays exist there in this build; HIGH8
+    precedent 0xffff8000818db080 inside linux_banner) and sites under
+    kallsyms_* / linux_banner symbols are recorded as excluded.
     """
-    sites, excluded = [], []
+    stream_symbols = ("kallsyms_", "linux_banner")
+    section_names = sorted(((s["vma"], s["vma"] + s["size"], s["name"])
+                            for s in sections if s.get("size")), key=lambda r: r[0])
+
+    def enclosing(off):
+        va = text_va + off
+        idx = bisect.bisect_right([v for v, _, _ in section_names], va) - 1
+        section = section_names[idx][2] if idx >= 0 else "<none>"
+        sidx = bisect.bisect_right([v for v, _ in symbols], va) - 1
+        symbol = symbols[sidx][1] if sidx >= 0 else "<none>"
+        return section, symbol
+
+    sites = []
     for off in range(0, len(image) - 3, 4):
         value = struct.unpack_from("<I", image, off)[0]
         va = text_va + off + signed(value, 32)
         if target <= va < target + window:
             sites.append(off)
-    kept, slot_present = [], False
+    kept, excluded, slot_present = [], [], False
     for off in sites:
         if off == slot_offset:
             slot_present = True
             kept.append({"offset": hex(off), "role": "initcall_table_slot"})
             continue
-        site_va = text_va + off
-        idx = bisect.bisect_right([va for va, _ in symbols], site_va) - 1
-        enclosing = symbols[idx][1] if idx >= 0 else "<none>"
-        if enclosing.startswith("kallsyms_"):
-            excluded.append({"offset": hex(off), "enclosing_symbol": enclosing})
+        section, symbol = enclosing(off)
+        if section == ".rodata" or symbol.startswith(stream_symbols):
+            excluded.append({"offset": hex(off), "section": section,
+                             "enclosing_symbol": symbol})
             continue
-        kept.append({"offset": hex(off), "enclosing_symbol": enclosing,
-                     "role": "UNEXPECTED"})
-    return {"sites": kept, "excluded_kallsyms": excluded,
+        kept.append({"offset": hex(off), "section": section,
+                     "enclosing_symbol": symbol, "role": "UNEXPECTED"})
+    return {"sites": kept, "excluded_stream_data": excluded,
             "slot_present": slot_present}
 
 
 def window_reference_forensic(image, text_va, ranges, table_sections, symbols,
-                              target, window, slot_offset):
+                              sections, target, window, slot_offset):
     """Extended window-reference audit closing the HIGH8 gap classes G1-G7."""
     tables = table_section_scans(table_sections, target, window)
     bad_tables = {key: value for key, value in tables.items()
@@ -343,7 +356,7 @@ def window_reference_forensic(image, text_va, ranges, table_sections, symbols,
     adrp_hits = adrp_add_scan(image, text_va, ranges, target, window)
     require(not adrp_hits, f"WINDOW_REFERENCE_ADRP_ADD_HIT:{adrp_hits}")
     relative = relative_reference_scan(image, text_va, target, window,
-                                       slot_offset, symbols)
+                                       slot_offset, symbols, sections)
     require(relative["slot_present"], "WINDOW_REFERENCE_SLOT_MISSING")
     unexpected = [site for site in relative["sites"]
                   if site["role"] == "UNEXPECTED"]
@@ -397,8 +410,8 @@ def high8_forensic(entries, ctx, args, out):
     forensic = window_reference_forensic(
         ctx["image"], ctx["text_va"], ctx["ranges"],
         vmlinux_table_sections(args.bundle / "vmlinux", ctx["sections"]),
-        symbol_pairs(args.bundle / "System.map"), HIGH8_TARGET_VA,
-        audit["window"], slot)
+        symbol_pairs(args.bundle / "System.map"), ctx["sections"],
+        HIGH8_TARGET_VA, audit["window"], slot)
     record = {"stage": STAGE, "index": HIGH8_INDEX, "symbol": HIGH8_SYMBOL,
               "target_va": audit["target_va"], "function_size": audit["function_size"],
               "window": audit["window"], "gates": audit["gates"],
@@ -453,8 +466,8 @@ def build_pairs(args, selections, ctx, metadata, out):
         forensic = window_reference_forensic(
             ctx["image"], ctx["text_va"], ctx["ranges"],
             vmlinux_table_sections(args.bundle / "vmlinux", ctx["sections"]),
-            symbol_pairs(args.bundle / "System.map"), target, window,
-            int(audit["table_entry_image_offset"], 16))
+            symbol_pairs(args.bundle / "System.map"), ctx["sections"],
+            target, window, int(audit["table_entry_image_offset"], 16))
         write_json(family_dir / "window-reference-forensic.json", forensic)
         audit.update({"entry_audit": "PASS", "incoming_branch_gate": "PASS",
                       "function_range_safe": True, "runtime_rewrite_safe": True,

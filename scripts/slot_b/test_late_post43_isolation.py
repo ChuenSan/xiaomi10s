@@ -284,8 +284,9 @@ class WindowReferenceForensic(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "WINDOW_REFERENCE_ADRP_ADD_HIT"):
             lp.window_reference_forensic(
                 ctx["image"], TEXT_VA, ctx["ranges"], self.make_sections(),
-                [(0, "_text"), (TEXT_VA + 0x400000, "_end")], target, 60,
-                ENTRY_BASE_VA - TEXT_VA)
+                [(0, "_text"), (TEXT_VA + 0x400000, "_end")],
+                [{"name": ".init.text", "vma": TEXT_VA, "size": 0x800000}],
+                target, 60, ENTRY_BASE_VA - TEXT_VA)
 
     def test_relative_reference_slot_allowed_kallsyms_excluded(self):
         entries, ctx, targets, offsets = synth_world(sizes={0: 100})
@@ -295,7 +296,7 @@ class WindowReferenceForensic(unittest.TestCase):
         image = bytearray(ctx["image"])
         struct.pack_into("<I", image, slot_off,
                          (target - (TEXT_VA + slot_off)) & 0xFFFFFFFF)
-        stray = 0x30000
+        stray = 0x28000
         struct.pack_into("<I", image, stray,
                          (target - (TEXT_VA + stray)) & 0xFFFFFFFF)
         ksym = koff + 0x40
@@ -303,26 +304,35 @@ class WindowReferenceForensic(unittest.TestCase):
                          (target - (TEXT_VA + ksym)) & 0xFFFFFFFF)
         symbols = [(0, "_text"), (TEXT_VA + koff, "kallsyms_offsets"),
                    (TEXT_VA + koff + 0x200, "kallsyms_names"),
-                   (TEXT_VA + koff + 0x400, "_stext"), (TEXT_VA + 0x40000, "_end")]
+                   (TEXT_VA + koff + 0x400, "_stext"),
+                   (TEXT_VA + 0x31000, "linux_banner"), (TEXT_VA + 0x40000, "_end")]
+        sections = [{"name": ".init.text", "vma": TEXT_VA, "size": 0x30000},
+                    {"name": ".rodata", "vma": TEXT_VA + 0x30000, "size": 0x8000}]
+        banner = 0x32000
+        struct.pack_into("<I", image, banner,
+                         (target - (TEXT_VA + banner)) & 0xFFFFFFFF)
         result = lp.relative_reference_scan(bytes(image), TEXT_VA, target, 60,
-                                            slot_off, symbols)
+                                            slot_off, symbols, sections)
         roles = {site["role"] for site in result["sites"]}
         self.assertIn("initcall_table_slot", roles)
         self.assertIn("UNEXPECTED", roles)
         self.assertTrue(result["slot_present"])
-        self.assertEqual([site["enclosing_symbol"]
-                          for site in result["excluded_kallsyms"]],
-                         ["kallsyms_offsets"])
+        excluded = {site["enclosing_symbol"]: site for site in
+                    result["excluded_stream_data"]}
+        self.assertEqual(excluded["kallsyms_offsets"]["section"], ".init.text")
+        self.assertEqual(excluded["linux_banner"]["section"], ".rodata")
         with self.assertRaisesRegex(ValueError, "WINDOW_REFERENCE_DATA_HIT"):
             lp.window_reference_forensic(
                 bytes(image), TEXT_VA, [(0, len(image))], self.make_sections(),
-                symbols, target, 60, slot_off)
+                symbols, sections, target, 60, slot_off)
         clean = bytearray(ctx["image"])
         struct.pack_into("<I", clean, slot_off,
                          (target - (TEXT_VA + slot_off)) & 0xFFFFFFFF)
+        struct.pack_into("<I", clean, banner,
+                         (target - (TEXT_VA + banner)) & 0xFFFFFFFF)
         forensic = lp.window_reference_forensic(
             bytes(clean), TEXT_VA, [(0, len(clean))], self.make_sections(),
-            symbols, target, 60, slot_off)
+            symbols, sections, target, 60, slot_off)
         self.assertEqual(forensic["verdict"], "NO_REFERENCE_INTO_WINDOW")
         self.assertEqual(forensic["residual_not_scanned"],
                          ["unaligned_8byte_absolute_pointers"])
@@ -347,7 +357,8 @@ class WindowReferenceForensic(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "WINDOW_REFERENCE_TABLE_HIT"):
             lp.window_reference_forensic(
                 ctx["image"], TEXT_VA, ctx["ranges"], sections,
-                [(0, "_text")], target, 60, 0x200)
+                [(0, "_text")], [{"name": ".init.text", "vma": TEXT_VA,
+                                  "size": 0x800000}], target, 60, 0x200)
 
 
 class PairComposition(unittest.TestCase):
