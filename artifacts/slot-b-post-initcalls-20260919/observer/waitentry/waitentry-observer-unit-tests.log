@@ -1,0 +1,37 @@
+test_arch_geometry_rejects_sixty_byte_window (test_observe.SafetyTests.test_arch_geometry_rejects_sixty_byte_window) ... ok
+test_arch_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_arch_member_full_sha_gates_are_distinct) ... ok
+test_arch_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_arch_pair_proof_boundary_and_no_shift_route) ... ok
+test_context_requires_readback_and_a_protection (test_observe.SafetyTests.test_context_requires_readback_and_a_protection) ... ok
+test_core_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_core_member_full_sha_gates_are_distinct) ... ok
+test_core_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_core_pair_proof_boundary_and_no_shift_route) ... ok
+test_exact_images_only (test_observe.SafetyTests.test_exact_images_only) ... ok
+test_fs_geometry_rejects_inline_windows (test_observe.SafetyTests.test_fs_geometry_rejects_inline_windows) ... ok
+test_fs_isolation_control_geometry_and_mid_table (test_observe.SafetyTests.test_fs_isolation_control_geometry_and_mid_table) ... ok
+test_fs_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_fs_member_full_sha_gates_are_distinct) ... ok
+test_fs_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_fs_pair_proof_boundary_and_no_shift_route) ... ok
+test_invalid_pair_never_proves_entry (test_observe.SafetyTests.test_invalid_pair_never_proves_entry) ... ok
+test_no_return_blocks_reset1 (test_observe.SafetyTests.test_no_return_blocks_reset1) ... ok
+test_pair_delta_not_old_slot_a_absolute_timing (test_observe.SafetyTests.test_pair_delta_not_old_slot_a_absolute_timing) ... ok
+test_pid1_stage_pairs_prove_only_the_selected_entry (test_observe.SafetyTests.test_pid1_stage_pairs_prove_only_the_selected_entry) ... ok
+test_post39_geometry_and_table_are_frozen (test_observe.SafetyTests.test_post39_geometry_and_table_are_frozen) ... ok
+test_post39_member_full_sha_gates_and_cross_rejection (test_observe.SafetyTests.test_post39_member_full_sha_gates_and_cross_rejection) ... ok
+test_post39_pair_proves_only_post39_entry (test_observe.SafetyTests.test_post39_pair_proves_only_post39_entry) ... ok
+test_post46_geometry_and_table (test_observe.SafetyTests.test_post46_geometry_and_table) ... ok
+test_post46_pair_proves_only_post46_entry (test_observe.SafetyTests.test_post46_pair_proves_only_post46_entry) ... ok
+test_recovery_is_not_an_experimental_boot (test_observe.SafetyTests.test_recovery_is_not_an_experimental_boot) ... ok
+test_rest_origin_must_be_recorded (test_observe.SafetyTests.test_rest_origin_must_be_recorded) ... ok
+test_rest_pair_proves_entry_only (test_observe.SafetyTests.test_rest_pair_proves_entry_only) ... ok
+test_second_boot_never_launches (test_observe.SafetyTests.test_second_boot_never_launches) ... ok
+test_slot_a_never_launches (test_observe.SafetyTests.test_slot_a_never_launches) ... ok
+test_slot_b_preflight (test_observe.SafetyTests.test_slot_b_preflight) ... ok
+test_subsys_geometry_rejects_oversize_windows (test_observe.SafetyTests.test_subsys_geometry_rejects_oversize_windows) ... ok
+test_subsys_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_subsys_member_full_sha_gates_are_distinct) ... ok
+test_subsys_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_subsys_pair_proof_boundary_and_no_shift_route) ... ok
+test_upper_geometry_and_table_are_frozen (test_observe.SafetyTests.test_upper_geometry_and_table_are_frozen) ... ok
+test_upper_member_full_sha_gates_and_cross_rejection (test_observe.SafetyTests.test_upper_member_full_sha_gates_and_cross_rejection) ... ok
+test_upper_pair_proves_only_upper_half_entry (test_observe.SafetyTests.test_upper_pair_proves_only_upper_half_entry) ... ok
+
+----------------------------------------------------------------------
+Ran 32 tests in 0.012s
+
+OK

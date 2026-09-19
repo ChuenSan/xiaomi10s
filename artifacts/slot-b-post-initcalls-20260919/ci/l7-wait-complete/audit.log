@@ -1,0 +1,24 @@
+T3_SECTION_MAP_SOURCE=readelf-SW sections=44
+P1B_RT_D_SHA_EXACT=PASS
+P1B_RT_D_BOOTARGS_FROZEN=PASS
+{
+  "symbol": "wait_complete",
+  "source_commit": "3450780919b2eab7d76f7f26c884b2d3c4b25f0f",
+  "bundle_run": "35040148509",
+  "payload_shas": {
+    "8": "732e2611d5a37ed9b3c0b6b20bfe9521d7dbe4448155b17f8dbb008d15e74f8e",
+    "1": "edfb2f99965048efb4456514b0e5dea355d7932e8aebd1cbe121cf79cd720e2c"
+  },
+  "changed_offsets": [
+    28512581,
+    28512582
+  ],
+  "expected_delta_s": -7,
+  "device_operation": false,
+  "kernel_rebuilt": false,
+  "public_run": "35414691058"
+}
+POST_INITCALLS_PAIR_AUDIT=PASS
+PAIR_DIFF=DELAY_CONSTANT_ONLY
+KERNEL_REBUILD=NO
+DEVICE_OPERATION=NO

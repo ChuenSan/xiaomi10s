@@ -1,0 +1,97 @@
+
+kernel-bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .init.text:
+
+ffff800081b3103c <kernel_init_freeable>:
+ffff800081b3103c: d503233f     	paciasp
+ffff800081b31040: a9bd7bfd     	stp	x29, x30, [sp, #-0x30]!
+ffff800081b31044: f9000bf5     	str	x21, [sp, #0x10]
+ffff800081b31048: a9024ff4     	stp	x20, x19, [sp, #0x20]
+ffff800081b3104c: 910003fd     	mov	x29, sp
+ffff800081b31050: 90001148     	adrp	x8, 0xffff800081d59000 <folio_wait_table+0x14c0>
+ffff800081b31054: 90001149     	adrp	x9, 0xffff800081d59000 <folio_wait_table+0x14c0>
+ffff800081b31058: 12bf800a     	mov	w10, #0x3ffffff // =67108863
+ffff800081b3105c: f9460513     	ldr	x19, [x8, #0xc08]
+ffff800081b31060: d5384114     	mrs	x20, SP_EL0
+ffff800081b31064: 911da280     	add	x0, x20, #0x768
+ffff800081b31068: b90c212a     	str	w10, [x9, #0xc20]
+ffff800081b3106c: 97d66e09     	bl	0xffff8000810cc890 <_raw_spin_lock>
+ffff800081b31070: d53b4228     	mrs	x8, DAIF
+ffff800081b31074: d50343df     	msr	DAIFSet, #0x3
+ffff800081b31078: 911da280     	add	x0, x20, #0x768
+ffff800081b3107c: b9483289     	ldr	w9, [x20, #0x830]
+ffff800081b31080: 11000529     	add	w9, w9, #0x1
+ffff800081b31084: b9083289     	str	w9, [x20, #0x830]
+ffff800081b31088: d5033abf     	dmb	ishst
+ffff800081b3108c: f9041693     	str	x19, [x20, #0x828]
+ffff800081b31090: d5033abf     	dmb	ishst
+ffff800081b31094: b9483289     	ldr	w9, [x20, #0x830]
+ffff800081b31098: 11000529     	add	w9, w9, #0x1
+ffff800081b3109c: b9083289     	str	w9, [x20, #0x830]
+ffff800081b310a0: d51b4228     	msr	DAIF, x8
+ffff800081b310a4: 97d66e6d     	bl	0xffff8000810cca58 <_raw_spin_unlock>
+ffff800081b310a8: f9427e93     	ldr	x19, [x20, #0x4f8]
+ffff800081b310ac: b4000113     	cbz	x19, 0xffff800081b310cc <kernel_init_freeable+0x90>
+ffff800081b310b0: 14000033     	b	0xffff800081b3117c <kernel_init_freeable+0x140>
+ffff800081b310b4: 52800028     	mov	w8, #0x1        // =1
+ffff800081b310b8: b8280268     	ldadd	w8, w8, [x19]
+ffff800081b310bc: 340006e8     	cbz	w8, 0xffff800081b31198 <kernel_init_freeable+0x15c>
+ffff800081b310c0: 11000509     	add	w9, w8, #0x1
+ffff800081b310c4: 2a080128     	orr	w8, w9, w8
+ffff800081b310c8: 37f80568     	tbnz	w8, #0x1f, 0xffff800081b31174 <kernel_init_freeable+0x138>
+ffff800081b310cc: 900015a8     	adrp	x8, 0xffff800081de5000 <clocksource_subsys>
+ffff800081b310d0: f0003329     	adrp	x9, 0xffff800082198000 <panic.buf+0x198>
+ffff800081b310d4: b94cb900     	ldr	w0, [x8, #0xcb8]
+ffff800081b310d8: f9061533     	str	x19, [x9, #0xc28]
+ffff800081b310dc: 940012e0     	bl	0xffff800081b35c5c <smp_prepare_cpus>
+ffff800081b310e0: 94003a47     	bl	0xffff800081b3f9fc <workqueue_init>
+ffff800081b310e4: 94006325     	bl	0xffff800081b49d78 <init_mm_internals>
+ffff800081b310e8: 940048ca     	bl	0xffff800081b43410 <rcu_init_tasks_generic>
+ffff800081b310ec: b0000ed3     	adrp	x19, 0xffff800081d0a000 <__setup_cmdline_parse_hugetlb_cma+0x10>
+ffff800081b310f0: 9126d273     	add	x19, x19, #0x9b4
+ffff800081b310f4: b0000ec8     	adrp	x8, 0xffff800081d0a000 <__setup_cmdline_parse_hugetlb_cma+0x10>
+ffff800081b310f8: 91248108     	add	x8, x8, #0x920
+ffff800081b310fc: eb13011f     	cmp	x8, x19
+ffff800081b31100: 54000142     	b.hs	0xffff800081b31128 <kernel_init_freeable+0xec>
+ffff800081b31104: b0000ed4     	adrp	x20, 0xffff800081d0a000 <__setup_cmdline_parse_hugetlb_cma+0x10>
+ffff800081b31108: 91248294     	add	x20, x20, #0x920
+ffff800081b3110c: aa1403f5     	mov	x21, x20
+ffff800081b31110: b88046a8     	ldrsw	x8, [x21], #0x4
+ffff800081b31114: 8b080280     	add	x0, x20, x8
+ffff800081b31118: 97938c99     	bl	0xffff80008001437c <do_one_initcall>
+ffff800081b3111c: eb1302bf     	cmp	x21, x19
+ffff800081b31120: 91001294     	add	x20, x20, #0x4
+ffff800081b31124: 54ffff63     	b.lo	0xffff800081b31110 <kernel_init_freeable+0xd4>
+ffff800081b31128: 9400556e     	bl	0xffff800081b466e0 <smp_init>
+ffff800081b3112c: 94003ec5     	bl	0xffff800081b40c40 <sched_init_smp>
+ffff800081b31130: 94003ad8     	bl	0xffff800081b3fc90 <workqueue_init_topology>
+ffff800081b31134: 940068e9     	bl	0xffff800081b4b4d8 <page_alloc_init_late>
+ffff800081b31138: 9400001c     	bl	0xffff800081b311a8 <do_basic_setup>
+ffff800081b3113c: 97938d63     	bl	0xffff8000800146c8 <wait_for_initramfs>
+ffff800081b31140: 97ffff19     	bl	0xffff800081b30da4 <console_on_rootfs>
+ffff800081b31144: d0001193     	adrp	x19, 0xffff800081d63000 <inet6_offloads+0x88>
+ffff800081b31148: f9455660     	ldr	x0, [x19, #0xaa8]
+ffff800081b3114c: 9400941b     	bl	0xffff800081b561b8 <init_eaccess>
+ffff800081b31150: 34000060     	cbz	w0, 0xffff800081b3115c <kernel_init_freeable+0x120>
+ffff800081b31154: f905567f     	str	xzr, [x19, #0xaa8]
+ffff800081b31158: 940002d5     	bl	0xffff800081b31cac <prepare_namespace>
+ffff800081b3115c: 9400aaee     	bl	0xffff800081b5bd14 <integrity_load_keys>
+ffff800081b31160: a9424ff4     	ldp	x20, x19, [sp, #0x20]
+ffff800081b31164: f9400bf5     	ldr	x21, [sp, #0x10]
+ffff800081b31168: a8c37bfd     	ldp	x29, x30, [sp], #0x30
+ffff800081b3116c: d50323bf     	autiasp
+ffff800081b31170: d65f03c0     	ret
+ffff800081b31174: 52800021     	mov	w1, #0x1        // =1
+ffff800081b31178: 14000009     	b	0xffff800081b3119c <kernel_init_freeable+0x160>
+ffff800081b3117c: d503249f     	bti	j
+ffff800081b31180: f9800271     	prfm	pstl1strm, [x19]
+ffff800081b31184: 885f7e68     	ldxr	w8, [x19]
+ffff800081b31188: 11000509     	add	w9, w8, #0x1
+ffff800081b3118c: 880a7e69     	stxr	w10, w9, [x19]
+ffff800081b31190: 35ffffaa     	cbnz	w10, 0xffff800081b31184 <kernel_init_freeable+0x148>
+ffff800081b31194: 35fff968     	cbnz	w8, 0xffff800081b310c0 <kernel_init_freeable+0x84>
+ffff800081b31198: 52800041     	mov	w1, #0x2        // =2
+ffff800081b3119c: aa1303e0     	mov	x0, x19
+ffff800081b311a0: 97a851f0     	bl	0xffff800080545960 <refcount_warn_saturate>
+ffff800081b311a4: 17ffffca     	b	0xffff800081b310cc <kernel_init_freeable+0x90>

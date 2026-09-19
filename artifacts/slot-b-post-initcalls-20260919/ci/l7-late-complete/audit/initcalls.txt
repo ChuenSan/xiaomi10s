@@ -1,0 +1,43 @@
+
+kernel-bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .init.text:
+
+ffff800081b311d0 <do_initcalls>:
+ffff800081b311d0: d503233f     	paciasp
+ffff800081b311d4: a9bd7bfd     	stp	x29, x30, [sp, #-0x30]!
+ffff800081b311d8: f9000bf5     	str	x21, [sp, #0x10]
+ffff800081b311dc: a9024ff4     	stp	x20, x19, [sp, #0x20]
+ffff800081b311e0: 910003fd     	mov	x29, sp
+ffff800081b311e4: f0fffb08     	adrp	x8, 0xffff800081a94000 <LZ4_decompress_generic.dec64table+0x40>
+ffff800081b311e8: 5281b801     	mov	w1, #0xdc0      // =3520
+ffff800081b311ec: b94d0d08     	ldr	w8, [x8, #0xd0c]
+ffff800081b311f0: 11000514     	add	w20, w8, #0x1
+ffff800081b311f4: aa1403e0     	mov	x0, x20
+ffff800081b311f8: 979c4d89     	bl	0xffff80008024481c <__kmalloc>
+ffff800081b311fc: b4000280     	cbz	x0, 0xffff800081b3124c <do_initcalls+0x7c>
+ffff800081b31200: aa0003f3     	mov	x19, x0
+ffff800081b31204: 2a1f03f4     	mov	w20, wzr
+ffff800081b31208: f0fffb15     	adrp	x21, 0xffff800081a94000 <LZ4_decompress_generic.dec64table+0x40>
+ffff800081b3120c: f94682a1     	ldr	x1, [x21, #0xd00]
+ffff800081b31210: aa1303e0     	mov	x0, x19
+ffff800081b31214: 97d5f132     	bl	0xffff8000810ad6dc <strcpy>
+ffff800081b31218: 2a1403e0     	mov	w0, w20
+ffff800081b3121c: aa1303e1     	mov	x1, x19
+ffff800081b31220: 94000011     	bl	0xffff800081b31264 <do_initcall_level>
+ffff800081b31224: 11000694     	add	w20, w20, #0x1
+ffff800081b31228: 7100229f     	cmp	w20, #0x8
+ffff800081b3122c: 54ffff01     	b.ne	0xffff800081b3120c <do_initcalls+0x3c>
+ffff800081b31230: aa1303e0     	mov	x0, x19
+ffff800081b31234: 979c4dd9     	bl	0xffff800080244998 <kfree>
+ffff800081b31238: a9424ff4     	ldp	x20, x19, [sp, #0x20]
+ffff800081b3123c: f9400bf5     	ldr	x21, [sp, #0x10]
+ffff800081b31240: a8c37bfd     	ldp	x29, x30, [sp], #0x30
+ffff800081b31244: d50323bf     	autiasp
+ffff800081b31248: d65f03c0     	ret
+ffff800081b3124c: b0fff1a0     	adrp	x0, 0xffff800081966000 <task_index_to_char.state_char+0x184a0>
+ffff800081b31250: 91084400     	add	x0, x0, #0x211
+ffff800081b31254: 90fff921     	adrp	x1, 0xffff800081a55000 <k_cur.cur_chars+0x3698a>
+ffff800081b31258: 910b2c21     	add	x1, x1, #0x2cb
+ffff800081b3125c: aa1403e2     	mov	x2, x20
+ffff800081b31260: 97d621d7     	bl	0xffff8000810b99bc <panic>

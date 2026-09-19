@@ -1,0 +1,4 @@
+=== android-a-restore-post1 2026-09-19T02:50:14Z ===
+sys.boot_completed=1
+ro.boot.slot_suffix=_a
+uname -r=4.19.157-perf-g9d90dd04aa7c

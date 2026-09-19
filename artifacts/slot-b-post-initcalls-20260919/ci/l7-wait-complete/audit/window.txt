@@ -1,0 +1,17 @@
+
+kernel-bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .init.text:
+ffff800081b31140: 97ffff19     	bl	0xffff800081b30da4 <console_on_rootfs>
+ffff800081b31144: d0001193     	adrp	x19, 0xffff800081d63000 <inet6_offloads+0x88>
+ffff800081b31148: f9455660     	ldr	x0, [x19, #0xaa8]
+ffff800081b3114c: 9400941b     	bl	0xffff800081b561b8 <init_eaccess>
+ffff800081b31150: 34000060     	cbz	w0, 0xffff800081b3115c <kernel_init_freeable+0x120>
+ffff800081b31154: f905567f     	str	xzr, [x19, #0xaa8]
+ffff800081b31158: 940002d5     	bl	0xffff800081b31cac <prepare_namespace>
+ffff800081b3115c: 9400aaee     	bl	0xffff800081b5bd14 <integrity_load_keys>
+ffff800081b31160: a9424ff4     	ldp	x20, x19, [sp, #0x20]
+ffff800081b31164: f9400bf5     	ldr	x21, [sp, #0x10]
+ffff800081b31168: a8c37bfd     	ldp	x29, x30, [sp], #0x30
+ffff800081b3116c: d50323bf     	autiasp
+ffff800081b31170: d65f03c0     	ret

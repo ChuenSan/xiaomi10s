@@ -1,0 +1,9 @@
+=== android-a-pre 2026-09-19T02:41:56Z ===
+sys.boot_completed=1
+ro.product.device=thyme
+ro.boot.slot_suffix=_a
+uname -r=4.19.157-perf-g9d90dd04aa7c
+--- adb root probe ---
+adbd cannot run as root in production builds
+--- su probe ---
+uid=0(root) gid=0(root) groups=0(root) context=u:r:magisk:s0
