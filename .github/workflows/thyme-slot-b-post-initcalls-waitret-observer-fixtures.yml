@@ -1,0 +1,88 @@
+name: thyme-slot-b-post-initcalls-waitret-observer-fixtures
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/waitret_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-post-initcalls-waitret-observer-fixtures.yml
+  pull_request:
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/waitret_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-post-initcalls-waitret-observer-fixtures.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thyme-slot-b-post-initcalls-waitret-observer-fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  observer-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Lint workflow
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-post-initcalls-waitret-observer-fixtures.yml
+      - name: GHA-only PUBLIC observer fixtures
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/slot_b/observe.py \
+            scripts/slot_b/test_observe.py \
+            scripts/slot_b/waitret_observer_fixtures.py
+          (cd scripts/slot_b && python3 -B -m unittest test_observe.py -v) \
+            2>&1 | tee waitret-observer-unit-tests.log
+          (cd scripts/slot_b && python3 -B waitret_observer_fixtures.py) \
+            | tee waitret-observer-fixtures.txt
+          for gate in \
+            WAITRET8_EXACT_FULL_SHA_ACCEPT=PASS \
+            WAITRET1_EXACT_FULL_SHA_ACCEPT=PASS \
+            WAITRET_WRONG_SIZE_REJECT=PASS \
+            WAITRET_WRONG_SHA_REJECT=PASS \
+            WAITRET8_REJECTS_WAITRET1_SWAP=PASS \
+            WAITRET1_REJECTS_WAITRET8_SWAP=PASS \
+            WAITRET_CROSS_IDENTITY_REJECTIONS=92 \
+            WAITRET_CROSS_IDENTITY_REJECTION=PASS \
+            WAITRET_60B_NEGATIVE_FIXTURE=PASS \
+            WAITRET_56B_NEGATIVE_FIXTURE=PASS \
+            WAITRET_52B_CALLSITE_GEOMETRY=PASS \
+            WAITRET_CALLSITE_NO_LANDING_PAD=PASS \
+            WAITRET_AFTER_WAIT_FOR_INITRAMFS_PREDECESSOR=PASS \
+            WAITRET_TRAMPOLINE_FORBIDDEN=PASS \
+            WAITRET_STRONG_PROVES_WAIT_RETURN_AND_ENTRY=PASS \
+            WAITRET_CONSOLE_INIT_REMAIN_NOT_PROVEN=PASS \
+            WAITRET_SUPPORTED_GRADE=PASS \
+            WAITRET_NO_SHIFT_DOES_NOT_CLAIM_NOT_REACHED=PASS \
+            WAITRET_OBSERVER_FIXTURES=PASS \
+            DEVICE_OPERATION=NO; do
+            grep -Fxq "$gate" waitret-observer-fixtures.txt
+          done
+          printf '%s\n' \
+            'WAITRET_OBSERVER_GATES=PASS' \
+            'DEVICE_OPERATION=NO' \
+            'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' \
+            | tee waitret-observer-gates.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-post-initcalls-waitret-observer-fixtures
+          path: |
+            waitret-observer-unit-tests.log
+            waitret-observer-fixtures.txt
+            waitret-observer-gates.txt
+          if-no-files-found: error
+          retention-days: 90

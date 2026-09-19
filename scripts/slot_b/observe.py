@@ -60,6 +60,10 @@ IMAGES = {
     "devprobe1": (37380096, "2e8b1f5b313195b86ac8a4de14f3a2eb7bf33c7efa575bb425ddb981d1a2b90f"),
     "late_devprobe8": (37380096, "44e5001fab6f7c662e1847972b886d1aa4f7a51e3f969b4dce834ae34b60fe8f"),
     "late_devprobe1": (37380096, "0d24156eeb37f31aceac314fe7df78a9dfaffd162134c3b5d7aa029d2e512453"),
+    "waitentry8": (37380096, "66201264f8d7b7f4ba7a4ce8f495e46c6d4d0764863ffa5f49109b3a71944d7d"),
+    "waitentry1": (37380096, "8b422262aa73809a2258ecb7e8a3e36941eff683ed8cb2b3cce16dd4072d530e"),
+    "waitret8": (37380096, "2c589a61933d8f657e0ac08374c6038d0624807f11c6acb22fc1851ca0b9cb2a"),
+    "waitret1": (37380096, "0a67761550906d05e602be83afe6b2f5e10cf4d222bdcc3bdc65e24fb950d2c8"),
     }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
@@ -84,6 +88,8 @@ PAIRS = {
     "post511": ("post518", "fs_post51_entry", "first_device_initcall_entry"),
     "devprobe1": ("devprobe8", "fs_initcalls_completed", "device_initcalls_completed"),
     "late_devprobe1": ("late_devprobe8", "device_initcalls_completed", "late_initcalls_completed"),
+    "waitentry1": ("waitentry8", "late_initcalls_completed", "wait_for_initramfs_return"),
+    "waitret1": ("waitret8", "wait_for_initramfs_return", "console_on_rootfs_entry"),
     }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -212,6 +218,29 @@ LATE_DEVPROBE_TABLE = {
     "offset": 0x1B32078,
     "registration": "late_initcall(kernel_do_mounts_initrd_sysctls_init)",
     "source": "init/do_mounts_initrd.c",
+}
+
+WAITENTRY_GEOMETRY = {
+    "target": "kernel_init_freeable", "va": 0xFFFF800081B3113C,
+    "offset": 0x1B3113C, "caller_va": 0xFFFF800081B3103C,
+    "caller_end_va": 0xFFFF800081B311A8, "cold_path_va": 0xFFFF800081B31174,
+    "window": 56, "core_size": 56,
+    "architecture": "INLINE_CALLSITE_NO_ADDED_LANDING_PAD",
+    "predecessor": "do_basic_setup", "callsite_only": True,
+    "no_paciasp_prefix": True, "daifset": "PRESENT", "inline_only": True,
+    "trampoline_permitted": False, "proves": "late_initcalls_completed",
+    "does_not_prove": "wait_for_initramfs_return",
+}
+WAITRET_GEOMETRY = {
+    "target": "kernel_init_freeable", "va": 0xFFFF800081B31140,
+    "offset": 0x1B31140, "caller_va": 0xFFFF800081B3103C,
+    "caller_end_va": 0xFFFF800081B311A8, "cold_path_va": 0xFFFF800081B31174,
+    "window": 52, "core_size": 52,
+    "architecture": "INLINE_CALLSITE_NO_ADDED_LANDING_PAD",
+    "predecessor": "wait_for_initramfs", "callsite_only": True,
+    "no_paciasp_prefix": True, "daifset": "ABSENT", "inline_only": True,
+    "trampoline_permitted": False, "proves": "wait_for_initramfs_return",
+    "does_not_prove": "console_on_rootfs_entry",
 }
 
 REST_ORIGIN = "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B"
@@ -505,6 +534,53 @@ def validate_late_devprobe_table():
             "LATE_DEVPROBE_REGISTRATION_DRIFT")
 
 
+def _validate_callsite_geometry(geometry, prefix, va, offset):
+    require(geometry["target"] == "kernel_init_freeable", f"{prefix}_TARGET_DRIFT")
+    require(geometry["va"] == va, f"{prefix}_VA_DRIFT")
+    require(geometry["offset"] == offset, f"{prefix}_OFFSET_DRIFT")
+    require(geometry["caller_va"] == 0xFFFF800081B3103C, f"{prefix}_CALLER_VA_DRIFT")
+    require(geometry["caller_end_va"] == 0xFFFF800081B311A8, f"{prefix}_CALLER_END_DRIFT")
+    require(geometry["cold_path_va"] == 0xFFFF800081B31174, f"{prefix}_COLD_PATH_DRIFT")
+    require(geometry["architecture"] == "INLINE_CALLSITE_NO_ADDED_LANDING_PAD",
+            f"{prefix}_ARCHITECTURE_DRIFT")
+    require(geometry["callsite_only"] is True, f"{prefix}_NOT_CALLSITE_ONLY")
+    require(geometry["no_paciasp_prefix"] is True, f"{prefix}_PACIASP_PREFIX_PRESENT")
+    require(geometry["inline_only"] is True, f"{prefix}_NOT_INLINE_ONLY")
+    require(geometry["trampoline_permitted"] is False, f"{prefix}_TRAMPOLINE_PERMITTED")
+
+
+def validate_waitentry_geometry(window):
+    require(window != 60, "WAITENTRY_60B_WINDOW_REJECTED")
+    require(window != 52, "WAITENTRY_52B_WINDOW_REJECTED")
+    require(window == WAITENTRY_GEOMETRY["window"], "WAITENTRY_WINDOW_NOT_56")
+    _validate_callsite_geometry(WAITENTRY_GEOMETRY, "WAITENTRY",
+                                0xFFFF800081B3113C, 0x1B3113C)
+    require(WAITENTRY_GEOMETRY["predecessor"] == "do_basic_setup",
+            "WAITENTRY_PREDECESSOR_DRIFT")
+    require(WAITENTRY_GEOMETRY["core_size"] == 56, "WAITENTRY_CORE_NOT_56")
+    require(WAITENTRY_GEOMETRY["daifset"] == "PRESENT", "WAITENTRY_DAIFSET_ABSENT")
+    require(WAITENTRY_GEOMETRY["proves"] == "late_initcalls_completed",
+            "WAITENTRY_PROOF_CLAIM_DRIFT")
+    require(WAITENTRY_GEOMETRY["does_not_prove"] == "wait_for_initramfs_return",
+            "WAITENTRY_NON_PROOF_CLAIM_DRIFT")
+
+
+def validate_waitret_geometry(window):
+    require(window != 60, "WAITRET_60B_WINDOW_REJECTED")
+    require(window != 56, "WAITRET_56B_WINDOW_REJECTED")
+    require(window == WAITRET_GEOMETRY["window"], "WAITRET_WINDOW_NOT_52")
+    _validate_callsite_geometry(WAITRET_GEOMETRY, "WAITRET",
+                                0xFFFF800081B31140, 0x1B31140)
+    require(WAITRET_GEOMETRY["predecessor"] == "wait_for_initramfs",
+            "WAITRET_PREDECESSOR_DRIFT")
+    require(WAITRET_GEOMETRY["core_size"] == 52, "WAITRET_CORE_NOT_52")
+    require(WAITRET_GEOMETRY["daifset"] == "ABSENT", "WAITRET_DAIFSET_PRESENT")
+    require(WAITRET_GEOMETRY["proves"] == "wait_for_initramfs_return",
+            "WAITRET_PROOF_CLAIM_DRIFT")
+    require(WAITRET_GEOMETRY["does_not_prove"] == "console_on_rootfs_entry",
+            "WAITRET_NON_PROOF_CLAIM_DRIFT")
+
+
 def validate_context(context, case=None):
     require(all(context.get(k) == v for k, v in CONTEXT.items()), "B_CONTEXT_MISMATCH")
     require(context.get("slot_a_unchanged") is True, "SLOT_A_UNCHANGED_NOT_VERIFIED")
@@ -697,6 +773,23 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(level7_inline_checkpoint_shift_not_observed="YES")
+    elif second == "waitentry1":
+        out.update(late_initcalls_completed=grade,
+                   wait_for_initramfs_entry="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   init_executed="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(post_initcalls_checkpoint_shift_not_observed="YES")
+    elif second == "waitret1":
+        out.update(wait_for_initramfs_return=grade,
+                   wait_for_initramfs_entry=grade,
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   init_executed="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(wait_ret_checkpoint_shift_not_observed="YES")
     return out
 
 
