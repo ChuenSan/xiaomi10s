@@ -190,9 +190,9 @@ class SelectionPolicy(unittest.TestCase):
         self.assertIn("FUNCTION_TOO_SMALL", skipped[52]["reason"])
         self.assertIn(lp.ROUND_PAD_REASON, skipped[51]["reason"])
         self.assertIn("TARGET_NOT_INIT_TEXT", skipped[53]["reason"])
-        self.assertIn("TARGET_NOT_INIT_TEXT", skipped[54]["reason"])
-        self.assertEqual(skipped[49]["reason"], "FROZEN_TARGET_INDEX")
-        self.assertEqual(skipped[55]["reason"], "FROZEN_TARGET_INDEX")
+        self.assertNotIn(54, skipped)  # walk stops at the chosen index 50
+        self.assertNotIn(49, skipped)  # frozen endpoints sit beyond the chosen index
+        self.assertNotIn(55, skipped)
         audit = selection["audit"]
         self.assertEqual(audit["entry_pad"], "paciasp")
         self.assertEqual(audit["core_size"], 56)
@@ -201,13 +201,17 @@ class SelectionPolicy(unittest.TestCase):
     def test_frozen_indices_never_selected(self):
         entries, ctx, _, _ = synth_world()
         selection = lp.select_one(entries, ctx, "late_post50", "POST50", 63)
-        self.assertEqual(selection["selected_index"], 64)
+        self.assertEqual(selection["selected_index"], 62)
         skipped = {row["index"]: row["reason"] for row in selection["skipped"]}
         self.assertEqual(skipped.get(63), "FROZEN_TARGET_INDEX")
         selection = lp.select_one(entries, ctx, "late_post50", "POST50", 49)
         self.assertEqual(selection["selected_index"], 48)
         skipped = {row["index"]: row["reason"] for row in selection["skipped"]}
         self.assertEqual(skipped.get(49), "FROZEN_TARGET_INDEX")
+        selection = lp.select_one(entries, ctx, "late_post50", "POST50", 55)
+        self.assertEqual(selection["selected_index"], 54)
+        skipped = {row["index"]: row["reason"] for row in selection["skipped"]}
+        self.assertEqual(skipped.get(55), "FROZEN_TARGET_INDEX")
 
     def test_post50_target_out_of_interval_fails_loudly(self):
         entries, ctx, _, _ = synth_world(sizes={index: 40 for index in
@@ -226,7 +230,8 @@ class SelectionPolicy(unittest.TestCase):
     def test_frozen_window_overlap_detector(self):
         self.assertIsNotNone(lp.frozen_window_overlap(0xFFFF800081B8E964, 60))
         self.assertIsNotNone(lp.frozen_window_overlap(0xFFFF800081B8E964 + 8, 60))
-        self.assertIsNotNone(lp.frozen_window_overlap(0xFFFF800081B7017C + 408, 4))
+        self.assertIsNotNone(lp.frozen_window_overlap(0xFFFF800081B7017C + 400, 4))
+        self.assertIsNone(lp.frozen_window_overlap(0xFFFF800081B7017C + 408, 4))
         self.assertIsNone(lp.frozen_window_overlap(0xFFFF800081B8E964 + 60, 60))
         self.assertIsNone(lp.frozen_window_overlap(0xFFFF800081B7017C - 64, 4))
 
