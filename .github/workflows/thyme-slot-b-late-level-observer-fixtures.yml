@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       family:
-        description: Late-level family to verify (mid|low|high|post43|post49); identities must be frozen
+        description: Late-level family to verify (mid|low|high|post43|post49|post50); identities must be frozen
         required: true
 
 permissions:
@@ -62,6 +62,7 @@ jobs:
             high) LABEL=LATE_HIGH; INDEX=63; M8=late_high8; M1=late_high1 ;;
             post43) LABEL=POST43; INDEX=55; M8=late_post438; M1=late_post431 ;;
             post49) LABEL=POST49; INDEX=49; M8=late_post498; M1=late_post491 ;;
+            post50) LABEL=POST50; INDEX=50; M8=late_post508; M1=late_post501 ;;
             *) echo "unknown family $FAMILY" >&2; exit 1 ;;
           esac
           M8U=$(printf '%s' "$M8" | tr '[:lower:]' '[:upper:]')

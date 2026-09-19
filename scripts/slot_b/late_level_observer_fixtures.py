@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GHA-only LATE_MID/LATE_LOW/LATE_HIGH/LATE_POST43/LATE_POST49 PUBLIC observer fixtures (late-level failure isolation)."""
+"""GHA-only LATE_MID/LATE_LOW/LATE_HIGH/LATE_POST43/LATE_POST49/LATE_POST50 PUBLIC observer fixtures (late-level failure isolation)."""
 from __future__ import annotations
 
 import argparse
@@ -26,12 +26,15 @@ POST43_8_SHA = "00f8bdbb546e346a00d08182e269293ef4f3bb892810a46de06a77da2ca73a26
 POST43_1_SHA = "c9fb8d39383cec9c86f02d73b20ab864c53d5c3e9439c8c9cd7abb322e8ff8cc"
 POST49_8_SHA = "99f80c39bba2f5b7e3e656385cde4aeb3d709bf8ffc3000de72289ab7c9f52a8"
 POST49_1_SHA = "1bfcaffa503e44574f44dc850dab10fb930f9fc96c9d8f9f99b7b88b8ac03c7b"
+POST50_8_SHA = "679d296f936ba9457837bbdf5d8b7d60fdba871f0275fae21912673e6b7102d5"
+POST50_1_SHA = "373b7386b283b396851d5acf68bfbcbdebbf1154551f5024e31e4b787684330a"
 FROZEN_IDENTITIES = {
     "late_mid": {"8": LATE_MID8_SHA, "1": LATE_MID1_SHA},
     "late_low": {"8": LATE_LOW8_SHA, "1": LATE_LOW1_SHA},
     "late_high": {"8": LATE_HIGH8_SHA, "1": LATE_HIGH1_SHA},
     "late_post43": {"8": POST43_8_SHA, "1": POST43_1_SHA},
     "late_post49": {"8": POST49_8_SHA, "1": POST49_1_SHA},
+    "late_post50": {"8": POST50_8_SHA, "1": POST50_1_SHA},
 }
 FROZEN_PRIOR_SHAS = {
     "late_devprobe8": "44e5001fab6f7c662e1847972b886d1aa4f7a51e3f969b4dce834ae34b60fe8f",
@@ -88,6 +91,15 @@ FAMILIES = {
         "daifset": "PRESENT", "inline_only": True, "prel32_unchanged": True,
         "table_va": 0xFFFF800081D0C39C, "prel32_word": "0xffe63de0", "relative": -1688096,
         "pair_diff": [0x1B70189, 0x1B7018A], "deviation": None},
+    "late_post50": {
+        "label": "POST50", "index": 50, "nominal_index": 52,
+        "target": "clk_debug_init", "va": 0xFFFF800081B72F14, "offset": 0x1B72F14,
+        "function_size": 288, "window": 60, "core_size": 56,
+        "architecture": "INLINE_PACIASP_PLUS_56B_ULTRACOMPACT", "entry": "paciasp",
+        "daifset": "PRESENT", "inline_only": True, "prel32_unchanged": True,
+        "table_va": 0xFFFF800081D0C3A0, "prel32_word": "0xffe66b74", "relative": -1676428,
+        "pair_diff": [0x1B72F21, 0x1B72F22],
+        "deviation": {"nominal_index": 52, "chosen_index": 50, "distance": 2}},
 }
 MEMBERS = tuple(family + member for family in FAMILIES for member in ("8", "1"))
 
@@ -221,7 +233,8 @@ def reject(case, identity, gate):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--family", choices=("mid", "low", "high", "post43", "post49"),
+    parser.add_argument("--family",
+                        choices=("mid", "low", "high", "post43", "post49", "post50"),
                         required=True)
     args = parser.parse_args()
     if os.environ.get("GITHUB_ACTIONS") != "true":
