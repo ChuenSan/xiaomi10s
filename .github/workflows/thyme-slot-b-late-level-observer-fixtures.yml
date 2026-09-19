@@ -72,10 +72,10 @@ jobs:
             "${LABEL}1_EXACT_FULL_SHA_ACCEPT=PASS" \
             "${LABEL}_WRONG_SIZE_REJECT=PASS" \
             "${LABEL}_WRONG_SHA_REJECT=PASS" \
-            "${M8U}_REJECTS_${M1U}_SWAP=PASS" \
-            "${M1U}_REJECTS_${M8U}_SWAP=PASS" \
-            "${M8U}_WRONG_DELAY_MUTANT_REJECT=PASS" \
-            "${M1U}_WRONG_DELAY_MUTANT_REJECT=PASS" \
+            "${LABEL}8_REJECTS_${M1U}_SWAP=PASS" \
+            "${LABEL}1_REJECTS_${M8U}_SWAP=PASS" \
+            "${LABEL}8_WRONG_DELAY_MUTANT_REJECT=PASS" \
+            "${LABEL}1_WRONG_DELAY_MUTANT_REJECT=PASS" \
             "${LABEL}_CROSS_IDENTITY_REJECTION=PASS" \
             "${LABEL}_60B_INLINE_GEOMETRY=PASS" \
             "${LABEL}_56B_NEGATIVE_FIXTURE=PASS" \
