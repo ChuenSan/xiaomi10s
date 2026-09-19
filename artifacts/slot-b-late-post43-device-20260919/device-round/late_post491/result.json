@@ -1,0 +1,35 @@
+{
+  "protocol": "slot-b-p15-fastboot-return-v1",
+  "case": "late_post491",
+  "image_sha256": "1bfcaffa503e44574f44dc850dab10fb930f9fc96c9d8f9f99b7b88b8ac03c7b",
+  "context": {
+    "boot_b_prefix": "133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34",
+    "vendor_boot_b": "aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972",
+    "dtbo_b": "018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634"
+  },
+  "ci_run": "35439384671",
+  "bootloader_origin": "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B",
+  "normal_boot_candidate": false,
+  "slot_a_written": false,
+  "partition_writes": 0,
+  "status": "AUTOMATIC_FASTBOOT_RETURN",
+  "final_slot": "b",
+  "total_s": 28.426452208,
+  "b_retries": "6",
+  "host_boot_commands": 1,
+  "experimental_boots": 1,
+  "recovery_control_boots": 0,
+  "pair": {
+    "delta_s": -7.126684999999995,
+    "expected_delta_s": -7.0,
+    "error_s": -0.12668499999999483,
+    "verdict": "STRONG",
+    "late_post49_entry": "PROVEN",
+    "late_initcalls_completed": "NOT_PROVEN",
+    "init_executed": "NOT_PROVEN",
+    "bert_init_entry": "PROVEN",
+    "wait_for_initramfs_return": "NOT_PROVEN",
+    "console_on_rootfs_entry": "NOT_PROVEN",
+    "usb": "FROZEN"
+  }
+}

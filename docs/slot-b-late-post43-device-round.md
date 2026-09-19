@@ -40,9 +40,47 @@ records, `final-report.txt`. Chain: public `35435068388` @ `c6da8e8`, private
 pack `35435526523`, reverify `35435680009`, freeze `2b793bc`+`a3f3b78`, observer
 fixtures `35436961277`.
 
-## Next stage
+## Child continuation: index 49 `bert_init` (same round, no-shift branch)
 
-`MAINLINE_V2_R3_SLOT_B_LATE_POST49_CHILD_GATES_THEN_DEVICE` — child index 49
-`bert_init` (`0xffff800081b7017c`, 408B, window 404 CFG-forced) must complete
-private pack, independent reverify, observer fixtures and full identity freeze
-(all GHA) before the same-round device split pair `POST49_8 → POST49_1`.
+All four child gates passed in-round (GHA only, no local build):
+
+| Gate | Run | Result |
+|---|---|---|
+| Private pack | `35439384671` @ private `9617307` | SUCCESS — boots `POST49_8` `99f80c39…f52a8` / `POST49_1` `1bfcaffa…03c7b` (37380096) |
+| Independent reverify | `35439546431` | SUCCESS (`reverify_only=true`) |
+| Observer fixtures | `35439639144` | SUCCESS — family `post49`, 112 cross-identity rejections |
+| Identity freeze | `f58a470` | `observe.py` + fixtures + tests + workflow |
+
+Geometry: index 49 `bert_init` (`0xffff800081b7017c`/`0x1b7017c`, 408B, window
+404 CFG-forced, core 56B `INLINE_PACIASP_PLUS_56B_ULTRACOMPACT`, pair diff
+`[0x1b70189,0x1b7018a)` `DELAY_CONSTANT_ONLY`). Device split pair under the
+same one-boot/no-return discipline:
+
+| Member | Boot identity (frozen) | Behavior | total_s |
+|---|---|---|---|
+| `POST49_8` | `99f80c39…f52a8` | `AUTOMATIC_FASTBOOT_RETURN`, retry 7→6 | 35.553137208 |
+| `POST49_1` | `1bfcaffa…03c7b` | `AUTOMATIC_FASTBOOT_RETURN`, retry 7→6 | 28.426452208 |
+
+`PAIR_DELTA=-7.126684999s` vs expected `-7.000000000s`
+(`PAIR_ERROR=-0.126684999s`) → **`STRONG`**: `BERT_INIT_ENTRY=PROVEN` /
+`late_post49_entry=PROVEN`. Reaching the index-49 entry proves late entries
+0..48 each returned (sequential `do_initcall_level` contract) →
+**`LATEST_PROVEN_LATE_INDEX=49`**. No `NO_RETURN_WITHIN_120S` occurred anywhere
+in the round; Current B 16-chain + P15 prefix MATCH pre / between / post for
+both the primary and child pairs; Android A restored healthy after every
+member; `PARTITION_WRITES=0`; `SLOT_A_WRITTEN=NO`; USB `FROZEN`.
+`late_post498`/`late_post491` are rerun-FORBIDDEN.
+
+## Round closeout
+
+Final gate: `R3_SLOT_B_LATE_POST43_INDEX55_SHIFT_NOT_OBSERVED` with appended
+`LATEST_PROVEN_LATE_INDEX=49`, `NEXT_DIAGNOSTIC_BRANCH=49..63`. Runtime
+evidence unchanged beyond the new entry proof:
+`LATE_INITCALLS_COMPLETED`, `WAIT_FOR_INITRAMFS_RETURN`, `CONSOLE_ON_ROOTFS`,
+`INIT_EXECUTED` all stay `NOT_PROVEN`; the POST43 no-shift records only
+`late_post43_checkpoint_shift_not_observed=YES` with no entry and no
+non-entry claim licensed for index 55. The next device candidate inside
+`49..63` is index 60 `efi_earlycon_unmap_fb` (paciasp), reserved for the next
+authorized round with its own gate chain. Evidence: this directory plus
+`child-post49-gates/` (pack identities, reverify summary, fixture gates, boot
+images).
