@@ -187,11 +187,16 @@ prefix MATCH (device-side `sha256sum` via `adb shell su -c`), RAM-only
   `LATE_HIGH_PAIR_VERDICT=NOT_EVALUABLE`. LOW pair NOT executed: the MID
   STRONG already proves the lower half; an extra pair there would burn
   device boots without information gain.
-- Device state at round close: awaiting the proven physical recovery
-  (Power + Volume-Down → Fastboot B), identical in class to the frozen
-  RESET8 `NO_RETURN_WITHIN_120S` recovery. On-disk Current B, Slot A and all
-  16 recorded partition hashes were last verified MATCH after the MID pair;
-  re-verification is part of the recovery round.
+- Device state at round close: the proven physical recovery (Power + Volume-
+  Down → Fastboot B, identical in class to the frozen RESET8
+  `NO_RETURN_WITHIN_120S` recovery) was executed by the user, and the
+  recovery closeout re-verified the frozen integrity: fastboot B preflight
+  healthy, `set_active a` (metadata only), Android A restored healthy
+  (`slot=_a`, `sys.boot_completed=1`), Current B 16-chain and boot_b P15
+  prefix MATCH against the frozen HIGH8-pre baseline,
+  `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`. Closeout gate:
+  `R3_SLOT_B_LATE_HIGH8_RECOVERY_INTEGRITY_VERIFIED`. No new experiment, no
+  `fastboot boot`, no rerun was performed during the closeout.
 - `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`, `USB=FROZEN`,
   `LATE_INITCALLS_COMPLETED=NOT_PROVEN`, `WAIT_FOR_INITRAMFS_RETURN=NOT_PROVEN`,
   `CONSOLE_ON_ROOTFS=NOT_PROVEN`, `INIT_EXECUTED=NOT_PROVEN`.

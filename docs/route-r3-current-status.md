@@ -3123,7 +3123,12 @@ LATE_HIGH8_STATUS=NO_RETURN_WITHIN_120S
 LATE_HIGH_PAIR_VERDICT=NOT_EVALUABLE
 LATE_HIGH1_DEVICE_EXECUTION=NOT_TAKEN_LADDER_REQUIRES_MEMBER_A_VALID_RETURN
 LATE_HIGH_INTERPRETATION_BAN=YES
-DEVICE_RECOVERY=PENDING_PHYSICAL_POWER_VOLDOWN_FASTBOOT_B
+LATE_HIGH8_REACHABILITY_VERDICT=NONE
+LATE_HIGH1_DEVICE_EXECUTION=NOT_EXECUTED
+DEVICE_RECOVERY=COMPLETE_USER_PHYSICAL_POWER_VOLDOWN
+RECOVERY_CLOSEOUT_16_CHAIN_HASHES=MATCH
+RECOVERY_CLOSEOUT_P15_PREFIX=MATCH
+RECOVERY_CLOSEOUT_FINAL_GATE=R3_SLOT_B_LATE_HIGH8_RECOVERY_INTEGRITY_VERIFIED
 PARTITION_WRITES=0
 SLOT_A_WRITTEN=NO
 CURRENT_B_UNCHANGED=YES
@@ -3150,10 +3155,12 @@ to `43..86` (diagnostic direction only; the WAITENTRY no-shift stays frozen
 and uninterpreted). The LATE_HIGH8 `NO_RETURN_WITHIN_120S` is recorded as a
 device-behavior boundary only — no entry, non-entry, completion or
 non-completion claim is licensed by it, and it does NOT refine the interval.
-The proven physical recovery (Power + Volume-Down → Fastboot B, RESET8
-precedent class) is required before any further device work; on-disk Current
-B, Slot A and the 16 recorded hashes were last verified MATCH after the MID
-pair, and re-verification is part of the recovery round. No
+The user then executed the proven physical recovery (Power + Volume-Down →
+Fastboot B, RESET8 precedent class); the recovery closeout restored active
+slot A (metadata only), brought Android A back healthy and re-verified the
+Current B 16-chain and boot_b P15 prefix against the frozen HIGH8-pre
+baseline with `PARTITION_WRITES=0` and `SLOT_A_WRITTEN=NO`
+(`R3_SLOT_B_LATE_HIGH8_RECOVERY_INTEGRITY_VERIFIED`). No
 `LATE_INITCALLS_COMPLETED` upgrade is licensed: only a STRONG checkpoint
 strictly after the entire level-7 return could do that. Round details:
 docs/slot-b-late-level-isolation.md, docs/slot-b-late-level-cfg-audit.md,
