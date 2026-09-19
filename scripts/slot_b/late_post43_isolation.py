@@ -650,6 +650,7 @@ def build_pairs(args, selections, ctx, metadata, out):
                         "checkpoint_sha256": cp.digest(probe),
                         "frozen_sha256": cp.digest(ctx["frozen"]),
                         "frozen_payload_disjoint": True,
+                        "window_reference_forensic": forensic["verdict"],
                         "prel32_target_unchanged": True,
                         "cfg_closure": audit["cfg_closure"],
                         "runtime_rewrites": rewrites, "window_agreement": agreement,
