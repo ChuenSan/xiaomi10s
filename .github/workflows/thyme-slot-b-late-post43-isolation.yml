@@ -1,0 +1,258 @@
+name: LATE_LEVEL_POST43_SAFE_ADVANCE_CI
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/late_post43_isolation.py'
+      - 'scripts/slot_b/test_late_post43_isolation.py'
+      - 'scripts/slot_b/checkpoint.py'
+      - 'scripts/slot_b/checkpoint-ultracompact.S'
+      - 'scripts/slot_b/checkpoint-subsys52.S'
+      - '.github/workflows/thyme-slot-b-late-post43-isolation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: late-post43-isolation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Actions-only workflow lint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-late-post43-isolation.yml
+      - name: Source tests (decoder, selection policy, round gates, pair diff)
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_*.py' -v 2>&1 | tee late-post43-source-tests.log
+          grep -q 'test_reference_index0_matches_frozen_identity.*ok' late-post43-source-tests.log
+          grep -q 'test_frozen_high8_identity_pinned.*ok' late-post43-source-tests.log
+          grep -q 'test_frozen_windows_carry_the_four_late_targets.*ok' late-post43-source-tests.log
+          grep -q 'test_paciasp_candidate_passes_round_gate.*ok' late-post43-source-tests.log
+          grep -q 'test_bti_c_candidate_rejected_by_round_gate.*ok' late-post43-source-tests.log
+          grep -q 'test_selects_nominal_with_dynamic_children.*ok' late-post43-source-tests.log
+          grep -q 'test_real_shaped_world_selects_55_with_children_49_and_60.*ok' late-post43-source-tests.log
+          grep -q 'test_frozen_indices_never_selected.*ok' late-post43-source-tests.log
+          grep -q 'test_post43_target_out_of_interval_fails_loudly.*ok' late-post43-source-tests.log
+          grep -q 'test_post60_beyond_63_fails_loudly.*ok' late-post43-source-tests.log
+          grep -q 'test_frozen_window_overlap_skips_candidate.*ok' late-post43-source-tests.log
+          grep -q 'test_frozen_sha_rejected.*ok' late-post43-source-tests.log
+          grep -q 'test_relr_decode.*ok' late-post43-source-tests.log
+          grep -q 'test_adrp_add_into_interior_detected.*ok' late-post43-source-tests.log
+          grep -q 'test_relative_reference_slot_allowed_kallsyms_excluded.*ok' late-post43-source-tests.log
+          grep -q 'test_table_scans_catch_fixup_and_alt_alt_fields.*ok' late-post43-source-tests.log
+          grep -q 'test_pair_diff_is_delay_constant_only_56b_core.*ok' late-post43-source-tests.log
+          grep -q 'test_member_changes_only_inside_window.*ok' late-post43-source-tests.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-late-post43-isolation-source-tests
+          path: late-post43-source-tests.log
+          if-no-files-found: error
+
+  late-post43-isolation:
+    needs: source-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Install binary audit tools only
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18
+      - name: Download immutable authoritative inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independently assemble proven 56-byte and 52-byte cores
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-ultracompact.S -o ultracompact.o
+          llvm-readelf-18 -r ultracompact.o | tee ultracompact-relocations.log
+          grep -q 'There are no relocations in this file' ultracompact-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text ultracompact.o ultracompact.bin
+          test "$(stat -c %s ultracompact.bin)" = 56
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-subsys52.S -o subsys52.o
+          llvm-readelf-18 -r subsys52.o | tee subsys52-relocations.log
+          grep -q 'There are no relocations in this file' subsys52-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text subsys52.o subsys52.bin
+          test "$(stat -c %s subsys52.bin)" = 52
+          python3 -B - <<'PY'
+          import sys
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint, pathlib
+          checkpoint.gate_subsys52_core_equivalence(
+              pathlib.Path('ultracompact.bin').read_bytes(),
+              pathlib.Path('subsys52.bin').read_bytes())
+          print('LATE_POST43_56B_CORE_INDEPENDENTLY_AUDITED=YES')
+          print('LATE_POST43_52B_CORE_INDEPENDENTLY_AUDITED=YES')
+          PY
+      - name: Derive late map, run HIGH8 forensic, select POST43 + children, compose delay-only pairs
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -u -B scripts/slot_b/late_post43_isolation.py \
+            --bundle kernel-bundle \
+            --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core56 ultracompact.bin --core52 subsys52.bin \
+            --out late-post43 | tee late-post43.log
+          for gate in "LATE_LEVEL_POST43_STAGE=MAINLINE_V2_R3_SLOT_B_LATE_LEVEL_POST43_SAFE_ADVANCE_CI" \
+            "LATE_TABLE_ENTRY_COUNT=86" \
+            "LATE_TABLE_INDEX0_SYMBOL=kernel_do_mounts_initrd_sysctls_init" \
+            "LATE_TABLE_INDEX0_TABLE_VA=0xffff800081d0c2d8" \
+            "LATE_TABLE_INDEX0_TARGET_VA=0xffff800081b32078" \
+            "LATE_TABLE_INDEX0_WORD=0xffe25da0" \
+            "ROUND_PAD_CLASS=PACIASP_ONLY" \
+            "FROZEN_INDICES_EXCLUDED=0,21,43,63" \
+            "FROZEN_WINDOW_DISJOINT=YES" "FROZEN_PAYLOAD_DISJOINT=YES" \
+            "HIGH8_STATIC_PROBE_DEFECT_FOUND=NO" \
+            "HIGH8_FORENSIC_RUNTIME_INFERENCE=NONE" \
+            "PAIR_DIFF=DELAY_CONSTANT_ONLY" "INLINE_ONLY=YES" "TRAMPOLINE_PERMITTED=NO" \
+            "ISLAND_PERMITTED=NO" "PREL32_TARGET_UNCHANGED=YES" "SHARED_CHECKPOINT=NO" \
+            "CROSS_FUNCTION_OVERWRITE=NO" "WINDOW_DERIVATION=TARGET_CFG" \
+            "KERNEL_REBUILD=NO" "DEVICE_OPERATION=NO" "PRIVATE_PACK=NO" \
+            "PARTITION_WRITES=0" "SLOT_A_WRITTEN=NO" "LOCAL_BUILD=NO" \
+            "POST43_PAIR=PASS" "POST49_PAIR=PASS" "POST60_PAIR=PASS"; do
+            grep -Fxq "$gate" late-post43/audit-summary.txt
+          done
+          for prefix in POST43 POST49 POST60; do
+            for field in _NOMINAL_INDEX= _INDEX= _SYMBOL= _TABLE_VA= _TARGET_VA= \
+              _IMAGE_OFFSET= _FUNCTION_SIZE= _WINDOW= _CORE_SIZE= \
+              _PROBE_ARCHITECTURE= _ENTRY_PAD= _REGISTRATION= _SOURCE= _DEVIATION=; do
+              grep -q "^${prefix}${field}" late-post43/audit-summary.txt
+            done
+          done
+          grep -q '^POST43_ENTRY_PAD=paciasp$' late-post43/audit-summary.txt
+          grep -q '^POST43_WINDOW=60$' late-post43/audit-summary.txt
+          grep -q '^POST43_CORE_SIZE=56$' late-post43/audit-summary.txt
+          python3 -B - <<'PY'
+          import json, struct
+          from pathlib import Path
+          root = Path('late-post43')
+          summary = (root / 'audit-summary.txt').read_text()
+          assert 'PAIR_DIFF=DELAY_CONSTANT_ONLY' in summary
+          names = {'late_post43': ('POST43_8', 'POST43_1'),
+                   'late_post49': ('POST49_8', 'POST49_1'),
+                   'late_post60': ('POST60_8', 'POST60_1')}
+          for family, (name8, name1) in names.items():
+              identity = json.loads((root / family / 'pair' / 'pair.json').read_text())
+              p8 = (root / family / 'pair' / '8' / 'checkpoint' / 'payload.bin').read_bytes()
+              p1 = (root / family / 'pair' / '1' / 'checkpoint' / 'payload.bin').read_bytes()
+              m8 = json.loads((root / family / 'pair' / '8' / 'checkpoint'
+                               / 'manifest.json').read_text())
+              m1 = json.loads((root / family / 'pair' / '1' / 'checkpoint'
+                               / 'manifest.json').read_text())
+              assert identity['delay8_name'] == name8 and identity['delay1_name'] == name1
+              offset, window = m8['offset'], m8['checkpoint_size']
+              assert m8['checkpoint_size'] == m1['checkpoint_size']
+              assert m8['core_size'] == m1['core_size'] in (52, 56)
+              assert m8['entry'] == 'paciasp' and m8['pac'] is True and m8['bti'] is False
+              assert m8['round_pad_class'] == 'paciasp_only'
+              assert m8['inline_only'] is True and m8['trampoline_permitted'] is False
+              assert m8['prel32_target_unchanged'] is True
+              assert m8['window_reference_forensic'] == 'NO_REFERENCE_INTO_WINDOW'
+              assert m1['window_reference_forensic'] == 'NO_REFERENCE_INTO_WINDOW'
+              changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
+              assert changed == identity['changed_offsets']
+              slot = 8 if m8['core_size'] == 56 else 4
+              assert changed == [offset + 4 + slot + 1, offset + 4 + slot + 2], changed
+              assert p8[:offset] == p1[:offset]
+              assert p8[offset + window:] == p1[offset + window:]
+              assert struct.unpack_from('<I', p8, offset + 4 + slot)[0] == 0xD37DF12A
+              assert struct.unpack_from('<I', p1, offset + 4 + slot)[0] == 0xD340FD2A
+              print(f"{family}: index={m8['span_index']} symbol={m8['target_symbol']} "
+                    f"window={window} core={m8['core_size']} pair=DELAY_CONSTANT_ONLY")
+          high8 = json.loads((root / 'high8-forensic.json').read_text())
+          assert high8['HIGH8_STATIC_PROBE_DEFECT_FOUND'] == 'NO'
+          assert high8['runtime_inference'] == 'NONE_LICENSED'
+          assert all(v == 'PASS' for v in high8['gates'].values())
+          print('HIGH8_FORENSIC=NO_STATIC_PROBE_DEFECT_FOUND')
+          PY
+      - name: Assert public payload-only scope and write job summary
+        run: |
+          set -euo pipefail
+          if find late-post43 -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          printf '%s\n' 'PRIVATE_PACK=NO' 'DEVICE_OPERATION=NO' 'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' 'LOCAL_BUILD=NO' 'LOCAL_IMAGE_GENERATION=NO'
+          {
+            echo '## Late level post-43 safe advance (POST43 + children)'
+            echo '```'
+            cat late-post43/audit-summary.txt
+            echo '```'
+            for family in late_post43 late_post49 late_post60; do
+              echo "- $family pair identity:"
+              cat "late-post43/$family/pair/pair.json"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-late-post43-isolation-logs
+          path: |
+            late-post43.log
+            ultracompact-*.log
+            subsys52-*.log
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-late-post43-isolation-map-and-audits
+          path: |
+            late-post43/late-map.json
+            late-post43/selection.json
+            late-post43/audit-summary.txt
+            late-post43/high8-forensic.json
+            late-post43/*/original-function.txt
+            late-post43/*/original-window.txt
+            late-post43/*/target-entry-audit.json
+            late-post43/*/window-agreement.json
+            late-post43/*/window-reference-forensic.json
+            late-post43/*/table-*.bin
+            late-post43/*/pair/pair.json
+            late-post43/*/pair/*/checkpoint/manifest.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-late-post43-isolation-pairs
+          path: late-post43/
+          if-no-files-found: error
