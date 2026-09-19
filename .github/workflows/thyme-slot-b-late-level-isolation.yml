@@ -1,0 +1,235 @@
+name: LATE_LEVEL_FAILURE_ISOLATION_CI
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/late_level_isolation.py'
+      - 'scripts/slot_b/test_late_level_isolation.py'
+      - 'scripts/slot_b/checkpoint.py'
+      - 'scripts/slot_b/checkpoint-ultracompact.S'
+      - 'scripts/slot_b/checkpoint-subsys52.S'
+      - '.github/workflows/thyme-slot-b-late-level-isolation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: late-level-isolation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Actions-only workflow lint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-late-level-isolation.yml
+      - name: Source tests (decoder, selection policy, gates, pair diff)
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_*.py' -v 2>&1 | tee late-level-source-tests.log
+          grep -q 'test_reference_index0_matches_frozen_identity.*ok' late-level-source-tests.log
+          grep -q 'test_check_continuity_accepts_reference_table.*ok' late-level-source-tests.log
+          grep -q 'test_build_map_entries_records_size_section_registration.*ok' late-level-source-tests.log
+          grep -q 'test_index0_runtime_identity_rejects_drift.*ok' late-level-source-tests.log
+          grep -q 'test_selects_nominal_mid_low_high.*ok' late-level-source-tests.log
+          grep -q 'test_high_falls_back_to_nearest_lower_index.*ok' late-level-source-tests.log
+          grep -q 'test_tie_prefers_lower_index.*ok' late-level-source-tests.log
+          grep -q 'test_no_safe_target_fails_loudly.*ok' late-level-source-tests.log
+          grep -q 'test_interior_incoming_branch_rejects_window.*ok' late-level-source-tests.log
+          grep -q 'test_back_edge_grows_window_like_topology_init.*ok' late-level-source-tests.log
+          grep -q 'test_window_crossing_next_symbol_rejects.*ok' late-level-source-tests.log
+          grep -q 'test_extable_overlap_rejects.*ok' late-level-source-tests.log
+          grep -q 'test_literal_pointer_into_window_rejects.*ok' late-level-source-tests.log
+          grep -q 'test_text_section_target_rejects_init_text_gate.*ok' late-level-source-tests.log
+          grep -q 'test_pair_diff_is_delay_constant_only_56b_core.*ok' late-level-source-tests.log
+          grep -q 'test_pair_diff_is_delay_constant_only_52b_core.*ok' late-level-source-tests.log
+          grep -q 'test_window_agreement_proves_layout_literal_delta.*ok' late-level-source-tests.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-late-level-isolation-source-tests
+          path: late-level-source-tests.log
+          if-no-files-found: error
+
+  late-level-isolation:
+    needs: source-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Install binary audit tools only
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18
+      - name: Download immutable authoritative inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independently assemble proven 56-byte and 52-byte cores
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-ultracompact.S -o ultracompact.o
+          llvm-readelf-18 -r ultracompact.o | tee ultracompact-relocations.log
+          grep -q 'There are no relocations in this file' ultracompact-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text ultracompact.o ultracompact.bin
+          test "$(stat -c %s ultracompact.bin)" = 56
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-subsys52.S -o subsys52.o
+          llvm-readelf-18 -r subsys52.o | tee subsys52-relocations.log
+          grep -q 'There are no relocations in this file' subsys52-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text subsys52.o subsys52.bin
+          test "$(stat -c %s subsys52.bin)" = 52
+          python3 -B - <<'PY'
+          import sys
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint, pathlib
+          checkpoint.gate_subsys52_core_equivalence(
+              pathlib.Path('ultracompact.bin').read_bytes(),
+              pathlib.Path('subsys52.bin').read_bytes())
+          print('LATE_LEVEL_56B_CORE_INDEPENDENTLY_AUDITED=YES')
+          print('LATE_LEVEL_52B_CORE_INDEPENDENTLY_AUDITED=YES')
+          PY
+      - name: Derive late map, select MID/LOW/HIGH, compose three delay-only pairs
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -u -B scripts/slot_b/late_level_isolation.py \
+            --bundle kernel-bundle \
+            --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core56 ultracompact.bin --core52 subsys52.bin \
+            --out late-level | tee late-level.log
+          for gate in "LATE_LEVEL_STAGE=MAINLINE_V2_R3_SLOT_B_LATE_LEVEL_FAILURE_ISOLATION" \
+            "LATE_TABLE_ENTRY_COUNT=86" \
+            "LATE_TABLE_INDEX0_SYMBOL=kernel_do_mounts_initrd_sysctls_init" \
+            "LATE_TABLE_INDEX0_TABLE_VA=0xffff800081d0c2d8" \
+            "LATE_TABLE_INDEX0_TARGET_VA=0xffff800081b32078" \
+            "LATE_TABLE_INDEX0_WORD=0xffe25da0" \
+            "PAIR_DIFF=DELAY_CONSTANT_ONLY" "INLINE_ONLY=YES" "TRAMPOLINE_PERMITTED=NO" \
+            "ISLAND_PERMITTED=NO" "PREL32_TARGET_UNCHANGED=YES" "SHARED_CHECKPOINT=NO" \
+            "CROSS_FUNCTION_OVERWRITE=NO" "WINDOW_DERIVATION=TARGET_CFG" \
+            "KERNEL_REBUILD=NO" "DEVICE_OPERATION=NO" "PRIVATE_PACK=NO" \
+            "PARTITION_WRITES=0" "SLOT_A_WRITTEN=NO" "LOCAL_BUILD=NO" \
+            "LATE_MID_PAIR=PASS" "LATE_LOW_PAIR=PASS" "LATE_HIGH_PAIR=PASS"; do
+            grep -Fxq "$gate" late-level/audit-summary.txt
+          done
+          for prefix in LATE_MID LATE_LOW LATE_HIGH; do
+            for field in _INDEX= _SYMBOL= _TABLE_VA= _TARGET_VA= _IMAGE_OFFSET= \
+              _FUNCTION_SIZE= _WINDOW= _CORE_SIZE= _PROBE_ARCHITECTURE= _ENTRY_PAD= \
+              _REGISTRATION= _SOURCE= _DEVIATION=; do
+              grep -q "^${prefix}${field}" late-level/audit-summary.txt
+            done
+          done
+          python3 -B - <<'PY'
+          import json, struct
+          from pathlib import Path
+          root = Path('late-level')
+          summary = (root / 'audit-summary.txt').read_text()
+          assert 'PAIR_DIFF=DELAY_CONSTANT_ONLY' in summary
+          for family in ('late_mid', 'late_low', 'late_high'):
+              identity = json.loads((root / family / 'pair' / 'pair.json').read_text())
+              p8 = (root / family / 'pair' / '8' / 'checkpoint' / 'payload.bin').read_bytes()
+              p1 = (root / family / 'pair' / '1' / 'checkpoint' / 'payload.bin').read_bytes()
+              m8 = json.loads((root / family / 'pair' / '8' / 'checkpoint'
+                               / 'manifest.json').read_text())
+              m1 = json.loads((root / family / 'pair' / '1' / 'checkpoint'
+                               / 'manifest.json').read_text())
+              assert identity['delay8_name'] == f"LATE_{m8['family'].split('_')[1].upper()}8"
+              offset, window = m8['offset'], m8['checkpoint_size']
+              assert m8['checkpoint_size'] == m1['checkpoint_size']
+              assert m8['core_size'] == m1['core_size'] in (52, 56)
+              assert m8['inline_only'] is True and m8['trampoline_permitted'] is False
+              assert m8['prel32_target_unchanged'] is True
+              changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
+              assert changed == identity['changed_offsets']
+              slot = 8 if m8['core_size'] == 56 else 4
+              assert changed == [offset + 4 + slot + 1, offset + 4 + slot + 2], changed
+              assert p8[:offset] == p1[:offset]
+              assert p8[offset + window:] == p1[offset + window:]
+              assert struct.unpack_from('<I', p8, offset + 4 + slot)[0] == 0xD37DF12A
+              assert struct.unpack_from('<I', p1, offset + 4 + slot)[0] == 0xD340FD2A
+              print(f"{family}: index={m8['span_index']} symbol={m8['target_symbol']} "
+                    f"window={window} core={m8['core_size']} pair=DELAY_CONSTANT_ONLY")
+          PY
+      - name: Assert public payload-only scope and write job summary
+        run: |
+          set -euo pipefail
+          if find late-level -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          printf '%s\n' 'PRIVATE_PACK=NO' 'DEVICE_OPERATION=NO' 'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' 'LOCAL_BUILD=NO' 'LOCAL_IMAGE_GENERATION=NO'
+          {
+            echo '## Late level (level-7) MID/LOW/HIGH failure isolation'
+            echo '```'
+            cat late-level/audit-summary.txt
+            echo '```'
+            for family in late_mid late_low late_high; do
+              echo "- $family pair identity:"
+              cat "late-level/$family/pair/pair.json"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-late-level-isolation-logs
+          path: |
+            late-level.log
+            ultracompact-*.log
+            subsys52-*.log
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-late-level-isolation-map-and-audits
+          path: |
+            late-level/late-map.json
+            late-level/selection.json
+            late-level/audit-summary.txt
+            late-level/*/original-function.txt
+            late-level/*/original-window.txt
+            late-level/*/target-entry-audit.json
+            late-level/*/window-agreement.json
+            late-level/*/table-*.bin
+            late-level/*/pair/pair.json
+            late-level/*/pair/*/checkpoint/manifest.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-late-level-isolation-pairs
+          path: late-level/
+          if-no-files-found: error

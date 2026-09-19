@@ -1,0 +1,117 @@
+name: thyme-slot-b-late-level-observer-fixtures
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - scripts/slot_b/late_level_observer_fixtures.py
+      - scripts/slot_b/test_late_level_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-late-level-observer-fixtures.yml
+  pull_request:
+    paths:
+      - scripts/slot_b/late_level_observer_fixtures.py
+      - scripts/slot_b/test_late_level_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-late-level-observer-fixtures.yml
+  workflow_dispatch:
+    inputs:
+      family:
+        description: Late-level family to verify (mid|low|high); identities must be frozen
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thyme-slot-b-late-level-observer-fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  observer-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      FAMILY: ${{ inputs.family }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Lint workflow
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-late-level-observer-fixtures.yml
+      - name: Source unit tests (identity, geometry, verdict routes)
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/slot_b/observe.py \
+            scripts/slot_b/late_level_observer_fixtures.py \
+            scripts/slot_b/test_late_level_observer_fixtures.py
+          (cd scripts/slot_b && python3 -B -m unittest test_late_level_observer_fixtures.py -v) \
+            2>&1 | tee late-level-observer-unit-tests.log
+      - name: GHA-only PUBLIC observer fixtures for the dispatched family
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          case "$FAMILY" in
+            mid) LABEL=LATE_MID; INDEX=43 ;;
+            low) LABEL=LATE_LOW; INDEX=21 ;;
+            high) LABEL=LATE_HIGH; INDEX=63 ;;
+            *) echo "unknown family $FAMILY" >&2; exit 1 ;;
+          esac
+          python3 -B scripts/slot_b/late_level_observer_fixtures.py --family "$FAMILY" \
+            | tee late-level-observer-fixtures.txt
+          for gate in \
+            "${LABEL}8_EXACT_FULL_SHA_ACCEPT=PASS" \
+            "${LABEL}1_EXACT_FULL_SHA_ACCEPT=PASS" \
+            "${LABEL}_WRONG_SIZE_REJECT=PASS" \
+            "${LABEL}_WRONG_SHA_REJECT=PASS" \
+            "${LABEL}8_REJECTS_${LABEL}1_SWAP=PASS" \
+            "${LABEL}1_REJECTS_${LABEL}8_SWAP=PASS" \
+            "${LABEL}8_WRONG_DELAY_MUTANT_REJECT=PASS" \
+            "${LABEL}1_WRONG_DELAY_MUTANT_REJECT=PASS" \
+            "${LABEL}_CROSS_IDENTITY_REJECTION=PASS" \
+            "${LABEL}_60B_INLINE_GEOMETRY=PASS" \
+            "${LABEL}_56B_NEGATIVE_FIXTURE=PASS" \
+            "${LABEL}_52B_NEGATIVE_FIXTURE=PASS" \
+            "${LABEL}_64B_NEGATIVE_FIXTURE=PASS" \
+            "${LABEL}_INDEX${INDEX}_TABLE_GATE=PASS" \
+            "${LABEL}_PACIASP_56B_ULTRACOMPACT=PASS" \
+            "${LABEL}_PREL32_UNCHANGED=PASS" \
+            "${LABEL}_PAIR_DIFF_DELAY_CONSTANT_ONLY=PASS" \
+            "${LABEL}_WRONG_PAIR_DIFF_NEGATIVE_FIXTURE=PASS" \
+            "${LABEL}_STRONG_PROVES_TARGET_ENTRY=PASS" \
+            "${LABEL}_LATER_LATE_CONSOLE_INIT_REMAIN_NOT_PROVEN=PASS" \
+            "${LABEL}_SUPPORTED_GRADE=PASS" \
+            "${LABEL}_NO_SHIFT_DOES_NOT_CLAIM_NOT_REACHED=PASS" \
+            "${LABEL}_OBSERVER_FIXTURES=PASS" \
+            DEVICE_OPERATION=NO; do
+            grep -Fxq "$gate" late-level-observer-fixtures.txt
+          done
+          test "$(grep -E "^${LABEL}_CROSS_IDENTITY_REJECTIONS=[0-9]+$" late-level-observer-fixtures.txt \
+            | cut -d= -f2)" -ge 96
+          printf '%s\n' \
+            'LATE_LEVEL_OBSERVER_GATES=PASS' \
+            "FAMILY=$FAMILY" \
+            'DEVICE_OPERATION=NO' \
+            'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' \
+            | tee late-level-observer-gates.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-late-level-observer-unit-tests
+          path: late-level-observer-unit-tests.log
+          if-no-files-found: error
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: thyme-slot-b-late-level-observer-fixtures
+          path: |
+            late-level-observer-fixtures.txt
+            late-level-observer-gates.txt
+          if-no-files-found: error
+          retention-days: 90
