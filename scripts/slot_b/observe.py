@@ -64,6 +64,12 @@ IMAGES = {
     "waitentry1": (37380096, "8b422262aa73809a2258ecb7e8a3e36941eff683ed8cb2b3cce16dd4072d530e"),
     "waitret8": (37380096, "2c589a61933d8f657e0ac08374c6038d0624807f11c6acb22fc1851ca0b9cb2a"),
     "waitret1": (37380096, "0a67761550906d05e602be83afe6b2f5e10cf4d222bdcc3bdc65e24fb950d2c8"),
+    "late_mid8": (37380096, "9f8f164cea838ee5ea3b572922cc40d9a9ab0ca022077b92b3a7152dfbe040d5"),
+    "late_mid1": (37380096, "f0f0abbbfd1b7e586dbd542160dd2f55f43d0303430b0cd7cefb2c788bb77e37"),
+    "late_low8": (37380096, "911903f143ae773de57bed04a974e8d3d39c76d48605bbe1855051affcc2d2db"),
+    "late_low1": (37380096, "536459c464c4576e684fd5080ba41e1c8f40a010b6d520d948737ef36914cb4a"),
+    "late_high8": (37380096, "b5da8e368df68ead77d9f702ff0c668d09413413c932f15a053e722843fd8629"),
+    "late_high1": (37380096, "7b95a512fdb917fe39ed9991c7c2bb361929ca71b354b33146892e85120555cc"),
     }
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
@@ -90,6 +96,9 @@ PAIRS = {
     "late_devprobe1": ("late_devprobe8", "device_initcalls_completed", "late_initcalls_completed"),
     "waitentry1": ("waitentry8", "late_initcalls_completed", "wait_for_initramfs_return"),
     "waitret1": ("waitret8", "wait_for_initramfs_return", "console_on_rootfs_entry"),
+    "late_mid1": ("late_mid8", "late_mid_entry", "late_initcalls_completed"),
+    "late_low1": ("late_low8", "late_low_entry", "late_initcalls_completed"),
+    "late_high1": ("late_high8", "late_high_entry", "late_initcalls_completed"),
     }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -790,6 +799,36 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(wait_ret_checkpoint_shift_not_observed="YES")
+    elif second == "late_mid1":
+        out.update(late_mid_entry=grade,
+                   integrity_fs_init_entry=grade,
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   init_executed="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(late_mid_checkpoint_shift_not_observed="YES")
+    elif second == "late_low1":
+        out.update(late_low_entry=grade,
+                   kexec_core_sysctl_init_entry=grade,
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   init_executed="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(late_low_checkpoint_shift_not_observed="YES")
+    elif second == "late_high1":
+        out.update(late_high_entry=grade,
+                   bpf_kfunc_init_entry=grade,
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   init_executed="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(late_high_checkpoint_shift_not_observed="YES")
     return out
 
 

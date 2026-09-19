@@ -56,9 +56,11 @@ class FrozenRegistryTests(unittest.TestCase):
             self.assertIn(family + "8", observe.IMAGES)
             self.assertIn(family + "1", observe.IMAGES)
 
-    def test_late_level_families_not_yet_in_observe_registry(self):
+    def test_late_level_families_frozen_in_observe_registry(self):
         for case in lf.MEMBERS:
-            self.assertNotIn(case, observe.IMAGES)
+            family, delay = case[:-1], case[-1]
+            self.assertEqual(observe.IMAGES[case],
+                             (37380096, lf.FROZEN_IDENTITIES[family][delay]))
 
 
 class GeometryTests(unittest.TestCase):
@@ -127,10 +129,14 @@ class IdentityTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "IMAGE_IDENTITY_MISMATCH"):
                         lf.validate_member(case, *lf.member_identity(sibling))
 
-    def test_unfrozen_identity_is_rejected(self):
+    def test_all_identities_frozen(self):
         for case in lf.MEMBERS:
-            with self.assertRaisesRegex(ValueError, "LATE_LEVEL_IDENTITY_NOT_FROZEN"):
-                lf.member_identity(case)
+            family, delay = case[:-1], case[-1]
+            self.assertEqual(lf.member_identity(case),
+                             (37380096, lf.FROZEN_IDENTITIES[family][delay]))
+            self.assertTrue(all(lf.FROZEN_IDENTITIES[f][d]
+                                for f in lf.FROZEN_IDENTITIES
+                                for d in ("8", "1")))
 
     def test_non_late_level_cases_rejected(self):
         with patch.dict(lf.FROZEN_IDENTITIES, SYNTHETIC):

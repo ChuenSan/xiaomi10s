@@ -16,12 +16,12 @@ SUPPORTED_ERROR_SECONDS = 2.0
 # Frozen boot identities (37380096 each). Plug-in points: fill from the private
 # pack run pair-identity.txt (LATE_<F><D>_BOOT_SHA256) before the observer
 # fixtures or the device round run; a family stays unrunnable until frozen.
-LATE_MID8_SHA = ""
-LATE_MID1_SHA = ""
-LATE_LOW8_SHA = ""
-LATE_LOW1_SHA = ""
-LATE_HIGH8_SHA = ""
-LATE_HIGH1_SHA = ""
+LATE_MID8_SHA = "9f8f164cea838ee5ea3b572922cc40d9a9ab0ca022077b92b3a7152dfbe040d5"
+LATE_MID1_SHA = "f0f0abbbfd1b7e586dbd542160dd2f55f43d0303430b0cd7cefb2c788bb77e37"
+LATE_LOW8_SHA = "911903f143ae773de57bed04a974e8d3d39c76d48605bbe1855051affcc2d2db"
+LATE_LOW1_SHA = "536459c464c4576e684fd5080ba41e1c8f40a010b6d520d948737ef36914cb4a"
+LATE_HIGH8_SHA = "b5da8e368df68ead77d9f702ff0c668d09413413c932f15a053e722843fd8629"
+LATE_HIGH1_SHA = "7b95a512fdb917fe39ed9991c7c2bb361929ca71b354b33146892e85120555cc"
 FROZEN_IDENTITIES = {
     "late_mid": {"8": LATE_MID8_SHA, "1": LATE_MID1_SHA},
     "late_low": {"8": LATE_LOW8_SHA, "1": LATE_LOW1_SHA},
