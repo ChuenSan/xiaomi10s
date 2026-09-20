@@ -1,0 +1,16 @@
+018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634  /dev/block/by-name/dtbo_a
+018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634  /dev/block/by-name/dtbo_b
+6275271d3ec40e10b4ddc78b3051435754671b7458c928f21a7dc77a03f96adb  /dev/block/by-name/vbmeta_system_a
+6275271d3ec40e10b4ddc78b3051435754671b7458c928f21a7dc77a03f96adb  /dev/block/by-name/vbmeta_system_b
+972d3009a37c7f948a89278c0cc7495d3745e9690f79d4ebf72c1f0457efb82d  /dev/block/by-name/vbmeta_a
+972d3009a37c7f948a89278c0cc7495d3745e9690f79d4ebf72c1f0457efb82d  /dev/block/by-name/vbmeta_b
+9ba101d6e24a19624922a65b248a92f16163d1c05878c626ed76e5829d10361e  /dev/block/by-name/abl_a
+9ba101d6e24a19624922a65b248a92f16163d1c05878c626ed76e5829d10361e  /dev/block/by-name/abl_b
+aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972  /dev/block/by-name/vendor_boot_a
+aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972  /dev/block/by-name/vendor_boot_b
+b7f9b3d8287e21275b3f275eb02de9e514f96f0d1447dace059d5f7baf927ecf  /dev/block/by-name/boot_a
+cdfaa09f4ac48f19078120bd17e089ec6e74294fbaf1e981a624f797383261f5  /dev/block/by-name/xbl_a
+cdfaa09f4ac48f19078120bd17e089ec6e74294fbaf1e981a624f797383261f5  /dev/block/by-name/xbl_b
+cedb7b77e47099ecd73b71f3a93acf356552d91cdafe3ba3903015d0baa0b7de  /dev/block/by-name/boot_b
+f2b80048d698edda3a56e6d6735c7ceee0dd85cd6ba6db3d4e0fc433040b4711  /dev/block/by-name/tz_a
+f2b80048d698edda3a56e6d6735c7ceee0dd85cd6ba6db3d4e0fc433040b4711  /dev/block/by-name/tz_b

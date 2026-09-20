@@ -1,0 +1,21 @@
+=== bootloader-preflight-btic51-pre2 2026-09-20T09:20:20Z ===
+product: thyme
+Finished. Total time: 0.002s
+unlocked: yes
+Finished. Total time: 0.001s
+current-slot: a
+Finished. Total time: 0.002s
+slot-count: 2
+Finished. Total time: 0.002s
+snapshot-update-status: none
+Finished. Total time: 0.003s
+battery-soc-ok: yes
+Finished. Total time: 0.001s
+max-download-size: 805306368
+Finished. Total time: 0.003s
+slot-unbootable:b: no
+Finished. Total time: 0.003s
+slot-retry-count:b: 6
+Finished. Total time: 0.003s
+slot-successful:a: yes
+Finished. Total time: 0.003s

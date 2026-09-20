@@ -1,0 +1,8 @@
+=== android-a-restore-post1 2026-09-20T09:22:07Z ===
+List of devices attached
+41a5627b               device usb:34676736X product:thyme model:M2102J2SC device:thyme transport_id:19
+
+slot_suffix=_a
+boot_completed=1
+uname=4.19.157-perf-g9d90dd04aa7c
+su=uid=0(root) gid=0(root) groups=0(root) context=u:r:magisk:s0

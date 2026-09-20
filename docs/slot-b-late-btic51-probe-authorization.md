@@ -58,18 +58,21 @@ are rejected. Design is legal with SCTLR_EL1.BT1 on or off.
 Payloads: `BTIC51_8` `ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef`,
 `BTIC51_1` `49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e`.
 
-## Runtime evidence (unchanged)
+## Runtime evidence
 
-`LATEST_PROVEN_LATE_INDEX=50`. `LATE_INITCALLS_COMPLETED`,
+`LATEST_PROVEN_LATE_INDEX=51` after the authorized device pair
+`MAINLINE_V2_R3_SLOT_B_LATE_INDEX51_BTIC_DEVICE_PAIR` (STRONG).
+
+`LATE_INITCALLS_COMPLETED`,
 `WAIT_FOR_INITRAMFS_ENTRY`, `WAIT_FOR_INITRAMFS_RETURN`,
 `CONSOLE_ON_ROOTFS`, `INIT_EXECUTED` stay `NOT_PROVEN`. `LATE_HIGH1`
-stays `NOT_EXECUTED`. No device boot, `PARTITION_WRITES=0`,
-`SLOT_A_WRITTEN=NO`. Dirty worktree `/Volumes/LinuxDev/thyme-mainline`
-@`5550dc2` untouched.
+stays `NOT_EXECUTED`. `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`.
+Dirty worktree `/Volumes/LinuxDev/thyme-mainline` @`5550dc2` untouched.
 
-## Next
+## Device pair (executed 2026-09-20)
 
-After explicit user authorization only:
-`MAINLINE_V2_R3_SLOT_B_LATE_INDEX51_BTIC_DEVICE_PAIR` — one RAM-only Slot B
-boot per member. STRONG would advance `LATEST_PROVEN_LATE_INDEX` to 51.
-This round does **not** auto-switch to index 54 `.text`.
+`BTIC51_8_TOTAL=35.551408125s`, `BTIC51_1_TOTAL=28.333194917s`,
+`PAIR_DELTA=-7.218213208s`, `PAIR_ERROR=-0.218213208s` → **STRONG**.
+`SETUP_VCPU_HOTPLUG_EVENT_ENTRY=PROVEN`. Next interval `51..55`.
+`late_btic518`/`late_btic511` rerun-FORBIDDEN. Round details:
+docs/slot-b-late-btic51-device-round.md.
