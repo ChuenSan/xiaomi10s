@@ -354,8 +354,6 @@ class PinnedSelection(unittest.TestCase):
         self.assertIn("INCOMING_WINDOW_INTERIOR_BRANCH", record["fail_reasons"])
 
     def test_incoming_into_unscanned_tail_rejected(self):
-        """The original 4-byte tail was never scanned; a branch to entry+60
-        must fail the extended 64-byte INCOMING_BRANCH gate."""
         entries, ctx, targets, offsets = synth_world(sizes={0: 64},
                                                      entry_words={0: BTI_C})
         image = bytearray(ctx["frozen"])
