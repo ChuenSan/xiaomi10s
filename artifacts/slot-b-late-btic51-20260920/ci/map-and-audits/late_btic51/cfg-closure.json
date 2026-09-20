@@ -1,0 +1,31 @@
+{
+  "candidate_window_length": 60,
+  "function_size": 64,
+  "window_derivation": "TARGET_CFG",
+  "internal_branch_sources": [
+    "0xffff800081b8713c"
+  ],
+  "internal_branch_targets": [
+    "0xffff800081b87168"
+  ],
+  "overwritten_sources": [
+    {
+      "source": "0xffff800081b8713c",
+      "target": "0xffff800081b87168",
+      "source_offset": "0xc",
+      "target_offset": "0x38"
+    }
+  ],
+  "surviving_sources": [],
+  "targets_in_overwritten_region": [
+    {
+      "source": "0xffff800081b8713c",
+      "target": "0xffff800081b87168",
+      "source_offset": "0xc",
+      "target_offset": "0x38"
+    }
+  ],
+  "back_edges": [],
+  "surviving_into_interior": [],
+  "cfg_closure_proven": true
+}

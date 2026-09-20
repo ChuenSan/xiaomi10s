@@ -1,0 +1,645 @@
+private-pack	Set up job	﻿2026-09-20T02:41:27.6293481Z Current runner version: '2.337.0'
+private-pack	Set up job	2026-09-20T02:41:27.6320055Z ##[group]Runner Image Provisioner
+private-pack	Set up job	2026-09-20T02:41:27.6321192Z Hosted Compute Agent
+private-pack	Set up job	2026-09-20T02:41:27.6321893Z Version: 20260828.587
+private-pack	Set up job	2026-09-20T02:41:27.6322669Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+private-pack	Set up job	2026-09-20T02:41:27.6323517Z Build Date: 2026-08-28T16:44:25Z
+private-pack	Set up job	2026-09-20T02:41:27.6324580Z Worker ID: {4dbc32e0-6aa2-4740-b679-c25b95e15019}
+private-pack	Set up job	2026-09-20T02:41:27.6325567Z Azure Region: westus3
+private-pack	Set up job	2026-09-20T02:41:27.6326190Z ##[endgroup]
+private-pack	Set up job	2026-09-20T02:41:27.6328403Z ##[group]Operating System
+private-pack	Set up job	2026-09-20T02:41:27.6329183Z Ubuntu
+private-pack	Set up job	2026-09-20T02:41:27.6329770Z 24.04.5
+private-pack	Set up job	2026-09-20T02:41:27.6330390Z LTS
+private-pack	Set up job	2026-09-20T02:41:27.6330956Z ##[endgroup]
+private-pack	Set up job	2026-09-20T02:41:27.6331556Z ##[group]Runner Image
+private-pack	Set up job	2026-09-20T02:41:27.6332285Z Image: ubuntu-24.04
+private-pack	Set up job	2026-09-20T02:41:27.6332938Z Version: 20260907.300.1
+private-pack	Set up job	2026-09-20T02:41:27.6334487Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260907.300/images/ubuntu/Ubuntu2404-Readme.md
+private-pack	Set up job	2026-09-20T02:41:27.6336510Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260907.300
+private-pack	Set up job	2026-09-20T02:41:27.6337644Z ##[endgroup]
+private-pack	Set up job	2026-09-20T02:41:27.6339003Z ##[group]GITHUB_TOKEN Permissions
+private-pack	Set up job	2026-09-20T02:41:27.6341339Z Actions: read
+private-pack	Set up job	2026-09-20T02:41:27.6342025Z Contents: read
+private-pack	Set up job	2026-09-20T02:41:27.6342760Z Metadata: read
+private-pack	Set up job	2026-09-20T02:41:27.6343393Z ##[endgroup]
+private-pack	Set up job	2026-09-20T02:41:27.6346072Z Secret source: Actions
+private-pack	Set up job	2026-09-20T02:41:27.6347317Z Cache mode: write
+private-pack	Set up job	2026-09-20T02:41:27.6348075Z Prepare workflow directory
+private-pack	Set up job	2026-09-20T02:41:27.6885757Z Prepare all required actions
+private-pack	Set up job	2026-09-20T02:41:27.6958705Z Getting action download info
+private-pack	Set up job	2026-09-20T02:41:28.0764969Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+private-pack	Set up job	2026-09-20T02:41:28.4826741Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+private-pack	Set up job	2026-09-20T02:41:28.8449726Z Complete job name: private-pack
+private-pack	Pull rhysd/actionlint:latest	﻿2026-09-20T02:41:28.8839317Z ##[group]Pull down action image 'rhysd/actionlint:latest'
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:28.8940354Z ##[command]/usr/bin/docker pull rhysd/actionlint:latest
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:29.8167390Z latest: Pulling from rhysd/actionlint
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.0398694Z 589002ba0eae: Pulling fs layer
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.0400603Z c09af8888d6a: Pulling fs layer
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.0401507Z 4ccd7d76ca98: Pulling fs layer
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.0402832Z b6b4b7b0e257: Pulling fs layer
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.0412284Z b6b4b7b0e257: Waiting
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.2725215Z 589002ba0eae: Verifying Checksum
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.2726020Z 589002ba0eae: Download complete
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.2732267Z 4ccd7d76ca98: Verifying Checksum
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.2757723Z 4ccd7d76ca98: Download complete
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.2760586Z c09af8888d6a: Verifying Checksum
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.2761471Z c09af8888d6a: Download complete
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.3640999Z 589002ba0eae: Pull complete
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.6328760Z b6b4b7b0e257: Verifying Checksum
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.6330619Z b6b4b7b0e257: Download complete
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:30.9409654Z c09af8888d6a: Pull complete
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:31.2606925Z 4ccd7d76ca98: Pull complete
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:32.2164313Z b6b4b7b0e257: Pull complete
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:32.2238175Z Digest: sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:32.2318108Z Status: Downloaded newer image for rhysd/actionlint:latest
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:32.2343682Z docker.io/rhysd/actionlint:latest
+private-pack	Pull rhysd/actionlint:latest	2026-09-20T02:41:32.2376861Z ##[endgroup]
+private-pack	Run actions/checkout@v4	﻿2026-09-20T02:41:32.2672893Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2679591Z ##[group]Run actions/checkout@v4
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2680019Z with:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2680282Z   path: private
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2680585Z   clean: false
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2681132Z   persist-credentials: false
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2681504Z   repository: ChuenSan/thyme-mainline-private-ci
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2683930Z   token: ***
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2684340Z   ssh-strict: true
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2684643Z   ssh-user: git
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2684938Z   sparse-checkout-cone-mode: true
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2685243Z   fetch-depth: 1
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2685511Z   fetch-tags: false
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2685774Z   show-progress: true
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2686047Z   lfs: false
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2686422Z   submodules: false
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2686701Z   set-safe-directory: true
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2686995Z   allow-unsafe-pr-checkout: false
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2687481Z env:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2687771Z   PUBLIC_REPO: ChuenSan/xiaomi10s
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2688143Z   PUBLIC_PAIRS_ARTIFACT: thyme-late-btic51-authorization-pairs
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2688522Z   M5D_RUN_ID: 34487382191
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2688970Z   M5D_ARTIFACT: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2689507Z   M5D_BOOT: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2690014Z   M5D_SHA: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2690452Z   FIX8_PAYLOAD_RUN: 34741153230
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2690870Z   FIX8_PAYLOAD_SHA: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2691299Z   FIX8_BOOT_RUN: 34744041027
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2691670Z   FIX8_BOOT_ARTIFACT: thyme-r3-p1b-fix8-fix24-boot
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2692168Z   FIX8_BOOT_SHA: ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.2692572Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.3778490Z Syncing repository: ChuenSan/thyme-mainline-private-ci
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.3780626Z ##[group]Getting Git version info
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.3781753Z Working directory is '/home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/private'
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.3791160Z [command]/usr/bin/git version
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.4735169Z git version 2.55.0
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.4738736Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.4754354Z Temporarily overriding HOME='/home/runner/work/_temp/ccbc529a-fe30-472f-b1b8-0204792c1b36' before making global git config changes
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.4756399Z Adding repository directory to the temporary git global config as a safe directory
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.4763416Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/private
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.4811363Z ##[group]Initializing the repository
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.4816078Z [command]/usr/bin/git init /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/private
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5531315Z hint: Using 'master' as the name for the initial branch. This default branch name
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5532566Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5533655Z hint: to use in all of your new repositories, which will suppress this warning,
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5535826Z hint: call:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5537832Z hint:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5539797Z hint: 	git config --global init.defaultBranch <name>
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5540295Z hint:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5540860Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5541624Z hint: 'development'. The just-created branch can be renamed via this command:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5542224Z hint:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5542644Z hint: 	git branch -m <name>
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5543626Z hint:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5544347Z hint: Disable this message with "git config set advice.defaultBranchName false"
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5545452Z Initialized empty Git repository in /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/private/.git/
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5547963Z [command]/usr/bin/git remote add origin https://github.com/ChuenSan/thyme-mainline-private-ci
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5588551Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5589461Z ##[group]Disabling automatic garbage collection
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5591819Z [command]/usr/bin/git config --local gc.auto 0
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5620603Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5621524Z ##[group]Setting up auth
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5626481Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5654629Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5970622Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.5997323Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.6168765Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.6197262Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.6465095Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.6468411Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.6469287Z ##[group]Fetching the repository
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:32.6470411Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +523614d1898a391bb6f22dc077579e0d7cb53048:refs/remotes/origin/main
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3286543Z From https://github.com/ChuenSan/thyme-mainline-private-ci
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3288239Z  * [new ref]         523614d1898a391bb6f22dc077579e0d7cb53048 -> origin/main
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3290853Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3291655Z ##[group]Determining the checkout info
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3293438Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3299840Z [command]/usr/bin/git sparse-checkout disable
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3346726Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3371707Z ##[group]Checking out the ref
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3375814Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3477198Z Switched to a new branch 'main'
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3481402Z branch 'main' set up to track 'origin/main'.
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3507669Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3524873Z [command]/usr/bin/git log -1 --format=%H
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3545784Z 523614d1898a391bb6f22dc077579e0d7cb53048
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3565313Z ##[group]Removing auth
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3576661Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3595772Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3865116Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3882215Z http.https://github.com/.extraheader
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3905066Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.3945834Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4124891Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4155327Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4331671Z ##[endgroup]
+private-pack	Run actions/checkout@v4	﻿2026-09-20T02:41:33.4555147Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4557296Z ##[group]Run actions/checkout@v4
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4557646Z with:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4557941Z   repository: ChuenSan/xiaomi10s
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4558343Z   ref: bcddf53692d35d06bf4ceb5f92a6de81568b3ce4
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4558736Z   path: source
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4559100Z   clean: false
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4559406Z   persist-credentials: false
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4561933Z   token: ***
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4562249Z   ssh-strict: true
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4562536Z   ssh-user: git
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4562825Z   sparse-checkout-cone-mode: true
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4563225Z   fetch-depth: 1
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4563537Z   fetch-tags: false
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4563850Z   show-progress: true
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4564518Z   lfs: false
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4564823Z   submodules: false
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4565120Z   set-safe-directory: true
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4565472Z   allow-unsafe-pr-checkout: false
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4565823Z env:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4566106Z   PUBLIC_REPO: ChuenSan/xiaomi10s
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4566513Z   PUBLIC_PAIRS_ARTIFACT: thyme-late-btic51-authorization-pairs
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4566945Z   M5D_RUN_ID: 34487382191
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4567472Z   M5D_ARTIFACT: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4568128Z   M5D_BOOT: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4568648Z   M5D_SHA: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4569108Z   FIX8_PAYLOAD_RUN: 34741153230
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4569582Z   FIX8_PAYLOAD_SHA: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4570104Z   FIX8_BOOT_RUN: 34744041027
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4570476Z   FIX8_BOOT_ARTIFACT: thyme-r3-p1b-fix8-fix24-boot
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4570977Z   FIX8_BOOT_SHA: ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.4571479Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5404234Z Syncing repository: ChuenSan/xiaomi10s
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5408264Z ##[group]Getting Git version info
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5418621Z Working directory is '/home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/source'
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5432958Z [command]/usr/bin/git version
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5484889Z git version 2.55.0
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5523691Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5526042Z Temporarily overriding HOME='/home/runner/work/_temp/ca601345-c12f-4e3c-afc9-8f4bef6e425b' before making global git config changes
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5527194Z Adding repository directory to the temporary git global config as a safe directory
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5536501Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/source
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5591826Z ##[group]Initializing the repository
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5592827Z [command]/usr/bin/git init /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/source
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5786973Z hint: Using 'master' as the name for the initial branch. This default branch name
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5794915Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5809205Z hint: to use in all of your new repositories, which will suppress this warning,
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5810062Z hint: call:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5810757Z hint:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5811359Z hint: 	git config --global init.defaultBranch <name>
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5811999Z hint:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5812703Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5813607Z hint: 'development'. The just-created branch can be renamed via this command:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5814471Z hint:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5815274Z hint: 	git branch -m <name>
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5815935Z hint:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5816610Z hint: Disable this message with "git config set advice.defaultBranchName false"
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5818002Z Initialized empty Git repository in /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/source/.git/
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5820105Z [command]/usr/bin/git remote add origin https://github.com/ChuenSan/xiaomi10s
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5871217Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5885281Z ##[group]Disabling automatic garbage collection
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5889067Z [command]/usr/bin/git config --local gc.auto 0
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5915912Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5918173Z ##[group]Setting up auth
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5918939Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.5986783Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.6251248Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.6297058Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.6551093Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.6577308Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.6743711Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.6772997Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.6774241Z ##[group]Fetching the repository
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:33.6781135Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin bcddf53692d35d06bf4ceb5f92a6de81568b3ce4
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.0916748Z From https://github.com/ChuenSan/xiaomi10s
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.0918563Z  * branch            bcddf53692d35d06bf4ceb5f92a6de81568b3ce4 -> FETCH_HEAD
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.0921562Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.0922236Z ##[group]Determining the checkout info
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.0922895Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.0961113Z [command]/usr/bin/git sparse-checkout disable
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.0979482Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.0998470Z ##[group]Checking out the ref
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.1002383Z [command]/usr/bin/git checkout --progress --force bcddf53692d35d06bf4ceb5f92a6de81568b3ce4
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4591062Z Note: switching to 'bcddf53692d35d06bf4ceb5f92a6de81568b3ce4'.
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4614687Z 
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4646927Z You are in 'detached HEAD' state. You can look around, make experimental
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4648236Z changes and commit them, and you can discard any commits you make in this
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4655323Z state without impacting any branches by switching back to a branch.
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4658931Z 
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4659747Z If you want to create a new branch to retain commits you create, you may
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4660542Z do so (now or later) by using -c with the switch command. Example:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4661146Z 
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4661522Z   git switch -c <new-branch-name>
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4662123Z 
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4662450Z Or undo this operation with:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4662962Z 
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4663245Z   git switch -
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4663794Z 
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4664706Z Turn off this advice by setting config variable advice.detachedHead to false
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4667601Z 
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4668322Z HEAD is now at bcddf53 r3(slot-b): drop source-test docstring that split unittest ok onto the next line
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4670562Z ##[endgroup]
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4671975Z [command]/usr/bin/git log -1 --format=%H
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4695236Z bcddf53692d35d06bf4ceb5f92a6de81568b3ce4
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4697605Z ##[group]Removing auth
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4698854Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4766297Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4926868Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4945462Z http.https://github.com/.extraheader
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4947295Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.4976556Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.5139519Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.5162072Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+private-pack	Run actions/checkout@v4	2026-09-20T02:41:37.5345500Z ##[endgroup]
+private-pack	Assert private CI-only scope and public run identity	﻿2026-09-20T02:41:37.5468140Z ##[group]Run set -euo pipefail
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5468669Z ^[[36;1mset -euo pipefail^[[0m
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5469091Z ^[[36;1mtest "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" = true^[[0m
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5469697Z ^[[36;1mtest "$(git -C source rev-parse HEAD)" = 'bcddf53692d35d06bf4ceb5f92a6de81568b3ce4'^[[0m
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5470438Z ^[[36;1mtest "$(gh api "repos/$PUBLIC_REPO/actions/runs/35484163146" --jq .head_sha)" = 'bcddf53692d35d06bf4ceb5f92a6de81568b3ce4'^[[0m
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5471177Z ^[[36;1mtest "$(gh api "repos/$PUBLIC_REPO/actions/runs/35484163146" --jq .conclusion)" = success^[[0m
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5471837Z ^[[36;1m[[ 'ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef' =~ ^[0-9a-f]{64}$ ]]^[[0m
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5472468Z ^[[36;1m[[ '49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e' =~ ^[0-9a-f]{64}$ ]]^[[0m
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5473105Z ^[[36;1mprintf '%s\n' 'LOCAL_BUILD=NO' 'PRIVATE_PACK=YES' 'KERNEL_REBUILD=NO' 'DEVICE_OPERATION=NO' \^[[0m
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5473744Z ^[[36;1m  'PARTITION_WRITES=0' 'SLOT_A_WRITTEN=NO'^[[0m
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5499945Z shell: /usr/bin/bash -e {0}
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5500271Z env:
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5500635Z   PUBLIC_REPO: ChuenSan/xiaomi10s
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5501038Z   PUBLIC_PAIRS_ARTIFACT: thyme-late-btic51-authorization-pairs
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5501444Z   M5D_RUN_ID: 34487382191
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5501965Z   M5D_ARTIFACT: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5502541Z   M5D_BOOT: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5503058Z   M5D_SHA: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5503468Z   FIX8_PAYLOAD_RUN: 34741153230
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5503889Z   FIX8_PAYLOAD_SHA: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5504459Z   FIX8_BOOT_RUN: 34744041027
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5504799Z   FIX8_BOOT_ARTIFACT: thyme-r3-p1b-fix8-fix24-boot
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5505295Z   FIX8_BOOT_SHA: ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5508015Z   GH_TOKEN: ***
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:37.5508306Z ##[endgroup]
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:39.3015524Z LOCAL_BUILD=NO
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:39.3016206Z PRIVATE_PACK=YES
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:39.3016777Z KERNEL_REBUILD=NO
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:39.3017258Z DEVICE_OPERATION=NO
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:39.3017616Z PARTITION_WRITES=0
+private-pack	Assert private CI-only scope and public run identity	2026-09-20T02:41:39.3018019Z SLOT_A_WRITTEN=NO
+private-pack	Run rhysd/actionlint:latest	﻿2026-09-20T02:41:39.3057420Z ##[group]Run docker://rhysd/actionlint:latest
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3057831Z with:
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3058261Z   args: -color private/.github/workflows/thyme-slot-b-late-btic51-private-gate.yml
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3058729Z env:
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3059027Z   PUBLIC_REPO: ChuenSan/xiaomi10s
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3059414Z   PUBLIC_PAIRS_ARTIFACT: thyme-late-btic51-authorization-pairs
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3059931Z   M5D_RUN_ID: 34487382191
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3060457Z   M5D_ARTIFACT: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3061068Z   M5D_BOOT: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3061578Z   M5D_SHA: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3061989Z   FIX8_PAYLOAD_RUN: 34741153230
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3062424Z   FIX8_PAYLOAD_SHA: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3062873Z   FIX8_BOOT_RUN: 34744041027
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3063190Z   FIX8_BOOT_ARTIFACT: thyme-r3-p1b-fix8-fix24-boot
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3063803Z   FIX8_BOOT_SHA: ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3064429Z ##[endgroup]
+private-pack	Run rhysd/actionlint:latest	2026-09-20T02:41:39.3153928Z ##[command]/usr/bin/docker run --name rhysdactionlintlatest_81d82e --label dccb3c --workdir /github/workspace --rm -e "PUBLIC_REPO" -e "PUBLIC_PAIRS_ARTIFACT" -e "M5D_RUN_ID" -e "M5D_ARTIFACT" -e "M5D_BOOT" -e "M5D_SHA" -e "FIX8_PAYLOAD_RUN" -e "FIX8_PAYLOAD_SHA" -e "FIX8_BOOT_RUN" -e "FIX8_BOOT_ARTIFACT" -e "FIX8_BOOT_SHA" -e "INPUT_ARGS" -e "HOME" -e "GITHUB_JOB" -e "GITHUB_REF" -e "GITHUB_SHA" -e "GITHUB_REPOSITORY" -e "GITHUB_REPOSITORY_OWNER" -e "GITHUB_REPOSITORY_OWNER_ID" -e "GITHUB_RUN_ID" -e "GITHUB_RUN_NUMBER" -e "GITHUB_RETENTION_DAYS" -e "GITHUB_RUN_ATTEMPT" -e "GITHUB_ACTOR_ID" -e "GITHUB_ACTOR" -e "GITHUB_WORKFLOW" -e "GITHUB_HEAD_REF" -e "GITHUB_BASE_REF" -e "GITHUB_EVENT_NAME" -e "GITHUB_SERVER_URL" -e "GITHUB_API_URL" -e "GITHUB_GRAPHQL_URL" -e "GITHUB_REF_NAME" -e "GITHUB_REF_PROTECTED" -e "GITHUB_REF_TYPE" -e "GITHUB_WORKFLOW_REF" -e "GITHUB_WORKFLOW_SHA" -e "GITHUB_REPOSITORY_ID" -e "GITHUB_TRIGGERING_ACTOR" -e "GITHUB_WORKSPACE" -e "GITHUB_ACTION" -e "GITHUB_EVENT_PATH" -e "GITHUB_ACTION_REPOSITORY" -e "GITHUB_ACTION_REF" -e "GITHUB_PATH" -e "GITHUB_ENV" -e "GITHUB_STEP_SUMMARY" -e "GITHUB_STATE" -e "GITHUB_OUTPUT" -e "GITHUB_ARTIFACTS" -e "GITHUB_ARTIFACTS_LIST" -e "RUNNER_OS" -e "RUNNER_ARCH" -e "RUNNER_NAME" -e "RUNNER_ENVIRONMENT" -e "RUNNER_TOOL_CACHE" -e "RUNNER_TEMP" -e "RUNNER_WORKSPACE" -e "ACTIONS_RUNTIME_URL" -e "ACTIONS_RUNTIME_TOKEN" -e "ACTIONS_CACHE_URL" -e "ACTIONS_RESULTS_URL" -e "ACTIONS_CACHE_MODE" -e "ACTIONS_ORCHESTRATION_ID" -e GITHUB_ACTIONS=true -e CI=true -v "/var/run/docker.sock":"/var/run/docker.sock" -v "/home/runner/work/_temp":"/github/runner_temp" -v "/home/runner/work/_temp/_github_home":"/github/home" -v "/home/runner/work/_temp/_github_workflow":"/github/workflow" -v "/home/runner/work/_temp/_runner_file_commands":"/github/file_commands" -v "/home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci":"/github/workspace" rhysd/actionlint:latest -color private/.github/workflows/thyme-slot-b-late-btic51-private-gate.yml
+private-pack	Download checked public pair and frozen envelopes	﻿2026-09-20T02:41:42.7407460Z ##[group]Run set -euo pipefail
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7407881Z ^[[36;1mset -euo pipefail^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7408224Z ^[[36;1mgh run download '35484163146' -R "$PUBLIC_REPO" \^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7408619Z ^[[36;1m  -n "$PUBLIC_PAIRS_ARTIFACT" -D pair^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7409323Z ^[[36;1mprintf '%s  pair/late_btic51/pair/8/checkpoint/payload.bin\n' 'ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef' | sha256sum -c -^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7410227Z ^[[36;1mprintf '%s  pair/late_btic51/pair/1/checkpoint/payload.bin\n' '49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e' | sha256sum -c -^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7410823Z ^[[36;1mfor delay in 8 1; do^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7411280Z ^[[36;1m  test "$(jq -r .symbol "pair/late_btic51/pair/$delay/checkpoint/manifest.json")" = 'late_btic51'^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7411876Z ^[[36;1m  test "$(jq -r .family "pair/late_btic51/pair/$delay/checkpoint/manifest.json")" = 'late_btic51'^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7412570Z ^[[36;1m  test "$(jq -r .source_commit "pair/late_btic51/pair/$delay/checkpoint/manifest.json")" = 'bcddf53692d35d06bf4ceb5f92a6de81568b3ce4'^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7413313Z ^[[36;1mdone^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7413690Z ^[[36;1mtest "$(jq -r .delay8_name pair/late_btic51/pair/pair.json)" = 'BTIC51_8'^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7414869Z ^[[36;1mtest "$(jq -r .delay1_name pair/late_btic51/pair/pair.json)" = 'BTIC51_1'^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7415411Z ^[[36;1mtest "$(jq -r .attribution pair/late_btic51/pair/pair.json)" = 'DELAY_CONSTANT_ONLY'^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7415964Z ^[[36;1mtest "$(jq -r '.changed_offsets | length' pair/late_btic51/pair/pair.json)" = '2'^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7416432Z ^[[36;1mgh run download "$FIX8_PAYLOAD_RUN" -R "$PUBLIC_REPO" \^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7416800Z ^[[36;1m  -n thyme-r3-p1b-fix8-fix24 -D frozen^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7417357Z ^[[36;1mprintf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' "$FIX8_PAYLOAD_SHA" | sha256sum -c -^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7417961Z ^[[36;1mgh run download "$M5D_RUN_ID" -R "$GITHUB_REPOSITORY" -n "$M5D_ARTIFACT" -D seed^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7418453Z ^[[36;1mprintf '%s  seed/%s\n' "$M5D_SHA" "$M5D_BOOT" | sha256sum -c -^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7418971Z ^[[36;1mgh run download "$FIX8_BOOT_RUN" -R "$GITHUB_REPOSITORY" -n "$FIX8_BOOT_ARTIFACT" -D fix8-boot^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7419521Z ^[[36;1mprintf '%s  fix8-boot/thyme-r3-p1b-fix8-boot.img\n' "$FIX8_BOOT_SHA" | sha256sum -c -^[[0m
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7440555Z shell: /usr/bin/bash -e {0}
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7440935Z env:
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7441205Z   PUBLIC_REPO: ChuenSan/xiaomi10s
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7441563Z   PUBLIC_PAIRS_ARTIFACT: thyme-late-btic51-authorization-pairs
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7442026Z   M5D_RUN_ID: 34487382191
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7442471Z   M5D_ARTIFACT: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7443030Z   M5D_BOOT: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7443500Z   M5D_SHA: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7443891Z   FIX8_PAYLOAD_RUN: 34741153230
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7444528Z   FIX8_PAYLOAD_SHA: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7444994Z   FIX8_BOOT_RUN: 34744041027
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7445358Z   FIX8_BOOT_ARTIFACT: thyme-r3-p1b-fix8-fix24-boot
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7445800Z   FIX8_BOOT_SHA: ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7448262Z   GH_TOKEN: ***
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:42.7448569Z ##[endgroup]
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:45.3246728Z pair/late_btic51/pair/8/checkpoint/payload.bin: OK
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:45.3519675Z pair/late_btic51/pair/1/checkpoint/payload.bin: OK
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:48.0140434Z frozen/thyme-r3-p1b-fix8-kernel-payload.bin: OK
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:50.4134124Z seed/mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img: OK
+private-pack	Download checked public pair and frozen envelopes	2026-09-20T02:41:52.9857733Z fix8-boot/thyme-r3-p1b-fix8-boot.img: OK
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	﻿2026-09-20T02:41:52.9901782Z ##[group]Run set -euo pipefail
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9902710Z ^[[36;1mset -euo pipefail^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9903325Z ^[[36;1mpython3 private/scripts/late-btic51-pair-private-gates.py --mode public \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9904368Z ^[[36;1m  --kind late_btic51 --target setup_vcpu_hotplug_event \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9905455Z ^[[36;1m  --sha8 'ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef' --sha1 '49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e' \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9906552Z ^[[36;1m  --pair-root pair --fix8-payload frozen/thyme-r3-p1b-fix8-kernel-payload.bin \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9907258Z ^[[36;1m  | tee public-gates.txt^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9907712Z ^[[36;1mfor delay in 8 1; do^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9908148Z ^[[36;1m  member=BTIC51_8^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9908769Z ^[[36;1m  payload_sha='ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef'^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9909821Z ^[[36;1m  if test "$delay" = 1; then member=BTIC51_1; payload_sha='49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e'; fi^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9910829Z ^[[36;1m  mkdir -p "btic51-$delay-out"^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9911417Z ^[[36;1m  python3 source/scripts/r3-p1b/p1b-build.py --mode splice-boot \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9912323Z ^[[36;1m    --m5d-boot "seed/$M5D_BOOT" --m5d-sha "$M5D_SHA" \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9912967Z ^[[36;1m    --payload "pair/late_btic51/pair/$delay/checkpoint/payload.bin" \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9913677Z ^[[36;1m    --boot "btic51-$delay-out/thyme-late-btic51-$delay-boot.img"^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9914570Z ^[[36;1m  python3 source/scripts/r3-p1b/p1b-build.py --mode pack-gates \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9915221Z ^[[36;1m    --m5d-boot "seed/$M5D_BOOT" --m5d-sha "$M5D_SHA" \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9916064Z ^[[36;1m    --payload "pair/late_btic51/pair/$delay/checkpoint/payload.bin" --payload-sha "$payload_sha" \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9916987Z ^[[36;1m    --boot "btic51-$delay-out/thyme-late-btic51-$delay-boot.img" --out "btic51-$delay-out"^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9917920Z ^[[36;1m  python3 private/scripts/late-btic51-pair-private-gates.py --mode pack-member \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9918676Z ^[[36;1m    --kind late_btic51 --target setup_vcpu_hotplug_event \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9919753Z ^[[36;1m    --sha8 'ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef' --sha1 '49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e' \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9920982Z ^[[36;1m    --member "$member" --payload "pair/late_btic51/pair/$delay/checkpoint/payload.bin" \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9921885Z ^[[36;1m    --manifest "pair/late_btic51/pair/$delay/checkpoint/manifest.json" \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9922611Z ^[[36;1m    --fix8-payload frozen/thyme-r3-p1b-fix8-kernel-payload.bin \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9923293Z ^[[36;1m    --fix8-boot fix8-boot/thyme-r3-p1b-fix8-boot.img \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9924274Z ^[[36;1m    --boot "btic51-$delay-out/thyme-late-btic51-$delay-boot.img" \^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9924952Z ^[[36;1m    | tee "btic51-$delay-out/btic51-$delay-identity.txt"^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9925493Z ^[[36;1mdone^[[0m
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9953867Z shell: /usr/bin/bash -e {0}
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9954578Z env:
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9955036Z   PUBLIC_REPO: ChuenSan/xiaomi10s
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9955649Z   PUBLIC_PAIRS_ARTIFACT: thyme-late-btic51-authorization-pairs
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9956208Z   M5D_RUN_ID: 34487382191
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9956911Z   M5D_ARTIFACT: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9957745Z   M5D_BOOT: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9958450Z   M5D_SHA: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9959054Z   FIX8_PAYLOAD_RUN: 34741153230
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9959652Z   FIX8_PAYLOAD_SHA: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9960421Z   FIX8_BOOT_RUN: 34744041027
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9960866Z   FIX8_BOOT_ARTIFACT: thyme-r3-p1b-fix8-fix24-boot
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9961791Z   FIX8_BOOT_SHA: ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9962404Z   GITHUB_ACTIONS: true
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:52.9962740Z ##[endgroup]
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6474948Z MEMBER_CHANGED_OUTSIDE_WINDOW=PASS
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6476314Z WINDOW=[0x1b87130,0x1b8716c)
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6476888Z TAIL=[0x1b8716c,0x1b87170)
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6477390Z BTIC51_8_INITCALL_INDEX=51
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6477798Z BTIC51_8_FUNCTION_SIZE=64
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6478373Z BTIC51_8_WINDOW_SIZE=60
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6478787Z BTIC51_8_WINDOW_RANGE=[0x1b87130,0x1b8716c)
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6479243Z BTIC51_8_CORE_SIZE=56
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6479689Z BTIC51_8_ARCHITECTURE=BTI_C_PLUS_56B_ULTRACOMPACT
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6480203Z BTIC51_8_ENTRY_PAD=BTI_C_D503245F
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6480639Z BTIC51_8_TAIL_BYTE_IDENTICAL=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6481228Z BTIC51_8_NO_ISLAND=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6481628Z BTIC51_8_PREL32_UNCHANGED=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6482064Z BTIC51_8_OUTSIDE_WINDOW_FIX8_IDENTITY=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6482769Z BTIC51_8_PUBLIC_PAYLOAD_SHA=ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6483430Z BTIC51_8_DELAY_SECONDS=8
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6483819Z RT_D_INIT_UNCHANGED=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6484651Z OLD_PROBES_ABSENT=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6485191Z MEMBER_CHANGED_OUTSIDE_WINDOW=PASS
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6485651Z WINDOW=[0x1b87130,0x1b8716c)
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6486091Z TAIL=[0x1b8716c,0x1b87170)
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6486514Z BTIC51_1_INITCALL_INDEX=51
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6486918Z BTIC51_1_FUNCTION_SIZE=64
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6487389Z BTIC51_1_WINDOW_SIZE=60
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6487832Z BTIC51_1_WINDOW_RANGE=[0x1b87130,0x1b8716c)
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6488382Z BTIC51_1_CORE_SIZE=56
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6488847Z BTIC51_1_ARCHITECTURE=BTI_C_PLUS_56B_ULTRACOMPACT
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6489495Z BTIC51_1_ENTRY_PAD=BTI_C_D503245F
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6490113Z BTIC51_1_TAIL_BYTE_IDENTICAL=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6490616Z BTIC51_1_NO_ISLAND=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6491418Z BTIC51_1_PREL32_UNCHANGED=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6491914Z BTIC51_1_OUTSIDE_WINDOW_FIX8_IDENTITY=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6492750Z BTIC51_1_PUBLIC_PAYLOAD_SHA=49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6493651Z BTIC51_1_DELAY_SECONDS=1
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6494239Z RT_D_INIT_UNCHANGED=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6494781Z OLD_PROBES_ABSENT=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6495229Z BTIC51__PAIR_IDENTITY_MATCH=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6495737Z PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6496305Z PAIR_DIFF_BYTE_COUNT=2
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6496806Z BTIC51__PAIR_DIFF_INDEPENDENTLY_DERIVED=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6497366Z BTIC51__PAIR_DIFF_RANGE=[0x1b8713d,0x1b8713f)
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6497905Z LATE_BTIC51_PUBLIC_PAIR_PASS=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.6498360Z DEVICE_OPERATION=NO
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.7902039Z P1B_BOOT_PACKED sha256=d0e4cce815132336f0bf03362ceedfb74e4b8169f261b286f86e9d1b057e7796 size=37380096
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.9576365Z P1B_PACK_GATES=PASS
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.9577236Z P1B_BOOT_SIZE=37380096
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.9578287Z P1B_BOOT_SHA256=d0e4cce815132336f0bf03362ceedfb74e4b8169f261b286f86e9d1b057e7796
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.9579328Z P1B_KERNEL_SIZE=37369041
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.9579776Z P1B_DTB_OFFSET=0x2380000
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.9580287Z P1B_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.9580824Z P1B_RT_D_TRAILER_SHA_EXACT=PASS
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.9581260Z P1B_BOOT_CAPACITY=PASS
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.9581673Z ABL_LOADS_FULL_BOOT_KERNEL_SIZE=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.9582103Z DEVICE_OPERATION=NO
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.9582571Z READY_FOR_DEVICE=NO
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:54.9582804Z 
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1908358Z MEMBER_CHANGED_OUTSIDE_WINDOW=PASS
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1909232Z WINDOW=[0x1b87130,0x1b8716c)
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1909850Z TAIL=[0x1b8716c,0x1b87170)
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1910480Z BTIC51_8_INITCALL_INDEX=51
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1910893Z BTIC51_8_FUNCTION_SIZE=64
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1911349Z BTIC51_8_WINDOW_SIZE=60
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1912059Z BTIC51_8_WINDOW_RANGE=[0x1b87130,0x1b8716c)
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1912544Z BTIC51_8_CORE_SIZE=56
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1913541Z BTIC51_8_ARCHITECTURE=BTI_C_PLUS_56B_ULTRACOMPACT
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1914280Z BTIC51_8_ENTRY_PAD=BTI_C_D503245F
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1914916Z BTIC51_8_TAIL_BYTE_IDENTICAL=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1915387Z BTIC51_8_NO_ISLAND=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1915782Z BTIC51_8_PREL32_UNCHANGED=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1916234Z BTIC51_8_OUTSIDE_WINDOW_FIX8_IDENTITY=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1916931Z BTIC51_8_PUBLIC_PAYLOAD_SHA=ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1917585Z BTIC51_8_DELAY_SECONDS=8
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1918062Z RT_D_INIT_UNCHANGED=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1918475Z OLD_PROBES_ABSENT=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1918932Z BTIC51_8_ENVELOPE_MATCH=KERNEL_PAYLOAD_ONLY
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1919635Z BTIC51_8_BOOT_SHA256=d0e4cce815132336f0bf03362ceedfb74e4b8169f261b286f86e9d1b057e7796
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1920286Z BTIC51_8_BOOT_SIZE=37380096
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.1920814Z BTIC51_8_PRIVATE_PACK_PASS=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.3384704Z P1B_BOOT_PACKED sha256=5537966445c3bce09f9c51dd2ab85271bec97a1d29a51d67826f2e85ff5994dd size=37380096
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.5163146Z P1B_PACK_GATES=PASS
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.5164788Z P1B_BOOT_SIZE=37380096
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.5166078Z P1B_BOOT_SHA256=5537966445c3bce09f9c51dd2ab85271bec97a1d29a51d67826f2e85ff5994dd
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.5166842Z P1B_KERNEL_SIZE=37369041
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.5167379Z P1B_DTB_OFFSET=0x2380000
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.5167977Z P1B_ENVELOPE_VS_M5D=KERNEL_PAYLOAD_AND_KERNEL_SIZE_ONLY
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.5168559Z P1B_RT_D_TRAILER_SHA_EXACT=PASS
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.5169085Z P1B_BOOT_CAPACITY=PASS
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.5169558Z ABL_LOADS_FULL_BOOT_KERNEL_SIZE=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.5170077Z DEVICE_OPERATION=NO
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.5170551Z READY_FOR_DEVICE=NO
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.5170816Z 
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7517371Z MEMBER_CHANGED_OUTSIDE_WINDOW=PASS
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7519029Z WINDOW=[0x1b87130,0x1b8716c)
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7519877Z TAIL=[0x1b8716c,0x1b87170)
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7520447Z BTIC51_1_INITCALL_INDEX=51
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7520978Z BTIC51_1_FUNCTION_SIZE=64
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7521473Z BTIC51_1_WINDOW_SIZE=60
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7522023Z BTIC51_1_WINDOW_RANGE=[0x1b87130,0x1b8716c)
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7522585Z BTIC51_1_CORE_SIZE=56
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7523198Z BTIC51_1_ARCHITECTURE=BTI_C_PLUS_56B_ULTRACOMPACT
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7523813Z BTIC51_1_ENTRY_PAD=BTI_C_D503245F
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7524575Z BTIC51_1_TAIL_BYTE_IDENTICAL=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7525145Z BTIC51_1_NO_ISLAND=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7525623Z BTIC51_1_PREL32_UNCHANGED=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7526221Z BTIC51_1_OUTSIDE_WINDOW_FIX8_IDENTITY=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7527011Z BTIC51_1_PUBLIC_PAYLOAD_SHA=49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7527749Z BTIC51_1_DELAY_SECONDS=1
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7528220Z RT_D_INIT_UNCHANGED=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7528674Z OLD_PROBES_ABSENT=YES
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7529283Z BTIC51_1_ENVELOPE_MATCH=KERNEL_PAYLOAD_ONLY
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7530061Z BTIC51_1_BOOT_SHA256=5537966445c3bce09f9c51dd2ab85271bec97a1d29a51d67826f2e85ff5994dd
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7530909Z BTIC51_1_BOOT_SIZE=37380096
+private-pack	Gate and pack exactly BTIC51_8 and BTIC51_1 without kernel rebuild	2026-09-20T02:41:55.7531524Z BTIC51_1_PRIVATE_PACK_PASS=YES
+private-pack	Cross-check pair and publish full identities	﻿2026-09-20T02:41:55.7615033Z ##[group]Run set -euo pipefail
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7615697Z ^[[36;1mset -euo pipefail^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7616329Z ^[[36;1mpython3 private/scripts/late-btic51-pair-private-gates.py --mode pair \^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7617110Z ^[[36;1m  --kind late_btic51 --target setup_vcpu_hotplug_event \^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7618123Z ^[[36;1m  --sha8 'ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef' --sha1 '49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e' \^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7619115Z ^[[36;1m  --pair-root pair \^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7619646Z ^[[36;1m  --boot8 btic51-8-out/thyme-late-btic51-8-boot.img \^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7620353Z ^[[36;1m  --boot1 btic51-1-out/thyme-late-btic51-1-boot.img | tee private-pair.txt^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7621270Z ^[[36;1mbtic51_8_sha=$(sha256sum btic51-8-out/thyme-late-btic51-8-boot.img | cut -d' ' -f1)^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7622150Z ^[[36;1mbtic51_1_sha=$(sha256sum btic51-1-out/thyme-late-btic51-1-boot.img | cut -d' ' -f1)^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7623120Z ^[[36;1mbtic51_8_size=$(stat -c %s btic51-8-out/thyme-late-btic51-8-boot.img)^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7623841Z ^[[36;1mbtic51_1_size=$(stat -c %s btic51-1-out/thyme-late-btic51-1-boot.img)^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7624911Z ^[[36;1m{^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7625306Z ^[[36;1m  echo "BTIC51_8_BOOT_SHA256=$btic51_8_sha"^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7625834Z ^[[36;1m  echo "BTIC51_1_BOOT_SHA256=$btic51_1_sha"^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7626370Z ^[[36;1m  echo "BTIC51_8_BOOT_SIZE=$btic51_8_size"^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7626852Z ^[[36;1m  echo "BTIC51_1_BOOT_SIZE=$btic51_1_size"^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7627374Z ^[[36;1m  echo 'KERNEL_REBUILD=NO'^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7627809Z ^[[36;1m  echo 'DEVICE_OPERATION=NO'^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7628230Z ^[[36;1m  echo 'PARTITION_WRITES=0'^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7628783Z ^[[36;1m} | tee pair-identity.txt | tee "$GITHUB_STEP_SUMMARY"^[[0m
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7657716Z shell: /usr/bin/bash -e {0}
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7658273Z env:
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7658643Z   PUBLIC_REPO: ChuenSan/xiaomi10s
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7659203Z   PUBLIC_PAIRS_ARTIFACT: thyme-late-btic51-authorization-pairs
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7659709Z   M5D_RUN_ID: 34487382191
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7660305Z   M5D_ARTIFACT: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7661141Z   M5D_BOOT: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7661842Z   M5D_SHA: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7662426Z   FIX8_PAYLOAD_RUN: 34741153230
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7663012Z   FIX8_PAYLOAD_SHA: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7663625Z   FIX8_BOOT_RUN: 34744041027
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7664326Z   FIX8_BOOT_ARTIFACT: thyme-r3-p1b-fix8-fix24-boot
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7665013Z   FIX8_BOOT_SHA: ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7665678Z   GITHUB_ACTIONS: true
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:55.7666058Z ##[endgroup]
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.2979523Z BTIC51__PAIR_IDENTITY_MATCH=YES
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.2981456Z PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.2982312Z PAIR_DIFF_BYTE_COUNT=2
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.2982859Z BTIC51__PAIR_DIFF_INDEPENDENTLY_DERIVED=YES
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.2983482Z BTIC51__PAIR_DIFF_RANGE=[0x1b8713d,0x1b8713f)
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.2984235Z PRIVATE_PAIR_DIFF_REVERIFIED=YES
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.2984834Z PAIR_GEOMETRY_IDENTICAL=YES
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.2985327Z PAIR_P15_ENVELOPE_IDENTICAL=YES
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.2985811Z LIVE_TRAMPOLINE_UNTOUCHED=YES
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.3682617Z BTIC51_8_BOOT_SHA256=d0e4cce815132336f0bf03362ceedfb74e4b8169f261b286f86e9d1b057e7796
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.3685375Z BTIC51_1_BOOT_SHA256=5537966445c3bce09f9c51dd2ab85271bec97a1d29a51d67826f2e85ff5994dd
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.3686050Z BTIC51_8_BOOT_SIZE=37380096
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.3686472Z BTIC51_1_BOOT_SIZE=37380096
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.3686990Z KERNEL_REBUILD=NO
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.3687521Z DEVICE_OPERATION=NO
+private-pack	Cross-check pair and publish full identities	2026-09-20T02:41:57.3687956Z PARTITION_WRITES=0
+private-pack	Run actions/upload-artifact@v4	﻿2026-09-20T02:41:57.3743196Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3744685Z ##[group]Run actions/upload-artifact@v4
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3744996Z with:
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3745296Z   name: thyme-late-btic51-private-pair
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3746242Z   path: btic51-8-out/thyme-late-btic51-8-boot.img
+private-pack	Run actions/upload-artifact@v4	btic51-8-out/btic51-8-identity.txt
+private-pack	Run actions/upload-artifact@v4	btic51-8-out/p1b-pack-gates.txt
+private-pack	Run actions/upload-artifact@v4	btic51-1-out/thyme-late-btic51-1-boot.img
+private-pack	Run actions/upload-artifact@v4	btic51-1-out/btic51-1-identity.txt
+private-pack	Run actions/upload-artifact@v4	btic51-1-out/p1b-pack-gates.txt
+private-pack	Run actions/upload-artifact@v4	public-gates.txt
+private-pack	Run actions/upload-artifact@v4	private-pair.txt
+private-pack	Run actions/upload-artifact@v4	pair-identity.txt
+private-pack	Run actions/upload-artifact@v4	
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3747239Z   if-no-files-found: error
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3747515Z   retention-days: 90
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3747799Z   compression-level: 6
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3748087Z   overwrite: false
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3748409Z   include-hidden-files: false
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3748704Z env:
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3748961Z   PUBLIC_REPO: ChuenSan/xiaomi10s
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3749322Z   PUBLIC_PAIRS_ARTIFACT: thyme-late-btic51-authorization-pairs
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3749695Z   M5D_RUN_ID: 34487382191
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3750125Z   M5D_ARTIFACT: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3750694Z   M5D_BOOT: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3751157Z   M5D_SHA: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3751552Z   FIX8_PAYLOAD_RUN: 34741153230
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3751955Z   FIX8_PAYLOAD_SHA: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3752372Z   FIX8_BOOT_RUN: 34744041027
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3752684Z   FIX8_BOOT_ARTIFACT: thyme-r3-p1b-fix8-fix24-boot
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3753236Z   FIX8_BOOT_SHA: ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.3753631Z ##[endgroup]
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.5291368Z (node:2441) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.5292855Z (Use `node --trace-deprecation ...` to show where the warning was created)
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.5482724Z Multiple search paths detected. Calculating the least common ancestor of all paths
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.5488997Z The least common ancestor is /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci. This will be the root directory of the artifact
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.5490131Z With the provided path, there will be 9 files uploaded
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.5491198Z Artifact name is valid!
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.5491661Z Root directory input is valid!
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:57.9235521Z Beginning upload of artifact content to blob storage
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:58.4472257Z (node:2441) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:59.1987567Z Uploaded bytes 8388608
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:59.7444568Z Uploaded bytes 16777216
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:59.8100547Z Uploaded bytes 25165824
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:59.9308917Z Uploaded bytes 28094852
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:59.9953678Z Finished uploading artifact content to blob storage!
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:59.9954964Z SHA256 digest of uploaded artifact zip is fa59a19ef021cc0ae2fc8662af0ab0ebc60ab85572ed67c233a0334cd0a48d59
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:41:59.9955497Z Finalizing artifact upload
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:42:00.2436717Z Artifact thyme-late-btic51-private-pair.zip successfully finalized. Artifact ID 10596738721
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:42:00.2437630Z Artifact thyme-late-btic51-private-pair has been successfully uploaded! Final size is 28094852 bytes. Artifact ID is 10596738721
+private-pack	Run actions/upload-artifact@v4	2026-09-20T02:42:00.2438406Z Artifact download URL: https://github.com/ChuenSan/thyme-mainline-private-ci/actions/runs/35484634512/artifacts/10596738721
+private-pack	Post Run actions/checkout@v4	﻿2026-09-20T02:42:00.2598021Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.2599132Z Post job cleanup.
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.3395996Z [command]/usr/bin/git version
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.3463154Z git version 2.55.0
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.3516478Z Temporarily overriding HOME='/home/runner/work/_temp/2c9de06a-0a57-44c7-8369-6afc48174495' before making global git config changes
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.3524922Z Adding repository directory to the temporary git global config as a safe directory
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.3526274Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/source
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.3597372Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.3649203Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.3949656Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.3973309Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.4232772Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.4277909Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+private-pack	Post Run actions/checkout@v4	﻿2026-09-20T02:42:00.4819638Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.4821333Z Post job cleanup.
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.5656801Z [command]/usr/bin/git version
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.5696368Z git version 2.55.0
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.5757141Z Temporarily overriding HOME='/home/runner/work/_temp/8fec16af-c6d7-4130-aac1-65950b0fe348' before making global git config changes
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.5758482Z Adding repository directory to the temporary git global config as a safe directory
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.5759888Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/private
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.5815842Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.5925592Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.6451110Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.6555994Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.7156014Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+private-pack	Post Run actions/checkout@v4	2026-09-20T02:42:00.7254974Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+private-pack	Complete job	﻿2026-09-20T02:42:00.7758128Z Cleaning up orphan processes
+private-pack	Complete job	2026-09-20T02:42:00.7942860Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

@@ -1,0 +1,144 @@
+{
+  "index": 51,
+  "symbol": "setup_vcpu_hotplug_event",
+  "aliases": [
+    "setup_vcpu_hotplug_event"
+  ],
+  "target_va": "0xffff800081b87130",
+  "image_offset": "0x1b87130",
+  "table_entry_va": "0xffff800081d0c3a4",
+  "table_entry_image_offset": "0x1d0c3a4",
+  "entry_word": "0xffe7ad8c",
+  "relative": -1593972,
+  "function_size": 64,
+  "section": ".init.text",
+  "registration": "late_initcall(setup_vcpu_hotplug_event)",
+  "registration_type": "late_initcall",
+  "source": "drivers/xen/cpu_hotplug.c",
+  "init_text": true,
+  "entry_pad_word": "0xd503245f",
+  "entry_pad": "bti c",
+  "pac": false,
+  "bti": true,
+  "min_probe": 60,
+  "core_size": 56,
+  "window": 60,
+  "probe_architecture": "BTI_C_PLUS_56B_ULTRACOMPACT",
+  "gates": {
+    "TARGET_UNIQUE": "PASS",
+    "REGISTRATION_LATE": "PASS",
+    "INIT_TEXT": "PASS",
+    "FUNCTION_SIZE": "PASS",
+    "ENTRY_PAD": "PASS",
+    "WINDOW_FIT": "PASS",
+    "INCOMING_BRANCH": "PASS",
+    "CFG_CLOSURE": "PASS",
+    "SYMBOL_SCAN": "PASS",
+    "SECTION_SCAN": "PASS",
+    "EXTENT_SCAN": "PASS",
+    "LITERAL_SCAN": "PASS",
+    "RELOCATION_SCAN": "PASS",
+    "RUNTIME_REWRITE": "PASS",
+    "IMAGE_GEOMETRY": "PASS",
+    "ROUND_PAD_CLASS": "PASS"
+  },
+  "cfg_closure": {
+    "candidate_window_length": 60,
+    "function_size": 64,
+    "window_derivation": "TARGET_CFG",
+    "internal_branch_sources": [
+      "0xffff800081b8713c"
+    ],
+    "internal_branch_targets": [
+      "0xffff800081b87168"
+    ],
+    "overwritten_sources": [
+      {
+        "source": "0xffff800081b8713c",
+        "target": "0xffff800081b87168",
+        "source_offset": "0xc",
+        "target_offset": "0x38"
+      }
+    ],
+    "surviving_sources": [],
+    "targets_in_overwritten_region": [
+      {
+        "source": "0xffff800081b8713c",
+        "target": "0xffff800081b87168",
+        "source_offset": "0xc",
+        "target_offset": "0x38"
+      }
+    ],
+    "back_edges": [],
+    "surviving_into_interior": [],
+    "cfg_closure_proven": true
+  },
+  "branch_topology": {
+    "incoming_entry": [],
+    "incoming_window_interior": [],
+    "internal_branches": [
+      [
+        "0xffff800081b8713c",
+        "0xffff800081b87168"
+      ]
+    ],
+    "back_edges": []
+  },
+  "PASS": true,
+  "fail_reasons": [],
+  "runtime_rewrite_overlap": {
+    "__ex_table": 0,
+    "altinstructions": 0,
+    "__jump_table": 0,
+    "static_call_sites": 0,
+    "kcfi_traps": 0
+  },
+  "branch_topology_64": {
+    "incoming_entry": [],
+    "incoming_window_interior": [],
+    "internal_branches": [
+      [
+        "0xffff800081b8713c",
+        "0xffff800081b87168"
+      ]
+    ],
+    "back_edges": []
+  },
+  "runtime_rewrite_overlap_64": {
+    "__ex_table": 0,
+    "altinstructions": 0,
+    "__jump_table": 0,
+    "static_call_sites": 0,
+    "kcfi_traps": 0
+  },
+  "entry_audit": "PASS",
+  "incoming_branch_gate": "PASS",
+  "function_range_safe": true,
+  "runtime_rewrite_safe": true,
+  "relocations_in_window": 0,
+  "inline_only": true,
+  "trampoline_permitted": false,
+  "island_permitted": false,
+  "window_derivation": "TARGET_CFG",
+  "window_agreement": "EXACT",
+  "round_pad_class": "bti_c_only",
+  "extended_reference_forensic": "NO_REFERENCE_INTO_EXTENDED_RANGE",
+  "tail_reachability": "DEAD_PROVEN",
+  "bti_semantics": {
+    "BTI_C_ENTRY_WORD_EXACT": "YES",
+    "LANDING_PAD_CLASS_UNCHANGED": "YES",
+    "BTI_PAD_NOT_DELETED": "YES",
+    "PAC_INDEPENDENCE": "YES",
+    "NO_RET_IN_DIAGNOSTIC_PATH": "YES",
+    "LR_RESTORATION_NOT_REQUIRED": "YES",
+    "SMC_ROUND_TRIP_BTI_SAFE": "YES",
+    "INITCALL_DISPATCH_CALL_CLASS": "BLR_CONTROLLED",
+    "INITCALL_DISPATCH_CITATION": "init/main.c do_one_initcall: ret = fn(); (linux 6.6.156, ~line 1210)",
+    "KERNEL_BTI_CONFIG_CONFIRMED": "YES",
+    "KERNEL_BTI_KERNEL_CONFIG": "y",
+    "KERNEL_BTI_CONFIG": "y",
+    "BTI_C_ENTRY_SEMANTICS_PASS": "YES"
+  },
+  "initcall_dispatch_call_class": "BLR_CONTROLLED",
+  "initcall_dispatch_citation": "init/main.c do_one_initcall: ret = fn(); (linux 6.6.156, ~line 1210)"
+}

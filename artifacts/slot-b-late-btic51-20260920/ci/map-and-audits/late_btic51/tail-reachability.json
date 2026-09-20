@@ -1,0 +1,55 @@
+{
+  "target_va": "0xffff800081b87130",
+  "window": 60,
+  "tail_span": [
+    "0xffff800081b8716c",
+    "0xffff800081b87170"
+  ],
+  "tail_bytes": 4,
+  "frozen_tail_word": "0xd65f03c0",
+  "bundle_tail_word": "0xd65f03c0",
+  "tail_instruction": "",
+  "disassembly": "\nkernel-bundle/vmlinux:\tfile format elf64-littleaarch64\n\nDisassembly of section .init.text:\n\nffff800081b87130 <setup_vcpu_hotplug_event>:\nffff800081b87130: d503245f     \tbti\tc\nffff800081b87134: 90003088     \tadrp\tx8, 0xffff800082197000 <cpu_release_addr+0x7e8>\nffff800081b87138: b9494108     \tldr\tw8, [x8, #0x940]\nffff800081b8713c: 34000168     \tcbz\tw8, 0xffff800081b87168 <setup_vcpu_hotplug_event+0x38>\nffff800081b87140: d503233f     \tpaciasp\nffff800081b87144: a9bf7bfd     \tstp\tx29, x30, [sp, #-0x10]!\nffff800081b87148: 910003fd     \tmov\tx29, sp\nffff800081b8714c: d00026e0     \tadrp\tx0, 0xffff800082065000 <mmcx_ao_w_cx_parent+0x518>\nffff800081b87150: 9125a000     \tadd\tx0, x0, #0x968\nffff800081b87154: 97b20394     \tbl\t0xffff800080807fa4 <register_xenstore_notifier>\nffff800081b87158: 2a1f03e0     \tmov\tw0, wzr\nffff800081b8715c: a8c17bfd     \tldp\tx29, x30, [sp], #0x10\nffff800081b87160: d50323bf     \tautiasp\nffff800081b87164: d65f03c0     \tret\nffff800081b87168: 12800240     \tmov\tw0, #-0x13      // =-19\nffff800081b8716c: d65f03c0     \tret\n",
+  "original_branch_graph": {
+    "incoming_entry": [],
+    "incoming_window_interior": [],
+    "internal_branches": [
+      [
+        "0xffff800081b8713c",
+        "0xffff800081b87168"
+      ]
+    ],
+    "back_edges": []
+  },
+  "informative_only_edges_into_tail": [],
+  "reference_scans": {
+    "incoming_branches": [],
+    "relative_references": {
+      "sites": [],
+      "excluded_stream_data": [],
+      "slot_present": false
+    },
+    "runtime_rewrite_tables": {
+      "ex_table": [],
+      "altinstructions_orig": [],
+      "altinstructions_alt": [],
+      "bug_table": [],
+      "got": [],
+      "got_plt": [],
+      "init_array": [],
+      "rela_dyn_offset": [],
+      "rela_dyn_addend": [],
+      "jump_table": [],
+      "static_call_sites": [],
+      "kcfi_traps": [],
+      "patchable_function_entries": [],
+      "mcount_loc": [],
+      "relr_dyn": [],
+      "relr_sites_total": 284137
+    },
+    "absolute_low32": [],
+    "adrp_add_into_tail": [],
+    "relocations_in_tail": 0
+  },
+  "verdict": "DEAD_PROVEN"
+}

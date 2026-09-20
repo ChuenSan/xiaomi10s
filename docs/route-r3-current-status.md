@@ -3165,3 +3165,21 @@ baseline with `PARTITION_WRITES=0` and `SLOT_A_WRITTEN=NO`
 strictly after the entire level-7 return could do that. Round details:
 docs/slot-b-late-level-isolation.md, docs/slot-b-late-level-cfg-audit.md,
 docs/slot-b-late-level-upper-audit.md, docs/slot-b-late-level-device-gates.md.
+
+Continuation 2026-09-20 CI-only:
+`MAINLINE_V2_R3_SLOT_B_LATE_INDEX51_BTIC_PROBE_AUTHORIZATION_CI`. Additive
+family `BTI_C_PLUS_56B_ULTRACOMPACT` for pinned index 51
+`setup_vcpu_hotplug_event` (`0xffff800081b87130`, 64 B `.init.text`,
+entry `bti c` preserved, window 60, core 56, tail 4 B original `ret`
+`DEAD_PROVEN`). Public `35484163146` @ `bcddf53`, private pack
+`35484634512` @ `523614d`, independent reverify `35484884319`. Boots
+`BTIC51_8` `d0e4cce815132336f0bf03362ceedfb74e4b8169f261b286f86e9d1b057e7796`
+/ `BTIC51_1` `5537966445c3bce09f9c51dd2ab85271bec97a1d29a51d67826f2e85ff5994dd`
+(37380096). Pair diff `[0x1b8713d,0x1b8713f)` `DELAY_CONSTANT_ONLY`.
+`BTI_C_ENTRY_SEMANTICS_PASS=YES`. Runtime unchanged:
+`LATEST_PROVEN_LATE_INDEX=50`, `LATE_INITCALLS_COMPLETED=NOT_PROVEN`,
+`LATE_HIGH1=NOT_EXECUTED`, `DEVICE_BOOT=0`. Final gate
+`R3_SLOT_B_LATE_INDEX51_BTIC_PROBE_CI_READY`.
+`READY_FOR_LATE_INDEX51_BTIC_DEVICE_PAIR=YES` after observer fixtures PASS.
+Does not auto-switch to index 54 `.text`. Round details:
+docs/slot-b-late-btic51-probe-authorization.md.

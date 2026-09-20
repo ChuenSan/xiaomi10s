@@ -1,0 +1,141 @@
+{
+  "stage": "MAINLINE_V2_R3_SLOT_B_LATE_INDEX51_BTIC_PROBE_AUTHORIZATION_CI",
+  "pinned_index": 51,
+  "selections": {
+    "late_btic51": {
+      "family": "late_btic51",
+      "label": "BTIC51",
+      "nominal_index": 51,
+      "selected_index": 51,
+      "deviation": null,
+      "skipped": [],
+      "interval_walk": "NONE_TARGET_PINNED_DIRECTLY",
+      "audit": {
+        "index": 51,
+        "symbol": "setup_vcpu_hotplug_event",
+        "aliases": [
+          "setup_vcpu_hotplug_event"
+        ],
+        "target_va": "0xffff800081b87130",
+        "image_offset": "0x1b87130",
+        "table_entry_va": "0xffff800081d0c3a4",
+        "table_entry_image_offset": "0x1d0c3a4",
+        "entry_word": "0xffe7ad8c",
+        "relative": -1593972,
+        "function_size": 64,
+        "section": ".init.text",
+        "registration": "late_initcall(setup_vcpu_hotplug_event)",
+        "registration_type": "late_initcall",
+        "source": "drivers/xen/cpu_hotplug.c",
+        "init_text": true,
+        "entry_pad_word": "0xd503245f",
+        "entry_pad": "bti c",
+        "pac": false,
+        "bti": true,
+        "min_probe": 60,
+        "core_size": 56,
+        "window": 60,
+        "probe_architecture": "BTI_C_PLUS_56B_ULTRACOMPACT",
+        "gates": {
+          "TARGET_UNIQUE": "PASS",
+          "REGISTRATION_LATE": "PASS",
+          "INIT_TEXT": "PASS",
+          "FUNCTION_SIZE": "PASS",
+          "ENTRY_PAD": "PASS",
+          "WINDOW_FIT": "PASS",
+          "INCOMING_BRANCH": "PASS",
+          "CFG_CLOSURE": "PASS",
+          "SYMBOL_SCAN": "PASS",
+          "SECTION_SCAN": "PASS",
+          "EXTENT_SCAN": "PASS",
+          "LITERAL_SCAN": "PASS",
+          "RELOCATION_SCAN": "PASS",
+          "RUNTIME_REWRITE": "PASS",
+          "IMAGE_GEOMETRY": "PASS",
+          "ROUND_PAD_CLASS": "PASS"
+        },
+        "cfg_closure": {
+          "candidate_window_length": 60,
+          "function_size": 64,
+          "window_derivation": "TARGET_CFG",
+          "internal_branch_sources": [
+            "0xffff800081b8713c"
+          ],
+          "internal_branch_targets": [
+            "0xffff800081b87168"
+          ],
+          "overwritten_sources": [
+            {
+              "source": "0xffff800081b8713c",
+              "target": "0xffff800081b87168",
+              "source_offset": "0xc",
+              "target_offset": "0x38"
+            }
+          ],
+          "surviving_sources": [],
+          "targets_in_overwritten_region": [
+            {
+              "source": "0xffff800081b8713c",
+              "target": "0xffff800081b87168",
+              "source_offset": "0xc",
+              "target_offset": "0x38"
+            }
+          ],
+          "back_edges": [],
+          "surviving_into_interior": [],
+          "cfg_closure_proven": true
+        },
+        "branch_topology": {
+          "incoming_entry": [],
+          "incoming_window_interior": [],
+          "internal_branches": [
+            [
+              "0xffff800081b8713c",
+              "0xffff800081b87168"
+            ]
+          ],
+          "back_edges": []
+        },
+        "PASS": true,
+        "fail_reasons": [],
+        "runtime_rewrite_overlap": {
+          "__ex_table": 0,
+          "altinstructions": 0,
+          "__jump_table": 0,
+          "static_call_sites": 0,
+          "kcfi_traps": 0
+        },
+        "branch_topology_64": {
+          "incoming_entry": [],
+          "incoming_window_interior": [],
+          "internal_branches": [
+            [
+              "0xffff800081b8713c",
+              "0xffff800081b87168"
+            ]
+          ],
+          "back_edges": []
+        },
+        "runtime_rewrite_overlap_64": {
+          "__ex_table": 0,
+          "altinstructions": 0,
+          "__jump_table": 0,
+          "static_call_sites": 0,
+          "kcfi_traps": 0
+        }
+      }
+    }
+  },
+  "round_pad_gate": "ROUND_PAD_CLASS",
+  "round_pad_class": "BTI_C_ONLY",
+  "frozen_indices": [
+    0,
+    21,
+    43,
+    49,
+    50,
+    55,
+    63
+  ],
+  "interval_walk": "NONE_TARGET_PINNED_DIRECTLY"
+}

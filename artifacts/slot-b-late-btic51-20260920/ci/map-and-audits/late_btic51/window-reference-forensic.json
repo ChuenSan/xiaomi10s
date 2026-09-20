@@ -1,0 +1,61 @@
+{
+  "span": [
+    "0xffff800081b87130",
+    "0xffff800081b87170"
+  ],
+  "branch_topology": {
+    "incoming_entry": [],
+    "incoming_window_interior": [],
+    "internal_branches": [
+      [
+        "0xffff800081b8713c",
+        "0xffff800081b87168"
+      ]
+    ],
+    "back_edges": []
+  },
+  "relative_references": {
+    "sites": [
+      {
+        "offset": "0x1d0c3a4",
+        "role": "initcall_table_slot"
+      }
+    ],
+    "excluded_stream_data": [
+      {
+        "offset": "0x11a7158",
+        "section": ".rodata",
+        "enclosing_symbol": "mtk_pins_mt6795"
+      }
+    ],
+    "slot_present": true
+  },
+  "runtime_rewrite_tables": {
+    "ex_table": [],
+    "altinstructions_orig": [],
+    "altinstructions_alt": [],
+    "bug_table": [],
+    "got": [],
+    "got_plt": [],
+    "init_array": [],
+    "rela_dyn_offset": [],
+    "rela_dyn_addend": [],
+    "jump_table": [],
+    "static_call_sites": [],
+    "kcfi_traps": [],
+    "patchable_function_entries": [],
+    "mcount_loc": [],
+    "relr_dyn": [],
+    "relr_sites_total": 284137
+  },
+  "rewrite_overlap_64": {
+    "__ex_table": 0,
+    "altinstructions": 0,
+    "__jump_table": 0,
+    "static_call_sites": 0,
+    "kcfi_traps": 0
+  },
+  "absolute_low32": [],
+  "adrp_add_into_range": [],
+  "verdict": "NO_REFERENCE_INTO_EXTENDED_RANGE"
+}

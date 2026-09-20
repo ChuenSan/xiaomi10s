@@ -1,0 +1,74 @@
+{
+  "stage": "MAINLINE_V2_R3_SLOT_B_LATE_INDEX51_BTIC_PROBE_AUTHORIZATION_CI",
+  "index": 63,
+  "symbol": "bpf_kfunc_init",
+  "target_va": "0xffff800081baa15c",
+  "function_size": 260,
+  "window": 60,
+  "gates": {
+    "TARGET_UNIQUE": "PASS",
+    "REGISTRATION_LATE": "PASS",
+    "INIT_TEXT": "PASS",
+    "FUNCTION_SIZE": "PASS",
+    "ENTRY_PAD": "PASS",
+    "WINDOW_FIT": "PASS",
+    "INCOMING_BRANCH": "PASS",
+    "CFG_CLOSURE": "PASS",
+    "SYMBOL_SCAN": "PASS",
+    "SECTION_SCAN": "PASS",
+    "EXTENT_SCAN": "PASS",
+    "LITERAL_SCAN": "PASS",
+    "RELOCATION_SCAN": "PASS",
+    "RUNTIME_REWRITE": "PASS",
+    "IMAGE_GEOMETRY": "PASS",
+    "ROUND_PAD_CLASS": "PASS"
+  },
+  "frozen_anomaly": "DEVICE_BEHAVIOR_ANOMALY_NOT_REINTERPRETED",
+  "runtime_inference": "NONE_LICENSED",
+  "forensic": {
+    "target_va": "0xffff800081baa15c",
+    "window": 60,
+    "slot_offset": "0x1d0c3d4",
+    "table_scans": {
+      "ex_table": [],
+      "altinstructions_orig": [],
+      "altinstructions_alt": [],
+      "bug_table": [],
+      "got": [],
+      "got_plt": [],
+      "init_array": [],
+      "rela_dyn_offset": [],
+      "rela_dyn_addend": [],
+      "jump_table": [],
+      "static_call_sites": [],
+      "kcfi_traps": [],
+      "patchable_function_entries": [],
+      "mcount_loc": [],
+      "relr_dyn": [],
+      "relr_sites_total": 284137
+    },
+    "adrp_add_into_interior": [],
+    "relative_references": {
+      "sites": [
+        {
+          "offset": "0x1d0c3d4",
+          "role": "initcall_table_slot"
+        }
+      ],
+      "excluded_stream_data": [
+        {
+          "offset": "0x18db080",
+          "section": ".rodata",
+          "enclosing_symbol": "linux_banner"
+        }
+      ],
+      "slot_present": true
+    },
+    "residual_not_scanned": [
+      "unaligned_8byte_absolute_pointers"
+    ],
+    "verdict": "NO_REFERENCE_INTO_WINDOW"
+  },
+  "HIGH8_STATIC_PROBE_DEFECT_FOUND": "NO",
+  "round_pad_class_of_forensic": "paciasp_only"
+}

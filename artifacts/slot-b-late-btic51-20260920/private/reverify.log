@@ -1,0 +1,390 @@
+independent-private-reverify	Set up job	﻿2026-09-20T02:47:11.5551496Z Current runner version: '2.337.0'
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5622693Z ##[group]Runner Image Provisioner
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5624042Z Hosted Compute Agent
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5624849Z Version: 20260828.587
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5625713Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5626782Z Build Date: 2026-08-28T16:44:25Z
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5627709Z Worker ID: {476509b4-0474-4ef2-aacd-a7c7ec2890ed}
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5628700Z Azure Region: westcentralus
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5629535Z ##[endgroup]
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5631786Z ##[group]Operating System
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5632716Z Ubuntu
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5633436Z 24.04.5
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5634088Z LTS
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5634860Z ##[endgroup]
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5635729Z ##[group]Runner Image
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5636643Z Image: ubuntu-24.04
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5637354Z Version: 20260907.300.1
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5638709Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260907.300/images/ubuntu/Ubuntu2404-Readme.md
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5661817Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260907.300
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5663789Z ##[endgroup]
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5665370Z ##[group]GITHUB_TOKEN Permissions
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5668588Z Actions: read
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5669402Z Contents: read
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5670433Z Metadata: read
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5671147Z ##[endgroup]
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5674451Z Secret source: Actions
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5675851Z Cache mode: write
+independent-private-reverify	Set up job	2026-09-20T02:47:11.5677169Z Prepare workflow directory
+independent-private-reverify	Set up job	2026-09-20T02:47:11.6370523Z Prepare all required actions
+independent-private-reverify	Set up job	2026-09-20T02:47:11.6443414Z Getting action download info
+independent-private-reverify	Set up job	2026-09-20T02:47:11.9833632Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+independent-private-reverify	Set up job	2026-09-20T02:47:12.2487354Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+independent-private-reverify	Set up job	2026-09-20T02:47:12.6811663Z Complete job name: independent-private-reverify
+independent-private-reverify	Run actions/checkout@v4	﻿2026-09-20T02:47:12.7646477Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7657702Z ##[group]Run actions/checkout@v4
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7659360Z with:
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7660407Z   path: private
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7661360Z   clean: false
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7662311Z   persist-credentials: false
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7663484Z   repository: ChuenSan/thyme-mainline-private-ci
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7673010Z   token: ***
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7673904Z   ssh-strict: true
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7674831Z   ssh-user: git
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7675785Z   sparse-checkout-cone-mode: true
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7676852Z   fetch-depth: 1
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7677768Z   fetch-tags: false
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7678682Z   show-progress: true
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7679599Z   lfs: false
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7680848Z   submodules: false
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7681745Z   set-safe-directory: true
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7682837Z   allow-unsafe-pr-checkout: false
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7684166Z env:
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7685038Z   PUBLIC_REPO: ChuenSan/xiaomi10s
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7686416Z   PUBLIC_PAIRS_ARTIFACT: thyme-late-btic51-authorization-pairs
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7687852Z   M5D_RUN_ID: 34487382191
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7689573Z   M5D_ARTIFACT: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7691828Z   M5D_BOOT: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7693607Z   M5D_SHA: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7695160Z   FIX8_PAYLOAD_RUN: 34741153230
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7696760Z   FIX8_PAYLOAD_SHA: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7698429Z   FIX8_BOOT_RUN: 34744041027
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7699609Z   FIX8_BOOT_ARTIFACT: thyme-r3-p1b-fix8-fix24-boot
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7701812Z   FIX8_BOOT_SHA: ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.7703405Z ##[endgroup]
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9016904Z Syncing repository: ChuenSan/thyme-mainline-private-ci
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9029036Z ##[group]Getting Git version info
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9032591Z Working directory is '/home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/private'
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9066720Z [command]/usr/bin/git version
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9069464Z git version 2.55.0
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9074757Z ##[endgroup]
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9087503Z Temporarily overriding HOME='/home/runner/work/_temp/09109503-fd8a-40c0-bf25-f9845b09f8ad' before making global git config changes
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9092437Z Adding repository directory to the temporary git global config as a safe directory
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9097008Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/private
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9141293Z ##[group]Initializing the repository
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9168468Z [command]/usr/bin/git init /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/private
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9442907Z hint: Using 'master' as the name for the initial branch. This default branch name
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9453583Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9467722Z hint: to use in all of your new repositories, which will suppress this warning,
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9470833Z hint: call:
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9472138Z hint:
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9473664Z hint: 	git config --global init.defaultBranch <name>
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9475284Z hint:
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9476997Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9484937Z hint: 'development'. The just-created branch can be renamed via this command:
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9487421Z hint:
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9488709Z hint: 	git branch -m <name>
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9491329Z hint:
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9493406Z hint: Disable this message with "git config set advice.defaultBranchName false"
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9497287Z Initialized empty Git repository in /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/private/.git/
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9513796Z [command]/usr/bin/git remote add origin https://github.com/ChuenSan/thyme-mainline-private-ci
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9552143Z ##[endgroup]
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9554559Z ##[group]Disabling automatic garbage collection
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9557163Z [command]/usr/bin/git config --local gc.auto 0
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9652403Z ##[endgroup]
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9661080Z ##[group]Setting up auth
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9664152Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:12.9692175Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.0162537Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.0220011Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.0468318Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.0503275Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.0711271Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.0752516Z ##[endgroup]
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.0754521Z ##[group]Fetching the repository
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.0758888Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +523614d1898a391bb6f22dc077579e0d7cb53048:refs/remotes/origin/main
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6376558Z From https://github.com/ChuenSan/thyme-mainline-private-ci
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6378134Z  * [new ref]         523614d1898a391bb6f22dc077579e0d7cb53048 -> origin/main
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6380879Z ##[endgroup]
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6381973Z ##[group]Determining the checkout info
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6383046Z ##[endgroup]
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6383731Z [command]/usr/bin/git sparse-checkout disable
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6402679Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6452909Z ##[group]Checking out the ref
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6454448Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6555302Z Switched to a new branch 'main'
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6561456Z branch 'main' set up to track 'origin/main'.
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6598350Z ##[endgroup]
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6613793Z [command]/usr/bin/git log -1 --format=%H
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6641707Z 523614d1898a391bb6f22dc077579e0d7cb53048
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6647490Z ##[group]Removing auth
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6653093Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6687123Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6887094Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6916764Z http.https://github.com/.extraheader
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6931844Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.6963813Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.7176015Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.7206282Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+independent-private-reverify	Run actions/checkout@v4	2026-09-20T02:47:13.7427817Z ##[endgroup]
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	﻿2026-09-20T02:47:13.7651902Z ##[group]Run set -euo pipefail
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7652737Z ^[[36;1mset -euo pipefail^[[0m
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7653544Z ^[[36;1mtest "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" = true^[[0m
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7654268Z ^[[36;1mtest -n '35484634512'^[[0m
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7655046Z ^[[36;1m[[ 'd0e4cce815132336f0bf03362ceedfb74e4b8169f261b286f86e9d1b057e7796' =~ ^[0-9a-f]{64}$ ]]^[[0m
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7656060Z ^[[36;1m[[ '5537966445c3bce09f9c51dd2ab85271bec97a1d29a51d67826f2e85ff5994dd' =~ ^[0-9a-f]{64}$ ]]^[[0m
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7657112Z ^[[36;1mtest "$(gh api "repos/$PUBLIC_REPO/actions/runs/35484163146" --jq .head_sha)" = 'bcddf53692d35d06bf4ceb5f92a6de81568b3ce4'^[[0m
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7658167Z ^[[36;1mtest "$(gh api "repos/$PUBLIC_REPO/actions/runs/35484163146" --jq .conclusion)" = success^[[0m
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7659106Z ^[[36;1mprintf '%s\n' 'REVERIFY_ONLY=YES' 'REBUILD=NO' 'REPACK=NO' 'DEVICE_OPERATION=NO'^[[0m
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7698237Z shell: /usr/bin/bash -e {0}
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7699169Z env:
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7700321Z   PUBLIC_REPO: ChuenSan/xiaomi10s
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7701266Z   PUBLIC_PAIRS_ARTIFACT: thyme-late-btic51-authorization-pairs
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7702262Z   M5D_RUN_ID: 34487382191
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7703379Z   M5D_ARTIFACT: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7704664Z   M5D_BOOT: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7705639Z   M5D_SHA: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7706488Z   FIX8_PAYLOAD_RUN: 34741153230
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7707578Z   FIX8_PAYLOAD_SHA: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7708946Z   FIX8_BOOT_RUN: 34744041027
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7709957Z   FIX8_BOOT_ARTIFACT: thyme-r3-p1b-fix8-fix24-boot
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7711156Z   FIX8_BOOT_SHA: ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7716311Z   GH_TOKEN: ***
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:13.7717074Z ##[endgroup]
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:15.4964018Z REVERIFY_ONLY=YES
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:15.4965144Z REBUILD=NO
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:15.4976331Z REPACK=NO
+independent-private-reverify	Assert frozen inputs, private scope, and public run identity	2026-09-20T02:47:15.4979214Z DEVICE_OPERATION=NO
+independent-private-reverify	Download frozen private pair and checked public references	﻿2026-09-20T02:47:15.5168866Z ##[group]Run set -euo pipefail
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5169398Z ^[[36;1mset -euo pipefail^[[0m
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5170071Z ^[[36;1mgh run download '35484634512' -R "$GITHUB_REPOSITORY" \^[[0m
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5170628Z ^[[36;1m  -n thyme-late-btic51-private-pair -D auth^[[0m
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5171187Z ^[[36;1mgh run download '35484163146' -R "$PUBLIC_REPO" \^[[0m
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5171678Z ^[[36;1m  -n "$PUBLIC_PAIRS_ARTIFACT" -D pair^[[0m
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5172443Z ^[[36;1mprintf '%s  pair/late_btic51/pair/8/checkpoint/payload.bin\n' 'ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef' | sha256sum -c -^[[0m
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5173557Z ^[[36;1mprintf '%s  pair/late_btic51/pair/1/checkpoint/payload.bin\n' '49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e' | sha256sum -c -^[[0m
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5174323Z ^[[36;1mgh run download "$FIX8_PAYLOAD_RUN" -R "$PUBLIC_REPO" \^[[0m
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5174825Z ^[[36;1m  -n thyme-r3-p1b-fix8-fix24 -D frozen^[[0m
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5175455Z ^[[36;1mprintf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' "$FIX8_PAYLOAD_SHA" | sha256sum -c -^[[0m
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5176344Z ^[[36;1mgh run download "$FIX8_BOOT_RUN" -R "$GITHUB_REPOSITORY" -n "$FIX8_BOOT_ARTIFACT" -D fix8-boot^[[0m
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5177039Z ^[[36;1mprintf '%s  fix8-boot/thyme-r3-p1b-fix8-boot.img\n' "$FIX8_BOOT_SHA" | sha256sum -c -^[[0m
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5200987Z shell: /usr/bin/bash -e {0}
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5202085Z env:
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5203038Z   PUBLIC_REPO: ChuenSan/xiaomi10s
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5203590Z   PUBLIC_PAIRS_ARTIFACT: thyme-late-btic51-authorization-pairs
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5204070Z   M5D_RUN_ID: 34487382191
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5204679Z   M5D_ARTIFACT: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5205371Z   M5D_BOOT: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5205949Z   M5D_SHA: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5206459Z   FIX8_PAYLOAD_RUN: 34741153230
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5206990Z   FIX8_PAYLOAD_SHA: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5207772Z   FIX8_BOOT_RUN: 34744041027
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5208190Z   FIX8_BOOT_ARTIFACT: thyme-r3-p1b-fix8-fix24-boot
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5208782Z   FIX8_BOOT_SHA: ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5211715Z   GH_TOKEN: ***
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:15.5212071Z ##[endgroup]
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:20.3888959Z pair/late_btic51/pair/8/checkpoint/payload.bin: OK
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:20.4203074Z pair/late_btic51/pair/1/checkpoint/payload.bin: OK
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:23.2913342Z frozen/thyme-r3-p1b-fix8-kernel-payload.bin: OK
+independent-private-reverify	Download frozen private pair and checked public references	2026-09-20T02:47:25.6625121Z fix8-boot/thyme-r3-p1b-fix8-boot.img: OK
+independent-private-reverify	Independently extract and reverify frozen pair	﻿2026-09-20T02:47:25.6666495Z ##[group]Run set -euo pipefail
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6666973Z ^[[36;1mset -euo pipefail^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6667411Z ^[[36;1mbtic51_8=$(find auth -name thyme-late-btic51-8-boot.img -print -quit)^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6667977Z ^[[36;1mbtic51_1=$(find auth -name thyme-late-btic51-1-boot.img -print -quit)^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6668476Z ^[[36;1mtest -n "$btic51_8" -a -n "$btic51_1"^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6669099Z ^[[36;1mprintf '%s  %s\n' 'd0e4cce815132336f0bf03362ceedfb74e4b8169f261b286f86e9d1b057e7796' "$btic51_8" | sha256sum -c -^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6670135Z ^[[36;1mprintf '%s  %s\n' '5537966445c3bce09f9c51dd2ab85271bec97a1d29a51d67826f2e85ff5994dd' "$btic51_1" | sha256sum -c -^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6671035Z ^[[36;1mpython3 private/scripts/late-btic51-pair-private-gates.py --mode reverify \^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6671604Z ^[[36;1m  --kind late_btic51 --target setup_vcpu_hotplug_event \^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6672383Z ^[[36;1m  --sha8 'ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef' --sha1 '49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e' \^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6673166Z ^[[36;1m  --pair-root pair \^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6673618Z ^[[36;1m  --fix8-payload frozen/thyme-r3-p1b-fix8-kernel-payload.bin \^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6674169Z ^[[36;1m  --fix8-boot fix8-boot/thyme-r3-p1b-fix8-boot.img \^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6674607Z ^[[36;1m  --boot8 "$btic51_8" --boot1 "$btic51_1" \^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6675128Z ^[[36;1m  --expected-boot8 'd0e4cce815132336f0bf03362ceedfb74e4b8169f261b286f86e9d1b057e7796' \^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6675767Z ^[[36;1m  --expected-boot1 '5537966445c3bce09f9c51dd2ab85271bec97a1d29a51d67826f2e85ff5994dd' \^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6676354Z ^[[36;1m  | tee reverify.txt^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6676737Z ^[[36;1m{^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6677526Z ^[[36;1m  echo 'THYME_SLOT_B_LATE_BTIC51_INDEPENDENT_PRIVATE_REVERIFY'^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6678199Z ^[[36;1m  echo "AUTHORITATIVE_PRIVATE_PACK_RUN=35484634512"^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6678741Z ^[[36;1m  echo "BTIC51_8_BOOT_SHA256=d0e4cce815132336f0bf03362ceedfb74e4b8169f261b286f86e9d1b057e7796"^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6679441Z ^[[36;1m  echo "BTIC51_1_BOOT_SHA256=5537966445c3bce09f9c51dd2ab85271bec97a1d29a51d67826f2e85ff5994dd"^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6680271Z ^[[36;1m  cat reverify.txt^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6680603Z ^[[36;1m  echo 'REBUILD=NO'^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6680935Z ^[[36;1m  echo 'REPACK=NO'^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6681265Z ^[[36;1m  echo 'DEVICE_OPERATION=NO'^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6681688Z ^[[36;1m} | tee reverify-summary.txt | tee "$GITHUB_STEP_SUMMARY"^[[0m
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6706579Z shell: /usr/bin/bash -e {0}
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6706972Z env:
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6707329Z   PUBLIC_REPO: ChuenSan/xiaomi10s
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6707809Z   PUBLIC_PAIRS_ARTIFACT: thyme-late-btic51-authorization-pairs
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6708232Z   M5D_RUN_ID: 34487382191
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6708754Z   M5D_ARTIFACT: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6709385Z   M5D_BOOT: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6710250Z   M5D_SHA: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6710745Z   FIX8_PAYLOAD_RUN: 34741153230
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6711252Z   FIX8_PAYLOAD_SHA: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6711736Z   FIX8_BOOT_RUN: 34744041027
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6712106Z   FIX8_BOOT_ARTIFACT: thyme-r3-p1b-fix8-fix24-boot
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6712623Z   FIX8_BOOT_SHA: ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6713088Z   GITHUB_ACTIONS: true
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.6713385Z ##[endgroup]
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.7089193Z auth/btic51-8-out/thyme-late-btic51-8-boot.img: OK
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:25.7397827Z auth/btic51-1-out/thyme-late-btic51-1-boot.img: OK
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7687935Z MEMBER_CHANGED_OUTSIDE_WINDOW=PASS
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7690387Z WINDOW=[0x1b87130,0x1b8716c)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7691339Z TAIL=[0x1b8716c,0x1b87170)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7711298Z BTIC51_8_INITCALL_INDEX=51
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7712360Z BTIC51_8_FUNCTION_SIZE=64
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7713074Z BTIC51_8_WINDOW_SIZE=60
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7713782Z BTIC51_8_WINDOW_RANGE=[0x1b87130,0x1b8716c)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7714606Z BTIC51_8_CORE_SIZE=56
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7715421Z BTIC51_8_ARCHITECTURE=BTI_C_PLUS_56B_ULTRACOMPACT
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7716312Z BTIC51_8_ENTRY_PAD=BTI_C_D503245F
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7717061Z BTIC51_8_TAIL_BYTE_IDENTICAL=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7717754Z BTIC51_8_NO_ISLAND=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7718359Z BTIC51_8_PREL32_UNCHANGED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7719161Z BTIC51_8_OUTSIDE_WINDOW_FIX8_IDENTITY=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7720698Z BTIC51_8_PUBLIC_PAYLOAD_SHA=ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7741176Z BTIC51_8_DELAY_SECONDS=8
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7748011Z RT_D_INIT_UNCHANGED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7785160Z OLD_PROBES_ABSENT=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7790930Z BTIC51_8_ENVELOPE_MATCH=KERNEL_PAYLOAD_ONLY
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7792066Z BTIC51_8_PRIVATE_IDENTITY_REVERIFIED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7792760Z MEMBER_CHANGED_OUTSIDE_WINDOW=PASS
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7797338Z WINDOW=[0x1b87130,0x1b8716c)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7802465Z TAIL=[0x1b8716c,0x1b87170)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7803279Z BTIC51_1_INITCALL_INDEX=51
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7803856Z BTIC51_1_FUNCTION_SIZE=64
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7804775Z BTIC51_1_WINDOW_SIZE=60
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7805516Z BTIC51_1_WINDOW_RANGE=[0x1b87130,0x1b8716c)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7806181Z BTIC51_1_CORE_SIZE=56
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7806881Z BTIC51_1_ARCHITECTURE=BTI_C_PLUS_56B_ULTRACOMPACT
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7807606Z BTIC51_1_ENTRY_PAD=BTI_C_D503245F
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7808294Z BTIC51_1_TAIL_BYTE_IDENTICAL=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7808971Z BTIC51_1_NO_ISLAND=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7809555Z BTIC51_1_PREL32_UNCHANGED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7810373Z BTIC51_1_OUTSIDE_WINDOW_FIX8_IDENTITY=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7812218Z BTIC51_1_PUBLIC_PAYLOAD_SHA=49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7813247Z BTIC51_1_DELAY_SECONDS=1
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7813848Z RT_D_INIT_UNCHANGED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7814400Z OLD_PROBES_ABSENT=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7814953Z BTIC51_1_ENVELOPE_MATCH=KERNEL_PAYLOAD_ONLY
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7815642Z BTIC51_1_PRIVATE_IDENTITY_REVERIFIED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7816296Z BTIC51__PAIR_IDENTITY_MATCH=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7816974Z PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7817649Z PAIR_DIFF_BYTE_COUNT=2
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7818210Z BTIC51__PAIR_DIFF_INDEPENDENTLY_DERIVED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7818976Z BTIC51__PAIR_DIFF_RANGE=[0x1b8713d,0x1b8713f)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7820324Z PRIVATE_PAIR_DIFF_REVERIFIED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7821089Z DEVICE_OPERATION=NO
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7821850Z THYME_SLOT_B_LATE_BTIC51_INDEPENDENT_PRIVATE_REVERIFY
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7822576Z AUTHORITATIVE_PRIVATE_PACK_RUN=35484634512
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7823543Z BTIC51_8_BOOT_SHA256=d0e4cce815132336f0bf03362ceedfb74e4b8169f261b286f86e9d1b057e7796
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7824648Z BTIC51_1_BOOT_SHA256=5537966445c3bce09f9c51dd2ab85271bec97a1d29a51d67826f2e85ff5994dd
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7825548Z MEMBER_CHANGED_OUTSIDE_WINDOW=PASS
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7826157Z WINDOW=[0x1b87130,0x1b8716c)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7826711Z TAIL=[0x1b8716c,0x1b87170)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7827318Z BTIC51_8_INITCALL_INDEX=51
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7827928Z BTIC51_8_FUNCTION_SIZE=64
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7828497Z BTIC51_8_WINDOW_SIZE=60
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7829049Z BTIC51_8_WINDOW_RANGE=[0x1b87130,0x1b8716c)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7829652Z BTIC51_8_CORE_SIZE=56
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7830644Z BTIC51_8_ARCHITECTURE=BTI_C_PLUS_56B_ULTRACOMPACT
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7831435Z BTIC51_8_ENTRY_PAD=BTI_C_D503245F
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7832115Z BTIC51_8_TAIL_BYTE_IDENTICAL=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7832787Z BTIC51_8_NO_ISLAND=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7833327Z BTIC51_8_PREL32_UNCHANGED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7834008Z BTIC51_8_OUTSIDE_WINDOW_FIX8_IDENTITY=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7835022Z BTIC51_8_PUBLIC_PAYLOAD_SHA=ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7836305Z BTIC51_8_DELAY_SECONDS=8
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7836926Z RT_D_INIT_UNCHANGED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7837461Z OLD_PROBES_ABSENT=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7838170Z BTIC51_8_ENVELOPE_MATCH=KERNEL_PAYLOAD_ONLY
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7838843Z BTIC51_8_PRIVATE_IDENTITY_REVERIFIED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7839512Z MEMBER_CHANGED_OUTSIDE_WINDOW=PASS
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7840883Z WINDOW=[0x1b87130,0x1b8716c)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7841461Z TAIL=[0x1b8716c,0x1b87170)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7842114Z BTIC51_1_INITCALL_INDEX=51
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7842784Z BTIC51_1_FUNCTION_SIZE=64
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7843348Z BTIC51_1_WINDOW_SIZE=60
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7844140Z BTIC51_1_WINDOW_RANGE=[0x1b87130,0x1b8716c)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7844801Z BTIC51_1_CORE_SIZE=56
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7845475Z BTIC51_1_ARCHITECTURE=BTI_C_PLUS_56B_ULTRACOMPACT
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7846211Z BTIC51_1_ENTRY_PAD=BTI_C_D503245F
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7846871Z BTIC51_1_TAIL_BYTE_IDENTICAL=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7847496Z BTIC51_1_NO_ISLAND=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7848065Z BTIC51_1_PREL32_UNCHANGED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7848767Z BTIC51_1_OUTSIDE_WINDOW_FIX8_IDENTITY=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7849692Z BTIC51_1_PUBLIC_PAYLOAD_SHA=49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7850744Z BTIC51_1_DELAY_SECONDS=1
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7851426Z RT_D_INIT_UNCHANGED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7852095Z OLD_PROBES_ABSENT=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7852757Z BTIC51_1_ENVELOPE_MATCH=KERNEL_PAYLOAD_ONLY
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7853494Z BTIC51_1_PRIVATE_IDENTITY_REVERIFIED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7854113Z BTIC51__PAIR_IDENTITY_MATCH=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7854850Z PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7855631Z PAIR_DIFF_BYTE_COUNT=2
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7856307Z BTIC51__PAIR_DIFF_INDEPENDENTLY_DERIVED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7857108Z BTIC51__PAIR_DIFF_RANGE=[0x1b8713d,0x1b8713f)
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7857864Z PRIVATE_PAIR_DIFF_REVERIFIED=YES
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7858552Z DEVICE_OPERATION=NO
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7859158Z REBUILD=NO
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7860042Z REPACK=NO
+independent-private-reverify	Independently extract and reverify frozen pair	2026-09-20T02:47:27.7860590Z DEVICE_OPERATION=NO
+independent-private-reverify	Run actions/upload-artifact@v4	﻿2026-09-20T02:47:27.7974663Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7976444Z ##[group]Run actions/upload-artifact@v4
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7976841Z with:
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7977171Z   name: thyme-late-btic51-private-reverify
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7977632Z   path: reverify.txt
+independent-private-reverify	Run actions/upload-artifact@v4	reverify-summary.txt
+independent-private-reverify	Run actions/upload-artifact@v4	
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7978000Z   if-no-files-found: error
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7978336Z   retention-days: 90
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7978680Z   compression-level: 6
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7978981Z   overwrite: false
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7979294Z   include-hidden-files: false
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7979603Z env:
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7980249Z   PUBLIC_REPO: ChuenSan/xiaomi10s
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7980948Z   PUBLIC_PAIRS_ARTIFACT: thyme-late-btic51-authorization-pairs
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7981443Z   M5D_RUN_ID: 34487382191
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7981978Z   M5D_ARTIFACT: thyme-mainline-v2-m5d-pe-offset-zero-1a30f48d5ef86ff2dce7df6f761ca925f60aa9e7
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7982622Z   M5D_BOOT: mainline-v2-m5d-pe-offset-zero-spin-boot-v3.img
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7983171Z   M5D_SHA: 4db8151b110ad870b06d1bf87079ed06783bf469509fd886d56705c76ff85e63
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7983621Z   FIX8_PAYLOAD_RUN: 34741153230
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7984066Z   FIX8_PAYLOAD_SHA: 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7984577Z   FIX8_BOOT_RUN: 34744041027
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7984925Z   FIX8_BOOT_ARTIFACT: thyme-r3-p1b-fix8-fix24-boot
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7985418Z   FIX8_BOOT_SHA: ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.7985924Z ##[endgroup]
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.9713793Z (node:2215) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.9715248Z (Use `node --trace-deprecation ...` to show where the warning was created)
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.9823656Z Multiple search paths detected. Calculating the least common ancestor of all paths
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.9826654Z The least common ancestor is /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci. This will be the root directory of the artifact
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.9828020Z With the provided path, there will be 2 files uploaded
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.9829290Z Artifact name is valid!
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:27.9830818Z Root directory input is valid!
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:28.3061816Z Beginning upload of artifact content to blob storage
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:28.3380353Z (node:2215) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:28.5517150Z Uploaded bytes 1541
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:28.6114841Z Finished uploading artifact content to blob storage!
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:28.6116223Z SHA256 digest of uploaded artifact zip is 241eadd213a3c677d49346959f5fe69a538e30c0da5e4cd0268a1bccf55d6820
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:28.6117531Z Finalizing artifact upload
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:28.8652969Z Artifact thyme-late-btic51-private-reverify.zip successfully finalized. Artifact ID 10596508354
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:28.8667381Z Artifact thyme-late-btic51-private-reverify has been successfully uploaded! Final size is 1541 bytes. Artifact ID is 10596508354
+independent-private-reverify	Run actions/upload-artifact@v4	2026-09-20T02:47:28.8681763Z Artifact download URL: https://github.com/ChuenSan/thyme-mainline-private-ci/actions/runs/35484884319/artifacts/10596508354
+independent-private-reverify	Post Run actions/checkout@v4	﻿2026-09-20T02:47:28.8846288Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+independent-private-reverify	Post Run actions/checkout@v4	2026-09-20T02:47:28.8847474Z Post job cleanup.
+independent-private-reverify	Post Run actions/checkout@v4	2026-09-20T02:47:28.9773198Z [command]/usr/bin/git version
+independent-private-reverify	Post Run actions/checkout@v4	2026-09-20T02:47:28.9830980Z git version 2.55.0
+independent-private-reverify	Post Run actions/checkout@v4	2026-09-20T02:47:28.9877068Z Temporarily overriding HOME='/home/runner/work/_temp/3c7945bc-5bc4-45c7-a6f7-a9cd8c46fdd5' before making global git config changes
+independent-private-reverify	Post Run actions/checkout@v4	2026-09-20T02:47:28.9888746Z Adding repository directory to the temporary git global config as a safe directory
+independent-private-reverify	Post Run actions/checkout@v4	2026-09-20T02:47:28.9904684Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/thyme-mainline-private-ci/thyme-mainline-private-ci/private
+independent-private-reverify	Post Run actions/checkout@v4	2026-09-20T02:47:28.9957256Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+independent-private-reverify	Post Run actions/checkout@v4	2026-09-20T02:47:29.0010709Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+independent-private-reverify	Post Run actions/checkout@v4	2026-09-20T02:47:29.0319499Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+independent-private-reverify	Post Run actions/checkout@v4	2026-09-20T02:47:29.0374727Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+independent-private-reverify	Post Run actions/checkout@v4	2026-09-20T02:47:29.0662192Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+independent-private-reverify	Post Run actions/checkout@v4	2026-09-20T02:47:29.0704371Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+independent-private-reverify	Complete job	﻿2026-09-20T02:47:29.1169381Z Cleaning up orphan processes
+independent-private-reverify	Complete job	2026-09-20T02:47:29.1438653Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

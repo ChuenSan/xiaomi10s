@@ -18,10 +18,10 @@ from pathlib import Path
 # private-pack pair-identity.txt / payload SHAs and that is its only edit.
 # Until then the family is not an IMAGES identity and the btic51 fixtures
 # reject the family outright (BTIC51_IDENTITY_NOT_FROZEN).
-BTIC51_8_BOOT_SHA256 = None
-BTIC51_1_BOOT_SHA256 = None
-BTIC51_8_PAYLOAD_SHA256 = None
-BTIC51_1_PAYLOAD_SHA256 = None
+BTIC51_8_BOOT_SHA256 = "d0e4cce815132336f0bf03362ceedfb74e4b8169f261b286f86e9d1b057e7796"
+BTIC51_1_BOOT_SHA256 = "5537966445c3bce09f9c51dd2ab85271bec97a1d29a51d67826f2e85ff5994dd"
+BTIC51_8_PAYLOAD_SHA256 = "ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef"
+BTIC51_1_PAYLOAD_SHA256 = "49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e"
 IMAGES = {
     "recovery": (52666368, "133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34"),
     "reset8": (37380096, "1422a187bb82cca1dfd85ec0805e2fcb6b6fdea1d48d1a09f8a8e68c9e825b7f"),

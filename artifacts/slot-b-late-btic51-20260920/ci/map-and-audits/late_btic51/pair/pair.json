@@ -1,0 +1,38 @@
+{
+  "stage": "MAINLINE_V2_R3_SLOT_B_LATE_INDEX51_BTIC_PROBE_AUTHORIZATION_CI",
+  "family": "late_btic51",
+  "delay8_name": "BTIC51_8",
+  "delay1_name": "BTIC51_1",
+  "bundle_run": "35040148509",
+  "source_commit": "bcddf53692d35d06bf4ceb5f92a6de81568b3ce4",
+  "public_run": "35484163146",
+  "delay8_payload_sha256": "ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef",
+  "delay1_payload_sha256": "49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e",
+  "changed_offsets": [
+    28864829,
+    28864830
+  ],
+  "expected_delta_seconds": -7.0,
+  "strong_error_seconds": 1.0,
+  "supported_error_seconds": 2.0,
+  "attribution": "DELAY_CONSTANT_ONLY",
+  "pair_diff_offsets": [
+    28864829,
+    28864830
+  ],
+  "span_index": 51,
+  "pinned_index": 51,
+  "deviation": null,
+  "target_symbol": "setup_vcpu_hotplug_event",
+  "target_va": "0xffff800081b87130",
+  "probe_architecture": "BTI_C_PLUS_56B_ULTRACOMPACT",
+  "window": 60,
+  "core_size": 56,
+  "entry_pad": "bti c",
+  "round_pad_class": "bti_c_only",
+  "tail_reachability": "DEAD_PROVEN",
+  "bti_c_entry_semantics_pass": true,
+  "private_pack": false,
+  "device_operation": false,
+  "kernel_rebuilt": false
+}
