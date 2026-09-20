@@ -22,6 +22,13 @@ BTIC51_8_BOOT_SHA256 = "d0e4cce815132336f0bf03362ceedfb74e4b8169f261b286f86e9d1b
 BTIC51_1_BOOT_SHA256 = "5537966445c3bce09f9c51dd2ab85271bec97a1d29a51d67826f2e85ff5994dd"
 BTIC51_8_PAYLOAD_SHA256 = "ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef"
 BTIC51_1_PAYLOAD_SHA256 = "49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e"
+# FILL_AT_FREEZE (COMPACT52): same contract as BTIC51. Until these are 64-hex the
+# family is not an IMAGES identity and the compact52 fixtures reject it
+# (COMPACT52_IDENTITY_NOT_FROZEN).
+COMPACT52_8_BOOT_SHA256 = "64a2ed163029f693f7ffa75b8541f1afed04ac0843cb40c551bdbc5d5e968529"
+COMPACT52_1_BOOT_SHA256 = "771d29da92c0cef828d2c2da4b61262e85a489049f23764051f7bfc39c2cd100"
+COMPACT52_8_PAYLOAD_SHA256 = "e5c7b8d818303cdd8b2c60400aee2578e55734b33fbfca9fdcf55423a40128a5"
+COMPACT52_1_PAYLOAD_SHA256 = "c71f47acce6654c0bfc27b189be0e72b826780e173b186f5c1a0dee2a2d77ed1"
 IMAGES = {
     "recovery": (52666368, "133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34"),
     "reset8": (37380096, "1422a187bb82cca1dfd85ec0805e2fcb6b6fdea1d48d1a09f8a8e68c9e825b7f"),
@@ -91,6 +98,14 @@ if (isinstance(BTIC51_8_BOOT_SHA256, str) and len(BTIC51_8_BOOT_SHA256) == 64 an
         all(ch in "0123456789abcdef" for ch in BTIC51_8_BOOT_SHA256 + BTIC51_1_BOOT_SHA256)):
     IMAGES["late_btic518"] = (37380096, BTIC51_8_BOOT_SHA256)
     IMAGES["late_btic511"] = (37380096, BTIC51_1_BOOT_SHA256)
+# Freeze fills COMPACT52_*_BOOT_SHA256; this is the only registration site. The
+# added `len(set(v)) > 2` clause keeps a repeated-nibble sentinel/placeholder
+# from ever becoming an IMAGES identity (fail-closed, same as an unfilled None).
+if all(isinstance(v, str) and len(v) == 64 and len(set(v)) > 2 and
+        all(ch in "0123456789abcdef" for ch in v)
+        for v in (COMPACT52_8_BOOT_SHA256, COMPACT52_1_BOOT_SHA256)):
+    IMAGES["late_compact528"] = (37380096, COMPACT52_8_BOOT_SHA256)
+    IMAGES["late_compact521"] = (37380096, COMPACT52_1_BOOT_SHA256)
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
     "rest1": ("rest8", "rest_init_entry", "rest_init_body"),
@@ -123,6 +138,7 @@ PAIRS = {
     "late_post491": ("late_post498", "late_post49_entry", "late_initcalls_completed"),
     "late_post501": ("late_post508", "late_post50_entry", "late_initcalls_completed"),
     "late_btic511": ("late_btic518", "late_btic51_entry", "late_initcalls_completed"),
+    "late_compact521": ("late_compact528", "late_compact52_entry", "late_initcalls_completed"),
     }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -894,6 +910,17 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(late_btic51_checkpoint_shift_not_observed="YES")
+    elif second == "late_compact521":
+        compact52_grade = "STRONGLY_SUPPORTED" if verdict == "SUPPORTED" else grade
+        out.update(late_compact52_entry=compact52_grade,
+                   boot_wait_for_devices_entry=compact52_grade,
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   init_executed="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(late_compact52_checkpoint_shift_not_observed="YES")
     return out
 
 

@@ -1,9 +1,10 @@
 """Unit tests for the COMPACT52 public observer fixtures.
 
-Pure Python only: synthetic identities and timings. Self-contained: observe.py
-carries no compact52 plug-in points, so this module defines its own identity SHAs
-and only borrows observe's general IMAGES/PROTOCOL/REST_ORIGIN/CONTEXT tables for
-cross-family rejection. No kernel build, no binaries, no device access.
+Pure Python only: synthetic identities and timings. observe.py now carries the
+compact52 plug-in points and is the registry the device round drives, while the
+fixtures keep their own independent identity literals so the registry-agreement
+gate compares two separately transcribed sources. No kernel build, no binaries,
+no device access.
 """
 from __future__ import annotations
 
@@ -37,27 +38,74 @@ def synth():
 
 
 class FrozenRegistryTests(unittest.TestCase):
-    def test_compact52_not_registered_in_observe(self):
-        # Self-contained: observe.py has no compact52 plug-in points.
-        self.assertNotIn("late_compact52", observe.PAIRS)
-        self.assertNotIn("late_compact528", observe.IMAGES)
-        self.assertNotIn("late_compact521", observe.IMAGES)
-        self.assertNotIn("late_compact52", observe.ORIGIN_CASES)
+    def test_compact52_registered_in_observe(self):
+        self.assertEqual(observe.IMAGES["late_compact528"],
+                         (37380096, of.COMPACT52_8_BOOT_SHA256))
+        self.assertEqual(observe.IMAGES["late_compact521"],
+                         (37380096, of.COMPACT52_1_BOOT_SHA256))
+        self.assertEqual(observe.PAIRS["late_compact521"],
+                         ("late_compact528", "late_compact52_entry",
+                          "late_initcalls_completed"))
+        self.assertIn("late_compact528", observe.ORIGIN_CASES)
+        self.assertIn("late_compact521", observe.ORIGIN_CASES)
 
-    def test_fixtures_registry_is_self_contained(self):
+    def test_fixtures_registry_matches_observe(self):
         self.assertEqual(of.FROZEN_IDENTITIES,
                          {"late_compact52": {"8": of.COMPACT52_8_BOOT_SHA256,
                                              "1": of.COMPACT52_1_BOOT_SHA256}})
         self.assertEqual(of.FROZEN_PAYLOAD_IDENTITIES,
                          {"late_compact52": {"8": of.COMPACT52_8_PAYLOAD_SHA256,
                                               "1": of.COMPACT52_1_PAYLOAD_SHA256}})
+        of.require_registry_agreement()
 
-    def test_self_contained_identity_is_frozen_shape(self):
-        frozen = all(isinstance(v, str) and len(v) == 64
-                     and all(ch in "0123456789abcdef" for ch in v)
-                     for v in (of.COMPACT52_8_BOOT_SHA256, of.COMPACT52_1_BOOT_SHA256,
-                               of.COMPACT52_8_PAYLOAD_SHA256, of.COMPACT52_1_PAYLOAD_SHA256))
-        self.assertTrue(frozen)
+    def test_identity_is_frozen_shape_and_not_a_placeholder(self):
+        of.require_authoritative()
+        for value in (of.COMPACT52_8_BOOT_SHA256, of.COMPACT52_1_BOOT_SHA256,
+                      of.COMPACT52_8_PAYLOAD_SHA256, of.COMPACT52_1_PAYLOAD_SHA256):
+            with self.subTest(value=value):
+                self.assertTrue(of._is_sha256(value))
+                self.assertFalse(of.is_placeholder_sha(value))
+
+
+class PlaceholderRejectionTests(unittest.TestCase):
+    """A well-formed 64-hex string must not be able to pass as an identity."""
+
+    def test_valid_hex_placeholders_and_sentinels_rejected(self):
+        for decoy in ("f1a0" + "0" * 60, "f1b0" + "0" * 60, "e1a0" + "0" * 60,
+                      "e1b0" + "0" * 60, "0" * 64, "a" * 64, "f" * 64,
+                      of.COMPACT52_8_BOOT_SHA256[0] * 64):
+            with self.subTest(decoy=decoy):
+                self.assertTrue(of._is_sha256(decoy))
+                self.assertTrue(of.is_placeholder_sha(decoy))
+
+    def test_malformed_and_non_string_rejected(self):
+        for decoy in ("z" * 64, "0" * 63 + "g", "0" * 63, "0" * 65, 37380096,
+                      None, "", b"0" * 64):
+            with self.subTest(decoy=decoy):
+                self.assertTrue(of.is_placeholder_sha(decoy))
+
+    def test_authoritative_identity_survives_the_predicate(self):
+        of.require_authoritative()
+
+    def test_require_authoritative_refuses_a_placeholder_constant(self):
+        for name in ("COMPACT52_8_BOOT_SHA256", "COMPACT52_1_BOOT_SHA256",
+                     "COMPACT52_8_PAYLOAD_SHA256", "COMPACT52_1_PAYLOAD_SHA256"):
+            with self.subTest(field=name):
+                with patch.object(of, name, "e1a0" + "0" * 60):
+                    with self.assertRaisesRegex(ValueError,
+                                                "COMPACT52_PLACEHOLDER_SHA_REJECTED"):
+                        of.require_authoritative()
+
+    def test_registry_disagreement_is_refused(self):
+        saved = observe.IMAGES["late_compact528"]
+        observe.IMAGES["late_compact528"] = (37380096, "0" * 63 + "1")
+        try:
+            with self.assertRaisesRegex(ValueError,
+                                        "COMPACT52_REGISTRY_AGREEMENT_MISMATCH"):
+                of.require_registry_agreement()
+        finally:
+            observe.IMAGES["late_compact528"] = saved
+        of.require_registry_agreement()
         of.require_frozen()
         self.assertEqual(of.member_sha("late_compact528"), of.COMPACT52_8_BOOT_SHA256)
 

@@ -8,6 +8,7 @@ on:
       - scripts/slot_b/test_observe.py
       - scripts/slot_b/late_compact52_observer_fixtures.py
       - scripts/slot_b/test_late_compact52_observer_fixtures.py
+      - scripts/slot_b/compact52_identity_agreement.py
       - .github/workflows/thyme-slot-b-late-compact52-observer-fixtures.yml
   pull_request:
     paths:
@@ -15,11 +16,13 @@ on:
       - scripts/slot_b/test_observe.py
       - scripts/slot_b/late_compact52_observer_fixtures.py
       - scripts/slot_b/test_late_compact52_observer_fixtures.py
+      - scripts/slot_b/compact52_identity_agreement.py
       - .github/workflows/thyme-slot-b-late-compact52-observer-fixtures.yml
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: thyme-slot-b-late-compact52-observer-fixtures-${{ github.ref }}
@@ -54,6 +57,11 @@ jobs:
           (cd scripts/slot_b && python3 -B late_compact52_observer_fixtures.py --family compact52) \
             | tee compact52-observer-fixtures.txt
           for gate in \
+            COMPACT52_PLACEHOLDER_SHA_REJECTED=PASS \
+            COMPACT52_REGISTRY_MANIFEST_AGREEMENT=PASS \
+            COMPACT52_WELLFORMED_NON_AUTHORITATIVE_REJECT=PASS \
+            COMPACT52_WELLFORMED_NON_AUTHORITATIVE_SHA_REJECTED=PASS \
+            COMPACT52_REGISTRY_DISAGREEMENT_REJECTED=PASS \
             COMPACT528_EXACT_FULL_SHA_ACCEPT=PASS \
             COMPACT521_EXACT_FULL_SHA_ACCEPT=PASS \
             COMPACT52_WRONG_SIZE_REJECT=PASS \
@@ -103,5 +111,46 @@ jobs:
             compact52-observer-unit-tests.log
             compact52-observer-fixtures.txt
             compact52-observer-gates.txt
+          if-no-files-found: error
+          retention-days: 90
+
+  identity-agreement:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Materialize the frozen public CI identity manifests
+        run: |
+          set -euo pipefail
+          gh run download 35516067282 -R ChuenSan/xiaomi10s \
+            -n thyme-late-index52-compact-map-and-audits -D frozen
+          test -s frozen/late_compact52/pair/pair.json
+          test -s frozen/late_compact52/pair/8/checkpoint/manifest.json
+          test -s frozen/late_compact52/pair/1/checkpoint/manifest.json
+          test -s frozen/audit-summary.txt
+      - name: Registry vs frozen artifact identity agreement
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          (cd scripts/slot_b && python3 -B compact52_identity_agreement.py --root ../../frozen) \
+            | tee compact52-identity-agreement.txt
+          for gate in \
+            COMPACT52_PUBLIC_MANIFEST_AGREEMENT=PASS \
+            COMPACT52_PUBLIC_MANIFEST_ENTRIES=6 \
+            COMPACT52_PUBLIC_PAIR_DIFF=DELAY_CONSTANT_ONLY \
+            COMPACT52_FROZEN_PUBLIC_RUN=35516067282 \
+            DEVICE_OPERATION=NO; do
+            grep -Fxq "$gate" compact52-identity-agreement.txt
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-late-compact52-identity-agreement
+          path: compact52-identity-agreement.txt
           if-no-files-found: error
           retention-days: 90

@@ -2,13 +2,18 @@
 """GHA-only COMPACT52 PUBLIC observer fixtures (late index 52 boot_wait_for_devices,
 paciasp pad class, 48-byte COMPACT_INLINE_48B architecture).
 
-SELF-CONTAINED: observe.py carries no compact52 plug-in points (it is frozen and
-must not be edited), so the four identity SHAs are defined here as deterministic
-constants and the module imports only observe's general protocol/identity tables
-(observe.IMAGES / PROTOCOL / REST_ORIGIN / CONTEXT) for cross-family rejection.
-DEVICE_BOOT=0 for this CI-only round, so the device-validation accept path is
-exercised only with synthetic timings in unit tests; the frozen SHA freeze (when
-performed) edits only this file's four constants.
+The four identity SHAs are held here as INDEPENDENT literals rather than imported
+from observe, so that the registry-agreement gate compares two separately
+transcribed sources instead of asserting a tautology. observe.py now carries the
+compact52 plug-in points (IMAGES["late_compact528"/"late_compact521"],
+PAIRS["late_compact521"] and the pair-verdict route) and is the registry the
+device round actually drives.
+
+A well-formed 64-hex string is NOT an identity: the pre-freeze placeholder, an
+all-zero or single-nibble sentinel and other synthetic decoys all pass a
+length/charset check. `is_placeholder_sha` + `require_authoritative` +
+`require_registry_agreement` close that false-pass hole, and each is exercised by
+its own negative fixture. DEVICE_BOOT=0 for this CI-only round.
 """
 from __future__ import annotations
 
@@ -24,12 +29,16 @@ EXPECTED_DELTA_SECONDS = -7.0
 STRONG_ERROR_SECONDS = 1.0
 SUPPORTED_ERROR_SECONDS = 2.0
 PACIASP_WORD = "0xd503233f"
-# SELF-CONTAINED identity SHAs (observe.py has no compact52 plug-in points).
-# Replaced with the real authorization-run payload SHAs at freeze time.
-COMPACT52_8_BOOT_SHA256 = "f1a0" + "0" * 60
-COMPACT52_1_BOOT_SHA256 = "f1b0" + "0" * 60
-COMPACT52_8_PAYLOAD_SHA256 = "e1a0" + "0" * 60
-COMPACT52_1_PAYLOAD_SHA256 = "e1b0" + "0" * 60
+# Authoritative freeze values, full 64-hex (never a truncation). Source of record:
+# boot SHAs from private pack run 35516663217; payload SHAs from the frozen CI
+# pair manifests (pair.json delay8/delay1 payload sha + pair/<d>/checkpoint).
+COMPACT52_8_BOOT_SHA256 = "64a2ed163029f693f7ffa75b8541f1afed04ac0843cb40c551bdbc5d5e968529"
+COMPACT52_1_BOOT_SHA256 = "771d29da92c0cef828d2c2da4b61262e85a489049f23764051f7bfc39c2cd100"
+COMPACT52_8_PAYLOAD_SHA256 = "e5c7b8d818303cdd8b2c60400aee2578e55734b33fbfca9fdcf55423a40128a5"
+COMPACT52_1_PAYLOAD_SHA256 = "c71f47acce6654c0bfc27b189be0e72b826780e173b186f5c1a0dee2a2d77ed1"
+# Decoys that are valid 64-hex and must still be refused: the literal placeholders
+# this module shipped pre-freeze, and any repeated-nibble sentinel.
+PLACEHOLDER_PREFIXES = ("f1a0", "f1b0", "e1a0", "e1b0")
 FROZEN_IDENTITIES = {
     "late_compact52": {"8": COMPACT52_8_BOOT_SHA256, "1": COMPACT52_1_BOOT_SHA256},
 }
@@ -59,6 +68,41 @@ def require(condition, message):
 def _is_sha256(value):
     return (isinstance(value, str) and len(value) == 64 and
             all(ch in "0123456789abcdef" for ch in value))
+
+
+def is_placeholder_sha(value):
+    """Refuse freeze sentinels / placeholders / synthetic decoys.
+
+    Length plus charset is explicitly NOT sufficient: the pre-freeze placeholder
+    ("f1a0" + 60 zeros) is 64 valid hex characters, and so is "0" * 64. Anything
+    that is not 64-hex counts as a placeholder too, so this predicate is the only
+    one an identity needs to pass.
+    """
+    if not _is_sha256(value):
+        return True
+    return value.startswith(PLACEHOLDER_PREFIXES) or len(set(value)) <= 2
+
+
+def require_authoritative():
+    for value in (COMPACT52_8_BOOT_SHA256, COMPACT52_1_BOOT_SHA256,
+                  COMPACT52_8_PAYLOAD_SHA256, COMPACT52_1_PAYLOAD_SHA256):
+        require(not is_placeholder_sha(value), "COMPACT52_PLACEHOLDER_SHA_REJECTED")
+    for first, second in ((COMPACT52_8_BOOT_SHA256, COMPACT52_1_BOOT_SHA256),
+                          (COMPACT52_8_PAYLOAD_SHA256, COMPACT52_1_PAYLOAD_SHA256)):
+        require(first != second, "COMPACT52_PAIR_MEMBER_SHA_COLLISION")
+
+
+def require_registry_agreement():
+    """The fixtures' independent literals must equal observe's registry."""
+    for member, value in (("8", COMPACT52_8_BOOT_SHA256), ("1", COMPACT52_1_BOOT_SHA256)):
+        require(observe.IMAGES.get("late_compact52" + member, (None, None))[1] == value,
+                "COMPACT52_REGISTRY_AGREEMENT_MISMATCH")
+    for name, value in (("COMPACT52_8_BOOT_SHA256", COMPACT52_8_BOOT_SHA256),
+                        ("COMPACT52_1_BOOT_SHA256", COMPACT52_1_BOOT_SHA256),
+                        ("COMPACT52_8_PAYLOAD_SHA256", COMPACT52_8_PAYLOAD_SHA256),
+                        ("COMPACT52_1_PAYLOAD_SHA256", COMPACT52_1_PAYLOAD_SHA256)):
+        require(getattr(observe, name, None) == value,
+                "COMPACT52_REGISTRY_AGREEMENT_MISMATCH")
 
 
 def require_frozen():
@@ -212,6 +256,34 @@ def main() -> None:
     except ValueError:
         raise SystemExit(f"{label}_IDENTITY_NOT_FROZEN")
     m8, m1 = family + "8", family + "1"
+    # Freeze integrity: a valid-looking 64-hex string must not pass as identity.
+    try:
+        require_authoritative()
+    except ValueError as exc:
+        raise SystemExit(f"{label}_{exc}")
+    for decoy in ("f1a0" + "0" * 60, "f1b0" + "0" * 60, "e1a0" + "0" * 60,
+                  "e1b0" + "0" * 60, "0" * 64, "a" * 64, "f" * 64,
+                  COMPACT52_8_BOOT_SHA256[0] * 64, "z" * 64, "0" * 63 + "g",
+                  BOOT_SIZE, None, ""):
+        require(is_placeholder_sha(decoy), f"{label}_PLACEHOLDER_DECOY_ACCEPTED")
+    print(f"{label}_PLACEHOLDER_SHA_REJECTED=PASS")
+    require_registry_agreement()
+    print(f"{label}_REGISTRY_MANIFEST_AGREEMENT=PASS")
+    # Format is not identity: a well-formed real value in the wrong role is refused.
+    reject(m8, (BOOT_SIZE, COMPACT52_8_PAYLOAD_SHA256),
+           f"{label}_WELLFORMED_NON_AUTHORITATIVE_REJECT")
+    print(f"{label}_WELLFORMED_NON_AUTHORITATIVE_SHA_REJECTED=PASS")
+    saved_registry = observe.IMAGES["late_compact528"]
+    observe.IMAGES["late_compact528"] = (BOOT_SIZE, mutate_one_byte(COMPACT52_8_BOOT_SHA256))
+    try:
+        require_registry_agreement()
+    except ValueError as exc:
+        require(str(exc) == "COMPACT52_REGISTRY_AGREEMENT_MISMATCH", str(exc))
+    else:
+        raise SystemExit(f"{label}_REGISTRY_DISAGREEMENT_ACCEPTED")
+    finally:
+        observe.IMAGES["late_compact528"] = saved_registry
+    print(f"{label}_REGISTRY_DISAGREEMENT_REJECTED=PASS")
     i8, i1 = member_identity(m8), member_identity(m1)
     if i8[1] == i1[1]:
         raise SystemExit(f"{label}_PAIR_MEMBER_SHA_COLLISION")
