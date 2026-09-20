@@ -29,6 +29,13 @@ COMPACT52_8_BOOT_SHA256 = "64a2ed163029f693f7ffa75b8541f1afed04ac0843cb40c551bdb
 COMPACT52_1_BOOT_SHA256 = "771d29da92c0cef828d2c2da4b61262e85a489049f23764051f7bfc39c2cd100"
 COMPACT52_8_PAYLOAD_SHA256 = "e5c7b8d818303cdd8b2c60400aee2578e55734b33fbfca9fdcf55423a40128a5"
 COMPACT52_1_PAYLOAD_SHA256 = "c71f47acce6654c0bfc27b189be0e72b826780e173b186f5c1a0dee2a2d77ed1"
+# FILL_AT_FREEZE (TEXT54): same contract as BTIC51/COMPACT52. Until these are
+# 64-hex the family is not an IMAGES identity and the text54 fixtures reject it
+# (TEXT54_IDENTITY_NOT_FROZEN).
+TEXT54_8_BOOT_SHA256 = "ea286b201d0e6f22b1ed48d6c8e7b8e1811b51507ca02f39316c3d7d4d2ca4b5"
+TEXT54_1_BOOT_SHA256 = "3dd0ae7cd5ea71ef5531f4969926283971ec1c125a97fb43fccb59268e231124"
+TEXT54_8_PAYLOAD_SHA256 = "972be7455da70f7dece9ce299c326d1a6cdba2d77c1a809946a3c1ea15dff2ae"
+TEXT54_1_PAYLOAD_SHA256 = "afbeb6c213ee438cfef5e3b1b7662a599d1f58abbdbb8313e3d640789c21e485"
 IMAGES = {
     "recovery": (52666368, "133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34"),
     "reset8": (37380096, "1422a187bb82cca1dfd85ec0805e2fcb6b6fdea1d48d1a09f8a8e68c9e825b7f"),
@@ -106,6 +113,14 @@ if all(isinstance(v, str) and len(v) == 64 and len(set(v)) > 2 and
         for v in (COMPACT52_8_BOOT_SHA256, COMPACT52_1_BOOT_SHA256)):
     IMAGES["late_compact528"] = (37380096, COMPACT52_8_BOOT_SHA256)
     IMAGES["late_compact521"] = (37380096, COMPACT52_1_BOOT_SHA256)
+# Freeze fills TEXT54_*_BOOT_SHA256; this is the only registration site for the
+# target-scoped `.text` family. The `len(set(v)) > 2` clause keeps a
+# repeated-nibble sentinel/placeholder from ever becoming an IMAGES identity.
+if all(isinstance(v, str) and len(v) == 64 and len(set(v)) > 2 and
+        all(ch in "0123456789abcdef" for ch in v)
+        for v in (TEXT54_8_BOOT_SHA256, TEXT54_1_BOOT_SHA256)):
+    IMAGES["late_text548"] = (37380096, TEXT54_8_BOOT_SHA256)
+    IMAGES["late_text541"] = (37380096, TEXT54_1_BOOT_SHA256)
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
     "rest1": ("rest8", "rest_init_entry", "rest_init_body"),
@@ -139,6 +154,7 @@ PAIRS = {
     "late_post501": ("late_post508", "late_post50_entry", "late_initcalls_completed"),
     "late_btic511": ("late_btic518", "late_btic51_entry", "late_initcalls_completed"),
     "late_compact521": ("late_compact528", "late_compact52_entry", "late_initcalls_completed"),
+    "late_text541": ("late_text548", "late_text54_entry", "late_initcalls_completed"),
     }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -921,6 +937,17 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(late_compact52_checkpoint_shift_not_observed="YES")
+    elif second == "late_text541":
+        text54_grade = "STRONGLY_SUPPORTED" if verdict == "SUPPORTED" else grade
+        out.update(late_text54_entry=text54_grade,
+                   deferred_probe_initcall_entry=text54_grade,
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   init_executed="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(late_text54_checkpoint_shift_not_observed="YES")
     return out
 
 

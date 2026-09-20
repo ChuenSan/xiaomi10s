@@ -1,0 +1,176 @@
+# =============================================================================
+# PUBLIC observer fixtures for the late index-54 TARGET-SCOPED `.text` round.
+# Faithful enumerated transform of the index-52 TEXT54 fixture workflow.
+# The cross-identity rejection count moved 124 -> 128 because the frozen TEXT54
+# registry adds exactly two IMAGES keys (late_text548 / late_text541).
+# =============================================================================
+
+name: thyme-slot-b-late-text54-observer-fixtures
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/late_text54_observer_fixtures.py
+      - scripts/slot_b/test_late_text54_observer_fixtures.py
+      - scripts/slot_b/text54_identity_agreement.py
+      - .github/workflows/thyme-slot-b-late-text54-observer-fixtures.yml
+  pull_request:
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/late_text54_observer_fixtures.py
+      - scripts/slot_b/test_late_text54_observer_fixtures.py
+      - scripts/slot_b/text54_identity_agreement.py
+      - .github/workflows/thyme-slot-b-late-text54-observer-fixtures.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: thyme-slot-b-late-text54-observer-fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  observer-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Lint workflow
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-late-text54-observer-fixtures.yml
+      - name: GHA-only PUBLIC observer fixtures (self-contained text54)
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/slot_b/observe.py \
+            scripts/slot_b/test_observe.py \
+            scripts/slot_b/late_text54_observer_fixtures.py \
+            scripts/slot_b/test_late_text54_observer_fixtures.py
+          (cd scripts/slot_b && python3 -B -m unittest test_observe.py -v) \
+            2>&1 | tee text54-observer-base-tests.log
+          (cd scripts/slot_b && python3 -B -m unittest test_late_text54_observer_fixtures.py -v) \
+            2>&1 | tee text54-observer-unit-tests.log
+          (cd scripts/slot_b && python3 -B late_text54_observer_fixtures.py --family text54) \
+            | tee text54-observer-fixtures.txt
+          for gate in \
+            TEXT54_PLACEHOLDER_SHA_REJECTED=PASS \
+            TEXT54_REGISTRY_MANIFEST_AGREEMENT=PASS \
+            TEXT54_WELLFORMED_NON_AUTHORITATIVE_REJECT=PASS \
+            TEXT54_WELLFORMED_NON_AUTHORITATIVE_SHA_REJECTED=PASS \
+            TEXT54_REGISTRY_DISAGREEMENT_REJECTED=PASS \
+            TEXT548_EXACT_FULL_SHA_ACCEPT=PASS \
+            TEXT541_EXACT_FULL_SHA_ACCEPT=PASS \
+            TEXT54_WRONG_SIZE_REJECT=PASS \
+            TEXT54_WRONG_SHA_REJECT=PASS \
+            TEXT54_ONE_BYTE_MUTANT_REJECT=PASS \
+            TEXT548_WRONG_DELAY_MUTANT_REJECT=PASS \
+            TEXT541_WRONG_DELAY_MUTANT_REJECT=PASS \
+            TEXT548_REJECTS_LATE_TEXT541_SWAP=PASS \
+            TEXT541_REJECTS_LATE_TEXT548_SWAP=PASS \
+            TEXT54_CROSS_IDENTITY_REJECTIONS=128 \
+            TEXT54_CROSS_IDENTITY_REJECTION=PASS \
+            TEXT54_60B_INLINE_GEOMETRY=PASS \
+            TEXT54_48B_NEGATIVE_FIXTURE=PASS \
+            TEXT54_52B_NEGATIVE_FIXTURE=PASS \
+            TEXT54_64B_NEGATIVE_FIXTURE=PASS \
+            TEXT54_BTI_C_PAD_CLASS_REJECTED=PASS \
+            TEXT54_COMPACT_INLINE_48B=PASS \
+            TEXT54_INDEX54_TABLE_GATE=PASS \
+            TEXT54_PREL32_UNCHANGED=PASS \
+            TEXT54_PAIR_DIFF_DELAY_CONSTANT_ONLY=PASS \
+            TEXT54_WRONG_PAIR_DIFF_NEGATIVE_FIXTURE=PASS \
+            TEXT54_STRONG_PROVES_TARGET_ENTRY=PASS \
+            TEXT54_LATER_LATE_CONSOLE_INIT_REMAIN_NOT_PROVEN=PASS \
+            TEXT54_SUPPORTED_GRADE=PASS \
+            TEXT54_NO_SHIFT_DOES_NOT_CLAIM_NOT_REACHED=PASS \
+            TEXT54_OBSERVER_FIXTURES=PASS \
+            TEXT548_REJECTS_ARCH8=PASS \
+            TEXT548_REJECTS_CORE8=PASS \
+            TEXT548_REJECTS_SUBSYS8=PASS \
+            TEXT548_REJECTS_LATE_BTIC518=PASS \
+            TEXT548_REJECTS_LATE_COMPACT528=PASS \
+            TEXT548_REJECTS_WAITENTRY8=PASS \
+            TEXT548_REJECTS_WAITRET8=PASS \
+            TEXT548_REJECTS_LATE_HIGH8=PASS \
+            TEXT548_REJECTS_LATE_POST508=PASS \
+            TEXT548_REJECTS_RESET8=PASS \
+            TEXT541_REJECTS_ARCH8=PASS \
+            TEXT541_REJECTS_CORE8=PASS \
+            TEXT541_REJECTS_SUBSYS8=PASS \
+            TEXT541_REJECTS_LATE_BTIC518=PASS \
+            TEXT541_REJECTS_LATE_COMPACT528=PASS \
+            TEXT541_REJECTS_WAITENTRY8=PASS \
+            TEXT541_REJECTS_WAITRET8=PASS \
+            TEXT541_REJECTS_LATE_HIGH8=PASS \
+            TEXT541_REJECTS_LATE_POST508=PASS \
+            TEXT541_REJECTS_RESET8=PASS; do
+            grep -Fxq "$gate" text54-observer-fixtures.txt
+          done
+          printf '%s\n' \
+            'TEXT54_OBSERVER_GATES=PASS' \
+            'DEVICE_OPERATION=NO' \
+            'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' \
+            | tee text54-observer-gates.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-late-text54-observer-fixtures
+          path: |
+            text54-observer-base-tests.log
+            text54-observer-unit-tests.log
+            text54-observer-fixtures.txt
+            text54-observer-gates.txt
+          if-no-files-found: error
+          retention-days: 90
+
+  identity-agreement:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Materialize the frozen public CI identity manifests
+        run: |
+          set -euo pipefail
+          gh run download 35520679000 -R ChuenSan/xiaomi10s \
+            -n thyme-late-text54-map-and-audits -D frozen
+          test -s frozen/late_text54/pair/pair.json
+          test -s frozen/late_text54/pair/8/checkpoint/manifest.json
+          test -s frozen/late_text54/pair/1/checkpoint/manifest.json
+          test -s frozen/audit-summary.txt
+      - name: Registry vs frozen artifact identity agreement
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          (cd scripts/slot_b && python3 -B text54_identity_agreement.py --root ../../frozen) \
+            | tee text54-identity-agreement.txt
+          for gate in \
+            TEXT54_PUBLIC_MANIFEST_AGREEMENT=PASS \
+            TEXT54_PUBLIC_MANIFEST_ENTRIES=6 \
+            TEXT54_PUBLIC_PAIR_DIFF=DELAY_CONSTANT_ONLY \
+            TEXT54_FROZEN_PUBLIC_RUN=35516067282 \
+            DEVICE_OPERATION=NO; do
+            grep -Fxq "$gate" text54-identity-agreement.txt
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-late-text54-identity-agreement
+          path: text54-identity-agreement.txt
+          if-no-files-found: error
+          retention-days: 90
