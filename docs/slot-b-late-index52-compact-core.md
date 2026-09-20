@@ -132,10 +132,47 @@ sole intentional difference the delay constant. `PAIR_DIFF=DELAY_CONSTANT_ONLY`.
 
 | Stage | Run | Result |
 |---|---|---|
-| Public CI (`LATE_INDEX52_COMPACT_INLINE_CORE_CI`) | `PENDING` | PENDING |
-| Private pack | `PENDING` | PENDING |
-| Independent reverify | `PENDING` | PENDING |
-| Observer fixtures | `PENDING` | PENDING |
+| Public CI (`LATE_INDEX52_COMPACT_INLINE_CORE_CI`) | `35516067282` @ `e537423` | SUCCESS — 36 source tests, authoritative `clang-18` assembly of the 44 B core (zero relocations, size 44, sha256 match), 16/16 geometry gates, 92/92 workflow gate lines |
+| Private pack | `35516663217` @ private `6a0fb8d` | SUCCESS — `COMPACT52_8` boot `64a2ed16…68529`, `COMPACT52_1` boot `771d29da…cd100` (37380096 both) |
+| Independent reverify | `35516756018` | SUCCESS — `COMPACT52__PAIR_IDENTITY_MATCH=YES`, `PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY`, `COMPACT52__PAIR_DIFF_INDEPENDENTLY_DERIVED=YES`, `COMPACT52__PAIR_DIFF_RANGE=[0x1b87ed1,0x1b87ed3)` |
+| Observer fixtures | `35514833635` @ `443f328` | SUCCESS — family `compact52`, `COMPACT52_OBSERVER_FIXTURES=PASS`, 124 cross-identity rejections, 20 fixture tests + 38 base safety tests |
+
+Payloads: `COMPACT52_8`
+`e5c7b8d818303cdd8b2c60400aee2578e55734b33fbfca9fdcf55423a40128a5`,
+`COMPACT52_1`
+`c71f47acce6654c0bfc27b189be0e72b826780e173b186f5c1a0dee2a2d77ed1`.
+An independent local reconstruction of both payloads from the frozen FIX8 base plus
+the pinned 44 B core reproduces both shas byte for byte, and the composition
+reproduces the CI pair-diff offsets `[28868305, 28868306]`.
+
+Two fixes were needed inside this round and are recorded rather than hidden: the
+fail-closed terminal check originally read the frozen base's last word (the
+function's own `ret`) instead of the composed window's, and one workflow gate
+pinned `KERNEL_BTI_CONFIG=ABSENT` where the real config is `y`. Both were
+re-verified against the real CI output before re-pushing.
+
+## Hard gates and negative fixtures
+
+All required gates are emitted by the probe and asserted by the workflow:
+`TOTAL_INLINE_FOOTPRINT=48`, `TOTAL_WINDOW_LE_48=YES`, `MAX_CORE_BYTES=44`,
+`ENTRY_PAD_PRESERVED=YES`, `ENTRY_PAD_CLASS=PACIASP`,
+`WINDOW_END_IS_FUNCTION_END=YES`, `NO_INCOMING_WINDOW_INTERIOR=YES`,
+`NO_SURVIVING_BRANCH_INTO_OVERWRITTEN_INTERIOR=YES`, `NO_RELOCATION_OVERLAP=YES`,
+`NO_RUNTIME_REWRITE_OVERLAP=YES`, `NO_TRAMPOLINE=YES`, `NO_ISLAND=YES`,
+`NO_PREL32_CHANGE=YES`, `NO_TEXT_POLICY_RELAXATION=YES`,
+`TARGET_SECTION_INIT_TEXT=YES`, `NO_ORIGINAL_REGISTER_DEPENDENCY=YES`,
+`CORE_REGISTER_LIVENESS_WRITE_BEFORE_READ=YES`, `FAIL_CLOSED_TERMINAL=YES`,
+`TERMINAL_IS_SELF_BRANCH=YES`, `NO_RET_IN_WINDOW=YES`,
+`PSCI_RESET_IDIOM_EXACT=YES`, `RESET_ID_WORD=0x84000009`,
+`FAMILY_COLLISION_WITH_FROZEN=NO`.
+
+Negative fixtures cover, at minimum: core over budget, total window over 48,
+window crossing the function end, entry pad replaced or misclassified as
+`bti c` (`ROUND_PAD_CLASS_BTI_C_EXCLUDED`), branch into the overwritten
+interior, extra pair diff, `ret` inside the window, terminal not a self-branch,
+timer-invariant misuse, `.text` target, frozen-family collision
+(`COMPACT_INLINE_48B` vs `PACIASP_PLUS_52B` / `PACIASP_PLUS_56B` /
+`BTI_C_PLUS_56B`), PREL32 change, and non-`paciasp` pad classes.
 
 ## Runtime evidence
 
@@ -145,3 +182,4 @@ Unchanged and deliberately so: `LATEST_PROVEN_LATE_INDEX=51`,
 `WAIT_FOR_INITRAMFS_RETURN` `NOT_PROVEN`, `LATE_HIGH1=NOT_EXECUTED`,
 `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`. Dirty worktree
 `/Volumes/LinuxDev/thyme-mainline` @`5550dc2` untouched.
+

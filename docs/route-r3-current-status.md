@@ -3206,3 +3206,32 @@ trampoline/island, no PREL32 retarget, no cross-function overwrite, and index 54
 `WAIT_FOR_INITRAMFS_RETURN` `NOT_PROVEN`, `LATE_HIGH1=NOT_EXECUTED`,
 `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`. Round details:
 docs/slot-b-late-index52-compact-core.md.
+
+Continuation 2026-09-20 CI-only closure:
+`MAINLINE_V2_R3_SLOT_B_LATE_INDEX52_COMPACT_INLINE_CORE_CI` closed READY. The
+new additive family `COMPACT_INLINE_48B` targets late index 52
+`boot_wait_for_devices` (`0xffff800081b87ec8`) with a **48 B total inline
+footprint** — the whole function — as `paciasp` pad (preserved) + 44 B
+delete-only core, no tail. `MAX_CORE_BYTES=44`, `TOTAL_WINDOW_LE_48=YES`,
+`PAIR_DIFF=DELAY_CONSTANT_ONLY` at `[0x1b87ed1,0x1b87ed3)`. Chain: public CI
+`35516067282` @`e537423` (36 source tests, authoritative `clang-18`
+zero-relocation 44 B core, 16/16 geometry gates, 92/92 gate lines), private pack
+`35516663217` @ private `6a0fb8d` (boots `COMPACT52_8` `64a2ed16…68529` /
+`COMPACT52_1` `771d29da…cd100`, 37380096 both), independent reverify
+`35516756018` (`PAIR_DIFF_ATTRIBUTED=DELAY_CONSTANT_ONLY`,
+`COMPACT52__PAIR_DIFF_RANGE=[0x1b87ed1,0x1b87ed3)`), observer fixtures
+`35514833635` (family `compact52`, 124 cross-identity rejections). Payloads
+`COMPACT52_8`
+`e5c7b8d818303cdd8b2c60400aee2578e55734b33fbfca9fdcf55423a40128a5`,
+`COMPACT52_1`
+`c71f47acce6654c0bfc27b189be0e72b826780e173b186f5c1a0dee2a2d77ed1`.
+`PACIASP_PLUS_52B`, `PACIASP_PLUS_56B` and `BTI_C_PLUS_56B` stay frozen and
+unmodified; no `.text` relaxation, no trampoline/island, no PREL32 retarget, no
+cross-function overwrite, index 54 `.text` untouched. Final gate
+`R3_SLOT_B_LATE_INDEX52_COMPACT_CORE_CI_READY`,
+`READY_FOR_LATE_INDEX52_COMPACT_DEVICE_PAIR=YES`. Runtime evidence deliberately
+unchanged: `LATEST_PROVEN_LATE_INDEX=51`,
+`BOOT_WAIT_FOR_DEVICES_ENTRY=NOT_PROVEN`, `DEVICE_BOOT=0`,
+`LATE_INITCALLS_COMPLETED` / `WAIT_FOR_INITRAMFS_ENTRY` /
+`WAIT_FOR_INITRAMFS_RETURN` `NOT_PROVEN`, `LATE_HIGH1=NOT_EXECUTED`,
+`PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`. No device boot was performed.
