@@ -3180,6 +3180,6 @@ entry `bti c` preserved, window 60, core 56, tail 4 B original `ret`
 `LATEST_PROVEN_LATE_INDEX=50`, `LATE_INITCALLS_COMPLETED=NOT_PROVEN`,
 `LATE_HIGH1=NOT_EXECUTED`, `DEVICE_BOOT=0`. Final gate
 `R3_SLOT_B_LATE_INDEX51_BTIC_PROBE_CI_READY`.
-`READY_FOR_LATE_INDEX51_BTIC_DEVICE_PAIR=YES` after observer fixtures PASS.
+`READY_FOR_LATE_INDEX51_BTIC_DEVICE_PAIR=YES` (observer fixtures `35485189370`, 120 cross-identity rejections).
 Does not auto-switch to index 54 `.text`. Round details:
 docs/slot-b-late-btic51-probe-authorization.md.

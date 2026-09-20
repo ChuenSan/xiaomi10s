@@ -52,8 +52,8 @@ are rejected. Design is legal with SCTLR_EL1.BT1 on or off.
 | Public CI (`LATE_INDEX51_BTIC_PROBE_AUTHORIZATION_CI`) | `35484163146` @ `bcddf53` | SUCCESS — 16 geometry gates PASS, BTI sub-gates PASS, tail `DEAD_PROVEN` |
 | Private pack | `35484634512` @ private `523614d` | SUCCESS — boots `BTIC51_8` `d0e4cce8…7e7796` / `BTIC51_1` `55379664…5994dd` (37380096) |
 | Independent reverify | `35484884319` | SUCCESS (`reverify_only=true`) |
-| Identity freeze | this round | `observe.py` four SHA constants + `IMAGES["late_btic518/1"]` |
-| Observer fixtures | dispatched after freeze | family `btic51`, `MIN_CROSS=100` |
+| Identity freeze | `00b06c9` | `observe.py` four SHA constants + `IMAGES["late_btic518/1"]` |
+| Observer fixtures | `35485189370` | SUCCESS — family `btic51`, 120 cross-identity rejections |
 
 Payloads: `BTIC51_8` `ae437348164e2ccaa47e4ba238576b6ab05bfda23bd63f18bda48f161b3f88ef`,
 `BTIC51_1` `49b9499d2656b7b8b16d39dc9863eb743a1e570a5ee544aea95b6a3a6b4f920e`.
