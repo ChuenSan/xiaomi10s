@@ -1,0 +1,401 @@
+name: LATE_INDEX54_TEXT_TARGET_EXCEPTION_CI
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/late_text54_exception.py'
+      - 'scripts/slot_b/test_late_text54_exception.py'
+      - 'scripts/slot_b/checkpoint.py'
+      - 'scripts/slot_b/checkpoint-ultracompact.S'
+      - 'scripts/slot_b/late_level_isolation.py'
+      - 'scripts/slot_b/late_post50_isolation.py'
+      - '.github/workflows/thyme-slot-b-late-text54.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: late-index54-text-exception-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Actions-only workflow lint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-late-text54.yml
+      - name: Source tests (pinned identity, target-scoped text exception, tail containment, negative fixtures)
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_late_text54_exception.py' -v 2>&1 | tee text54-source-tests.log
+          grep -q 'test_reference_row_54_matches_frozen_identity.*ok' text54-source-tests.log
+          grep -q 'test_enriched_map_row_54_is_text_not_init_text.*ok' text54-source-tests.log
+          grep -q 'test_pinned_target_constants.*ok' text54-source-tests.log
+          grep -q 'test_frozen_registry_covers_post50_additively.*ok' text54-source-tests.log
+          grep -q 'test_frozen_window_overlap_detector.*ok' text54-source-tests.log
+          grep -q 'test_target_window_disjoint_from_every_frozen_window.*ok' text54-source-tests.log
+          grep -q 'test_frozen_payload_sha_rejected.*ok' text54-source-tests.log
+          grep -q 'test_allowlist_is_a_single_literal_slot.*ok' text54-source-tests.log
+          grep -q 'test_allowlist_never_covers_index53_or_init_text.*ok' text54-source-tests.log
+          grep -q 'test_exception_requires_all_four_fields.*ok' text54-source-tests.log
+          grep -q 'test_multi_slot_allowlist_rejected.*ok' text54-source-tests.log
+          grep -q 'test_generic_text_switch_rejected.*ok' text54-source-tests.log
+          grep -q 'test_index53_slot_cannot_be_smuggled_in.*ok' text54-source-tests.log
+          grep -q 'test_pinned_target_passes_every_gate.*ok' text54-source-tests.log
+          grep -q 'test_init_text_target_still_accepted_without_exception.*ok' text54-source-tests.log
+          grep -q 'test_unmatched_text_symbol_rejected.*ok' text54-source-tests.log
+          grep -q 'test_same_section_diff_va_rejected.*ok' text54-source-tests.log
+          grep -q 'test_diff_index_same_symbol_rejected.*ok' text54-source-tests.log
+          grep -q 'test_bti_c_and_bti_j_pads_rejected.*ok' text54-source-tests.log
+          grep -q 'test_section_window_cross_rejected.*ok' text54-source-tests.log
+          grep -q 'test_interior_incoming_branch_rejected.*ok' text54-source-tests.log
+          grep -q 'test_entry_incoming_branch_rejected.*ok' text54-source-tests.log
+          grep -q 'test_runtime_rewrite_overlap_rejected.*ok' text54-source-tests.log
+          grep -q 'test_symbol_inside_window_rejected.*ok' text54-source-tests.log
+          grep -q 'test_window_past_function_end_rejected.*ok' text54-source-tests.log
+          grep -q 'test_pinned_slot_must_be_text_section.*ok' text54-source-tests.log
+          grep -q 'test_pinned_function_size_drift_rejected.*ok' text54-source-tests.log
+          grep -q 'test_pinned_table_word_drift_rejected.*ok' text54-source-tests.log
+          grep -q 'test_pinned_target_va_drift_rejected.*ok' text54-source-tests.log
+          grep -q 'test_probe_rejects_every_adversarial_neighbour.*ok' text54-source-tests.log
+          grep -q 'test_probe_fails_when_pinned_slot_is_not_text.*ok' text54-source-tests.log
+          grep -q 'test_composed_window_identity_and_control_flow.*ok' text54-source-tests.log
+          grep -q 'test_entry_pad_rewritten_rejected.*ok' text54-source-tests.log
+          grep -q 'test_core_word_drift_rejected.*ok' text54-source-tests.log
+          grep -q 'test_terminal_word_corruption_rejected.*ok' text54-source-tests.log
+          grep -q 'test_composed_branch_outside_window_rejected.*ok' text54-source-tests.log
+          grep -q 'test_loop_head_drift_rejected.*ok' text54-source-tests.log
+          grep -q 'test_pac_hint_rejected.*ok' text54-source-tests.log
+          grep -q 'test_ret_in_diagnostic_path_rejected.*ok' text54-source-tests.log
+          grep -q 'test_indirect_call_rejected.*ok' text54-source-tests.log
+          grep -q 'test_frozen_entry_not_paciasp_rejected.*ok' text54-source-tests.log
+          grep -q 'test_semantics_tokens_record_tail_containment.*ok' text54-source-tests.log
+          grep -q 'test_pair_diff_is_delay_constant_only.*ok' text54-source-tests.log
+          grep -q 'test_live_geometry_pair_diff_offsets.*ok' text54-source-tests.log
+          grep -q 'test_extra_pair_diff_rejected.*ok' text54-source-tests.log
+          grep -q 'test_member_changes_only_inside_window.*ok' text54-source-tests.log
+          grep -q 'test_member_changes_outside_window_rejected.*ok' text54-source-tests.log
+          grep -q 'test_entry_pad_modification_rejected.*ok' text54-source-tests.log
+          grep -q 'test_prel32_change_rejected_and_unchanged_accepted.*ok' text54-source-tests.log
+          grep -q 'test_inline_only_payload_has_no_branch_leaving_the_window.*ok' text54-source-tests.log
+          grep -q 'test_relative_reference_census_partitions_window_and_tail.*ok' text54-source-tests.log
+          grep -q 'test_extra_window_reference_rejected.*ok' text54-source-tests.log
+          grep -q 'test_missing_slot_rejected.*ok' text54-source-tests.log
+          grep -q 'test_window_larger_than_function_rejected.*ok' text54-source-tests.log
+          grep -q 'test_summary_literal_gates_present.*ok' text54-source-tests.log
+          grep -q 'test_summary_keys_emitted_dynamically.*ok' text54-source-tests.log
+          grep -q 'test_frozen_families_unmodified_token.*ok' text54-source-tests.log
+          grep -q 'test_no_delete_calls_anywhere.*ok' text54-source-tests.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-late-text54-source-tests
+          path: text54-source-tests.log
+          if-no-files-found: error
+
+  late-index54-text-exception:
+    needs: source-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Install binary audit tools only
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18
+      - name: Download immutable authoritative inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independently assemble the device-proven 56-byte ultracompact core
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-ultracompact.S -o ultracompact.o
+          llvm-readelf-18 -r ultracompact.o | tee ultracompact-relocations.log
+          grep -q 'There are no relocations in this file' ultracompact-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text ultracompact.o ultracompact.bin
+          test "$(stat -c %s ultracompact.bin)" = 56
+          printf '%s  ultracompact.bin\n' 8b90e4c5ba8817ed23414b0d41e94bc376021d2839889b6a87c6023aa5e259b5 | sha256sum -c -
+          echo 'LATE_TEXT54_56B_CORE_INDEPENDENTLY_AUDITED=YES'
+      - name: Derive late map, run HIGH8 forensic, pin index 54 under the target-scoped text exception
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -u -B scripts/slot_b/late_text54_exception.py \
+            --bundle kernel-bundle \
+            --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core56 ultracompact.bin \
+            --out text54 | tee text54.log
+          for gate in "LATE_LEVEL_POST50_STAGE=MAINLINE_V2_R3_SLOT_B_LATE_INDEX54_TEXT_TARGET_EXCEPTION_CI" \
+            "LATE_TABLE_ENTRY_COUNT=86" \
+            "LATE_TABLE_INDEX0_SYMBOL=kernel_do_mounts_initrd_sysctls_init" \
+            "LATE_TABLE_INDEX0_TABLE_VA=0xffff800081d0c2d8" \
+            "LATE_TABLE_INDEX0_TARGET_VA=0xffff800081b32078" \
+            "LATE_TABLE_INDEX0_WORD=0xffe25da0" \
+            "LATE_TABLE_INDEX0_FUNCTION_SIZE=60" \
+            "LATE_MAP_IN_INIT_TEXT=82" "LATE_MAP_TEXT_SECTION_ENTRIES=4" \
+            "ROUND_PAD_CLASS=PACIASP_ONLY" \
+            "FROZEN_INDICES_EXCLUDED=0,21,43,49,50,51,52,55,63" \
+            "FROZEN_WINDOW_DISJOINT=YES" "FROZEN_PAYLOAD_DISJOINT=YES" \
+            "HIGH8_STATIC_PROBE_DEFECT_FOUND=NO" \
+            "HIGH8_FORENSIC_RUNTIME_INFERENCE=NONE" \
+            "TEXT54_SYMBOL=deferred_probe_initcall" \
+            "TEXT54_TABLE_VA=0xffff800081d0c3b0" \
+            "TEXT54_TARGET_VA=0xffff8000808e7564" \
+            "TEXT54_IMAGE_OFFSET=0x8e7564" \
+            "TEXT54_FUNCTION_SIZE=492" "TEXT54_WINDOW=60" "TEXT54_CORE_SIZE=56" \
+            "TEXT54_PROBE_ARCHITECTURE=INLINE_PACIASP_PLUS_56B_ULTRACOMPACT" \
+            "TEXT54_ENTRY_PAD=paciasp" "TEXT54_SECTION=.text" \
+            "TEXT54_REGISTRATION=late_initcall(deferred_probe_initcall)" \
+            "TEXT54_SOURCE=drivers/base/dd.c" "TEXT54_DEVIATION=NONE" \
+            "TEXT54_ENTRY_PAD_CLASS=PACIASP_ONLY" \
+            "TEXT54_PROBE_FAMILY=INLINE_PACIASP_PLUS_56B_ULTRACOMPACT" \
+            "TEXT54_CORE_SHA256=8b90e4c5ba8817ed23414b0d41e94bc376021d2839889b6a87c6023aa5e259b5" \
+            "TEXT54_TEXT_EXCEPTION_MATCHED=YES" \
+            "TEXT54_PAIR_DIFF_OFFSETS=[9336177, 9336178]" "TEXT54_PAIR=PASS" \
+            "TEXT_EXCEPTION_ALLOWED_SYMBOL=deferred_probe_initcall" \
+            "TEXT_EXCEPTION_ALLOWED_INDEX=54" \
+            "TEXT_EXCEPTION_ALLOWED_VA=0xffff8000808e7564" \
+            "TEXT_EXCEPTION_ALLOWED_SECTION=.text" \
+            "TEXT_EXCEPTION_ALLOWED=YES" "TEXT_EXCEPTION_ALLOWED_SLOTS=1" \
+            "GLOBAL_ALLOW_TEXT_TARGETS=ABSENT" \
+            "TEXT_EXCEPTION_SCOPE=TARGET_SCOPED_ONLY" \
+            "NO_GENERIC_TEXT_POLICY_RELAXATION=YES" \
+            "TARGET_SCOPED_TEXT_EXCEPTION=PASS" "TEXT_EXCEPTION_MATCHED=YES" \
+            "TARGET_SECTION_IS_TEXT=YES" "INDEX53_AUTO_ELIGIBLE=NO" \
+            "OTHER_TEXT_FUNCTIONS_AUTO_ELIGIBLE=NO" \
+            "NO_ALLOW_TEXT_TARGETS_SWITCH=YES" "UNIQUE_ALLOWLIST_SLOT=YES" \
+            "NON_MATCHING_TEXT_SYMBOL_REJECTED=YES" \
+            "SAME_SECTION_DIFF_VA_REJECTED=YES" \
+            "DIFF_INDEX_SAME_SYMBOL_REJECTED=YES" \
+            "INDEX53_TOO_SMALL_REJECTED=YES" \
+            "CORE_SHA_MATCHES_FROZEN_FAMILY=YES" "PROBE_FAMILY_REUSED=YES" \
+            "TEXT_EXCEPTION_LIFETIME_CONTAINED=YES" \
+            "RAM_ONLY_ARTIFACT_SEMANTICS=YES" "NO_PARTITION_WRITE=YES" \
+            "NO_PERSISTENCE_ACROSS_REBOOT=YES" "FAIL_CLOSED_TERMINAL=YES" \
+            "DIAGNOSTIC_CANNOT_RETURN_TO_NORMAL_FUNCTION=YES" \
+            "NO_OTHER_EARLY_RUNTIME_CALLER=YES" \
+            "INITCALL_TABLE_REFERENCE_ONLY=YES" "OTHER_RUNTIME_REFERENCE=NO" \
+            "NO_ASYNC_EARLY_REACHABILITY=YES" "NO_POST_INITCALL_REUSE=YES" \
+            "CFG_XREF_RUNTIME_REWRITE=PASS" \
+            "PAIR_DIFF=DELAY_CONSTANT_ONLY" "INLINE_ONLY=YES" \
+            "TRAMPOLINE_PERMITTED=NO" "ISLAND_PERMITTED=NO" \
+            "PREL32_TARGET_UNCHANGED=YES" "SHARED_CHECKPOINT=NO" \
+            "CROSS_FUNCTION_OVERWRITE=NO" "WINDOW_DERIVATION=TARGET_CFG" \
+            "NO_TEXT_POLICY_CHANGE_OUTSIDE_ALLOWLIST=YES" \
+            "FROZEN_FAMILIES_UNCHANGED=PACIASP_PLUS_52B,PACIASP_PLUS_56B,BTI_C_PLUS_56B,COMPACT_INLINE_48B" \
+            "DEVICE_BOOT=0" "DEVICE_OPERATION=NO" "PRIVATE_PACK=NO" \
+            "KERNEL_REBUILD=NO" "PARTITION_WRITES=0" "SLOT_A_WRITTEN=NO" \
+            "LOCAL_BUILD=NO" \
+            "TEXT54_WINDOW_AGREEMENT=LAYOUT_LITERAL_ADDRESS_DELTA_VERIFIED" \
+            "TEXT54_WINDOW_REFERENCE_FORENSIC=NO_REFERENCE_INTO_WINDOW" \
+            "TEXT54_TAIL_REACHABILITY=TAIL_UNREACHABLE_FROM_COMPOSED_WINDOW" \
+            "TEXT54_INTERNAL_BRANCH_COUNT=9" "TEXT54_BACK_EDGE_COUNT=4" \
+            "LATEST_PROVEN_LATE_INDEX=52" \
+            "DEFERRED_PROBE_INITCALL_ENTRY=NOT_PROVEN" \
+            "TEXT54_8_PAIR_EXECUTED=NO" "TEXT54_1_PAIR_EXECUTED=NO" \
+            "LATE_INITCALLS_COMPLETED=NOT_PROVEN" \
+            "WAIT_FOR_INITRAMFS_ENTRY=NOT_PROVEN" \
+            "WAIT_FOR_INITRAMFS_RETURN=NOT_PROVEN" "LATE_HIGH1=NOT_EXECUTED" \
+            "TEXT54_ENTRY_PAD_PRESERVED=YES" "PACIASP_LANDING_PAD_COMPATIBLE=YES" \
+            "NO_RET_IN_WINDOW=YES" "LR_RESTORATION_NOT_REQUIRED=YES" \
+            "SMC_ROUND_TRIP_SAFE=YES" \
+            "INITCALL_DISPATCH_CALL_CLASS=BLR_CONTROLLED" \
+            "KERNEL_CONFIG_CONFIRMED=YES" \
+            "KERNEL_BTI_KERNEL_CONFIG=y" "KERNEL_BTI_CONFIG=y" \
+            "TAIL_BYTES=432" "TAIL_PRESENT=YES" \
+            "TAIL_IS_UNMODIFIED_ORIGINAL_CODE=YES" \
+            "TAIL_UNREACHABLE_FROM_COMPOSED_WINDOW=YES" \
+            "NO_COMPOSED_BRANCH_LEAVES_WINDOW=YES" \
+            "TEXT54_ENTRY_SEMANTICS_PASS=YES" \
+            "NEG_INDEX53_TOO_SMALL_REJECTED=YES" \
+            "NEG_DIFF_TEXT_SYMBOL_REJECTED=YES" \
+            "NEG_SAME_SECTION_DIFF_VA_REJECTED=YES" \
+            "NEG_DIFF_INDEX_SAME_SYMBOL_REJECTED=YES" \
+            "NEG_WRONG_SYMBOL_SAME_INDEX_REJECTED=YES" \
+            "NEG_PINNED_SLOT_ACCEPTED=YES"; do
+            grep -Fxq "$gate" text54/audit-summary.txt
+          done
+          for field in _NOMINAL_INDEX= _INDEX= _SYMBOL= _TABLE_VA= _TARGET_VA= \
+            _IMAGE_OFFSET= _FUNCTION_SIZE= _WINDOW= _CORE_SIZE= \
+            _PROBE_ARCHITECTURE= _ENTRY_PAD= _SECTION= _REGISTRATION= _SOURCE= \
+            _DEVIATION= _ENTRY_PAD_CLASS= _PROBE_FAMILY= _CORE_SHA256=; do
+            grep -q "^TEXT54${field}" text54/audit-summary.txt
+          done
+          grep -q '^TEXT54_NOMINAL_INDEX=54$' text54/audit-summary.txt
+          grep -q '^TEXT54_INDEX=54$' text54/audit-summary.txt
+          grep -q '^TEXT54_SECTION=.text$' text54/audit-summary.txt
+          grep -Eq '^TEXT54_8_PAYLOAD_SHA=[0-9a-f]{64}$' text54/audit-summary.txt
+          grep -Eq '^TEXT54_1_PAYLOAD_SHA=[0-9a-f]{64}$' text54/audit-summary.txt
+          grep -Eq '^WINDOW_AGREEMENT_INDEX54=(EXACT|LAYOUT_LITERAL_ADDRESS_DELTA_VERIFIED)$' text54/audit-summary.txt
+          grep -Eq '^KERNEL_BTI_KERNEL_CONFIG=' text54/audit-summary.txt
+          grep -Eq '^KERNEL_BTI_CONFIG=' text54/audit-summary.txt
+          python3 -B - <<'PY'
+          import json, struct
+          from pathlib import Path
+          root = Path('text54')
+          summary = (root / 'audit-summary.txt').read_text()
+          assert 'PAIR_DIFF=DELAY_CONSTANT_ONLY' in summary
+          assert 'TARGET_SCOPED_TEXT_EXCEPTION=PASS' in summary
+          assert 'GLOBAL_ALLOW_TEXT_TARGETS=ABSENT' in summary
+          family, (name8, name1) = 'late_text54', ('TEXT54_8', 'TEXT54_1')
+          identity = json.loads((root / family / 'pair' / 'pair.json').read_text())
+          p8 = (root / family / 'pair' / '8' / 'checkpoint' / 'payload.bin').read_bytes()
+          p1 = (root / family / 'pair' / '1' / 'checkpoint' / 'payload.bin').read_bytes()
+          m8 = json.loads((root / family / 'pair' / '8' / 'checkpoint'
+                           / 'manifest.json').read_text())
+          m1 = json.loads((root / family / 'pair' / '1' / 'checkpoint'
+                           / 'manifest.json').read_text())
+          frozen = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          assert identity['delay8_name'] == name8 and identity['delay1_name'] == name1
+          offset, window = m8['offset'], m8['checkpoint_size']
+          assert offset == 0x8e7564 and window == 60
+          assert m1['checkpoint_size'] == window
+          assert m8['core_size'] == m1['core_size'] == 56
+          assert m8['section'] == m1['section'] == '.text'
+          assert m8['entry'] == 'paciasp' and m8['pac'] is True and m8['bti'] is False
+          assert m1['entry'] == 'paciasp' and m1['pac'] is True and m1['bti'] is False
+          assert m8['round_pad_class'] == m1['round_pad_class'] == 'paciasp_only'
+          assert m8['probe_architecture'] == m1['probe_architecture'] == \
+              'INLINE_PACIASP_PLUS_56B_ULTRACOMPACT'
+          assert m8['core_variant'] == 'ultracompact_cntpct_elapsed_b_lo'
+          assert m8['inline_only'] is True and m8['trampoline_permitted'] is False
+          assert m8['island_permitted'] is False
+          assert m8['prel32_target_unchanged'] is True
+          assert m8['member_changes_only_inside_window'] is True
+          assert m8['window_reference_forensic'] == 'NO_REFERENCE_INTO_WINDOW'
+          assert m8['tail_reachability'] == 'TAIL_UNREACHABLE_FROM_COMPOSED_WINDOW'
+          assert m8['span_index'] == 54 and m8['pinned_index'] == 54
+          assert m8['target_symbol'] == 'deferred_probe_initcall'
+          assert m8['target_function_size'] == 492
+          assert m8['text_exception_allowed_symbol'] == 'deferred_probe_initcall'
+          assert m8['text_exception_allowed_index'] == 54
+          assert m8['text_exception_allowed_va'] == '0xffff8000808e7564'
+          assert m8['text_exception_allowed_section'] == '.text'
+          assert m8['text_exception_scope'] == 'TARGET_SCOPED_ONLY'
+          changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
+          assert changed == identity['changed_offsets'] == [9336177, 9336178], changed
+          assert identity['text_exception_allowed']['slot_count'] == 1
+          assert identity['target_section'] == '.text'
+          assert p8[:offset] == p1[:offset]
+          assert p8[offset + window:] == p1[offset + window:]
+          assert p8[offset:offset + 4] == p1[offset:offset + 4] \
+              == frozen[offset:offset + 4] == b'\x3f\x23\x03\xd5'
+          # delay word sits at window offset 12 (pad 4 + CORE56 idx 2 at core offset 8)
+          assert struct.unpack_from('<I', p8, offset + 12)[0] == 0xD37DF12A
+          assert struct.unpack_from('<I', p1, offset + 12)[0] == 0xD340FD2A
+          # PSCI reset idiom and the FAIL-CLOSED wfe;b.-4 terminal.
+          assert struct.unpack_from('<I', p8, offset + 48)[0] == 0xD4000003
+          assert struct.unpack_from('<I', p8, offset + 52)[0] == 0xD503205F
+          assert struct.unpack_from('<I', p8, offset + 56)[0] == 0x17FFFFFF
+          # the original 432-byte tail survives byte for byte
+          assert p8[offset + window:offset + 492] == frozen[offset + window:offset + 492]
+          tail = json.loads((root / family / 'tail-reachability.json').read_text())
+          assert tail['verdict'] == 'TAIL_UNREACHABLE_FROM_COMPOSED_WINDOW'
+          assert tail['tail_bytes'] == 432 and tail['composed_branch_escape'] == 0
+          high8 = json.loads((root / 'high8-forensic.json').read_text())
+          assert high8['HIGH8_STATIC_PROBE_DEFECT_FOUND'] == 'NO'
+          assert high8['runtime_inference'] == 'NONE_LICENSED'
+          assert high8['stage'] == \
+              'MAINLINE_V2_R3_SLOT_B_LATE_INDEX54_TEXT_TARGET_EXCEPTION_CI'
+          assert all(v == 'PASS' for v in high8['gates'].values())
+          selection = json.loads((root / 'selection.json').read_text())
+          exc = selection['text_exception']
+          assert exc['allowed_symbol'] == 'deferred_probe_initcall'
+          assert exc['allowed_index'] == 54
+          assert exc['allowed_va'] == '0xffff8000808e7564'
+          assert exc['allowed_section'] == '.text'
+          assert exc['slots'] == 1 and exc['global_allow_text_targets'] == 'ABSENT'
+          scope = selection['non_generalization']
+          assert scope['allowed_slot_count'] == 1
+          assert scope['global_text_switch'] == 'ABSENT'
+          assert scope['verdict'] == 'TARGET_SCOPED_ONLY'
+          assert all(v == 'YES' for v in scope['adversarial'].values()), scope
+          print(f"{family}: index=54 symbol=deferred_probe_initcall section=.text "
+                f"window={window} core={m8['core_size']} entry=paciasp "
+                f"tail=432 TEXT_EXCEPTION_ALLOWED_SLOTS=1 pair=DELAY_CONSTANT_ONLY")
+          print('HIGH8_FORENSIC=NO_STATIC_PROBE_DEFECT_FOUND')
+          PY
+      - name: Assert public payload-only scope and write job summary
+        run: |
+          set -euo pipefail
+          printf '%s\n' 'PRIVATE_PACK=NO' 'DEVICE_OPERATION=NO' 'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' 'LOCAL_BUILD=NO' 'LOCAL_IMAGE_GENERATION=NO'
+          {
+            echo '## Late index-54 target-scoped .text probe exception (TEXT54)'
+            echo '```'
+            cat text54/audit-summary.txt
+            echo '```'
+            echo '- late_text54 pair identity:'
+            cat "text54/late_text54/pair/pair.json"
+            echo '- tail reachability verdict:'
+            python3 -c "import json; print(json.load(open('text54/late_text54/tail-reachability.json'))['verdict'])"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-late-text54-logs
+          path: |
+            text54.log
+            ultracompact-*.log
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-late-text54-map-and-audits
+          path: |
+            text54/late-map.json
+            text54/selection.json
+            text54/audit-summary.txt
+            text54/high8-forensic.json
+            text54/*/original-function.txt
+            text54/*/original-window.txt
+            text54/*/target-entry-audit.json
+            text54/*/window-agreement.json
+            text54/*/window-reference-forensic.json
+            text54/*/cfg-closure.json
+            text54/*/tail-reachability.json
+            text54/*/table-*.bin
+            text54/*/pair/pair.json
+            text54/*/pair/*/checkpoint/manifest.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-late-text54-pairs
+          path: text54/
+          if-no-files-found: error
