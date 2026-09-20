@@ -31,8 +31,8 @@ import late_text54_exception as tx
 ROOT = Path(__file__).resolve().parents[2]
 REFERENCE_TABLE = ROOT / ("artifacts/slot-b-post-initcalls-20260919/ci/l7-late-complete/"
                           "audit/late-table.json")
-REFERENCE_MAP = ROOT / ("artifacts/slot-b-late-level-20260919/ci/gh/"
-                        "thyme-late-level-isolation-map-and-audits/late-map.json")
+REFERENCE_MAP = ROOT / ("artifacts/slot-b-late-btic51-20260920/ci/map-and-audits/"
+                        "late-map.json")
 TEXT_VA = ll.TEXT_VA
 ENTRY_BASE_VA = ll.FROZEN_INDEX0["entry_va"]
 NOP = 0xD503201F
