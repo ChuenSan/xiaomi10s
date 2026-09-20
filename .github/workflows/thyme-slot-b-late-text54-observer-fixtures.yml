@@ -164,7 +164,7 @@ jobs:
             TEXT54_PUBLIC_MANIFEST_AGREEMENT=PASS \
             TEXT54_PUBLIC_MANIFEST_ENTRIES=6 \
             TEXT54_PUBLIC_PAIR_DIFF=DELAY_CONSTANT_ONLY \
-            TEXT54_FROZEN_PUBLIC_RUN=35516067282 \
+            TEXT54_FROZEN_PUBLIC_RUN=35520679000 \
             DEVICE_OPERATION=NO; do
             grep -Fxq "$gate" text54-identity-agreement.txt
           done
