@@ -14,6 +14,14 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+# FILL_AT_FREEZE (BTIC51): the freeze commit fills these four constants from the
+# private-pack pair-identity.txt / payload SHAs and that is its only edit.
+# Until then the family is not an IMAGES identity and the btic51 fixtures
+# reject the family outright (BTIC51_IDENTITY_NOT_FROZEN).
+BTIC51_8_BOOT_SHA256 = None
+BTIC51_1_BOOT_SHA256 = None
+BTIC51_8_PAYLOAD_SHA256 = None
+BTIC51_1_PAYLOAD_SHA256 = None
 IMAGES = {
     "recovery": (52666368, "133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34"),
     "reset8": (37380096, "1422a187bb82cca1dfd85ec0805e2fcb6b6fdea1d48d1a09f8a8e68c9e825b7f"),
@@ -77,6 +85,12 @@ IMAGES = {
     "late_post508": (37380096, "679d296f936ba9457837bbdf5d8b7d60fdba871f0275fae21912673e6b7102d5"),
     "late_post501": (37380096, "373b7386b283b396851d5acf68bfbcbdebbf1154551f5024e31e4b787684330a"),
     }
+# Freeze fills BTIC51_*_BOOT_SHA256; this is the only registration site.
+if (isinstance(BTIC51_8_BOOT_SHA256, str) and len(BTIC51_8_BOOT_SHA256) == 64 and
+        isinstance(BTIC51_1_BOOT_SHA256, str) and len(BTIC51_1_BOOT_SHA256) == 64 and
+        all(ch in "0123456789abcdef" for ch in BTIC51_8_BOOT_SHA256 + BTIC51_1_BOOT_SHA256)):
+    IMAGES["late_btic518"] = (37380096, BTIC51_8_BOOT_SHA256)
+    IMAGES["late_btic511"] = (37380096, BTIC51_1_BOOT_SHA256)
 PAIRS = {
     "reset1": ("reset8", "machine_restart_entry", "original_restart_body"),
     "rest1": ("rest8", "rest_init_entry", "rest_init_body"),
@@ -108,6 +122,7 @@ PAIRS = {
     "late_post431": ("late_post438", "late_post43_entry", "late_initcalls_completed"),
     "late_post491": ("late_post498", "late_post49_entry", "late_initcalls_completed"),
     "late_post501": ("late_post508", "late_post50_entry", "late_initcalls_completed"),
+    "late_btic511": ("late_btic518", "late_btic51_entry", "late_initcalls_completed"),
     }
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
@@ -868,6 +883,17 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(late_post50_checkpoint_shift_not_observed="YES")
+    elif second == "late_btic511":
+        btic51_grade = "STRONGLY_SUPPORTED" if verdict == "SUPPORTED" else grade
+        out.update(late_btic51_entry=btic51_grade,
+                   setup_vcpu_hotplug_event_entry=btic51_grade,
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN",
+                   init_executed="NOT_PROVEN",
+                   usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(late_btic51_checkpoint_shift_not_observed="YES")
     return out
 
 

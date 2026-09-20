@@ -4,18 +4,26 @@ on:
   push:
     branches: [route-b-slot-b-continuation]
     paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
       - scripts/slot_b/late_level_observer_fixtures.py
       - scripts/slot_b/test_late_level_observer_fixtures.py
+      - scripts/slot_b/late_btic51_observer_fixtures.py
+      - scripts/slot_b/test_late_btic51_observer_fixtures.py
       - .github/workflows/thyme-slot-b-late-level-observer-fixtures.yml
   pull_request:
     paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
       - scripts/slot_b/late_level_observer_fixtures.py
       - scripts/slot_b/test_late_level_observer_fixtures.py
+      - scripts/slot_b/late_btic51_observer_fixtures.py
+      - scripts/slot_b/test_late_btic51_observer_fixtures.py
       - .github/workflows/thyme-slot-b-late-level-observer-fixtures.yml
   workflow_dispatch:
     inputs:
       family:
-        description: Late-level family to verify (mid|low|high|post43|post49|post50); identities must be frozen
+        description: Late-level family to verify (mid|low|high|post43|post49|post50|btic51); identities must be frozen
         required: true
 
 permissions:
@@ -47,8 +55,10 @@ jobs:
           set -euo pipefail
           python3 -m py_compile scripts/slot_b/observe.py \
             scripts/slot_b/late_level_observer_fixtures.py \
-            scripts/slot_b/test_late_level_observer_fixtures.py
-          (cd scripts/slot_b && python3 -B -m unittest test_late_level_observer_fixtures.py -v) \
+            scripts/slot_b/test_late_level_observer_fixtures.py \
+            scripts/slot_b/late_btic51_observer_fixtures.py \
+            scripts/slot_b/test_late_btic51_observer_fixtures.py
+          (cd scripts/slot_b && python3 -B -m unittest test_late_level_observer_fixtures.py test_late_btic51_observer_fixtures.py -v) \
             2>&1 | tee late-level-observer-unit-tests.log
       - name: GHA-only PUBLIC observer fixtures for the dispatched family
         if: github.event_name == 'workflow_dispatch'
@@ -57,17 +67,18 @@ jobs:
         run: |
           set -euo pipefail
           case "$FAMILY" in
-            mid) LABEL=LATE_MID; INDEX=43; M8=late_mid8; M1=late_mid1 ;;
-            low) LABEL=LATE_LOW; INDEX=21; M8=late_low8; M1=late_low1 ;;
-            high) LABEL=LATE_HIGH; INDEX=63; M8=late_high8; M1=late_high1 ;;
-            post43) LABEL=POST43; INDEX=55; M8=late_post438; M1=late_post431 ;;
-            post49) LABEL=POST49; INDEX=49; M8=late_post498; M1=late_post491 ;;
-            post50) LABEL=POST50; INDEX=50; M8=late_post508; M1=late_post501 ;;
+            mid) LABEL=LATE_MID; INDEX=43; M8=late_mid8; M1=late_mid1; SCRIPT=scripts/slot_b/late_level_observer_fixtures.py; GATE_ARCH=PACIASP_56B_ULTRACOMPACT; MIN_CROSS=96 ;;
+            low) LABEL=LATE_LOW; INDEX=21; M8=late_low8; M1=late_low1; SCRIPT=scripts/slot_b/late_level_observer_fixtures.py; GATE_ARCH=PACIASP_56B_ULTRACOMPACT; MIN_CROSS=96 ;;
+            high) LABEL=LATE_HIGH; INDEX=63; M8=late_high8; M1=late_high1; SCRIPT=scripts/slot_b/late_level_observer_fixtures.py; GATE_ARCH=PACIASP_56B_ULTRACOMPACT; MIN_CROSS=96 ;;
+            post43) LABEL=POST43; INDEX=55; M8=late_post438; M1=late_post431; SCRIPT=scripts/slot_b/late_level_observer_fixtures.py; GATE_ARCH=PACIASP_56B_ULTRACOMPACT; MIN_CROSS=96 ;;
+            post49) LABEL=POST49; INDEX=49; M8=late_post498; M1=late_post491; SCRIPT=scripts/slot_b/late_level_observer_fixtures.py; GATE_ARCH=PACIASP_56B_ULTRACOMPACT; MIN_CROSS=96 ;;
+            post50) LABEL=POST50; INDEX=50; M8=late_post508; M1=late_post501; SCRIPT=scripts/slot_b/late_level_observer_fixtures.py; GATE_ARCH=PACIASP_56B_ULTRACOMPACT; MIN_CROSS=96 ;;
+            btic51) LABEL=BTIC51; INDEX=51; M8=late_btic518; M1=late_btic511; SCRIPT=scripts/slot_b/late_btic51_observer_fixtures.py; GATE_ARCH=BTI_C_56B_ULTRACOMPACT; MIN_CROSS=100 ;;
             *) echo "unknown family $FAMILY" >&2; exit 1 ;;
           esac
           M8U=$(printf '%s' "$M8" | tr '[:lower:]' '[:upper:]')
           M1U=$(printf '%s' "$M1" | tr '[:lower:]' '[:upper:]')
-          python3 -B scripts/slot_b/late_level_observer_fixtures.py --family "$FAMILY" \
+          python3 -B "$SCRIPT" --family "$FAMILY" \
             | tee late-level-observer-fixtures.txt
           for gate in \
             "${LABEL}8_EXACT_FULL_SHA_ACCEPT=PASS" \
@@ -84,7 +95,7 @@ jobs:
             "${LABEL}_52B_NEGATIVE_FIXTURE=PASS" \
             "${LABEL}_64B_NEGATIVE_FIXTURE=PASS" \
             "${LABEL}_INDEX${INDEX}_TABLE_GATE=PASS" \
-            "${LABEL}_PACIASP_56B_ULTRACOMPACT=PASS" \
+            "${LABEL}_${GATE_ARCH}=PASS" \
             "${LABEL}_PREL32_UNCHANGED=PASS" \
             "${LABEL}_PAIR_DIFF_DELAY_CONSTANT_ONLY=PASS" \
             "${LABEL}_WRONG_PAIR_DIFF_NEGATIVE_FIXTURE=PASS" \
@@ -97,7 +108,7 @@ jobs:
             grep -Fxq "$gate" late-level-observer-fixtures.txt
           done
           test "$(grep -E "^${LABEL}_CROSS_IDENTITY_REJECTIONS=[0-9]+$" late-level-observer-fixtures.txt \
-            | cut -d= -f2)" -ge 96
+            | cut -d= -f2)" -ge "$MIN_CROSS"
           printf '%s\n' \
             'LATE_LEVEL_OBSERVER_GATES=PASS' \
             "FAMILY=$FAMILY" \

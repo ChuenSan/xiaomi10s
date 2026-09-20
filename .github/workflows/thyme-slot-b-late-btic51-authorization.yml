@@ -1,0 +1,320 @@
+name: LATE_INDEX51_BTIC_PROBE_AUTHORIZATION_CI
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/late_btic51_probe_authorization.py'
+      - 'scripts/slot_b/test_late_btic51_probe_authorization.py'
+      - 'scripts/slot_b/checkpoint.py'
+      - 'scripts/slot_b/checkpoint-ultracompact.S'
+      - 'scripts/slot_b/checkpoint-subsys52.S'
+      - 'scripts/slot_b/late_level_isolation.py'
+      - 'scripts/slot_b/late_post50_isolation.py'
+      - '.github/workflows/thyme-slot-b-late-btic51-authorization.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: late-btic51-authorization-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Actions-only workflow lint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-late-btic51-authorization.yml
+      - name: Source tests (pinned identity, BTI-C round gates, tail dead-proof, negative fixtures)
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_late_btic51_probe_authorization.py' -v 2>&1 | tee btic51-source-tests.log
+          grep -q 'test_reference_rows_50_and_51_match_frozen_identity.*ok' btic51-source-tests.log
+          grep -q 'test_pinned_target_constants.*ok' btic51-source-tests.log
+          grep -q 'test_frozen_registry_covers_post50_additively.*ok' btic51-source-tests.log
+          grep -q 'test_frozen_window_overlap_detector.*ok' btic51-source-tests.log
+          grep -q 'test_target_window_disjoint_from_every_frozen_window.*ok' btic51-source-tests.log
+          grep -q 'test_frozen_payload_sha_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_fresh_payload_sha_accepted.*ok' btic51-source-tests.log
+          grep -q 'test_bti_c_candidate_passes_round_gate.*ok' btic51-source-tests.log
+          grep -q 'test_paciasp_candidate_rejected_reversed_polarity.*ok' btic51-source-tests.log
+          grep -q 'test_bti_variant_pads_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_derived_window_60_accepted.*ok' btic51-source-tests.log
+          grep -q 'test_derived_window_64_rejected_loudly.*ok' btic51-source-tests.log
+          grep -q 'test_function_too_small_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_pinned_target_selects_51_without_walk.*ok' btic51-source-tests.log
+          grep -q 'test_text_target_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_frozen_window_overlap_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_interior_incoming_target_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_incoming_into_unscanned_tail_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_composed_window_identity_and_control_flow.*ok' btic51-source-tests.log
+          grep -q 'test_bti_c_word_rewritten_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_bti_c_missing_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_pad_class_not_bti_c_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_pac_hint_word_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_ret_in_diagnostic_path_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_tail_reenters_diagnostic_path_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_pair_diff_is_delay_constant_only.*ok' btic51-source-tests.log
+          grep -q 'test_extra_pair_diff_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_member_changes_only_inside_window.*ok' btic51-source-tests.log
+          grep -q 'test_member_changes_outside_window_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_tail_bytes_original_in_members.*ok' btic51-source-tests.log
+          grep -q 'test_prel32_unchanged_accepted.*ok' btic51-source-tests.log
+          grep -q 'test_prel32_change_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_trampoline_island_rejected.*ok' btic51-source-tests.log
+          grep -q 'test_absolute_low32_scan_detects_tail_va.*ok' btic51-source-tests.log
+          grep -q 'test_bti_config_data_keys.*ok' btic51-source-tests.log
+          grep -q 'test_summary_contains_btic51_and_tail_gates.*ok' btic51-source-tests.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-late-btic51-authorization-source-tests
+          path: btic51-source-tests.log
+          if-no-files-found: error
+
+  late-btic51-authorization:
+    needs: source-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Install binary audit tools only
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18
+      - name: Download immutable authoritative inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independently assemble proven 56-byte and 52-byte cores
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-ultracompact.S -o ultracompact.o
+          llvm-readelf-18 -r ultracompact.o | tee ultracompact-relocations.log
+          grep -q 'There are no relocations in this file' ultracompact-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text ultracompact.o ultracompact.bin
+          test "$(stat -c %s ultracompact.bin)" = 56
+          printf '%s  ultracompact.bin\n' 8b90e4c5ba8817ed23414b0d41e94bc376021d2839889b6a87c6023aa5e259b5 | sha256sum -c -
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-subsys52.S -o subsys52.o
+          llvm-readelf-18 -r subsys52.o | tee subsys52-relocations.log
+          grep -q 'There are no relocations in this file' subsys52-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text subsys52.o subsys52.bin
+          test "$(stat -c %s subsys52.bin)" = 52
+          python3 -B - <<'PY'
+          import sys
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint, pathlib
+          checkpoint.gate_subsys52_core_equivalence(
+              pathlib.Path('ultracompact.bin').read_bytes(),
+              pathlib.Path('subsys52.bin').read_bytes())
+          print('LATE_BTIC51_56B_CORE_INDEPENDENTLY_AUDITED=YES')
+          print('LATE_BTIC51_52B_CORE_INDEPENDENTLY_AUDITED=YES')
+          PY
+      - name: Derive late map, run HIGH8 forensic, pin index 51, compose BTI-C delay-only pair
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -u -B scripts/slot_b/late_btic51_probe_authorization.py \
+            --bundle kernel-bundle \
+            --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core56 ultracompact.bin --core52 subsys52.bin \
+            --out btic51 | tee btic51.log
+          for gate in "LATE_LEVEL_POST50_STAGE=MAINLINE_V2_R3_SLOT_B_LATE_INDEX51_BTIC_PROBE_AUTHORIZATION_CI" \
+            "LATE_TABLE_ENTRY_COUNT=86" \
+            "LATE_TABLE_INDEX0_SYMBOL=kernel_do_mounts_initrd_sysctls_init" \
+            "LATE_TABLE_INDEX0_TABLE_VA=0xffff800081d0c2d8" \
+            "LATE_TABLE_INDEX0_TARGET_VA=0xffff800081b32078" \
+            "LATE_TABLE_INDEX0_WORD=0xffe25da0" \
+            "ROUND_PAD_CLASS=BTI_C_ONLY" \
+            "FROZEN_INDICES_EXCLUDED=0,21,43,49,50,55,63" \
+            "FROZEN_WINDOW_DISJOINT=YES" "FROZEN_PAYLOAD_DISJOINT=YES" \
+            "HIGH8_STATIC_PROBE_DEFECT_FOUND=NO" \
+            "HIGH8_FORENSIC_RUNTIME_INFERENCE=NONE" \
+            "BTIC51_SYMBOL=setup_vcpu_hotplug_event" \
+            "BTIC51_TABLE_VA=0xffff800081d0c3a4" \
+            "BTIC51_TARGET_VA=0xffff800081b87130" \
+            "BTIC51_IMAGE_OFFSET=0x1b87130" \
+            "BTIC51_FUNCTION_SIZE=64" "BTIC51_WINDOW=60" "BTIC51_CORE_SIZE=56" \
+            "BTIC51_PROBE_ARCHITECTURE=BTI_C_PLUS_56B_ULTRACOMPACT" \
+            "BTIC51_ENTRY_PAD=bti c" \
+            "BTIC51_REGISTRATION=late_initcall(setup_vcpu_hotplug_event)" \
+            "BTIC51_SOURCE=drivers/xen/cpu_hotplug.c" \
+            "BTIC51_DEVIATION=NONE" \
+            "BTIC51_PAIR_DIFF_OFFSETS=[28864829, 28864830]" \
+            "BTIC51_PAIR=PASS" \
+            "TAIL_BYTES=4" "TAIL_BYTES_ORIGINAL=YES" "TAIL_NO_INCOMING_TARGET=YES" \
+            "TAIL_NOT_ON_DIAGNOSTIC_PATH=YES" "TAIL_NO_PRESERVED_SEMANTICS=YES" \
+            "TAIL_BTI_NEUTRAL=YES" "TAIL_REACHABILITY=DEAD_PROVEN" \
+            "BTI_C_ENTRY_WORD_EXACT=YES" "LANDING_PAD_CLASS_UNCHANGED=YES" \
+            "BTI_PAD_NOT_DELETED=YES" "PAC_INDEPENDENCE=YES" \
+            "NO_RET_IN_DIAGNOSTIC_PATH=YES" "LR_RESTORATION_NOT_REQUIRED=YES" \
+            "SMC_ROUND_TRIP_BTI_SAFE=YES" \
+            "INITCALL_DISPATCH_CALL_CLASS=BLR_CONTROLLED" \
+            "INITCALL_DISPATCH_CITATION=init/main.c do_one_initcall: ret = fn(); (linux 6.6.156, ~line 1210)" \
+            "KERNEL_BTI_CONFIG_CONFIRMED=YES" \
+            "BTI_C_ENTRY_SEMANTICS_PASS=YES" \
+            "MEMBER_CHANGES_ONLY_INSIDE_WINDOW=YES" \
+            "PAIR_DIFF=DELAY_CONSTANT_ONLY" "INLINE_ONLY=YES" "TRAMPOLINE_PERMITTED=NO" \
+            "ISLAND_PERMITTED=NO" "PREL32_TARGET_UNCHANGED=YES" "SHARED_CHECKPOINT=NO" \
+            "CROSS_FUNCTION_OVERWRITE=NO" "WINDOW_DERIVATION=TARGET_CFG" \
+            "KERNEL_REBUILD=NO" "DEVICE_OPERATION=NO" "PRIVATE_PACK=NO" \
+            "PARTITION_WRITES=0" "SLOT_A_WRITTEN=NO" "LOCAL_BUILD=NO"; do
+            grep -Fxq "$gate" btic51/audit-summary.txt
+          done
+          for field in _NOMINAL_INDEX= _INDEX= _SYMBOL= _TABLE_VA= _TARGET_VA= \
+            _IMAGE_OFFSET= _FUNCTION_SIZE= _WINDOW= _CORE_SIZE= \
+            _PROBE_ARCHITECTURE= _ENTRY_PAD= _REGISTRATION= _SOURCE= _DEVIATION=; do
+            grep -q "^BTIC51${field}" btic51/audit-summary.txt
+          done
+          grep -q '^BTIC51_NOMINAL_INDEX=51$' btic51/audit-summary.txt
+          grep -q '^BTIC51_INDEX=51$' btic51/audit-summary.txt
+          grep -q '^BTIC51_CORE_SIZE=56$' btic51/audit-summary.txt
+          grep -Eq '^BTIC51_8_PAYLOAD_SHA=[0-9a-f]{64}$' btic51/audit-summary.txt
+          grep -Eq '^BTIC51_1_PAYLOAD_SHA=[0-9a-f]{64}$' btic51/audit-summary.txt
+          grep -Eq '^WINDOW_AGREEMENT_INDEX51=(EXACT|LAYOUT_LITERAL_ADDRESS_DELTA_VERIFIED)$' btic51/audit-summary.txt
+          grep -Eq '^KERNEL_BTI_KERNEL_CONFIG=' btic51/audit-summary.txt
+          grep -Eq '^KERNEL_BTI_CONFIG=' btic51/audit-summary.txt
+          python3 -B - <<'PY'
+          import json, struct
+          from pathlib import Path
+          root = Path('btic51')
+          summary = (root / 'audit-summary.txt').read_text()
+          assert 'PAIR_DIFF=DELAY_CONSTANT_ONLY' in summary
+          family, (name8, name1) = 'late_btic51', ('BTIC51_8', 'BTIC51_1')
+          identity = json.loads((root / family / 'pair' / 'pair.json').read_text())
+          p8 = (root / family / 'pair' / '8' / 'checkpoint' / 'payload.bin').read_bytes()
+          p1 = (root / family / 'pair' / '1' / 'checkpoint' / 'payload.bin').read_bytes()
+          m8 = json.loads((root / family / 'pair' / '8' / 'checkpoint'
+                           / 'manifest.json').read_text())
+          m1 = json.loads((root / family / 'pair' / '1' / 'checkpoint'
+                           / 'manifest.json').read_text())
+          frozen = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          assert identity['delay8_name'] == name8 and identity['delay1_name'] == name1
+          offset, window = m8['offset'], m8['checkpoint_size']
+          assert offset == 0x1b87130 and window == 60
+          assert m1['checkpoint_size'] == window
+          assert m8['core_size'] == m1['core_size'] == 56
+          assert m8['entry'] == 'bti c' and m8['pac'] is False and m8['bti'] is True
+          assert m1['entry'] == 'bti c' and m1['pac'] is False and m1['bti'] is True
+          assert m8['round_pad_class'] == m1['round_pad_class'] == 'bti_c_only'
+          assert m8['probe_architecture'] == m1['probe_architecture'] == \
+              'BTI_C_PLUS_56B_ULTRACOMPACT'
+          assert m8['inline_only'] is True and m8['trampoline_permitted'] is False
+          assert m8['prel32_target_unchanged'] is True
+          assert m8['extended_reference_forensic'] == 'NO_REFERENCE_INTO_EXTENDED_RANGE'
+          assert m8['span_index'] == 51 and m8['target_symbol'] == 'setup_vcpu_hotplug_event'
+          changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
+          assert changed == identity['changed_offsets'] == [28864829, 28864830], changed
+          assert p8[:offset] == p1[:offset]
+          assert p8[offset + window:] == p1[offset + window:]
+          assert p8[offset:offset + 4] == p1[offset:offset + 4] \
+              == frozen[offset:offset + 4] == b'\x5f\x24\x03\xd5'
+          assert p8[offset + window:offset + window + 4] \
+              == p1[offset + window:offset + window + 4] \
+              == frozen[offset + window:offset + window + 4]
+          assert struct.unpack_from('<I', p8, offset + 4 + 8)[0] == 0xD37DF12A
+          assert struct.unpack_from('<I', p1, offset + 4 + 8)[0] == 0xD340FD2A
+          assert struct.unpack_from('<I', p8, offset + 48)[0] == 0xD4000003
+          assert struct.unpack_from('<I', p8, offset + 52)[0] == 0xD503205F
+          assert struct.unpack_from('<I', p8, offset + 56)[0] == 0x17FFFFFF
+          tail = json.loads((root / family / 'tail-reachability.json').read_text())
+          assert tail['verdict'] == 'DEAD_PROVEN'
+          assert tail['frozen_tail_word'] == tail['bundle_tail_word']
+          high8 = json.loads((root / 'high8-forensic.json').read_text())
+          assert high8['HIGH8_STATIC_PROBE_DEFECT_FOUND'] == 'NO'
+          assert high8['runtime_inference'] == 'NONE_LICENSED'
+          assert high8['stage'] == 'MAINLINE_V2_R3_SLOT_B_LATE_INDEX51_BTIC_PROBE_AUTHORIZATION_CI'
+          assert all(v == 'PASS' for v in high8['gates'].values())
+          print(f"{family}: index={m8['span_index']} symbol={m8['target_symbol']} "
+                f"window={window} core={m8['core_size']} entry=bti c "
+                f"tail=DEAD_PROVEN pair=DELAY_CONSTANT_ONLY")
+          print('HIGH8_FORENSIC=NO_STATIC_PROBE_DEFECT_FOUND')
+          PY
+      - name: Assert public payload-only scope and write job summary
+        run: |
+          set -euo pipefail
+          if find btic51 -name '*.img' -print -quit | grep -q .; then
+            echo 'device image emitted' >&2
+            exit 1
+          fi
+          printf '%s\n' 'PRIVATE_PACK=NO' 'DEVICE_OPERATION=NO' 'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' 'LOCAL_BUILD=NO' 'LOCAL_IMAGE_GENERATION=NO'
+          {
+            echo '## Late index-51 BTI c probe authorization (BTIC51)'
+            echo '```'
+            cat btic51/audit-summary.txt
+            echo '```'
+            echo '- late_btic51 pair identity:'
+            cat "btic51/late_btic51/pair/pair.json"
+            echo '- tail reachability verdict:'
+            python3 -c "import json; print(json.load(open('btic51/late_btic51/tail-reachability.json'))['verdict'])"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-late-btic51-authorization-logs
+          path: |
+            btic51.log
+            ultracompact-*.log
+            subsys52-*.log
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-late-btic51-authorization-map-and-audits
+          path: |
+            btic51/late-map.json
+            btic51/selection.json
+            btic51/audit-summary.txt
+            btic51/high8-forensic.json
+            btic51/*/original-function.txt
+            btic51/*/original-window.txt
+            btic51/*/target-entry-audit.json
+            btic51/*/window-agreement.json
+            btic51/*/window-reference-forensic.json
+            btic51/*/cfg-closure.json
+            btic51/*/tail-reachability.json
+            btic51/*/table-*.bin
+            btic51/*/pair/pair.json
+            btic51/*/pair/*/checkpoint/manifest.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-late-btic51-authorization-pairs
+          path: btic51/
+          if-no-files-found: error

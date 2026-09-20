@@ -111,6 +111,8 @@ class SafetyTests(unittest.TestCase):
         for second, (first, proof, unproved) in observe.PAIRS.items():
             if second in ("reset1", "rest1"):
                 continue
+            if first not in observe.IMAGES or second not in observe.IMAGES:
+                continue
             with self.subTest(stage=second):
                 baseline = {**self.record(first, 35.4), "bootloader_origin": observe.REST_ORIGIN}
                 result = {**self.record(second, 28.5), "bootloader_origin": observe.REST_ORIGIN}
@@ -528,6 +530,124 @@ class SafetyTests(unittest.TestCase):
                 observe.pair_verdict(baseline, result)
         with self.assertRaises(ValueError):
             observe.pair_verdict({**baseline, "total_s": None}, self.record("reset1", 43.0))
+
+
+class Btic51PairTests(unittest.TestCase):
+    SYNTHETIC = {"late_btic518": (37380096, "a" * 64),
+                 "late_btic511": (37380096, "b" * 64)}
+
+    def frozen(self):
+        return patch.dict(observe.IMAGES, self.SYNTHETIC)
+
+    def record(self, case, total):
+        return {"protocol": observe.PROTOCOL, "case": case,
+                "image_sha256": self.SYNTHETIC[case][1], "context": observe.CONTEXT,
+                "status": "AUTOMATIC_FASTBOOT_RETURN", "final_slot": "b",
+                "experimental_boots": 1, "total_s": total,
+                "bootloader_origin": observe.REST_ORIGIN}
+
+    def test_btic51_pair_routes_are_registered(self):
+        self.assertEqual(observe.PAIRS["late_btic511"],
+                         ("late_btic518", "late_btic51_entry", "late_initcalls_completed"))
+        self.assertIn("late_btic518", observe.ORIGIN_CASES)
+        self.assertIn("late_btic511", observe.ORIGIN_CASES)
+        frozen = all(isinstance(v, str) and len(v) == 64
+                     and all(ch in "0123456789abcdef" for ch in v)
+                     for v in (observe.BTIC51_8_BOOT_SHA256, observe.BTIC51_1_BOOT_SHA256))
+        if frozen:
+            self.assertEqual(observe.IMAGES["late_btic518"],
+                             (37380096, observe.BTIC51_8_BOOT_SHA256))
+            self.assertEqual(observe.IMAGES["late_btic511"],
+                             (37380096, observe.BTIC51_1_BOOT_SHA256))
+        else:
+            self.assertIsNone(observe.BTIC51_8_BOOT_SHA256)
+            self.assertIsNone(observe.BTIC51_1_BOOT_SHA256)
+            self.assertIsNone(observe.BTIC51_8_PAYLOAD_SHA256)
+            self.assertIsNone(observe.BTIC51_1_PAYLOAD_SHA256)
+            self.assertNotIn("late_btic518", observe.IMAGES)
+            self.assertNotIn("late_btic511", observe.IMAGES)
+
+    def test_btic51_unfrozen_identities_are_not_live_images(self):
+        frozen = all(isinstance(v, str) and len(v) == 64
+                     and all(ch in "0123456789abcdef" for ch in v)
+                     for v in (observe.BTIC51_8_BOOT_SHA256, observe.BTIC51_1_BOOT_SHA256))
+        if frozen:
+            observe.validate_identity("late_btic518", 37380096, observe.BTIC51_8_BOOT_SHA256)
+            observe.validate_identity("late_btic511", 37380096, observe.BTIC51_1_BOOT_SHA256)
+            for case in ("late_btic518", "late_btic511"):
+                with self.subTest(case=case):
+                    with self.assertRaisesRegex(ValueError, "IMAGE_IDENTITY_MISMATCH"):
+                        observe.validate_identity(case, 37380096, "a" * 64)
+                    with self.assertRaisesRegex(ValueError, "IMAGE_IDENTITY_MISMATCH"):
+                        observe.validate_identity(case, *observe.IMAGES["late_post508"])
+            return
+        for case in ("late_btic518", "late_btic511"):
+            with self.subTest(case=case):
+                with self.assertRaisesRegex(ValueError, "IMAGE_IDENTITY_MISMATCH"):
+                    observe.validate_identity(case, 37380096, "a" * 64)
+                with self.assertRaisesRegex(ValueError, "IMAGE_IDENTITY_MISMATCH"):
+                    observe.validate_identity(case, *observe.IMAGES["late_post508"])
+
+    def test_btic51_pair_proves_only_btic51_entry(self):
+        with self.frozen():
+            baseline = self.record("late_btic518", 35.0)
+            verdict = observe.pair_verdict(baseline, self.record("late_btic511", 28.0))
+            self.assertEqual(verdict["verdict"], "STRONG")
+            self.assertEqual(verdict["late_btic51_entry"], "PROVEN")
+            self.assertEqual(verdict["setup_vcpu_hotplug_event_entry"], "PROVEN")
+            self.assertEqual(verdict["delta_s"], -7.0)
+            self.assertEqual(verdict["expected_delta_s"], -7.0)
+            for key in ("late_initcalls_completed", "wait_for_initramfs_return",
+                        "console_on_rootfs_entry", "init_executed"):
+                self.assertEqual(verdict[key], "NOT_PROVEN")
+            self.assertEqual(verdict["usb"], "FROZEN")
+            self.assertNotIn("late_btic51_checkpoint_shift_not_observed", verdict)
+            self.assertNotIn("rest_init_entry", verdict)
+            self.assertFalse(any("not_reached" in key for key in verdict))
+
+    def test_btic51_supported_grade_is_strongly_supported(self):
+        with self.frozen():
+            baseline = self.record("late_btic518", 35.0)
+            verdict = observe.pair_verdict(baseline, self.record("late_btic511", 26.5))
+            self.assertEqual(verdict["verdict"], "SUPPORTED")
+            self.assertEqual(verdict["late_btic51_entry"], "STRONGLY_SUPPORTED")
+            self.assertEqual(verdict["setup_vcpu_hotplug_event_entry"], "STRONGLY_SUPPORTED")
+
+    def test_btic51_no_shift_records_checkpoint_only(self):
+        with self.frozen():
+            baseline = self.record("late_btic518", 35.0)
+            miss = observe.pair_verdict(baseline, self.record("late_btic511", 35.0))
+            self.assertEqual(miss["verdict"], "SHIFT_NOT_OBSERVED")
+            self.assertEqual(miss["late_btic51_entry"], "NOT_PROVEN")
+            self.assertEqual(miss["setup_vcpu_hotplug_event_entry"], "NOT_PROVEN")
+            self.assertEqual(miss["late_btic51_checkpoint_shift_not_observed"], "YES")
+            self.assertFalse(any("not_reached" in key for key in miss))
+
+    def test_btic51_invalid_records_rejected(self):
+        with self.frozen():
+            baseline = self.record("late_btic518", 35.0)
+            result = self.record("late_btic511", 28.0)
+
+            def broken(mutate, message):
+                with self.assertRaisesRegex(ValueError, message):
+                    observe.pair_verdict(mutate(baseline), result)
+
+            broken(lambda r: {**r, "case": "waitentry8"}, "PAIR_MEMBER_MISMATCH")
+            broken(lambda r: {**r, "bootloader_origin": "OTHER"}, "PAIR_ORIGIN_MISMATCH")
+            broken(lambda r: {**r, "protocol": "other"}, "PAIR_PROTOCOL_MISMATCH")
+            broken(lambda r: {**r, "image_sha256": "0" * 64}, "PAIR_IDENTITY_MISMATCH")
+            broken(lambda r: {**r, "image_sha256": observe.IMAGES["late_post508"][1]},
+                   "PAIR_IDENTITY_MISMATCH")
+            broken(lambda r: {**r, "status": "STOP"}, "PAIR_RETURN_NOT_VALID")
+            broken(lambda r: {**r, "final_slot": "a"}, "PAIR_NOT_SLOT_B")
+            broken(lambda r: {**r, "experimental_boots": 2}, "PAIR_BOOT_COUNT_INVALID")
+            broken(lambda r: {**r, "context": {}}, "PAIR_CONTEXT_MISMATCH")
+            for bad_total in (True, float("inf"), 0, -1.0):
+                with self.subTest(bad_total=bad_total), \
+                        self.assertRaisesRegex(ValueError, "PAIR_TIMING_INVALID"):
+                    observe.pair_verdict(baseline, {**result, "total_s": bad_total})
+            with self.assertRaisesRegex(ValueError, "PAIR_MEMBER_MISMATCH"):
+                observe.pair_verdict(baseline, {**result, "case": "late_btic518"})
 
 
 if __name__ == "__main__":
