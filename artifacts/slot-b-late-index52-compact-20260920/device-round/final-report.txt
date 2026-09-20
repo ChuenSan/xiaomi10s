@@ -1,0 +1,174 @@
+MAINLINE_V2_R3_SLOT_B_LATE_INDEX52_COMPACT_FREEZE_AND_DEVICE_PAIR
+============================================================================
+Date             2026-09-20
+Worktree         /Volumes/LinuxDev/thyme-mainline-slot-b-continuation
+Branch           route-b-slot-b-continuation
+Freeze commit    385ab99
+Device           Xiaomi Mi 10S (thyme / M2102J2SC) serial 41a5627b
+Mode             GHA-only validation; RAM-only Slot B boots; no local build
+
+----------------------------------------------------------------------------
+1. CONSTRAINTS
+----------------------------------------------------------------------------
+LOCAL_COMPILE_ASSEMBLE_LINK_IMAGE_GEN      NO
+LOCAL_OBJDUMP_READELF_BINARY_VALIDATION    NO
+AUTHORITATIVE_VALIDATION                   GITHUB_ACTIONS_ONLY
+SLOT_A_FLASH_ERASE_FORMAT                  NO
+DIRTY_WORKTREE_5550dc2                     UNTOUCHED
+ARTIFACT_DELETIONS                         NONE
+FROZEN_PAIR_RERUNS                         NONE
+COMPACT52_REPACK_REBUILD_SUBSTITUTE        NONE (download only)
+LATE_HIGH1                                 NOT_EXECUTED
+FIRST_TRUE-DEVICE USE OF COMPACT_INLINE_48B  YES
+BOOTS PER MEMBER                           1
+
+----------------------------------------------------------------------------
+2. AUTHORITATIVE FULL SHAs  (source: GHA artifacts, never a truncation)
+----------------------------------------------------------------------------
+payload8  e5c7b8d818303cdd8b2c60400aee2578e55734b33fbfca9fdcf55423a40128a5
+payload1  c71f47acce6654c0bfc27b189be0e72b826780e173b186f5c1a0dee2a2d77ed1
+boot8     64a2ed163029f693f7ffa75b8541f1afed04ac0843cb40c551bdbc5d5e968529
+boot1     771d29da92c0cef828d2c2da4b61262e85a489049f23764051f7bfc39c2cd100
+both boots 37380096 B; pair diff [0x1b87ed1, 0x1b87ed2] DELAY_CONSTANT_ONLY
+payload8 provenance: 12 independent artifact sites (pair.json,
+  8/checkpoint/manifest.json, audit-summary.txt:31, compact52.log:38 and the
+  duplicated copies). mem0 metadata said ...40128a1 - WRONG, corrected.
+boot provenance: private pack run 35516663217 pair-identity.txt /
+  compact52-{8,1}-identity.txt.
+
+----------------------------------------------------------------------------
+3. PHASE A - IDENTITY FREEZE (commit 385ab99)
+----------------------------------------------------------------------------
+observe.py gained the compact52 plug-in points, mirroring the btic51 pattern
+(authorisation commit leaves the slots, the freeze commit fills them):
+  COMPACT52_{8,1}_{BOOT,PAYLOAD}_SHA256 constants
+  guarded IMAGES["late_compact528"] / IMAGES["late_compact521"] registration
+  PAIRS["late_compact521"] = ("late_compact528", "late_compact52_entry",
+                              "late_initcalls_completed")   -> ORIGIN_CASES too
+  compact52 pair-verdict route (boot_wait_for_devices_entry, compact52 shift key)
+  registration guard additionally requires len(set(sha)) > 2, so a
+  repeated-nibble sentinel can never become an IMAGES identity.
+No frozen family modified (PACIASP_PLUS_52B / PACIASP_PLUS_56B /
+BTI_C_PLUS_56B untouched; btic51 registration and PAIRS row unchanged).
+IMAGES 63 -> 65 keys; projected cross-identity rejections stay 124.
+
+----------------------------------------------------------------------------
+4. PHASE B - PLACEHOLDER FALSE-PASS FIXED
+----------------------------------------------------------------------------
+The fixtures still held the pre-freeze placeholders
+  COMPACT52_{8,1}_BOOT_SHA256 = "f1a0"/"f1b0" + "0" * 60
+  COMPACT52_{8,1}_PAYLOAD_SHA256 = "e1a0"/"e1b0" + "0" * 60
+which are 64 VALID hex characters and therefore passed the old
+length/charset-only require_frozen(). That is why the pre-freeze observer run
+35514833635 was green and was NOT device-authorisation evidence.
+Replaced with the authoritative full SHAs and hardened:
+  is_placeholder_sha()      rejects sentinels, the literal placeholders,
+                            repeated-nibble strings, non-hex, non-strings
+  require_authoritative()   COMPACT52_PLACEHOLDER_SHA_REJECTED
+  require_registry_agreement()  COMPACT52_REGISTRY_AGREEMENT_MISMATCH
+Positive and negative fixtures for each; the fixtures keep independent literals
+so the agreement gate compares two separately transcribed sources.
+Pre-freeze observer run 35514833635 is hereby demoted to a historical
+pre-freeze fixture run; it is NOT device-authorisation evidence.
+
+----------------------------------------------------------------------------
+5. PHASE C - MATERIALIZED EXACT FROZEN ARTIFACTS
+----------------------------------------------------------------------------
+Source: private run 35516663217, artifact thyme-late-compact52-private-pair
+        (28094917 B). Downloaded; NOT repacked / rebuilt / substituted.
+thyme-late-compact52-8-boot.img  37380096  64a2ed16…5e968529  MATCH
+thyme-late-compact52-1-boot.img  37380096  771d29da…c39c2cd100  MATCH
+payload8 e5c7b8d8…40128a5 MATCH ; payload1 c71f47ac…a2d77ed1 MATCH
+KERNEL_REBUILD=NO  DEVICE_OPERATION=NO  PARTITION_WRITES=0
+WINDOW=[0x1b87ec8,0x1b87ef8) (48 B)  CORE_SIZE=44  COMPACT_INLINE_48B
+ENTRY_PAD=PACIASP_D503233F  NO_TAIL_REGION=PASS
+
+----------------------------------------------------------------------------
+6. PHASE D - POST-FREEZE VALIDATION  (GHA run 35518134233 @ 385ab99)
+----------------------------------------------------------------------------
+jobs                  observer-fixtures PASS ; identity-agreement PASS
+POST_FREEZE_OBSERVER           PASS
+AUTHORITATIVE_SHA_MATCH        PASS  (COMPACT52_PUBLIC_MANIFEST_ENTRIES=6)
+PLACEHOLDER_SHA_REJECTED       PASS
+PAIR_DIFF                      DELAY_CONSTANT_ONLY
+COMPACT52_REGISTRY_MANIFEST_AGREEMENT=PASS
+COMPACT52_WELLFORMED_NON_AUTHORITATIVE_SHA_REJECTED=PASS
+COMPACT52_REGISTRY_DISAGREEMENT_REJECTED=PASS
+COMPACT52_CROSS_IDENTITY_REJECTIONS=124
+COMPACT52_OBSERVER_FIXTURES=PASS
+unit tests            25 compact52 + 38 base observer, all OK
+the identity-agreement job re-downloads the frozen public run 35516067282 and
+proves observe registry == fixtures == pair.json == per-member checkpoint
+manifest == audit-summary.txt.
+HISTORICAL REGRESSION: the same commit triggered 20 workflows; all 20 SUCCESS,
+including all 16 historical slot-b observer-fixture families. Zero regressions.
+
+----------------------------------------------------------------------------
+7. PHASE E - DEVICE PREFLIGHT  (read-only)
+----------------------------------------------------------------------------
+Android A  slot=_a  sys.boot_completed=1  thyme  Android 13
+           uname -r 4.19.157-perf-g9d90dd04aa7c  su context=u:r:magisk:s0
+Current B 16-chain   device-side sha256sum, MATCH against pre/between/post
+vendor_boot_b        aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972  MATCH
+dtbo_b               018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634  MATCH
+P15 prefix boot_b    133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34  MATCH
+PARTITION_WRITES=0
+All hashes via adb shell -T + device-side sha256sum; no adb exec-out.
+
+----------------------------------------------------------------------------
+8. PHASE F - COMPACT_INLINE_48B FIRST TRUE-DEVICE PAIR
+----------------------------------------------------------------------------
+Member                    Boot identity (frozen)                                            total_s
+late_compact528 (8 s)     64a2ed163029f693f7ffa75b8541f1afed04ac0843cb40c551bdbc5d5e968529  35.498629292007536
+late_compact521 (1 s)     771d29da92c0cef828d2c2da4b61262e85a489049f23764051f7bfc39c2cd100  28.487913249991834
+
+Both: Sending OKAY ~0.92 s, Booting OKAY ~0.22 s, AUTOMATIC_FASTBOOT_RETURN
+returning to Fastboot slot b, slot-retry-count:b 7 -> 6, experimental_boots 1,
+host_boot_commands 1, recovery_control_boots 0.
+
+PAIR_DELTA   -7.010716042015702 s
+EXPECTED     -7.000000000 s
+PAIR_ERROR   -0.010716042015702 s   (abs 0.0107 <= 1.000)
+VERDICT      STRONG
+
+NO_RETURN_WITHIN_120S   NONE
+USB disappearance       NONE
+adb+fastboot dual loss  NONE
+transport anomaly       NONE
+unexpected bootloader state NONE
+
+Android A restored healthy after EACH member (slot _a, sys.boot_completed=1,
+4.19.157-perf-g9d90dd04aa7c). Current B 16-chain and P15 prefix MATCH pre /
+between / post. PARTITION_WRITES=0; SLOT_A_WRITTEN=NO.
+
+----------------------------------------------------------------------------
+9. EVIDENCE SEMANTICS
+----------------------------------------------------------------------------
+BOOT_WAIT_FOR_DEVICES_ENTRY      PROVEN
+LATEST_PROVEN_LATE_INDEX        52   (51 -> 52)
+NEXT_DIAGNOSTIC_INTERVAL        52..55
+LATE_INITCALLS_COMPLETED        NOT_PROVEN
+WAIT_FOR_INITRAMFS_ENTRY        NOT_PROVEN
+WAIT_FOR_INITRAMFS_RETURN       NOT_PROVEN
+CONSOLE_ON_ROOTFS               NOT_PROVEN
+INIT_EXECUTED                   NOT_PROVEN
+LATE_HIGH1                      NOT_EXECUTED
+.text policy                    NOT relaxed
+
+Reaching the index-52 entry is what proves late entries 0..51 each returned
+(sequential do_initcall_level contract), so LATEST_PROVEN_LATE_INDEX advances
+to 52. No later claim is licensed.
+
+----------------------------------------------------------------------------
+10. RERUN DISCIPLINE
+----------------------------------------------------------------------------
+late_compact528 and late_compact521 were executed once each and are now
+rerun-FORBIDDEN. Index 53 / 54 / 55 were NOT probed and no new probe was added.
+
+----------------------------------------------------------------------------
+11. FINAL GATE
+----------------------------------------------------------------------------
+R3_SLOT_B_LATE_INDEX52_COMPACT_ENTRY_PROVEN
+
+Recommended next: a separate decision on index 54 .text policy, or another
+strictly-later-than-52 causal checkpoint. This round does not auto-switch.

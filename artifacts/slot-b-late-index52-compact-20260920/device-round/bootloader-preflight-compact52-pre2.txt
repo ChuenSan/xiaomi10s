@@ -1,0 +1,8 @@
+product                  = thyme
+unlocked                 = yes
+current-slot             = a
+slot-retry-count:b       = 6
+slot-unbootable:b        = no
+slot-successful:a        = yes
+snapshot-update-status   = none
+battery-soc-ok           = yes

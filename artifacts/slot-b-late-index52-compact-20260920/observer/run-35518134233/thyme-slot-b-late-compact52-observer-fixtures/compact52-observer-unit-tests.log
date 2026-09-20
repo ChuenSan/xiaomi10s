@@ -1,0 +1,30 @@
+test_compact52_registered_in_observe (test_late_compact52_observer_fixtures.FrozenRegistryTests.test_compact52_registered_in_observe) ... ok
+test_fixtures_registry_matches_observe (test_late_compact52_observer_fixtures.FrozenRegistryTests.test_fixtures_registry_matches_observe) ... ok
+test_identity_is_frozen_shape_and_not_a_placeholder (test_late_compact52_observer_fixtures.FrozenRegistryTests.test_identity_is_frozen_shape_and_not_a_placeholder) ... ok
+test_frozen_geometry_literals (test_late_compact52_observer_fixtures.GeometryTests.test_frozen_geometry_literals) ... ok
+test_geometry_accepts_frozen_window_only (test_late_compact52_observer_fixtures.GeometryTests.test_geometry_accepts_frozen_window_only) ... ok
+test_pad_class_negatives (test_late_compact52_observer_fixtures.GeometryTests.test_pad_class_negatives) ... ok
+test_pair_diff_range_is_delay_word (test_late_compact52_observer_fixtures.GeometryTests.test_pair_diff_range_is_delay_word) ... ok
+test_selection_policy (test_late_compact52_observer_fixtures.GeometryTests.test_selection_policy) ... ok
+test_table_drift_negatives (test_late_compact52_observer_fixtures.GeometryTests.test_table_drift_negatives) ... ok
+test_table_identity (test_late_compact52_observer_fixtures.GeometryTests.test_table_identity) ... ok
+test_cross_identity_rejection_scale (test_late_compact52_observer_fixtures.IdentityTests.test_cross_identity_rejection_scale) ... ok
+test_exact_identity_only (test_late_compact52_observer_fixtures.IdentityTests.test_exact_identity_only) ... ok
+test_named_cross_family_identities_rejected (test_late_compact52_observer_fixtures.IdentityTests.test_named_cross_family_identities_rejected) ... ok
+test_non_compact52_cases_rejected (test_late_compact52_observer_fixtures.IdentityTests.test_non_compact52_cases_rejected) ... ok
+test_one_byte_mutants_rejected (test_late_compact52_observer_fixtures.IdentityTests.test_one_byte_mutants_rejected) ... ok
+test_authoritative_identity_survives_the_predicate (test_late_compact52_observer_fixtures.PlaceholderRejectionTests.test_authoritative_identity_survives_the_predicate) ... ok
+test_frozen_gate_rejects_non_hex_and_bad_length (test_late_compact52_observer_fixtures.PlaceholderRejectionTests.test_frozen_gate_rejects_non_hex_and_bad_length) ... ok
+test_malformed_and_non_string_rejected (test_late_compact52_observer_fixtures.PlaceholderRejectionTests.test_malformed_and_non_string_rejected) ... ok
+test_registry_disagreement_is_refused (test_late_compact52_observer_fixtures.PlaceholderRejectionTests.test_registry_disagreement_is_refused) ... ok
+test_require_authoritative_refuses_a_placeholder_constant (test_late_compact52_observer_fixtures.PlaceholderRejectionTests.test_require_authoritative_refuses_a_placeholder_constant) ... ok
+test_valid_hex_placeholders_and_sentinels_rejected (test_late_compact52_observer_fixtures.PlaceholderRejectionTests.test_valid_hex_placeholders_and_sentinels_rejected) ... ok
+test_grade_boundaries (test_late_compact52_observer_fixtures.VerdictTests.test_grade_boundaries) ... ok
+test_invalid_records_rejected (test_late_compact52_observer_fixtures.VerdictTests.test_invalid_records_rejected) ... ok
+test_no_shift_records_checkpoint_shift_not_observed_only (test_late_compact52_observer_fixtures.VerdictTests.test_no_shift_records_checkpoint_shift_not_observed_only) ... ok
+test_strong_proves_only_compact52_entry (test_late_compact52_observer_fixtures.VerdictTests.test_strong_proves_only_compact52_entry) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 0.010s
+
+OK

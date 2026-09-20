@@ -1,0 +1,4 @@
+sys.boot_completed       = 1
+ro.boot.slot_suffix      = _a
+uname                    = 
+-r                       = 

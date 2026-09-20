@@ -3235,3 +3235,56 @@ unchanged: `LATEST_PROVEN_LATE_INDEX=51`,
 `LATE_INITCALLS_COMPLETED` / `WAIT_FOR_INITRAMFS_ENTRY` /
 `WAIT_FOR_INITRAMFS_RETURN` `NOT_PROVEN`, `LATE_HIGH1=NOT_EXECUTED`,
 `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`. No device boot was performed.
+
+Continuation 2026-09-20: `MAINLINE_V2_R3_SLOT_B_LATE_INDEX52_COMPACT_FREEZE_AND_DEVICE_PAIR`
+first attempted the pair and correctly stopped: the family was **not
+executable**. `observe.py` is the only device-round driver and declares `--case`
+as `choices=IMAGES`; compact52 was unregistered there, so the family died in
+argparse before any device I/O. The reason the CI looked ready is that the
+compact52 fixtures were written "self-contained" with constants like
+`"f1a0" + "0" * 60` — 64 **valid** hex characters — which passed the
+length/charset-only `require_frozen()`, so the green observer-fixtures run
+`35514833635` was never evidence of a freeze. Zero device operations were
+performed in that attempt; `late_compact528` / `late_compact521` remained
+executable and were not rerun-forbidden.
+
+Continuation 2026-09-20: `MAINLINE_V2_R3_SLOT_B_LATE_INDEX52_COMPACT_FREEZE_AND_DEVICE_PAIR`
+closed. Freeze commit `385ab99` added the compact52 plug-in points to
+`observe.py` (constants, guarded `IMAGES["late_compact528"]` /
+`["late_compact521"]` registration with an added `len(set(sha)) > 2` sentinel
+guard, `PAIRS["late_compact521"]`, and the compact52 pair-verdict route) and
+replaced the fixture placeholders with the authoritative full SHAs, hardening the
+module with `is_placeholder_sha` / `require_authoritative` /
+`require_registry_agreement` and their negative fixtures. A new GHA job
+`identity-agreement` proves `registry == fixtures == pair.json == per-member
+checkpoint manifest == audit-summary.txt` against the frozen public run
+`35516067282`. Post-freeze validation `35518134233` @`385ab99`:
+`POST_FREEZE_OBSERVER=PASS`, `AUTHORITATIVE_SHA_MATCH=PASS` (6 manifest entries),
+`PLACEHOLDER_SHA_REJECTED=PASS`, `PAIR_DIFF=DELAY_CONSTANT_ONLY`; 25 compact52 +
+38 base observer tests OK; the same commit triggered 20 workflows and all 20
+succeeded (all 16 historical observer-fixture families included) — zero
+regressions. The frozen pair from private run `35516663217` was **downloaded
+only** (no repack/rebuild/substitute): boots
+`64a2ed163029f693f7ffa75b8541f1afed04ac0843cb40c551bdbc5d5e968529` and
+`771d29da92c0cef828d2c2da4b61262e85a489049f23764051f7bfc39c2cd100`,
+37380096 both.
+
+First true-device `COMPACT_INLINE_48B` pair, one RAM-only Slot B boot per member:
+`late_compact528` `35.498629292007536 s` and `late_compact521`
+`28.487913249991834 s`, both `AUTOMATIC_FASTBOOT_RETURN`, retry 7->6.
+`PAIR_DELTA=-7.010716042015702 s` vs expected `-7.000000000 s`
+(`PAIR_ERROR=-0.010716042015702 s`, abs `0.0107 <= 1.000`) -> **`STRONG`**:
+`BOOT_WAIT_FOR_DEVICES_ENTRY=PROVEN`, `late_compact52_entry=PROVEN`.
+**`LATEST_PROVEN_LATE_INDEX=52`** (51 -> 52), `NEXT_DIAGNOSTIC_INTERVAL=52..55`.
+No `NO_RETURN_WITHIN_120S`, no USB disappearance, no adb+fastboot dual loss, no
+transport anomaly. Android A restored healthy after each member (`_a`,
+`4.19.157-perf-g9d90dd04aa7c`, `sys.boot_completed=1`); Current B 16-chain and
+P15 prefix `133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34`
+MATCH pre / between / post; `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`,
+`USB=FROZEN`. `LATE_INITCALLS_COMPLETED` / `WAIT_FOR_INITRAMFS_ENTRY` /
+`WAIT_FOR_INITRAMFS_RETURN` / `CONSOLE_ON_ROOTFS` / `INIT_EXECUTED` stay
+`NOT_PROVEN`; `LATE_HIGH1=NOT_EXECUTED`; `.text` policy not relaxed.
+`late_compact528` / `late_compact521` are rerun-FORBIDDEN; index 53/54/55 were
+not probed and no new probe was added. Final gate
+`R3_SLOT_B_LATE_INDEX52_COMPACT_ENTRY_PROVEN`. Round details:
+docs/slot-b-late-index52-compact-device-round.md.
