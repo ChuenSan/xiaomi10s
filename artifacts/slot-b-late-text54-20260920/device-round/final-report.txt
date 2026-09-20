@@ -1,0 +1,126 @@
+MAINLINE_V2_R3_SLOT_B_LATE_INDEX54_TEXT_DEVICE_PAIR
+============================================================================
+Date             2026-09-20
+Worktree         /Volumes/LinuxDev/thyme-mainline-slot-b-continuation
+Branch           route-b-slot-b-continuation
+Freeze commit    5ef67e2
+Identity-agree   b2b121b (pins public run 35520679000)
+Device           Xiaomi Mi 10S (thyme / M2102J2SC) serial 41a5627b
+Mode             GHA-only validation; RAM-only Slot B boots; no local build
+
+----------------------------------------------------------------------------
+1. CONSTRAINTS
+----------------------------------------------------------------------------
+LOCAL_COMPILE_ASSEMBLE_LINK_IMAGE_GEN      NO
+LOCAL_OBJDUMP_READELF_BINARY_VALIDATION    NO
+AUTHORITATIVE_VALIDATION                   GITHUB_ACTIONS_ONLY
+SLOT_A_FLASH_ERASE_FORMAT                  NO
+DIRTY_WORKTREE_5550dc2                     UNTOUCHED
+ARTIFACT_DELETIONS                         NONE
+FROZEN_PAIR_RERUNS                         NONE
+TEXT54_REPACK_REBUILD_SUBSTITUTE           NONE (download only)
+LATE_HIGH1                                 NOT_EXECUTED
+FIRST TRUE-DEVICE USE OF TARGET-SCOPED .text EXCEPTION  YES
+BOOTS PER MEMBER                           1
+INDEX53 / INDEX55                          NOT probed this round
+GLOBAL_ALLOW_TEXT_TARGETS                  ABSENT (not generalized)
+
+----------------------------------------------------------------------------
+2. EXACT .text EXCEPTION IDENTITY  (full 64-hex, never a truncation)
+----------------------------------------------------------------------------
+four-tuple allowlist, exactly one member:
+  symbol   deferred_probe_initcall
+  index    54
+  VA       0xffff8000808e7564
+  section  .text
+  window   60 B / core 56 B  INLINE_PACIASP_PLUS_56B_ULTRACOMPACT
+  tail     432 B original, unreachable from composed window
+  pair     DELAY_CONSTANT_ONLY [0x8e7571,0x8e7573)
+
+payload8  972be7455da70f7dece9ce299c326d1a6cdba2d77c1a809946a3c1ea15dff2ae
+payload1  afbeb6c213ee438cfef5e3b1b7662a599d1f58abbdbb8313e3d640789c21e485
+boot8     ea286b201d0e6f22b1ed48d6c8e7b8e1811b51507ca02f39316c3d7d4d2ca4b5
+boot1     3dd0ae7cd5ea71ef5531f4969926283971ec1c125a97fb43fccb59268e231124
+both boots 37380096 B
+
+Chain: public 35520679000 @8f0aad8, private pack 35521176700 @private 528a9f1,
+independent reverify 35521361359, freeze 5ef67e2, observer+identity-agreement
+35521787570 @b2b121b. Frozen pair downloaded only (artifact
+thyme-late-text54-private-pair); KERNEL_REBUILD=NO.
+
+----------------------------------------------------------------------------
+3. DEVICE PREFLIGHT  (read-only, from healthy Android A)
+----------------------------------------------------------------------------
+Android A  slot=_a  sys.boot_completed=1  thyme  Android 13
+           uname -r 4.19.157-perf-g9d90dd04aa7c  su context=u:r:magisk:s0
+Current B 16-chain   device-side sha256sum, MATCH compact52 post snapshot
+vendor_boot_b        aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972  MATCH
+dtbo_b               018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634  MATCH
+P15 prefix boot_b    133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34  MATCH
+                     (dd bs=4096 count=12858 | sha256sum; 52666368 B)
+PARTITION_WRITES=0
+All hashes via adb shell -T + device-side sha256sum; no adb exec-out.
+
+----------------------------------------------------------------------------
+4. TARGET-SCOPED .text EXCEPTION FIRST TRUE-DEVICE PAIR
+----------------------------------------------------------------------------
+Member                    Boot identity (frozen)                                            total_s
+late_text548 (8 s)        ea286b201d0e6f22b1ed48d6c8e7b8e1811b51507ca02f39316c3d7d4d2ca4b5  35.225727583
+late_text541 (1 s)        3dd0ae7cd5ea71ef5531f4969926283971ec1c125a97fb43fccb59268e231124  28.495911209000003
+
+Both: Sending OKAY ~0.91 s, Booting OKAY 0.221 s, AUTOMATIC_FASTBOOT_RETURN
+returning to Fastboot slot b, slot-retry-count:b 7 -> 6, experimental_boots 1,
+host_boot_commands 1, recovery_control_boots 0.
+
+PAIR_DELTA   -6.7298163739999985 s
+EXPECTED     -7.000000000 s
+PAIR_ERROR    0.27018362600000145 s   (abs 0.270 <= 1.000)
+VERDICT      STRONG
+
+NO_RETURN_WITHIN_120S   NONE
+USB disappearance       NONE
+adb+fastboot dual loss  NONE
+transport anomaly       NONE
+unexpected bootloader state NONE
+
+Android A restored healthy after EACH member (slot _a, sys.boot_completed=1,
+4.19.157-perf-g9d90dd04aa7c). Current B 16-chain and P15 prefix MATCH pre /
+between / post. PARTITION_WRITES=0; SLOT_A_WRITTEN=NO.
+
+----------------------------------------------------------------------------
+5. EVIDENCE SEMANTICS
+----------------------------------------------------------------------------
+DEFERRED_PROBE_INITCALL_ENTRY    PROVEN
+late_text54_entry                PROVEN
+LATEST_PROVEN_LATE_INDEX        54   (52 -> 54)
+NEXT_DIAGNOSTIC_INTERVAL        54..55
+index53 sync_state_resume_initcall  implied RETURNED (sequential
+                                    do_initcall_level contract; NOT a
+                                    fabricated direct probe)
+LATE_INITCALLS_COMPLETED        NOT_PROVEN
+WAIT_FOR_INITRAMFS_ENTRY        NOT_PROVEN
+WAIT_FOR_INITRAMFS_RETURN       NOT_PROVEN
+CONSOLE_ON_ROOTFS               NOT_PROVEN
+INIT_EXECUTED                   NOT_PROVEN
+LATE_HIGH1                      NOT_EXECUTED
+.text policy                    NOT generalized (no ALLOW_TEXT_TARGETS)
+
+Index 55 genpd_debug_init remains frozen CHECKPOINT_SHIFT_NOT_OBSERVED;
+that frozen no-shift is NOT reinterpreted as "index 55 did not execute".
+
+----------------------------------------------------------------------------
+6. RERUN DISCIPLINE
+----------------------------------------------------------------------------
+late_text548 and late_text541 were executed once each and are now
+rerun-FORBIDDEN. Index 53 / 55 were NOT probed this round and no new probe
+was added. Probe family remained INLINE_PACIASP_PLUS_56B_ULTRACOMPACT.
+
+----------------------------------------------------------------------------
+7. FINAL GATE
+----------------------------------------------------------------------------
+R3_SLOT_B_LATE_INDEX54_TEXT_ENTRY_PROVEN
+
+Recommended next: a separately authorized round for a strictly-later-than-54
+causal checkpoint. Interval 54..55 still contains frozen index 55
+(SHIFT_NOT_OBSERVED, rerun-FORBIDDEN); this round does not auto-advance
+past 55 and does not invent a global .text allowlist.

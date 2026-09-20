@@ -1,0 +1,5 @@
+sys.boot_completed       = 1
+ro.boot.slot_suffix      = _a
+ro.product.device        = thyme
+uname -r                 = 4.19.157-perf-g9d90dd04aa7c
+serial                   = 41a5627b

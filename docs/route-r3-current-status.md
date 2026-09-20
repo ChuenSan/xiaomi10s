@@ -3288,3 +3288,35 @@ MATCH pre / between / post; `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`,
 not probed and no new probe was added. Final gate
 `R3_SLOT_B_LATE_INDEX52_COMPACT_ENTRY_PROVEN`. Round details:
 docs/slot-b-late-index52-compact-device-round.md.
+
+Continuation 2026-09-20: `MAINLINE_V2_R3_SLOT_B_LATE_INDEX54_TEXT_DEVICE_PAIR`
+closed. First true-device pair of the target-scoped `.text` exception on late
+index 54 `deferred_probe_initcall` (`0xffff8000808e7564`, 492 B `.text`,
+window 60, core 56, `INLINE_PACIASP_PLUS_56B_ULTRACOMPACT`). Frozen pair
+downloaded only from private run `35521176700` (no repack/rebuild/substitute):
+boots `ea286b201d0e6f22b1ed48d6c8e7b8e1811b51507ca02f39316c3d7d4d2ca4b5` and
+`3dd0ae7cd5ea71ef5531f4969926283971ec1c125a97fb43fccb59268e231124`, 37380096
+both; payloads `972be7455da70f7dece9ce299c326d1a6cdba2d77c1a809946a3c1ea15dff2ae`
+and `afbeb6c213ee438cfef5e3b1b7662a599d1f58abbdbb8313e3d640789c21e485`.
+
+One RAM-only Slot B boot per member: `late_text548` `35.225727583 s` and
+`late_text541` `28.495911209000003 s`, both `AUTOMATIC_FASTBOOT_RETURN`,
+retry 7->6. `PAIR_DELTA=-6.7298163739999985 s` vs expected `-7.000000000 s`
+(`PAIR_ERROR=+0.27018362600000145 s`, abs `0.270 <= 1.000`) -> **`STRONG`**:
+`DEFERRED_PROBE_INITCALL_ENTRY=PROVEN`, `late_text54_entry=PROVEN`.
+**`LATEST_PROVEN_LATE_INDEX=54`** (52 -> 54), `NEXT_DIAGNOSTIC_INTERVAL=54..55`.
+Index 53 `sync_state_resume_initcall` is recorded only as sequential
+`do_initcall_level` implication (returned before index 54), not as a fabricated
+direct probe. No `NO_RETURN_WITHIN_120S`, no USB disappearance, no adb+fastboot
+dual loss, no transport anomaly. Android A restored healthy after each member
+(`_a`, `4.19.157-perf-g9d90dd04aa7c`, `sys.boot_completed=1`); Current B
+16-chain and P15 prefix `133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34`
+MATCH pre / between / post; `PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`,
+`USB=FROZEN`. `LATE_INITCALLS_COMPLETED` / `WAIT_FOR_INITRAMFS_ENTRY` /
+`WAIT_FOR_INITRAMFS_RETURN` / `CONSOLE_ON_ROOTFS` / `INIT_EXECUTED` stay
+`NOT_PROVEN`; `LATE_HIGH1=NOT_EXECUTED`. The exception is not generalized:
+`GLOBAL_ALLOW_TEXT_TARGETS` remains ABSENT. Index 55 remains frozen
+`CHECKPOINT_SHIFT_NOT_OBSERVED` and is not reread as "did not execute".
+`late_text548` / `late_text541` are rerun-FORBIDDEN. Final gate
+`R3_SLOT_B_LATE_INDEX54_TEXT_ENTRY_PROVEN`. Round details:
+docs/slot-b-late-index54-text-device-round.md.
