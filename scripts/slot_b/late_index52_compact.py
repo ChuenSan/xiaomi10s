@@ -486,10 +486,12 @@ def extended_reference_scan(args, ctx, audit):
             "verdict": "NO_REFERENCE_INTO_EXTENDED_RANGE"}
 
 
-def tail_preserved_proof(args, ctx, audit, window, family_dir):
+def tail_preserved_proof(args, ctx, audit, window, family_dir, probes):
     """TAIL_BYTES=0: there is no tail. Prove the window equals the whole
-    function (window end == function end) and the terminal is the self-branch
-    `b .` (FAIL-CLOSED terminal that never returns)."""
+    function (window end == function end) and that every COMPOSED window ends
+    in the self-branch `b .` (FAIL-CLOSED terminal that never returns). The
+    frozen base's last word is the function's own `ret`; the core overwrites
+    it, so the check is made on the composed probes, not on the base."""
     target = int(audit["target_va"], 16)
     text_va = ctx["text_va"]
     offset = target - text_va
@@ -497,12 +499,15 @@ def tail_preserved_proof(args, ctx, audit, window, family_dir):
     nxt = ctx["symbol_vas"][bisect.bisect_right(ctx["symbol_vas"], target)]
     require(offset + window == nxt - text_va, "COMPACT48_WINDOW_NOT_WHOLE_FUNCTION")
     require(window == FUNCTION_SIZE, "COMPACT48_WINDOW_NOT_WHOLE_FUNCTION")
-    word_end = struct.unpack_from("<I", frozen, offset + window - 4)[0]
-    require(word_end == 0x14000000, "COMPACT48_TERMINAL_NOT_SELF_BRANCH")
+    original_end = struct.unpack_from("<I", frozen, offset + window - 4)[0]
+    for probe in probes.values():
+        word_end = struct.unpack_from("<I", probe, window - 4)[0]
+        require(word_end == 0x14000000, "COMPACT48_TERMINAL_NOT_SELF_BRANCH")
     report = {"target_va": audit["target_va"], "window": window,
               "tail_bytes": TAIL_BYTES, "window_end": hex(target + window),
               "function_end": hex(target + FUNCTION_SIZE),
-              "terminal_word": hex(word_end),
+              "terminal_word": hex(0x14000000),
+              "original_last_word": hex(original_end),
               "verdict": "NO_TAIL_WINDOW_IS_WHOLE_FUNCTION"}
     write_json(family_dir / "tail-reachability.json", report)
     return report
@@ -582,7 +587,7 @@ def build_pairs(args, selection, ctx, metadata, out):
     base.assert_pair_delay_only(changed, offset, CORE_SIZE)
     require(changed == PAIR_DIFF_OFFSETS, f"PAIR_DIFF_OFFSETS_DRIFT:{changed}")
     compact = compact44_semantics(probes, ctx["frozen"], offset, ctx["cfg"])
-    tail = tail_preserved_proof(args, ctx, audit, WINDOW, family_dir)
+    tail = tail_preserved_proof(args, ctx, audit, WINDOW, family_dir, probes)
     audit.update({"entry_audit": "PASS", "incoming_branch_gate": "PASS",
                   "function_range_safe": True, "runtime_rewrite_safe": True,
                   "relocations_in_window": 0, "inline_only": True,
