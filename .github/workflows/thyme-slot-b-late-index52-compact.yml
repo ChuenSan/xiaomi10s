@@ -1,0 +1,319 @@
+name: LATE_INDEX52_COMPACT_INLINE_CORE_CI
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/late_index52_compact.py'
+      - 'scripts/slot_b/test_late_index52_compact.py'
+      - 'scripts/slot_b/checkpoint.py'
+      - 'scripts/slot_b/checkpoint-compact44.S'
+      - 'scripts/slot_b/late_level_isolation.py'
+      - 'scripts/slot_b/late_post50_isolation.py'
+      - '.github/workflows/thyme-slot-b-late-index52-compact.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: late-index52-compact-inline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Actions-only workflow lint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-late-index52-compact.yml
+      - name: Source tests (pinned identity, reversed pad polarity, 44-byte core, tail-absent gates, negative fixtures)
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_late_index52_compact.py' -v 2>&1 | tee compact52-source-tests.log
+          grep -q 'test_reference_row_52_matches_frozen_identity.*ok' compact52-source-tests.log
+          grep -q 'test_pinned_target_constants.*ok' compact52-source-tests.log
+          grep -q 'test_frozen_registry_covers_post50_additively.*ok' compact52-source-tests.log
+          grep -q 'test_frozen_window_overlap_detector.*ok' compact52-source-tests.log
+          grep -q 'test_target_window_disjoint_from_every_frozen_window.*ok' compact52-source-tests.log
+          grep -q 'test_frozen_payload_sha_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_fresh_payload_sha_accepted.*ok' compact52-source-tests.log
+          grep -q 'test_paciasp_candidate_passes_round_gate.*ok' compact52-source-tests.log
+          grep -q 'test_bti_c_candidate_rejected_reversed_polarity.*ok' compact52-source-tests.log
+          grep -q 'test_bti_variant_pads_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_derived_window_48_accepted.*ok' compact52-source-tests.log
+          grep -q 'test_larger_function_rejected_loudly.*ok' compact52-source-tests.log
+          grep -q 'test_function_too_small_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_pinned_target_selects_52_without_walk.*ok' compact52-source-tests.log
+          grep -q 'test_text_target_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_frozen_window_overlap_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_interior_incoming_target_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_incoming_into_window_interior_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_composed_window_identity_and_control_flow.*ok' compact52-source-tests.log
+          grep -q 'test_paciasp_word_rewritten_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_paciasp_missing_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_pad_class_not_paciasp_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_pac_hint_word_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_ret_in_diagnostic_path_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_tail_reenters_diagnostic_path_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_pair_diff_is_delay_constant_only.*ok' compact52-source-tests.log
+          grep -q 'test_extra_pair_diff_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_member_changes_only_inside_window.*ok' compact52-source-tests.log
+          grep -q 'test_member_changes_outside_window_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_prel32_unchanged_accepted.*ok' compact52-source-tests.log
+          grep -q 'test_prel32_change_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_trampoline_island_rejected.*ok' compact52-source-tests.log
+          grep -q 'test_absolute_low32_scan_detects_tail_va.*ok' compact52-source-tests.log
+          grep -q 'test_compact_config_data_keys.*ok' compact52-source-tests.log
+          grep -q 'test_summary_contains_compact52_and_tail_absent_gates.*ok' compact52-source-tests.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-late-index52-compact-source-tests
+          path: compact52-source-tests.log
+          if-no-files-found: error
+
+  late-index52-compact:
+    needs: source-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Fetch exact Linux 6.6.156 tree and apply project patch queue
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+      - name: Install binary audit tools only
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18
+      - name: Download immutable authoritative inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D kernel-bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          printf '%s  frozen/thyme-r3-p1b-fix8-kernel-payload.bin\n' 4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41 | sha256sum -c -
+      - name: Independently assemble the proven 44-byte DELETE-ONLY core
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-compact44.S -o compact44.o
+          llvm-readelf-18 -r compact44.o | tee compact44-relocations.log
+          grep -q 'There are no relocations in this file' compact44-relocations.log
+          llvm-objcopy-18 -O binary --only-section=.text compact44.o compact44.bin
+          test "$(stat -c %s compact44.bin)" = 44
+          printf '%s  compact44.bin\n' ecc9dd48420d082cf2cfa0c184d65407e77813069bdfac1a2b117f809389ff7e | sha256sum -c -
+          echo 'LATE_COMPACT52_44B_CORE_INDEPENDENTLY_AUDITED=YES'
+      - name: Derive late map, run HIGH8 forensic, pin index 52, compose paciasp delay-only pair
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -u -B scripts/slot_b/late_index52_compact.py \
+            --bundle kernel-bundle \
+            --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core44 compact44.bin \
+            --out compact52 | tee compact52.log
+          for gate in "LATE_LEVEL_POST50_STAGE=MAINLINE_V2_R3_SLOT_B_LATE_INDEX52_COMPACT_INLINE_CORE_CI" \
+            "LATE_TABLE_ENTRY_COUNT=86" \
+            "LATE_TABLE_INDEX0_SYMBOL=kernel_do_mounts_initrd_sysctls_init" \
+            "LATE_TABLE_INDEX0_TABLE_VA=0xffff800081d0c2d8" \
+            "LATE_TABLE_INDEX0_TARGET_VA=0xffff800081b32078" \
+            "LATE_TABLE_INDEX0_WORD=0xffe25da0" \
+            "ROUND_PAD_CLASS=PACIASP_ONLY" \
+            "FROZEN_INDICES_EXCLUDED=0,21,43,49,50,51,55,63" \
+            "FROZEN_WINDOW_DISJOINT=YES" "FROZEN_PAYLOAD_DISJOINT=YES" \
+            "HIGH8_STATIC_PROBE_DEFECT_FOUND=NO" \
+            "HIGH8_FORENSIC_RUNTIME_INFERENCE=NONE" \
+            "COMPACT52_SYMBOL=boot_wait_for_devices" \
+            "COMPACT52_TABLE_VA=0xffff800081d0c3a8" \
+            "COMPACT52_TARGET_VA=0xffff800081b87ec8" \
+            "COMPACT52_IMAGE_OFFSET=0x1b87ec8" \
+            "COMPACT52_FUNCTION_SIZE=48" "COMPACT52_WINDOW=48" "COMPACT52_CORE_SIZE=44" \
+            "COMPACT52_PROBE_ARCHITECTURE=COMPACT_INLINE_48B" \
+            "COMPACT52_ENTRY_PAD=paciasp" \
+            "COMPACT52_REGISTRATION=late_initcall(boot_wait_for_devices)" \
+            "COMPACT52_SOURCE=drivers/xen/xenbus/xenbus_probe_frontend.c" \
+            "COMPACT52_DEVIATION=NONE" \
+            "COMPACT52_PAIR_DIFF_OFFSETS=[28868305, 28868306]" \
+            "COMPACT52_PAIR=PASS" \
+            "TAIL_BYTES=0" "TAIL_PRESENT=NO" "TAIL_NO_INCOMING_TARGET=YES" \
+            "TAIL_NOT_ON_DIAGNOSTIC_PATH=YES" "TAIL_NO_PRESERVED_SEMANTICS=YES" \
+            "TAIL_BTI_NEUTRAL=YES" "TAIL_REACHABILITY=NO_TAIL_WINDOW_IS_WHOLE_FUNCTION" \
+            "TOTAL_INLINE_FOOTPRINT=48" "TOTAL_WINDOW_LE_48=YES" "MAX_CORE_BYTES=44" \
+            "ENTRY_PAD_PRESERVED=YES" "ENTRY_PAD_CLASS=PACIASP" \
+            "WINDOW_DOES_NOT_CROSS_FUNCTION=YES" "WINDOW_END_IS_FUNCTION_END=YES" \
+            "NO_INCOMING_WINDOW_INTERIOR=YES" \
+            "NO_SURVIVING_BRANCH_INTO_OVERWRITTEN_INTERIOR=YES" \
+            "NO_RELOCATION_OVERLAP=YES" "NO_RUNTIME_REWRITE_OVERLAP=YES" \
+            "NO_TRAMPOLINE=YES" "NO_ISLAND=YES" "NO_PREL32_CHANGE=YES" \
+            "NO_TEXT_POLICY_RELAXATION=YES" "TARGET_SECTION_INIT_TEXT=YES" \
+            "NO_ORIGINAL_REGISTER_DEPENDENCY=YES" \
+            "CORE_REGISTER_LIVENESS_WRITE_BEFORE_READ=YES" \
+            "FAIL_CLOSED_TERMINAL=YES" "TERMINAL_IS_SELF_BRANCH=YES" \
+            "NO_RET_IN_WINDOW=YES" "PSCI_RESET_IDIOM_EXACT=YES" \
+            "RESET_ID_WORD=0x84000009" \
+            "FAMILY_COLLISION_WITH_FROZEN=NO" \
+            "FROZEN_FAMILIES_UNCHANGED=PACIASP_PLUS_52B,PACIASP_PLUS_56B,BTI_C_PLUS_56B" \
+            "DEVICE_BOOT=0" "BOOT_WAIT_FOR_DEVICES_ENTRY=NOT_PROVEN" \
+            "LATEST_PROVEN_LATE_INDEX=51" \
+            "LATE_INITCALLS_COMPLETED=NOT_PROVEN" \
+            "WAIT_FOR_INITRAMFS_ENTRY=NOT_PROVEN" "WAIT_FOR_INITRAMFS_RETURN=NOT_PROVEN" \
+            "LATE_HIGH1=NOT_EXECUTED" \
+            "COMPACT52_ENTRY_PAD_PRESERVED=YES" "PACIASP_LANDING_PAD_COMPATIBLE=YES" \
+            "NO_RET_IN_WINDOW=YES" "LR_RESTORATION_NOT_REQUIRED=YES" \
+            "SMC_ROUND_TRIP_SAFE=YES" \
+            "INITCALL_DISPATCH_CALL_CLASS=BLR_CONTROLLED" \
+            "KERNEL_CONFIG_CONFIRMED=YES" \
+            "KERNEL_BTI_KERNEL_CONFIG=y" "KERNEL_BTI_CONFIG=ABSENT" \
+            "COMPACT52_ENTRY_SEMANTICS_PASS=YES" \
+            "MEMBER_CHANGES_ONLY_INSIDE_WINDOW=YES" \
+            "COMPACT52_WINDOW_AGREEMENT=EXACT" "WINDOW_AGREEMENT_INDEX52=EXACT" \
+            "PAIR_DIFF=DELAY_CONSTANT_ONLY" "INLINE_ONLY=YES" \
+            "TRAMPOLINE_PERMITTED=NO" "ISLAND_PERMITTED=NO" \
+            "PREL32_TARGET_UNCHANGED=YES" "SHARED_CHECKPOINT=NO" \
+            "CROSS_FUNCTION_OVERWRITE=NO" "WINDOW_DERIVATION=TARGET_CFG" \
+            "KERNEL_REBUILD=NO" "DEVICE_OPERATION=NO" "PRIVATE_PACK=NO" \
+            "PARTITION_WRITES=0" "SLOT_A_WRITTEN=NO" "LOCAL_BUILD=NO"; do
+            grep -Fxq "$gate" compact52/audit-summary.txt
+          done
+          for field in _NOMINAL_INDEX= _INDEX= _SYMBOL= _TABLE_VA= _TARGET_VA= \
+            _IMAGE_OFFSET= _FUNCTION_SIZE= _WINDOW= _CORE_SIZE= \
+            _PROBE_ARCHITECTURE= _ENTRY_PAD= _REGISTRATION= _SOURCE= _DEVIATION=; do
+            grep -q "^COMPACT52${field}" compact52/audit-summary.txt
+          done
+          grep -q '^COMPACT52_NOMINAL_INDEX=52$' compact52/audit-summary.txt
+          grep -q '^COMPACT52_INDEX=52$' compact52/audit-summary.txt
+          grep -q '^COMPACT52_CORE_SIZE=44$' compact52/audit-summary.txt
+          grep -Eq '^COMPACT52_8_PAYLOAD_SHA=[0-9a-f]{64}$' compact52/audit-summary.txt
+          grep -Eq '^COMPACT52_1_PAYLOAD_SHA=[0-9a-f]{64}$' compact52/audit-summary.txt
+          grep -Eq '^WINDOW_AGREEMENT_INDEX52=(EXACT|LAYOUT_LITERAL_ADDRESS_DELTA_VERIFIED)$' compact52/audit-summary.txt
+          grep -Eq '^KERNEL_BTI_KERNEL_CONFIG=' compact52/audit-summary.txt
+          grep -Eq '^KERNEL_BTI_CONFIG=' compact52/audit-summary.txt
+          python3 -B - <<'PY'
+          import json, struct
+          from pathlib import Path
+          root = Path('compact52')
+          summary = (root / 'audit-summary.txt').read_text()
+          assert 'PAIR_DIFF=DELAY_CONSTANT_ONLY' in summary
+          family, (name8, name1) = 'late_compact52', ('COMPACT52_8', 'COMPACT52_1')
+          identity = json.loads((root / family / 'pair' / 'pair.json').read_text())
+          p8 = (root / family / 'pair' / '8' / 'checkpoint' / 'payload.bin').read_bytes()
+          p1 = (root / family / 'pair' / '1' / 'checkpoint' / 'payload.bin').read_bytes()
+          m8 = json.loads((root / family / 'pair' / '8' / 'checkpoint'
+                           / 'manifest.json').read_text())
+          m1 = json.loads((root / family / 'pair' / '1' / 'checkpoint'
+                           / 'manifest.json').read_text())
+          frozen = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          assert identity['delay8_name'] == name8 and identity['delay1_name'] == name1
+          offset, window = m8['offset'], m8['checkpoint_size']
+          assert offset == 0x1b87ec8 and window == 48
+          assert m1['checkpoint_size'] == window
+          assert m8['core_size'] == m1['core_size'] == 44
+          assert m8['entry'] == 'paciasp' and m8['pac'] is True and m8['bti'] is False
+          assert m1['entry'] == 'paciasp' and m1['pac'] is True and m1['bti'] is False
+          assert m8['round_pad_class'] == m1['round_pad_class'] == 'paciasp_only'
+          assert m8['probe_architecture'] == m1['probe_architecture'] == \
+              'COMPACT_INLINE_48B'
+          assert m8['inline_only'] is True and m8['trampoline_permitted'] is False
+          assert m8['prel32_target_unchanged'] is True
+          assert m8['extended_reference_forensic'] == 'NO_REFERENCE_INTO_EXTENDED_RANGE'
+          assert m8['span_index'] == 52 and m8['target_symbol'] == 'boot_wait_for_devices'
+          changed = [i for i, (a, b) in enumerate(zip(p8, p1)) if a != b]
+          assert changed == identity['changed_offsets'] == [28868305, 28868306], changed
+          assert p8[:offset] == p1[:offset]
+          assert p8[offset + window:] == p1[offset + window:]
+          assert p8[offset:offset + 4] == p1[offset:offset + 4] \
+              == frozen[offset:offset + 4] == b'\x3f\x23\x03\xd5'
+          # TAIL_BYTES=0: the window IS the whole function, no trailing tail bytes.
+          assert m8['tail_present'] is False and m8['tail_bytes'] == 0
+          # delay word sits at window offset 8 (pad 4 + CORE idx 1 at core offset 4)
+          assert struct.unpack_from('<I', p8, offset + 8)[0] == 0xD37DF12A
+          assert struct.unpack_from('<I', p1, offset + 8)[0] == 0xD340FD2A
+          # PSCI reset idiom and the FAIL-CLOSED self-branch terminal.
+          assert struct.unpack_from('<I', p8, offset + 40)[0] == 0xD4000003
+          assert struct.unpack_from('<I', p8, offset + 44)[0] == 0x14000000
+          tail = json.loads((root / family / 'tail-reachability.json').read_text())
+          assert tail['verdict'] == 'NO_TAIL_WINDOW_IS_WHOLE_FUNCTION'
+          high8 = json.loads((root / 'high8-forensic.json').read_text())
+          assert high8['HIGH8_STATIC_PROBE_DEFECT_FOUND'] == 'NO'
+          assert high8['runtime_inference'] == 'NONE_LICENSED'
+          assert high8['stage'] == 'MAINLINE_V2_R3_SLOT_B_LATE_INDEX52_COMPACT_INLINE_CORE_CI'
+          assert all(v == 'PASS' for v in high8['gates'].values())
+          print(f"{family}: index={m8['span_index']} symbol={m8['target_symbol']} "
+                f"window={window} core={m8['core_size']} entry=paciasp "
+                f"tail=NO_TAIL_WINDOW_IS_WHOLE_FUNCTION pair=DELAY_CONSTANT_ONLY")
+          print('HIGH8_FORENSIC=NO_STATIC_PROBE_DEFECT_FOUND')
+          PY
+      - name: Assert public payload-only scope and write job summary
+        run: |
+          set -euo pipefail
+          printf '%s\n' 'PRIVATE_PACK=NO' 'DEVICE_OPERATION=NO' 'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' 'LOCAL_BUILD=NO' 'LOCAL_IMAGE_GENERATION=NO'
+          {
+            echo '## Late index-52 COMPACT_INLINE_48B probe authorization (COMPACT52)'
+            echo '```'
+            cat compact52/audit-summary.txt
+            echo '```'
+            echo '- late_compact52 pair identity:'
+            cat "compact52/late_compact52/pair/pair.json"
+            echo '- tail reachability verdict:'
+            python3 -c "import json; print(json.load(open('compact52/late_compact52/tail-reachability.json'))['verdict'])"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-late-index52-compact-logs
+          path: |
+            compact52.log
+            compact44-*.log
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-late-index52-compact-map-and-audits
+          path: |
+            compact52/late-map.json
+            compact52/selection.json
+            compact52/audit-summary.txt
+            compact52/high8-forensic.json
+            compact52/*/original-function.txt
+            compact52/*/original-window.txt
+            compact52/*/target-entry-audit.json
+            compact52/*/window-agreement.json
+            compact52/*/window-reference-forensic.json
+            compact52/*/cfg-closure.json
+            compact52/*/tail-reachability.json
+            compact52/*/table-*.bin
+            compact52/*/pair/pair.json
+            compact52/*/pair/*/checkpoint/manifest.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-late-index52-compact-pairs
+          path: compact52/
+          if-no-files-found: error

@@ -1,0 +1,107 @@
+name: thyme-slot-b-late-compact52-observer-fixtures
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/late_compact52_observer_fixtures.py
+      - scripts/slot_b/test_late_compact52_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-late-compact52-observer-fixtures.yml
+  pull_request:
+    paths:
+      - scripts/slot_b/observe.py
+      - scripts/slot_b/test_observe.py
+      - scripts/slot_b/late_compact52_observer_fixtures.py
+      - scripts/slot_b/test_late_compact52_observer_fixtures.py
+      - .github/workflows/thyme-slot-b-late-compact52-observer-fixtures.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thyme-slot-b-late-compact52-observer-fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  observer-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Lint workflow
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-late-compact52-observer-fixtures.yml
+      - name: GHA-only PUBLIC observer fixtures (self-contained compact52)
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/slot_b/observe.py \
+            scripts/slot_b/test_observe.py \
+            scripts/slot_b/late_compact52_observer_fixtures.py \
+            scripts/slot_b/test_late_compact52_observer_fixtures.py
+          (cd scripts/slot_b && python3 -B -m unittest test_observe.py -v) \
+            2>&1 | tee compact52-observer-base-tests.log
+          (cd scripts/slot_b && python3 -B -m unittest test_late_compact52_observer_fixtures.py -v) \
+            2>&1 | tee compact52-observer-unit-tests.log
+          (cd scripts/slot_b && python3 -B late_compact52_observer_fixtures.py --family compact52) \
+            | tee compact52-observer-fixtures.txt
+          for gate in \
+            COMPACT528_EXACT_FULL_SHA_ACCEPT=PASS \
+            COMPACT521_EXACT_FULL_SHA_ACCEPT=PASS \
+            COMPACT52_WRONG_SIZE_REJECT=PASS \
+            COMPACT52_WRONG_SHA_REJECT=PASS \
+            COMPACT52_ONE_BYTE_MUTANT_REJECT=PASS \
+            COMPACT528_REJECTS_LATE_COMPACT521_SWAP=PASS \
+            COMPACT521_REJECTS_LATE_COMPACT528_SWAP=PASS \
+            COMPACT528_REJECTS_ARCH8=PASS \
+            COMPACT521_REJECTS_ARCH8=PASS \
+            COMPACT528_REJECTS_CORE8=PASS \
+            COMPACT521_REJECTS_CORE8=PASS \
+            COMPACT528_REJECTS_LATE_BTIC518=PASS \
+            COMPACT521_REJECTS_LATE_BTIC518=PASS \
+            COMPACT528_REJECTS_SUBSYS8=PASS \
+            COMPACT521_REJECTS_SUBSYS8=PASS \
+            COMPACT52_CROSS_IDENTITY_REJECTIONS=124 \
+            COMPACT52_CROSS_IDENTITY_REJECTION=PASS \
+            COMPACT52_48B_INLINE_GEOMETRY=PASS \
+            COMPACT52_56B_NEGATIVE_FIXTURE=PASS \
+            COMPACT52_52B_NEGATIVE_FIXTURE=PASS \
+            COMPACT52_64B_NEGATIVE_FIXTURE=PASS \
+            COMPACT52_BTI_C_PAD_CLASS_REJECTED=PASS \
+            COMPACT52_COMPACT_INLINE_48B=PASS \
+            COMPACT52_INDEX52_TABLE_GATE=PASS \
+            COMPACT52_PREL32_UNCHANGED=PASS \
+            COMPACT52_PAIR_DIFF_DELAY_CONSTANT_ONLY=PASS \
+            COMPACT52_WRONG_PAIR_DIFF_NEGATIVE_FIXTURE=PASS \
+            COMPACT52_STRONG_PROVES_TARGET_ENTRY=PASS \
+            COMPACT52_LATER_LATE_CONSOLE_INIT_REMAIN_NOT_PROVEN=PASS \
+            COMPACT52_SUPPORTED_GRADE=PASS \
+            COMPACT52_NO_SHIFT_DOES_NOT_CLAIM_NOT_REACHED=PASS \
+            COMPACT52_OBSERVER_FIXTURES=PASS \
+            DEVICE_OPERATION=NO; do
+            grep -Fxq "$gate" compact52-observer-fixtures.txt
+          done
+          printf '%s\n' \
+            'COMPACT52_OBSERVER_GATES=PASS' \
+            'DEVICE_OPERATION=NO' \
+            'PARTITION_WRITES=0' \
+            'SLOT_A_WRITTEN=NO' \
+            | tee compact52-observer-gates.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-slot-b-late-compact52-observer-fixtures
+          path: |
+            compact52-observer-base-tests.log
+            compact52-observer-unit-tests.log
+            compact52-observer-fixtures.txt
+            compact52-observer-gates.txt
+          if-no-files-found: error
+          retention-days: 90

@@ -3187,3 +3187,22 @@ pre/between/post. Android A restored healthy after each member.
 index 54 `.text`. Round details:
 docs/slot-b-late-btic51-device-round.md,
 docs/slot-b-late-btic51-probe-authorization.md.
+
+Continuation 2026-09-20 CI-only:
+`MAINLINE_V2_R3_SLOT_B_LATE_INDEX52_COMPACT_INLINE_CORE_CI`. New additive
+family `COMPACT_INLINE_48B` for late index 52 `boot_wait_for_devices`
+(`0xffff800081b87ec8`, 48 B `.init.text`, exactly one branch, zero incoming
+references). Window **48 B = the whole function**, entry pad `paciasp`
+`0xD503233F` preserved, core 44 B, no tail. The 44 B core is the device-proven
+56 B `BTI_C_PLUS_56B_ULTRACOMPACT` body minus `msr daifset,#0xf`, the loop
+`isb` and the terminal `wfe`; ten of eleven words stay byte-identical and only
+the loop backedge and terminal words are re-derived. `TOTAL_INLINE_FOOTPRINT=48`,
+`MAX_CORE_BYTES=44`, `PAIR_DIFF=DELAY_CONSTANT_ONLY`. `PACIASP_PLUS_52B`,
+`PACIASP_PLUS_56B` and `BTI_C_PLUS_56B` stay frozen; no `.text` relaxation, no
+trampoline/island, no PREL32 retarget, no cross-function overwrite, and index 54
+`.text` is not touched. Runtime evidence deliberately unchanged:
+`LATEST_PROVEN_LATE_INDEX=51`, `BOOT_WAIT_FOR_DEVICES_ENTRY=NOT_PROVEN`,
+`DEVICE_BOOT=0`, `LATE_INITCALLS_COMPLETED` / `WAIT_FOR_INITRAMFS_ENTRY` /
+`WAIT_FOR_INITRAMFS_RETURN` `NOT_PROVEN`, `LATE_HIGH1=NOT_EXECUTED`,
+`PARTITION_WRITES=0`, `SLOT_A_WRITTEN=NO`. Round details:
+docs/slot-b-late-index52-compact-core.md.
