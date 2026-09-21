@@ -1,8 +1,8 @@
 # Xiaomi Mi 10S handoff — PM-tail metadata, 2026-09-21
 
-Continuation supersedes this historical stop: PMTAIL8/1 are complete and
-**DEFERRED_PM_TAIL_ENTRY_PROVEN**. Read `docs/slot-b-deferred-pm-tail.md` and
-the current-status top before acting. Do not repeat the now-completed pair.
+Superseded by `docs/handoff-2026-09-22-pm-tail-entry.md`. PMTAIL8/1 are complete,
+**DEFERRED_PM_TAIL_ENTRY_PROVEN**, and the user has requested another conversation
+switch. Read the new handoff first; do not repeat the completed pair.
 
 ## Stop reason and current gate
 

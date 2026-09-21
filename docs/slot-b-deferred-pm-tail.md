@@ -1,5 +1,8 @@
 # Deferred worker PM-tail entry
 
+The user requested a conversation switch after this completed pair. Work is
+paused; read `docs/handoff-2026-09-22-pm-tail-entry.md` before continuing.
+
 Status: **DEFERRED_PM_TAIL_ENTRY_PROVEN**. PMTAIL8/1 completed once each,
 RAM-only in Slot B. Both cases are now rerun-forbidden, alongside all ten
 previous deferred cases. This advances the after-kfree result, not `/init`

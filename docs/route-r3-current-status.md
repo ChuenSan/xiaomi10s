@@ -1,6 +1,17 @@
 # thyme R3 current status (single source of truth for the current round)
 
-Latest continuation (2026-09-22 local / 2026-09-21 UTC):
+User-requested handoff closeout (2026-09-22): **PAUSED_FOR_CONVERSATION_SWITCH**.
+Runtime remains **DEFERRED_PM_TAIL_ENTRY_PROVEN**, not completed mainline boot.
+Read **docs/handoff-2026-09-22-pm-tail-entry.md** first. Fresh read-only check at
+host `2026-09-21T23:26:54Z`: healthy Android A/root, empty pstore, all 16-chain
+and P15-prefix hashes unchanged. No active subagents, transfers or relevant
+Actions runs. Active source is unchanged from qualified freezes; this closeout
+adds only documentation and read-only evidence. No after-lock source, workflow,
+image, gate or experiment was started. Old memory-prose Git identifiers have
+known transcription errors: use live Git, frozen JSON and committed CI receipts.
+No further implementation or device operation until continuation is authorized.
+
+Completed continuation (2026-09-22 local / 2026-09-21 UTC):
 **DEFERRED_PM_TAIL_ENTRY_PROVEN**. PMTAIL8/1 ran once each RAM-only in B:
 35.580534792 / 28.447709084 s, delta -7.132825708 s, error -0.132825708 s,
 **STRONG**. The original reason-clear store, worker mutex-unlock return and
