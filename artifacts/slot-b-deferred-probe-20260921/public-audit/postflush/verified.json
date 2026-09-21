@@ -1,0 +1,14 @@
+{
+  "stage": "postflush",
+  "source_commit": "d3e06680d0da6002ff29153b700471c7c2fb2db5",
+  "public_run": "35553769346",
+  "expected_delta_s": -7,
+  "changed_offsets": [
+    9336513,
+    9336514
+  ],
+  "payload_shas": {
+    "8": "503e958a38639bf83fc7e51c05614f4d8f091d6d71f7eb51edf9089bc98cc82f",
+    "1": "3c64e25ac4744b88d49e240cc7032bd80d81dd9b4a2155b389ccc9907cd94c02"
+  }
+}

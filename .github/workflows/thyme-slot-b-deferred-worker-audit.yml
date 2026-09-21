@@ -1,0 +1,109 @@
+name: Slot B deferred-worker forensic audit
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths: ['.github/workflows/thyme-slot-b-deferred-worker-audit.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  forensic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-deferred-worker-audit.yml
+      - name: Download authoritative audit inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y llvm-18
+          gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+      - name: Disassemble worker and workqueue path without creating a candidate
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import hashlib, json, struct, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/slot_b')
+          import checkpoint as cp
+          from deferred_probe_checkpoints import ELF_SHA, TEXT
+          out = Path('audit')
+          out.mkdir()
+          bundle = Path('bundle')
+          meta = json.loads((bundle / 'bundle.json').read_text())
+          for name in ('Image', 'vmlinux', 'System.map', 'kernel.config'):
+              assert hashlib.sha256((bundle / name).read_bytes()).hexdigest() == meta['files'][name]
+          assert meta['files']['vmlinux'] == ELF_SHA
+          frozen = Path('frozen/thyme-r3-p1b-fix8-kernel-payload.bin').read_bytes()
+          assert cp.digest(frozen) == cp.t3.FIX8_PAYLOAD_SHA
+          image = (bundle / 'Image').read_bytes()
+          elf = bundle / 'vmlinux'
+          nm = cp.pb.run([cp.TOOLS['nm'], str(elf)])
+          sections = cp.t3.section_map(out, cp.TOOLS, elf)
+          names = ('deferred_probe_work_func', 'driver_deferred_probe_trigger',
+                   'bus_probe_device', '__device_attach', 'really_probe',
+                   'wait_for_device_probe', 'flush_work', '__flush_work',
+                   'check_flush_dependency', 'queue_work_on')
+          symbols = {}
+          present = {line.split()[-1] for line in nm.splitlines() if line.split()}
+          for name in names:
+              if name not in present:
+                  symbols[name] = {'present': False}
+                  continue
+              lo, hi = cp.t3.symbol_extent(nm, name)
+              symbols[name] = {'va': hex(lo), 'size': hi - lo}
+              dump = cp.pb.run([cp.TOOLS['objdump'], '-dr', f'--start-address={lo:#x}',
+                                f'--stop-address={hi:#x}', str(elf)])
+              (out / (name + '.txt')).write_text(dump)
+          lo, hi = cp.t3.symbol_extent(nm, 'deferred_probe_work_func')
+          target = cp.t3.nm_symbol(nm, 'bus_probe_device')
+          candidates = [('entry_after_pad', lo + 4)]
+          for off in range(lo - TEXT, hi - TEXT, 4):
+              word = struct.unpack_from('<I', frozen, off)[0]
+              if word & 0xfc000000 == 0x94000000 and cp.branch_target(word, TEXT + off) == target:
+                  candidates += [('before_bus_probe', TEXT + off), ('after_bus_probe', TEXT + off + 4)]
+          ranges = [(s['vma'] - TEXT, s['vma'] - TEXT + s['size'])
+                    for s in sections if s['alloc'] and s['code']]
+          reports = []
+          for label, va in candidates:
+              row = {'label': label, 'va': hex(va), 'window': 56,
+                     'fits_parent': va + 56 <= hi,
+                     'bundle_exact': image[va-TEXT:va-TEXT+56] == frozen[va-TEXT:va-TEXT+56]}
+              row['incoming'] = [[hex(a), hex(b)] for a, b in
+                                  cp.incoming_inclusive(frozen[:len(image)], ranges, TEXT, va, va+56)]
+              directory = out / label
+              directory.mkdir()
+              try:
+                  row['runtime_rewrites'] = cp.audit_rewrites(directory, elf, sections, (va, va+56))
+              except (ValueError, SystemExit) as error:
+                  row['runtime_rewrite_rejection'] = str(error)
+              reports.append(row)
+          report = {'symbols': symbols, 'candidate_windows': reports,
+                    'device_operation': False, 'candidate_generated': False}
+          (out / 'forensic.json').write_text(json.dumps(report, indent=2) + '\n')
+          (out / 'kernel.config').write_bytes((bundle / 'kernel.config').read_bytes())
+          print(json.dumps(report, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-deferred-worker-forensic
+          path: |
+            audit/*.txt
+            audit/*.json
+            audit/kernel.config
+          if-no-files-found: warn
+          retention-days: 90

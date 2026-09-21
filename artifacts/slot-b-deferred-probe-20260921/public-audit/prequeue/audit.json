@@ -1,0 +1,60 @@
+{
+  "stage": "prequeue",
+  "source_commit": "d3e06680d0da6002ff29153b700471c7c2fb2db5",
+  "parent": "deferred_probe_initcall",
+  "parent_offset": 9336164,
+  "parent_size": 492,
+  "section": ".text",
+  "late_index": 54,
+  "offset": 9336340,
+  "window": 56,
+  "inline_only": true,
+  "normal_boot_candidate": false,
+  "positive_proves": "deferred_first_trigger_prequeue_reached",
+  "positive_does_not_prove": "deferred_first_work_queued",
+  "frozen_payload_sha256": "4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41",
+  "entry_probe_rerun": false,
+  "predecessor": "mutex_unlock",
+  "incoming": [],
+  "runtime_rewrites": {
+    "__ex_table": {
+      "entries": 994,
+      "sha256": "e93f6326dba119d9b5091b9c31295e47086ce45813b6f1a62dde0655ca65a9be"
+    },
+    "altinstructions": {
+      "entries": 37287,
+      "sha256": "a98a9bc613c12519ea5fd8f1e168ede872af0d8474fa385df6bc1cc17fdc36a6"
+    },
+    "__jump_table": "ABSENT",
+    "static_call_sites": "ABSENT",
+    "kcfi_traps": "ABSENT"
+  },
+  "parent_literal_exception": [
+    {
+      "word_offset": 28,
+      "bundle_add": "0x9106e000",
+      "frozen_add": "0x91070000",
+      "layout_delta": 8,
+      "bundle": {
+        "offset": "0x19a01b8",
+        "va": "0xffff8000819a01b8",
+        "adrp_word": "0xb00085c0",
+        "add_word": "0x9106e000",
+        "bytes_hex": "646576696365735f646566657272656400",
+        "text": "devices_deferred"
+      },
+      "frozen": {
+        "offset": "0x19a01c0",
+        "va": "0xffff8000819a01c0",
+        "adrp_word": "0xb00085c0",
+        "add_word": "0x91070000",
+        "bytes_hex": "646576696365735f646566657272656400",
+        "text": "devices_deferred"
+      }
+    }
+  ],
+  "window_agreement": "EXACT",
+  "probe_family": "INLINE_CALLSITE_56B_NO_ADDED_PAD",
+  "core_sha256": "8b90e4c5ba8817ed23414b0d41e94bc376021d2839889b6a87c6023aa5e259b5",
+  "partition_writes": 0
+}

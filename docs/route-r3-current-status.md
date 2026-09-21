@@ -1,5 +1,17 @@
 # thyme R3 current status (single source of truth for the current round)
 
+Latest continuation (2026-09-21): deferred-probe internal callsite pairs are
+COMPLETE. PREQUEUE8/1 = 35.423422125 / 28.465627750 s, delta −6.957794375 s,
+STRONG: first deferred trigger's mutex/list-splice/unlock prefix is PROVEN.
+POSTFLUSH8/1 = 48.591122792 / 48.346502500 s, SHIFT_NOT_OBSERVED. The next
+causal interval is first deferred work enqueue through the second flush,
+not another late-index entry search. All four cases are rerun-FORBIDDEN.
+All 16-chain hashes and P15 prefix are unchanged; Android A restored healthy;
+partition writes and local builds zero. `/init` remains NOT_PROVEN.
+See `docs/slot-b-deferred-probe-callsite-isolation.md`. A new Actions-only
+worker/workqueue forensic audit is the next step; no worker candidate is yet
+qualified. The older chronological records below remain historical evidence.
+
 Continuation 2026-09-16: physical recovery is COMPLETE. Recovered Fastboot
 was B with retry count still 6. The untouched Android A is running with ADB
 root; all 16 recorded A/B boot-chain hashes and the P15 prefix are unchanged.

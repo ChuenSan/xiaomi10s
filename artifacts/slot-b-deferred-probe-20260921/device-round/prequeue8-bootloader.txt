@@ -1,0 +1,12 @@
+current-slot: b
+Finished. Total time: 0.002s
+product: thyme
+Finished. Total time: 0.002s
+unlocked: yes
+Finished. Total time: 0.001s
+slot-successful:a: yes
+Finished. Total time: 0.003s
+slot-unbootable:b: no
+Finished. Total time: 0.004s
+slot-retry-count:b: 7
+Finished. Total time: 0.003s

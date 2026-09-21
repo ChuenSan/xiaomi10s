@@ -50,3 +50,43 @@ Order: prequeue 8/1, then postflush 8/1 only if the first pair is valid and the
 device remains healthy. A positive pair is a boundary proof, not proof of USB
 or `/init`. A negative pair narrows the investigation without assigning a root
 cause. Any no-return/transport anomaly stops device execution for recovery.
+
+## Actual results (2026-09-21)
+
+Public audit/reverify `35553769346` @ `d3e0668` passed both windows. Private
+pack + independent reverify: prequeue `35554007042`, postflush `35554009619`
+@ private `dc1f800`. Freeze `7921561`; observer identity agreement
+`35554398477` PASS. All 22 workflows triggered by the freeze passed, including
+the full 526-test suite. The first integration failure was a unit fixture
+requiring an unchecked-out submodule; `0eef215` made that fixture standalone.
+The production audit still checks the actual pinned Linux source. Public
+re-audit `35553891868` also passed after this test-only correction.
+
+| Case | Total seconds | Return | Pair verdict |
+|---|---:|---|---|
+| `defer_prequeue8` | 35.423422125 | automatic Fastboot B, retry 7→6 | first member |
+| `defer_prequeue1` | 28.465627750 | automatic Fastboot B, retry 7→6 | STRONG, delta −6.957794375, error +0.042205625 |
+| `defer_postflush8` | 48.591122792 | automatic Fastboot B, retry 7→6 | first member |
+| `defer_postflush1` | 48.346502500 | automatic Fastboot B, retry 7→6 | SHIFT_NOT_OBSERVED, delta −0.244620292 |
+
+The first inlined deferred trigger's mutex/list-splice/unlock prefix is now
+PROVEN. The interval of interest is `[0x8e7614, 0x8e76b8)`: first work enqueue,
+first flush, the second trigger, and second flush. This does not yet identify
+a particular worker/driver or establish that the second flush never executes.
+Changing `deferred_probe_timeout` is not a justified fix: the timeout worker
+is scheduled only after this unproven interval.
+
+Every member ran exactly once from healthy Android A, with last-moment B
+confirmation; all four are now rerun-FORBIDDEN. Android A was restored after
+each member, with the 16-chain hashes and P15 prefix unchanged. No no-return,
+manual recovery, partition write, Slot A write, local build or local binary
+validator occurred. A host preflight pipeline initially stopped with SIGPIPE
+before B selection; inspection confirmed Fastboot A and no experimental boot,
+then the same read-only check was completed without an early-closing pipeline.
+
+`LATEST_PROVEN_LATE_INDEX=54`; late completion, initramfs wait, console and
+`/init` remain NOT_PROVEN. USB remains FROZEN. Evidence is under
+`artifacts/slot-b-deferred-probe-20260921/`; identities are independently
+transcribed in `scripts/slot_b/deferred_probe_identities.json`. Next action is
+an Actions-only disassembly/geometry audit of the deferred worker and workqueue
+path before selecting another causal checkpoint or intervention.

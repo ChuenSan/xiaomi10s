@@ -1,0 +1,4 @@
+_a
+1
+4.19.157-perf-g9d90dd04aa7c
+uid=0(root) gid=0(root) groups=0(root) context=u:r:magisk:s0

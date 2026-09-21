@@ -1,0 +1,129 @@
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+ffff8000808e7564 <deferred_probe_initcall>:
+ffff8000808e7564: d503233f     	paciasp
+ffff8000808e7568: a9bc7bfd     	stp	x29, x30, [sp, #-0x40]!
+ffff8000808e756c: f9000bf7     	str	x23, [sp, #0x10]
+ffff8000808e7570: a90257f6     	stp	x22, x21, [sp, #0x20]
+ffff8000808e7574: a9034ff4     	stp	x20, x19, [sp, #0x30]
+ffff8000808e7578: 910003fd     	mov	x29, sp
+ffff8000808e757c: b00085c0     	adrp	x0, 0xffff8000819a0000 <max_tt_usecs+0x22d39>
+ffff8000808e7580: 9106e000     	add	x0, x0, #0x1b8
+ffff8000808e7584: 90006004     	adrp	x4, 0xffff8000814e7000 <orientation_data+0x44a8>
+ffff8000808e7588: 912e4084     	add	x4, x4, #0xb90
+ffff8000808e758c: 52802481     	mov	w1, #0x124      // =292
+ffff8000808e7590: aa1f03e2     	mov	x2, xzr
+ffff8000808e7594: aa1f03e3     	mov	x3, xzr
+ffff8000808e7598: 97eede89     	bl	0xffff80008049efbc <debugfs_create_file>
+ffff8000808e759c: b000c908     	adrp	x8, 0xffff800082208000 <stm32_ports+0x13d0>
+ffff8000808e75a0: 52800029     	mov	w9, #0x1        // =1
+ffff8000808e75a4: d000bd40     	adrp	x0, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e75a8: 91300000     	add	x0, x0, #0xc00
+ffff8000808e75ac: 3931c109     	strb	w9, [x8, #0xc70]
+ffff8000808e75b0: 941f7f45     	bl	0xffff8000810c72c4 <mutex_lock>
+ffff8000808e75b4: 14000055     	b	0xffff8000808e7708 <deferred_probe_initcall+0x1a4>
+ffff8000808e75b8: 52800028     	mov	w8, #0x1        // =1
+ffff8000808e75bc: b000c909     	adrp	x9, 0xffff800082208000 <stm32_ports+0x13d0>
+ffff8000808e75c0: 9131d129     	add	x9, x9, #0xc74
+ffff8000808e75c4: b828013f     	stadd	w8, [x9]
+ffff8000808e75c8: d000bd55     	adrp	x21, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e75cc: 913082b5     	add	x21, x21, #0xc20
+ffff8000808e75d0: d000bd56     	adrp	x22, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e75d4: 9130c2d6     	add	x22, x22, #0xc30
+ffff8000808e75d8: f94002a8     	ldr	x8, [x21]
+ffff8000808e75dc: eb15011f     	cmp	x8, x21
+ffff8000808e75e0: 54000120     	b.eq	0xffff8000808e7604 <deferred_probe_initcall+0xa0>
+ffff8000808e75e4: f94006c9     	ldr	x9, [x22, #0x8]
+ffff8000808e75e8: f94006aa     	ldr	x10, [x21, #0x8]
+ffff8000808e75ec: f9000509     	str	x9, [x8, #0x8]
+ffff8000808e75f0: f9000128     	str	x8, [x9]
+ffff8000808e75f4: f9000156     	str	x22, [x10]
+ffff8000808e75f8: f90006ca     	str	x10, [x22, #0x8]
+ffff8000808e75fc: f90002b5     	str	x21, [x21]
+ffff8000808e7600: f90006b5     	str	x21, [x21, #0x8]
+ffff8000808e7604: d000bd53     	adrp	x19, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e7608: 91300273     	add	x19, x19, #0xc00
+ffff8000808e760c: aa1303e0     	mov	x0, x19
+ffff8000808e7610: 941f7f4b     	bl	0xffff8000810c733c <mutex_unlock>
+ffff8000808e7614: d000a397     	adrp	x23, 0xffff800081d59000 <folio_wait_table+0x14c0>
+ffff8000808e7618: d000bd54     	adrp	x20, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e761c: 91310294     	add	x20, x20, #0xc40
+ffff8000808e7620: f94486e1     	ldr	x1, [x23, #0x908]
+ffff8000808e7624: 52802000     	mov	w0, #0x100      // =256
+ffff8000808e7628: aa1403e2     	mov	x2, x20
+ffff8000808e762c: 97df1032     	bl	0xffff8000800ab6f4 <queue_work_on>
+ffff8000808e7630: aa1403e0     	mov	x0, x20
+ffff8000808e7634: 97df1518     	bl	0xffff8000800aca94 <flush_work>
+ffff8000808e7638: b000c908     	adrp	x8, 0xffff800082208000 <stm32_ports+0x13d0>
+ffff8000808e763c: 52800029     	mov	w9, #0x1        // =1
+ffff8000808e7640: aa1303e0     	mov	x0, x19
+ffff8000808e7644: 3931e509     	strb	w9, [x8, #0xc79]
+ffff8000808e7648: 941f7f1f     	bl	0xffff8000810c72c4 <mutex_lock>
+ffff8000808e764c: 14000038     	b	0xffff8000808e772c <deferred_probe_initcall+0x1c8>
+ffff8000808e7650: 52800028     	mov	w8, #0x1        // =1
+ffff8000808e7654: b000c909     	adrp	x9, 0xffff800082208000 <stm32_ports+0x13d0>
+ffff8000808e7658: 9131d129     	add	x9, x9, #0xc74
+ffff8000808e765c: b828013f     	stadd	w8, [x9]
+ffff8000808e7660: f94002a8     	ldr	x8, [x21]
+ffff8000808e7664: eb15011f     	cmp	x8, x21
+ffff8000808e7668: 54000120     	b.eq	0xffff8000808e768c <deferred_probe_initcall+0x128>
+ffff8000808e766c: f94006c9     	ldr	x9, [x22, #0x8]
+ffff8000808e7670: f94006aa     	ldr	x10, [x21, #0x8]
+ffff8000808e7674: f9000509     	str	x9, [x8, #0x8]
+ffff8000808e7678: f9000128     	str	x8, [x9]
+ffff8000808e767c: f9000156     	str	x22, [x10]
+ffff8000808e7680: f90006ca     	str	x10, [x22, #0x8]
+ffff8000808e7684: f90002b5     	str	x21, [x21]
+ffff8000808e7688: f90006b5     	str	x21, [x21, #0x8]
+ffff8000808e768c: d000bd40     	adrp	x0, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e7690: 91300000     	add	x0, x0, #0xc00
+ffff8000808e7694: 941f7f2a     	bl	0xffff8000810c733c <mutex_unlock>
+ffff8000808e7698: f94486e1     	ldr	x1, [x23, #0x908]
+ffff8000808e769c: d000bd53     	adrp	x19, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e76a0: 91310273     	add	x19, x19, #0xc40
+ffff8000808e76a4: 52802000     	mov	w0, #0x100      // =256
+ffff8000808e76a8: aa1303e2     	mov	x2, x19
+ffff8000808e76ac: 97df1012     	bl	0xffff8000800ab6f4 <queue_work_on>
+ffff8000808e76b0: aa1303e0     	mov	x0, x19
+ffff8000808e76b4: 97df14f8     	bl	0xffff8000800aca94 <flush_work>
+ffff8000808e76b8: d000bd48     	adrp	x8, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e76bc: b94c6108     	ldr	w8, [x8, #0xc60]
+ffff8000808e76c0: 7100051f     	cmp	w8, #0x1
+ffff8000808e76c4: 5400014b     	b.lt	0xffff8000808e76ec <deferred_probe_initcall+0x188>
+ffff8000808e76c8: 52801f49     	mov	w9, #0xfa       // =250
+ffff8000808e76cc: d000bd42     	adrp	x2, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e76d0: 9131a042     	add	x2, x2, #0xc68
+ffff8000808e76d4: 1b097d08     	mul	w8, w8, w9
+ffff8000808e76d8: d000a389     	adrp	x9, 0xffff800081d59000 <folio_wait_table+0x14c0>
+ffff8000808e76dc: 52802000     	mov	w0, #0x100      // =256
+ffff8000808e76e0: f9447521     	ldr	x1, [x9, #0x8e8]
+ffff8000808e76e4: 93407d03     	sxtw	x3, w8
+ffff8000808e76e8: 97df1194     	bl	0xffff8000800abd38 <queue_delayed_work_on>
+ffff8000808e76ec: a9434ff4     	ldp	x20, x19, [sp, #0x30]
+ffff8000808e76f0: 2a1f03e0     	mov	w0, wzr
+ffff8000808e76f4: a94257f6     	ldp	x22, x21, [sp, #0x20]
+ffff8000808e76f8: f9400bf7     	ldr	x23, [sp, #0x10]
+ffff8000808e76fc: a8c47bfd     	ldp	x29, x30, [sp], #0x40
+ffff8000808e7700: d50323bf     	autiasp
+ffff8000808e7704: d65f03c0     	ret
+ffff8000808e7708: d503249f     	bti	j
+ffff8000808e770c: b000c908     	adrp	x8, 0xffff800082208000 <stm32_ports+0x13d0>
+ffff8000808e7710: 9131d108     	add	x8, x8, #0xc74
+ffff8000808e7714: f9800111     	prfm	pstl1strm, [x8]
+ffff8000808e7718: 885f7d09     	ldxr	w9, [x8]
+ffff8000808e771c: 11000529     	add	w9, w9, #0x1
+ffff8000808e7720: 880a7d09     	stxr	w10, w9, [x8]
+ffff8000808e7724: 35ffffaa     	cbnz	w10, 0xffff8000808e7718 <deferred_probe_initcall+0x1b4>
+ffff8000808e7728: 17ffffa8     	b	0xffff8000808e75c8 <deferred_probe_initcall+0x64>
+ffff8000808e772c: d503249f     	bti	j
+ffff8000808e7730: b000c908     	adrp	x8, 0xffff800082208000 <stm32_ports+0x13d0>
+ffff8000808e7734: 9131d108     	add	x8, x8, #0xc74
+ffff8000808e7738: f9800111     	prfm	pstl1strm, [x8]
+ffff8000808e773c: 885f7d09     	ldxr	w9, [x8]
+ffff8000808e7740: 11000529     	add	w9, w9, #0x1
+ffff8000808e7744: 880a7d09     	stxr	w10, w9, [x8]
+ffff8000808e7748: 35ffffaa     	cbnz	w10, 0xffff8000808e773c <deferred_probe_initcall+0x1d8>
+ffff8000808e774c: 17ffffc5     	b	0xffff8000808e7660 <deferred_probe_initcall+0xfc>
