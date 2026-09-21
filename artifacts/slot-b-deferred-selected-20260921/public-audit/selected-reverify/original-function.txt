@@ -1,0 +1,55 @@
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+ffff8000808e8424 <deferred_probe_work_func>:
+ffff8000808e8424: d503233f     	paciasp
+ffff8000808e8428: a9bd7bfd     	stp	x29, x30, [sp, #-0x30]!
+ffff8000808e842c: f9000bf5     	str	x21, [sp, #0x10]
+ffff8000808e8430: a9024ff4     	stp	x20, x19, [sp, #0x20]
+ffff8000808e8434: 910003fd     	mov	x29, sp
+ffff8000808e8438: b000bd40     	adrp	x0, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e843c: 91300000     	add	x0, x0, #0xc00
+ffff8000808e8440: 941f7ba1     	bl	0xffff8000810c72c4 <mutex_lock>
+ffff8000808e8444: b000bd55     	adrp	x21, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e8448: 9130c2b5     	add	x21, x21, #0xc30
+ffff8000808e844c: f94002a8     	ldr	x8, [x21]
+ffff8000808e8450: eb15011f     	cmp	x8, x21
+ffff8000808e8454: 540003a0     	b.eq	0xffff8000808e84c8 <deferred_probe_work_func+0xa4>
+ffff8000808e8458: b000bd53     	adrp	x19, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e845c: 91300273     	add	x19, x19, #0xc00
+ffff8000808e8460: a940250a     	ldp	x10, x9, [x8]
+ffff8000808e8464: f9401114     	ldr	x20, [x8, #0x20]
+ffff8000808e8468: aa1403e0     	mov	x0, x20
+ffff8000808e846c: f9000549     	str	x9, [x10, #0x8]
+ffff8000808e8470: f900012a     	str	x10, [x9]
+ffff8000808e8474: f9000108     	str	x8, [x8]
+ffff8000808e8478: f9000508     	str	x8, [x8, #0x8]
+ffff8000808e847c: 97ffd9d7     	bl	0xffff8000808debd8 <get_device>
+ffff8000808e8480: f9402688     	ldr	x8, [x20, #0x48]
+ffff8000808e8484: f9406100     	ldr	x0, [x8, #0xc0]
+ffff8000808e8488: 97e57144     	bl	0xffff800080244998 <kfree>
+ffff8000808e848c: f9402688     	ldr	x8, [x20, #0x48]
+ffff8000808e8490: aa1303e0     	mov	x0, x19
+ffff8000808e8494: f900611f     	str	xzr, [x8, #0xc0]
+ffff8000808e8498: 941f7ba9     	bl	0xffff8000810c733c <mutex_unlock>
+ffff8000808e849c: aa1403e0     	mov	x0, x20
+ffff8000808e84a0: 97ffd7ec     	bl	0xffff8000808de450 <device_pm_move_to_tail>
+ffff8000808e84a4: aa1403e0     	mov	x0, x20
+ffff8000808e84a8: 97fff302     	bl	0xffff8000808e50b0 <bus_probe_device>
+ffff8000808e84ac: aa1303e0     	mov	x0, x19
+ffff8000808e84b0: 941f7b85     	bl	0xffff8000810c72c4 <mutex_lock>
+ffff8000808e84b4: aa1403e0     	mov	x0, x20
+ffff8000808e84b8: 97ffd9fb     	bl	0xffff8000808deca4 <put_device>
+ffff8000808e84bc: f94002a8     	ldr	x8, [x21]
+ffff8000808e84c0: eb15011f     	cmp	x8, x21
+ffff8000808e84c4: 54fffce1     	b.ne	0xffff8000808e8460 <deferred_probe_work_func+0x3c>
+ffff8000808e84c8: b000bd40     	adrp	x0, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e84cc: 91300000     	add	x0, x0, #0xc00
+ffff8000808e84d0: 941f7b9b     	bl	0xffff8000810c733c <mutex_unlock>
+ffff8000808e84d4: a9424ff4     	ldp	x20, x19, [sp, #0x20]
+ffff8000808e84d8: f9400bf5     	ldr	x21, [sp, #0x10]
+ffff8000808e84dc: a8c37bfd     	ldp	x29, x30, [sp], #0x30
+ffff8000808e84e0: d50323bf     	autiasp
+ffff8000808e84e4: d65f03c0     	ret

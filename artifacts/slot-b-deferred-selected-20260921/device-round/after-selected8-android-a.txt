@@ -1,0 +1,11 @@
+2026-09-21T06:12:25Z
+41a5627b
+thyme
+M2102J2SC
+_a
+1
+4.19.157-perf-g9d90dd04aa7c
+uid=0(root) gid=0(root) groups=0(root) context=u:r:magisk:s0
+total 0
+dr-xr-x---  2 system log  0 1974-07-28 09:21 .
+drwxr-xr-x 11 root   root 0 1974-07-28 09:21 ..

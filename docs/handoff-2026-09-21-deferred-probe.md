@@ -1,5 +1,14 @@
 # Xiaomi Mi 10S mainline handoff — 2026-09-21
 
+Continuation update: the new selected-device pair is now complete. Read
+`docs/slot-b-deferred-selected-device.md` and the top of
+`docs/route-r3-current-status.md` before the historical handoff below.
+SELECTED8/1 gave STRONG evidence for mutex acquisition, a nonempty active list
+and the original first-device pointer load. They are also rerun-FORBIDDEN.
+The user explicitly authorized subagents for this continuation; that overrides
+the historical no-delegation clause below. All build/Slot A/experiment gates
+remain in force.
+
 ## Stop reason and authoritative state
 
 The user requested a conversation switch and complete closeout. This is an

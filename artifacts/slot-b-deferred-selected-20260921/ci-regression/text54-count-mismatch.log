@@ -1,0 +1,327 @@
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	﻿2026-09-21T05:56:10.2496612Z ##[group]Run set -euo pipefail
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2497126Z ^[[36;1mset -euo pipefail^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2497727Z ^[[36;1mpython3 -m py_compile scripts/slot_b/observe.py \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2498222Z ^[[36;1m  scripts/slot_b/test_observe.py \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2498576Z ^[[36;1m  scripts/slot_b/late_text54_observer_fixtures.py \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2498970Z ^[[36;1m  scripts/slot_b/test_late_text54_observer_fixtures.py^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2499412Z ^[[36;1m(cd scripts/slot_b && python3 -B -m unittest test_observe.py -v) \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2499840Z ^[[36;1m  2>&1 | tee text54-observer-base-tests.log^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2500315Z ^[[36;1m(cd scripts/slot_b && python3 -B -m unittest test_late_text54_observer_fixtures.py -v) \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2500788Z ^[[36;1m  2>&1 | tee text54-observer-unit-tests.log^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2501231Z ^[[36;1m(cd scripts/slot_b && python3 -B late_text54_observer_fixtures.py --family text54) \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2501696Z ^[[36;1m  | tee text54-observer-fixtures.txt^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2502025Z ^[[36;1mfor gate in \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2502288Z ^[[36;1m  TEXT54_PLACEHOLDER_SHA_REJECTED=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2502629Z ^[[36;1m  TEXT54_REGISTRY_MANIFEST_AGREEMENT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2502989Z ^[[36;1m  TEXT54_WELLFORMED_NON_AUTHORITATIVE_REJECT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2503390Z ^[[36;1m  TEXT54_WELLFORMED_NON_AUTHORITATIVE_SHA_REJECTED=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2503806Z ^[[36;1m  TEXT54_REGISTRY_DISAGREEMENT_REJECTED=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2504144Z ^[[36;1m  TEXT548_EXACT_FULL_SHA_ACCEPT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2504457Z ^[[36;1m  TEXT541_EXACT_FULL_SHA_ACCEPT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2504756Z ^[[36;1m  TEXT54_WRONG_SIZE_REJECT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2505042Z ^[[36;1m  TEXT54_WRONG_SHA_REJECT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2505334Z ^[[36;1m  TEXT54_ONE_BYTE_MUTANT_REJECT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2505648Z ^[[36;1m  TEXT548_WRONG_DELAY_MUTANT_REJECT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2505988Z ^[[36;1m  TEXT541_WRONG_DELAY_MUTANT_REJECT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2506332Z ^[[36;1m  TEXT548_REJECTS_LATE_TEXT541_SWAP=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2506646Z ^[[36;1m  TEXT541_REJECTS_LATE_TEXT548_SWAP=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2506962Z ^[[36;1m  TEXT54_CROSS_IDENTITY_REJECTIONS=140 \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2507277Z ^[[36;1m  TEXT54_CROSS_IDENTITY_REJECTION=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2507771Z ^[[36;1m  TEXT54_60B_INLINE_GEOMETRY=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2508076Z ^[[36;1m  TEXT54_48B_NEGATIVE_FIXTURE=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2508371Z ^[[36;1m  TEXT54_52B_NEGATIVE_FIXTURE=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2508665Z ^[[36;1m  TEXT54_64B_NEGATIVE_FIXTURE=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2508967Z ^[[36;1m  TEXT54_BTI_C_PAD_CLASS_REJECTED=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2509274Z ^[[36;1m  TEXT54_COMPACT_INLINE_48B=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2509559Z ^[[36;1m  TEXT54_INDEX54_TABLE_GATE=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2509846Z ^[[36;1m  TEXT54_PREL32_UNCHANGED=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2510169Z ^[[36;1m  TEXT54_PAIR_DIFF_DELAY_CONSTANT_ONLY=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2510532Z ^[[36;1m  TEXT54_WRONG_PAIR_DIFF_NEGATIVE_FIXTURE=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2511092Z ^[[36;1m  TEXT54_STRONG_PROVES_TARGET_ENTRY=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2511468Z ^[[36;1m  TEXT54_LATER_LATE_CONSOLE_INIT_REMAIN_NOT_PROVEN=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2511827Z ^[[36;1m  TEXT54_SUPPORTED_GRADE=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2512149Z ^[[36;1m  TEXT54_NO_SHIFT_DOES_NOT_CLAIM_NOT_REACHED=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2512481Z ^[[36;1m  TEXT54_OBSERVER_FIXTURES=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2512762Z ^[[36;1m  TEXT548_REJECTS_ARCH8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2513032Z ^[[36;1m  TEXT548_REJECTS_CORE8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2513299Z ^[[36;1m  TEXT548_REJECTS_SUBSYS8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2513594Z ^[[36;1m  TEXT548_REJECTS_LATE_BTIC518=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2513901Z ^[[36;1m  TEXT548_REJECTS_LATE_COMPACT528=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2514211Z ^[[36;1m  TEXT548_REJECTS_WAITENTRY8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2514680Z ^[[36;1m  TEXT548_REJECTS_WAITRET8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2514969Z ^[[36;1m  TEXT548_REJECTS_LATE_HIGH8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2515262Z ^[[36;1m  TEXT548_REJECTS_LATE_POST508=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2515547Z ^[[36;1m  TEXT548_REJECTS_RESET8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2515828Z ^[[36;1m  TEXT541_REJECTS_ARCH8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2516106Z ^[[36;1m  TEXT541_REJECTS_CORE8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2516375Z ^[[36;1m  TEXT541_REJECTS_SUBSYS8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2516663Z ^[[36;1m  TEXT541_REJECTS_LATE_BTIC518=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2516971Z ^[[36;1m  TEXT541_REJECTS_LATE_COMPACT528=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2517278Z ^[[36;1m  TEXT541_REJECTS_WAITENTRY8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2517931Z ^[[36;1m  TEXT541_REJECTS_WAITRET8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2518223Z ^[[36;1m  TEXT541_REJECTS_LATE_HIGH8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2518513Z ^[[36;1m  TEXT541_REJECTS_LATE_POST508=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2518806Z ^[[36;1m  TEXT541_REJECTS_RESET8=PASS; do^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2519150Z ^[[36;1m  grep -Fxq "$gate" text54-observer-fixtures.txt^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2519493Z ^[[36;1mdone^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2519739Z ^[[36;1mprintf '%s\n' \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2519985Z ^[[36;1m  'TEXT54_OBSERVER_GATES=PASS' \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2520259Z ^[[36;1m  'DEVICE_OPERATION=NO' \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2520649Z ^[[36;1m  'PARTITION_WRITES=0' \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2521097Z ^[[36;1m  'SLOT_A_WRITTEN=NO' \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2521598Z ^[[36;1m  | tee text54-observer-gates.txt^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2563782Z shell: /usr/bin/bash -e {0}
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2564074Z env:
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2564271Z   GITHUB_ACTIONS: true
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.2564494Z ##[endgroup]
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5292765Z test_btic51_invalid_records_rejected (test_observe.Btic51PairTests.test_btic51_invalid_records_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5294959Z test_btic51_no_shift_records_checkpoint_only (test_observe.Btic51PairTests.test_btic51_no_shift_records_checkpoint_only) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5297047Z test_btic51_pair_proves_only_btic51_entry (test_observe.Btic51PairTests.test_btic51_pair_proves_only_btic51_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5299217Z test_btic51_pair_routes_are_registered (test_observe.Btic51PairTests.test_btic51_pair_routes_are_registered) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5301174Z test_btic51_supported_grade_is_strongly_supported (test_observe.Btic51PairTests.test_btic51_supported_grade_is_strongly_supported) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5303327Z test_btic51_unfrozen_identities_are_not_live_images (test_observe.Btic51PairTests.test_btic51_unfrozen_identities_are_not_live_images) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5305318Z test_arch_geometry_rejects_sixty_byte_window (test_observe.SafetyTests.test_arch_geometry_rejects_sixty_byte_window) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5307095Z test_arch_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_arch_member_full_sha_gates_are_distinct) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5309305Z test_arch_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_arch_pair_proof_boundary_and_no_shift_route) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5311191Z test_context_requires_readback_and_a_protection (test_observe.SafetyTests.test_context_requires_readback_and_a_protection) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5313360Z test_core_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_core_member_full_sha_gates_are_distinct) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5315198Z test_core_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_core_pair_proof_boundary_and_no_shift_route) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5450630Z test_exact_images_only (test_observe.SafetyTests.test_exact_images_only) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5452758Z test_fs_geometry_rejects_inline_windows (test_observe.SafetyTests.test_fs_geometry_rejects_inline_windows) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5454748Z test_fs_isolation_control_geometry_and_mid_table (test_observe.SafetyTests.test_fs_isolation_control_geometry_and_mid_table) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5456599Z test_fs_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_fs_member_full_sha_gates_are_distinct) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5458837Z test_fs_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_fs_pair_proof_boundary_and_no_shift_route) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5460350Z test_invalid_pair_never_proves_entry (test_observe.SafetyTests.test_invalid_pair_never_proves_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5468891Z test_no_return_blocks_reset1 (test_observe.SafetyTests.test_no_return_blocks_reset1) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5469744Z test_pair_delta_not_old_slot_a_absolute_timing (test_observe.SafetyTests.test_pair_delta_not_old_slot_a_absolute_timing) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5472825Z test_pid1_stage_pairs_prove_only_the_selected_entry (test_observe.SafetyTests.test_pid1_stage_pairs_prove_only_the_selected_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5474443Z test_post39_geometry_and_table_are_frozen (test_observe.SafetyTests.test_post39_geometry_and_table_are_frozen) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5477704Z test_post39_member_full_sha_gates_and_cross_rejection (test_observe.SafetyTests.test_post39_member_full_sha_gates_and_cross_rejection) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5479420Z test_post39_pair_proves_only_post39_entry (test_observe.SafetyTests.test_post39_pair_proves_only_post39_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5480855Z test_post46_geometry_and_table (test_observe.SafetyTests.test_post46_geometry_and_table) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5482236Z test_post46_pair_proves_only_post46_entry (test_observe.SafetyTests.test_post46_pair_proves_only_post46_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5483664Z test_recovery_is_not_an_experimental_boot (test_observe.SafetyTests.test_recovery_is_not_an_experimental_boot) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5488636Z test_rest_origin_must_be_recorded (test_observe.SafetyTests.test_rest_origin_must_be_recorded) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5489578Z test_rest_pair_proves_entry_only (test_observe.SafetyTests.test_rest_pair_proves_entry_only) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5494467Z test_second_boot_never_launches (test_observe.SafetyTests.test_second_boot_never_launches) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5499438Z test_slot_a_never_launches (test_observe.SafetyTests.test_slot_a_never_launches) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5503244Z test_slot_b_preflight (test_observe.SafetyTests.test_slot_b_preflight) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5505188Z test_subsys_geometry_rejects_oversize_windows (test_observe.SafetyTests.test_subsys_geometry_rejects_oversize_windows) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5506800Z test_subsys_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_subsys_member_full_sha_gates_are_distinct) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5508741Z test_subsys_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_subsys_pair_proof_boundary_and_no_shift_route) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5510331Z test_upper_geometry_and_table_are_frozen (test_observe.SafetyTests.test_upper_geometry_and_table_are_frozen) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5511927Z test_upper_member_full_sha_gates_and_cross_rejection (test_observe.SafetyTests.test_upper_member_full_sha_gates_and_cross_rejection) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5519009Z test_upper_pair_proves_only_upper_half_entry (test_observe.SafetyTests.test_upper_pair_proves_only_upper_half_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5519781Z 
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5519946Z ----------------------------------------------------------------------
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5520291Z Ran 38 tests in 0.023s
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5520428Z 
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.5520510Z OK
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6422587Z test_fixtures_registry_matches_observe (test_late_text54_observer_fixtures.FrozenRegistryTests.test_fixtures_registry_matches_observe) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6425220Z test_identity_is_frozen_shape_and_not_a_placeholder (test_late_text54_observer_fixtures.FrozenRegistryTests.test_identity_is_frozen_shape_and_not_a_placeholder) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6429259Z test_text54_registered_in_observe (test_late_text54_observer_fixtures.FrozenRegistryTests.test_text54_registered_in_observe) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6430436Z test_frozen_geometry_literals (test_late_text54_observer_fixtures.GeometryTests.test_frozen_geometry_literals) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6432015Z test_geometry_accepts_frozen_window_only (test_late_text54_observer_fixtures.GeometryTests.test_geometry_accepts_frozen_window_only) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6433814Z test_pad_class_negatives (test_late_text54_observer_fixtures.GeometryTests.test_pad_class_negatives) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6435391Z test_pair_diff_range_is_delay_word (test_late_text54_observer_fixtures.GeometryTests.test_pair_diff_range_is_delay_word) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6436671Z test_selection_policy (test_late_text54_observer_fixtures.GeometryTests.test_selection_policy) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6439384Z test_table_drift_negatives (test_late_text54_observer_fixtures.GeometryTests.test_table_drift_negatives) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6440623Z test_table_identity (test_late_text54_observer_fixtures.GeometryTests.test_table_identity) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6473980Z test_cross_identity_rejection_scale (test_late_text54_observer_fixtures.IdentityTests.test_cross_identity_rejection_scale) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6476973Z test_exact_identity_only (test_late_text54_observer_fixtures.IdentityTests.test_exact_identity_only) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6490915Z test_named_cross_family_identities_rejected (test_late_text54_observer_fixtures.IdentityTests.test_named_cross_family_identities_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6493725Z test_non_text54_cases_rejected (test_late_text54_observer_fixtures.IdentityTests.test_non_text54_cases_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6495339Z test_one_byte_mutants_rejected (test_late_text54_observer_fixtures.IdentityTests.test_one_byte_mutants_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6496712Z test_authoritative_identity_survives_the_predicate (test_late_text54_observer_fixtures.PlaceholderRejectionTests.test_authoritative_identity_survives_the_predicate) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6498984Z test_frozen_gate_rejects_non_hex_and_bad_length (test_late_text54_observer_fixtures.PlaceholderRejectionTests.test_frozen_gate_rejects_non_hex_and_bad_length) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6500523Z test_malformed_and_non_string_rejected (test_late_text54_observer_fixtures.PlaceholderRejectionTests.test_malformed_and_non_string_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6501983Z test_registry_disagreement_is_refused (test_late_text54_observer_fixtures.PlaceholderRejectionTests.test_registry_disagreement_is_refused) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6506158Z test_require_authoritative_refuses_a_placeholder_constant (test_late_text54_observer_fixtures.PlaceholderRejectionTests.test_require_authoritative_refuses_a_placeholder_constant) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6508711Z test_valid_hex_placeholders_and_sentinels_rejected (test_late_text54_observer_fixtures.PlaceholderRejectionTests.test_valid_hex_placeholders_and_sentinels_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6510947Z test_grade_boundaries (test_late_text54_observer_fixtures.VerdictTests.test_grade_boundaries) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6520484Z test_invalid_records_rejected (test_late_text54_observer_fixtures.VerdictTests.test_invalid_records_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6522226Z test_no_shift_records_checkpoint_shift_not_observed_only (test_late_text54_observer_fixtures.VerdictTests.test_no_shift_records_checkpoint_shift_not_observed_only) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6524082Z test_strong_proves_only_text54_entry (test_late_text54_observer_fixtures.VerdictTests.test_strong_proves_only_text54_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6524727Z 
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6525206Z ----------------------------------------------------------------------
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6525732Z Ran 25 tests in 0.010s
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6525883Z 
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.6525961Z OK
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7102067Z TEXT54_PLACEHOLDER_SHA_REJECTED=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7102941Z TEXT54_REGISTRY_MANIFEST_AGREEMENT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7103586Z TEXT54_WELLFORMED_NON_AUTHORITATIVE_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7104372Z TEXT54_WELLFORMED_NON_AUTHORITATIVE_SHA_REJECTED=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7105133Z TEXT54_REGISTRY_DISAGREEMENT_REJECTED=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7106244Z TEXT548_EXACT_FULL_SHA_ACCEPT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7106878Z TEXT541_EXACT_FULL_SHA_ACCEPT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7107865Z TEXT54_WRONG_SIZE_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7108513Z TEXT54_WRONG_SHA_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7109160Z TEXT54_ONE_BYTE_MUTANT_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7109847Z TEXT54_ONE_BYTE_MUTANT_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7110461Z TEXT548_REJECTS_LATE_TEXT541_SWAP=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7111083Z TEXT541_REJECTS_LATE_TEXT548_SWAP=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7111564Z TEXT548_WRONG_DELAY_MUTANT_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7111957Z TEXT541_WRONG_DELAY_MUTANT_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7112327Z TEXT548_REJECTS_ARCH1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7112656Z TEXT541_REJECTS_ARCH1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7112976Z TEXT548_REJECTS_ARCH8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7113300Z TEXT541_REJECTS_ARCH8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7113630Z TEXT548_REJECTS_CONSOLE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7113968Z TEXT541_REJECTS_CONSOLE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7114360Z TEXT548_REJECTS_CONSOLE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7114697Z TEXT541_REJECTS_CONSOLE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7115042Z TEXT548_REJECTS_CONTROL1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7115379Z TEXT541_REJECTS_CONTROL1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7115721Z TEXT548_REJECTS_CONTROL8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7116055Z TEXT541_REJECTS_CONTROL8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7116388Z TEXT548_REJECTS_CORE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7116706Z TEXT541_REJECTS_CORE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7117027Z TEXT548_REJECTS_CORE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7117343Z TEXT541_REJECTS_CORE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7117970Z TEXT548_REJECTS_DEFER_POSTFLUSH1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7118368Z TEXT541_REJECTS_DEFER_POSTFLUSH1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7118749Z TEXT548_REJECTS_DEFER_POSTFLUSH8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7119182Z TEXT541_REJECTS_DEFER_POSTFLUSH8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7119577Z TEXT548_REJECTS_DEFER_PREQUEUE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7119960Z TEXT541_REJECTS_DEFER_PREQUEUE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7120252Z TEXT548_REJECTS_DEFER_PREQUEUE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7120536Z TEXT541_REJECTS_DEFER_PREQUEUE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7120811Z TEXT548_REJECTS_DEFER_SELECTED1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7121090Z TEXT541_REJECTS_DEFER_SELECTED1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7121361Z TEXT548_REJECTS_DEFER_SELECTED8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7121619Z TEXT541_REJECTS_DEFER_SELECTED8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7121874Z TEXT548_REJECTS_DEFER_WORKER1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7122136Z TEXT541_REJECTS_DEFER_WORKER1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7122394Z TEXT548_REJECTS_DEFER_WORKER8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7122641Z TEXT541_REJECTS_DEFER_WORKER8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7122892Z TEXT548_REJECTS_DEVPROBE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7123138Z TEXT541_REJECTS_DEVPROBE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7123377Z TEXT548_REJECTS_DEVPROBE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7123617Z TEXT541_REJECTS_DEVPROBE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7123850Z TEXT548_REJECTS_FREE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7124084Z TEXT541_REJECTS_FREE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7124308Z TEXT548_REJECTS_FREE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7124534Z TEXT541_REJECTS_FREE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7124756Z TEXT548_REJECTS_FS1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7124974Z TEXT541_REJECTS_FS1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7125415Z TEXT548_REJECTS_FS8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7125631Z TEXT541_REJECTS_FS8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7125858Z TEXT548_REJECTS_INITCALLS1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7126136Z TEXT541_REJECTS_INITCALLS1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7126388Z TEXT548_REJECTS_INITCALLS8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7126626Z TEXT541_REJECTS_INITCALLS8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7126862Z TEXT548_REJECTS_KINIT1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7127096Z TEXT541_REJECTS_KINIT1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7127327Z TEXT548_REJECTS_KINIT8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7127826Z TEXT541_REJECTS_KINIT8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7128080Z TEXT548_REJECTS_LATE_BTIC511=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7128391Z TEXT541_REJECTS_LATE_BTIC511=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7128646Z TEXT548_REJECTS_LATE_BTIC518=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7128893Z TEXT541_REJECTS_LATE_BTIC518=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7129150Z TEXT548_REJECTS_LATE_COMPACT521=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7129586Z TEXT541_REJECTS_LATE_COMPACT521=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7129848Z TEXT548_REJECTS_LATE_COMPACT528=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7130112Z TEXT541_REJECTS_LATE_COMPACT528=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7130373Z TEXT548_REJECTS_LATE_DEVPROBE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7130636Z TEXT541_REJECTS_LATE_DEVPROBE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7130890Z TEXT548_REJECTS_LATE_DEVPROBE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7131144Z TEXT541_REJECTS_LATE_DEVPROBE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7131401Z TEXT548_REJECTS_LATE_HIGH1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7131648Z TEXT541_REJECTS_LATE_HIGH1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7131896Z TEXT548_REJECTS_LATE_HIGH8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7132136Z TEXT541_REJECTS_LATE_HIGH8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7132377Z TEXT548_REJECTS_LATE_LOW1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7132617Z TEXT541_REJECTS_LATE_LOW1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7132854Z TEXT548_REJECTS_LATE_LOW8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7133090Z TEXT541_REJECTS_LATE_LOW8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7133321Z TEXT548_REJECTS_LATE_MID1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7133564Z TEXT541_REJECTS_LATE_MID1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7133798Z TEXT548_REJECTS_LATE_MID8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7134042Z TEXT541_REJECTS_LATE_MID8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7134279Z TEXT548_REJECTS_LATE_POST431=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7134531Z TEXT541_REJECTS_LATE_POST431=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7134779Z TEXT548_REJECTS_LATE_POST438=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7135023Z TEXT541_REJECTS_LATE_POST438=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7135265Z TEXT548_REJECTS_LATE_POST491=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7135510Z TEXT541_REJECTS_LATE_POST491=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7135750Z TEXT548_REJECTS_LATE_POST498=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7135994Z TEXT541_REJECTS_LATE_POST498=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7136237Z TEXT548_REJECTS_LATE_POST501=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7136486Z TEXT541_REJECTS_LATE_POST501=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7136730Z TEXT548_REJECTS_LATE_POST508=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7136977Z TEXT541_REJECTS_LATE_POST508=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7137218Z TEXT548_REJECTS_MID1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7137443Z TEXT541_REJECTS_MID1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7137920Z TEXT548_REJECTS_MID8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7138143Z TEXT541_REJECTS_MID8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7138372Z TEXT548_REJECTS_POST391=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7138607Z TEXT541_REJECTS_POST391=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7138837Z TEXT548_REJECTS_POST398=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7139071Z TEXT541_REJECTS_POST398=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7139309Z TEXT548_REJECTS_POST461=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7139546Z TEXT541_REJECTS_POST461=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7139778Z TEXT548_REJECTS_POST468=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7140009Z TEXT541_REJECTS_POST468=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7140241Z TEXT548_REJECTS_POST491=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7140472Z TEXT541_REJECTS_POST491=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7140700Z TEXT548_REJECTS_POST498=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7140927Z TEXT541_REJECTS_POST498=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7141158Z TEXT548_REJECTS_POST511=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7141388Z TEXT541_REJECTS_POST511=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7141647Z TEXT548_REJECTS_POST518=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7141888Z TEXT541_REJECTS_POST518=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7142136Z TEXT548_REJECTS_POSTCORE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7142376Z TEXT541_REJECTS_POSTCORE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7142776Z TEXT548_REJECTS_POSTCORE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7143021Z TEXT541_REJECTS_POSTCORE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7143257Z TEXT548_REJECTS_PURE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7143486Z TEXT541_REJECTS_PURE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7143724Z TEXT548_REJECTS_PURE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7143953Z TEXT541_REJECTS_PURE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7144180Z TEXT548_REJECTS_RESET1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7144415Z TEXT541_REJECTS_RESET1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7144644Z TEXT548_REJECTS_RESET8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7144874Z TEXT541_REJECTS_RESET8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7145100Z TEXT548_REJECTS_REST1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7145327Z TEXT541_REJECTS_REST1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7145547Z TEXT548_REJECTS_REST8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7145770Z TEXT541_REJECTS_REST8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7145993Z TEXT548_REJECTS_SMP1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7146418Z TEXT541_REJECTS_SMP1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7146638Z TEXT548_REJECTS_SMP8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7146861Z TEXT541_REJECTS_SMP8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7147096Z TEXT548_REJECTS_SUBSYS1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7147332Z TEXT541_REJECTS_SUBSYS1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7147899Z TEXT548_REJECTS_SUBSYS8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7148153Z TEXT541_REJECTS_SUBSYS8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7148394Z TEXT548_REJECTS_UPPER1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7148633Z TEXT541_REJECTS_UPPER1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7148863Z TEXT548_REJECTS_UPPER8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7149093Z TEXT541_REJECTS_UPPER8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7149332Z TEXT548_REJECTS_WAITENTRY1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7149591Z TEXT541_REJECTS_WAITENTRY1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7149833Z TEXT548_REJECTS_WAITENTRY8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7150078Z TEXT541_REJECTS_WAITENTRY8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7150327Z TEXT548_REJECTS_WAITRET1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7150580Z TEXT541_REJECTS_WAITRET1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7150822Z TEXT548_REJECTS_WAITRET8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7151066Z TEXT541_REJECTS_WAITRET8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7151315Z TEXT54_CROSS_IDENTITY_REJECTIONS=144
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7151596Z TEXT54_CROSS_IDENTITY_REJECTION=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7151857Z TEXT54_60B_INLINE_GEOMETRY=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7152105Z TEXT54_48B_NEGATIVE_FIXTURE=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7152357Z TEXT54_52B_NEGATIVE_FIXTURE=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7152610Z TEXT54_64B_NEGATIVE_FIXTURE=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7152862Z TEXT54_BTI_C_PAD_CLASS_REJECTED=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7153135Z TEXT54_COMPACT_INLINE_48B=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7153398Z TEXT54_INDEX54_TABLE_GATE=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7153638Z TEXT54_PREL32_UNCHANGED=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7153895Z TEXT54_PAIR_DIFF_DELAY_CONSTANT_ONLY=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7154199Z TEXT54_WRONG_PAIR_DIFF_NEGATIVE_FIXTURE=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7154506Z TEXT54_STRONG_PROVES_TARGET_ENTRY=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7154824Z TEXT54_LATER_LATE_CONSOLE_INIT_REMAIN_NOT_PROVEN=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7155139Z TEXT54_SUPPORTED_GRADE=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7155412Z TEXT54_NO_SHIFT_DOES_NOT_CLAIM_NOT_REACHED=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7155710Z TEXT54_OBSERVER_FIXTURES=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7155951Z DEVICE_OPERATION=NO
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained text54)	2026-09-21T05:56:10.7383754Z ##[error]Process completed with exit code 1.

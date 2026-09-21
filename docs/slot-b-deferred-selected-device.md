@@ -74,3 +74,49 @@ the CI receipts. OEM images remain under the private repository's local
 
 The selected observer must pass its own Actions gate before either image is
 used. No selected-device experiment is implied by these CI results.
+
+## Actual selected-device result
+
+Both new members ran exactly once as RAM-only Slot B boots:
+
+| Case | Total seconds | Return |
+|---|---:|---|
+| `defer_selected8` | 35.420613167 | automatic Fastboot B, retry 7 to 6 |
+| `defer_selected1` | 28.249236500 | automatic Fastboot B, retry 7 to 6 |
+
+Delta is **-7.171376667 seconds**, error **-0.171376667 seconds**, **STRONG**.
+The deferred mutex was acquired, the active list was nonempty, and the original
+first device-pointer load completed. These two cases are now **rerun-FORBIDDEN**.
+`LATEST_PROVEN_LATE_INDEX` remains 54. Device identity, pointer validity,
+`get_device()`, `bus_probe_device()`, a culprit, late completion and `/init`
+remain NOT_PROVEN; USB remains frozen.
+
+The final selected observer gate was `35566868731` at
+`2afa061035be58849dfbcf57add5bbf11d85687a`. It reconciled full public identities
+and passed selected safety/negative tests. Earlier observer gate `35566401493`
+also passed. Full suite `35566401477` passed **561 tests, 14 skipped**.
+Two historical workflow checks (`35566401465`, `35566401486`) initially failed
+because they required 140 cross-identity rejections after the registry grew to
+144. All actual rejection fixtures passed. The count correction also explicitly
+requires rejection of both selected images; replacement runs `35566808357` and
+`35566808348` passed. No old experiment was repeated.
+
+Android A was restored after each member. At **2026-09-21T06:19:28Z**, serial
+`41a5627b`, thyme/M2102J2SC, `_a`, boot completed, stock kernel and root were
+healthy; pstore was empty. All 16 full partition hashes and the 52666368-byte
+P15 prefix matched before, between and after the pair. Current B remains
+stock V14 vendor_boot/dtbo with P15 boot. This continuation used **2 RAM boots,
+0 partition image writes, 0 Slot A writes, 0 local builds**.
+
+Evidence is under `artifacts/slot-b-deferred-selected-20260921/`; OEM boot
+images remain outside the public worktree in the private repository directory.
+The root operator sourced `--ci-run` from the frozen identity JSON and checked
+the first record's run and full SHA before permitting the second. Shared
+observer `ci_run` is a record label rather than a live CI-authority lookup.
+
+The next feasibility investigation is compiler-produced `device.of_node` /
+`device_node.phandle` layout and a full phandle map from the exact RT-D trailer.
+Static OF nodes avoid the separate kobject-name allocation's rename lifetime
+gap, but absent/zero phandles, shared nodes and cross-boot selection still need
+explicit treatment. No new identity-channel experiment follows from this
+source-level possibility alone.

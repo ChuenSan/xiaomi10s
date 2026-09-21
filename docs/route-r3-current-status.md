@@ -1,6 +1,23 @@
 # thyme R3 current status (single source of truth for the current round)
 
-Latest closeout (2026-09-21, user-requested conversation handoff):
+Latest continuation (2026-09-21, selected-device boundary):
+SELECTED8/1 = 35.420613167 / 28.249236500 s, delta -7.171376667 s, STRONG.
+Deferred mutex acquisition, nonempty active list and the original first-device
+pointer load are PROVEN. Both new cases are rerun-FORBIDDEN, as are the six
+previous deferred cases. Device identity, `get_device()`, bus/device probe,
+culprit, late completion and `/init` remain NOT_PROVEN; USB remains frozen.
+Android A healthy at 06:19:28Z; all 16 partition hashes and P15 prefix unchanged.
+This continuation: 2 RAM boots, zero partition/Slot A writes, zero local builds.
+Public audit 35564673598, private pack/reverify 35565769017, final selected
+observer 35566868731 passed. Full suite 35566401477: 561 tests, 14 skipped.
+Two stale historical rejection counts were corrected to include selected
+images; replacement checks 35566808357 / 35566808348 passed.
+Read docs/slot-b-deferred-selected-device.md and
+scripts/slot_b/deferred_selected_identities.json for the new state. The original
+name draft remains unqualified; OF layout/identity feasibility is the next
+CI-only investigation. LATEST_PROVEN_LATE_INDEX remains 54.
+
+Previous closeout (2026-09-21, user-requested conversation handoff):
 PREQUEUE8/1 = 35.423422125 / 28.465627750 s, delta −6.957794375 s, STRONG.
 POSTFLUSH8/1 = 48.591122792 / 48.346502500 s, SHIFT_NOT_OBSERVED.
 WORKER8/1 = 35.517175625 / 28.475640458 s, delta −7.041535167 s, STRONG:

@@ -1,0 +1,22 @@
+{
+  "stage": "selected",
+  "source_commit": "867cf8a7bf7ae90c7b80eb5265515f6e546c944a",
+  "public_run": "35564673598",
+  "expected_delta_s": -7,
+  "changed_offsets": [
+    9340017,
+    9340018
+  ],
+  "cases": [
+    "defer_selected8",
+    "defer_selected1"
+  ],
+  "payload_shas": {
+    "8": "c6127196a1c3b61586a41e0bc2d985138d049b1e08f9a583b1e7d7794c7b6633",
+    "1": "24813c2e7e28433ab4043ccef5641f7f93bb6b4f702448d82ecc3c3164584d28"
+  },
+  "manifest_shas": {
+    "8": "2bcefcd59ce18adcfc1abb098410e64b462af4592af83b1f06cda5c010932b7c",
+    "1": "2db937d841fc37afe63f6b3920dfe7afb76b8464ab4112528cfa3c8c9dd176aa"
+  }
+}

@@ -1,0 +1,314 @@
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	﻿2026-09-21T05:56:10.5415493Z ##[group]Run set -euo pipefail
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5415981Z ^[[36;1mset -euo pipefail^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5416329Z ^[[36;1mpython3 -m py_compile scripts/slot_b/observe.py \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5416728Z ^[[36;1m  scripts/slot_b/test_observe.py \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5417090Z ^[[36;1m  scripts/slot_b/late_compact52_observer_fixtures.py \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5417525Z ^[[36;1m  scripts/slot_b/test_late_compact52_observer_fixtures.py^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5417989Z ^[[36;1m(cd scripts/slot_b && python3 -B -m unittest test_observe.py -v) \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5418412Z ^[[36;1m  2>&1 | tee compact52-observer-base-tests.log^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5419160Z ^[[36;1m(cd scripts/slot_b && python3 -B -m unittest test_late_compact52_observer_fixtures.py -v) \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5419661Z ^[[36;1m  2>&1 | tee compact52-observer-unit-tests.log^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5420140Z ^[[36;1m(cd scripts/slot_b && python3 -B late_compact52_observer_fixtures.py --family compact52) \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5420623Z ^[[36;1m  | tee compact52-observer-fixtures.txt^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5420960Z ^[[36;1mfor gate in \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5421219Z ^[[36;1m  COMPACT52_PLACEHOLDER_SHA_REJECTED=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5421562Z ^[[36;1m  COMPACT52_REGISTRY_MANIFEST_AGREEMENT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5421936Z ^[[36;1m  COMPACT52_WELLFORMED_NON_AUTHORITATIVE_REJECT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5422357Z ^[[36;1m  COMPACT52_WELLFORMED_NON_AUTHORITATIVE_SHA_REJECTED=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5422765Z ^[[36;1m  COMPACT52_REGISTRY_DISAGREEMENT_REJECTED=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5423121Z ^[[36;1m  COMPACT528_EXACT_FULL_SHA_ACCEPT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5423441Z ^[[36;1m  COMPACT521_EXACT_FULL_SHA_ACCEPT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5423751Z ^[[36;1m  COMPACT52_WRONG_SIZE_REJECT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5424051Z ^[[36;1m  COMPACT52_WRONG_SHA_REJECT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5424357Z ^[[36;1m  COMPACT52_ONE_BYTE_MUTANT_REJECT=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5424694Z ^[[36;1m  COMPACT528_REJECTS_LATE_COMPACT521_SWAP=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5425049Z ^[[36;1m  COMPACT521_REJECTS_LATE_COMPACT528_SWAP=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5425374Z ^[[36;1m  COMPACT528_REJECTS_ARCH8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5425664Z ^[[36;1m  COMPACT521_REJECTS_ARCH8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5425942Z ^[[36;1m  COMPACT528_REJECTS_CORE8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5426212Z ^[[36;1m  COMPACT521_REJECTS_CORE8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5426501Z ^[[36;1m  COMPACT528_REJECTS_LATE_BTIC518=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5426837Z ^[[36;1m  COMPACT521_REJECTS_LATE_BTIC518=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5427141Z ^[[36;1m  COMPACT528_REJECTS_SUBSYS8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5427436Z ^[[36;1m  COMPACT521_REJECTS_SUBSYS8=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5427751Z ^[[36;1m  COMPACT52_CROSS_IDENTITY_REJECTIONS=140 \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5428082Z ^[[36;1m  COMPACT52_CROSS_IDENTITY_REJECTION=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5428404Z ^[[36;1m  COMPACT52_48B_INLINE_GEOMETRY=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5428941Z ^[[36;1m  COMPACT52_56B_NEGATIVE_FIXTURE=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5429308Z ^[[36;1m  COMPACT52_52B_NEGATIVE_FIXTURE=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5429619Z ^[[36;1m  COMPACT52_64B_NEGATIVE_FIXTURE=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5430171Z ^[[36;1m  COMPACT52_BTI_C_PAD_CLASS_REJECTED=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5430492Z ^[[36;1m  COMPACT52_COMPACT_INLINE_48B=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5430792Z ^[[36;1m  COMPACT52_INDEX52_TABLE_GATE=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5431092Z ^[[36;1m  COMPACT52_PREL32_UNCHANGED=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5431429Z ^[[36;1m  COMPACT52_PAIR_DIFF_DELAY_CONSTANT_ONLY=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5431798Z ^[[36;1m  COMPACT52_WRONG_PAIR_DIFF_NEGATIVE_FIXTURE=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5432157Z ^[[36;1m  COMPACT52_STRONG_PROVES_TARGET_ENTRY=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5432543Z ^[[36;1m  COMPACT52_LATER_LATE_CONSOLE_INIT_REMAIN_NOT_PROVEN=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5432914Z ^[[36;1m  COMPACT52_SUPPORTED_GRADE=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5433256Z ^[[36;1m  COMPACT52_NO_SHIFT_DOES_NOT_CLAIM_NOT_REACHED=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5433776Z ^[[36;1m  COMPACT52_OBSERVER_FIXTURES=PASS \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5434070Z ^[[36;1m  DEVICE_OPERATION=NO; do^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5434403Z ^[[36;1m  grep -Fxq "$gate" compact52-observer-fixtures.txt^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5434720Z ^[[36;1mdone^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5434917Z ^[[36;1mprintf '%s\n' \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5435162Z ^[[36;1m  'COMPACT52_OBSERVER_GATES=PASS' \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5435440Z ^[[36;1m  'DEVICE_OPERATION=NO' \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5435698Z ^[[36;1m  'PARTITION_WRITES=0' \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5435958Z ^[[36;1m  'SLOT_A_WRITTEN=NO' \^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5436240Z ^[[36;1m  | tee compact52-observer-gates.txt^[[0m
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5477298Z shell: /usr/bin/bash -e {0}
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5477575Z env:
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5477770Z   GITHUB_ACTIONS: true
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.5477994Z ##[endgroup]
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7106241Z test_btic51_invalid_records_rejected (test_observe.Btic51PairTests.test_btic51_invalid_records_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7110272Z test_btic51_no_shift_records_checkpoint_only (test_observe.Btic51PairTests.test_btic51_no_shift_records_checkpoint_only) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7111939Z test_btic51_pair_proves_only_btic51_entry (test_observe.Btic51PairTests.test_btic51_pair_proves_only_btic51_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7113495Z test_btic51_pair_routes_are_registered (test_observe.Btic51PairTests.test_btic51_pair_routes_are_registered) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7115167Z test_btic51_supported_grade_is_strongly_supported (test_observe.Btic51PairTests.test_btic51_supported_grade_is_strongly_supported) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7117019Z test_btic51_unfrozen_identities_are_not_live_images (test_observe.Btic51PairTests.test_btic51_unfrozen_identities_are_not_live_images) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7118980Z test_arch_geometry_rejects_sixty_byte_window (test_observe.SafetyTests.test_arch_geometry_rejects_sixty_byte_window) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7120306Z test_arch_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_arch_member_full_sha_gates_are_distinct) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7121435Z test_arch_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_arch_pair_proof_boundary_and_no_shift_route) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7122532Z test_context_requires_readback_and_a_protection (test_observe.SafetyTests.test_context_requires_readback_and_a_protection) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7123582Z test_core_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_core_member_full_sha_gates_are_distinct) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7124653Z test_core_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_core_pair_proof_boundary_and_no_shift_route) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7260076Z test_exact_images_only (test_observe.SafetyTests.test_exact_images_only) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7262737Z test_fs_geometry_rejects_inline_windows (test_observe.SafetyTests.test_fs_geometry_rejects_inline_windows) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7264066Z test_fs_isolation_control_geometry_and_mid_table (test_observe.SafetyTests.test_fs_isolation_control_geometry_and_mid_table) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7265516Z test_fs_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_fs_member_full_sha_gates_are_distinct) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7266714Z test_fs_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_fs_pair_proof_boundary_and_no_shift_route) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7267845Z test_invalid_pair_never_proves_entry (test_observe.SafetyTests.test_invalid_pair_never_proves_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7268997Z test_no_return_blocks_reset1 (test_observe.SafetyTests.test_no_return_blocks_reset1) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7270080Z test_pair_delta_not_old_slot_a_absolute_timing (test_observe.SafetyTests.test_pair_delta_not_old_slot_a_absolute_timing) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7284244Z test_pid1_stage_pairs_prove_only_the_selected_entry (test_observe.SafetyTests.test_pid1_stage_pairs_prove_only_the_selected_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7292006Z test_post39_geometry_and_table_are_frozen (test_observe.SafetyTests.test_post39_geometry_and_table_are_frozen) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7294323Z test_post39_member_full_sha_gates_and_cross_rejection (test_observe.SafetyTests.test_post39_member_full_sha_gates_and_cross_rejection) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7296464Z test_post39_pair_proves_only_post39_entry (test_observe.SafetyTests.test_post39_pair_proves_only_post39_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7298141Z test_post46_geometry_and_table (test_observe.SafetyTests.test_post46_geometry_and_table) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7300057Z test_post46_pair_proves_only_post46_entry (test_observe.SafetyTests.test_post46_pair_proves_only_post46_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7301874Z test_recovery_is_not_an_experimental_boot (test_observe.SafetyTests.test_recovery_is_not_an_experimental_boot) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7303481Z test_rest_origin_must_be_recorded (test_observe.SafetyTests.test_rest_origin_must_be_recorded) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7305052Z test_rest_pair_proves_entry_only (test_observe.SafetyTests.test_rest_pair_proves_entry_only) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7306663Z test_second_boot_never_launches (test_observe.SafetyTests.test_second_boot_never_launches) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7311839Z test_slot_a_never_launches (test_observe.SafetyTests.test_slot_a_never_launches) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7315653Z test_slot_b_preflight (test_observe.SafetyTests.test_slot_b_preflight) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7317998Z test_subsys_geometry_rejects_oversize_windows (test_observe.SafetyTests.test_subsys_geometry_rejects_oversize_windows) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7320061Z test_subsys_member_full_sha_gates_are_distinct (test_observe.SafetyTests.test_subsys_member_full_sha_gates_are_distinct) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7321948Z test_subsys_pair_proof_boundary_and_no_shift_route (test_observe.SafetyTests.test_subsys_pair_proof_boundary_and_no_shift_route) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7323766Z test_upper_geometry_and_table_are_frozen (test_observe.SafetyTests.test_upper_geometry_and_table_are_frozen) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7325693Z test_upper_member_full_sha_gates_and_cross_rejection (test_observe.SafetyTests.test_upper_member_full_sha_gates_and_cross_rejection) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7327386Z test_upper_pair_proves_only_upper_half_entry (test_observe.SafetyTests.test_upper_pair_proves_only_upper_half_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7328396Z 
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7329043Z ----------------------------------------------------------------------
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7329912Z Ran 38 tests in 0.023s
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7330372Z 
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.7330677Z OK
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8183137Z test_compact52_registered_in_observe (test_late_compact52_observer_fixtures.FrozenRegistryTests.test_compact52_registered_in_observe) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8185199Z test_fixtures_registry_matches_observe (test_late_compact52_observer_fixtures.FrozenRegistryTests.test_fixtures_registry_matches_observe) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8187367Z test_identity_is_frozen_shape_and_not_a_placeholder (test_late_compact52_observer_fixtures.FrozenRegistryTests.test_identity_is_frozen_shape_and_not_a_placeholder) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8190034Z test_frozen_geometry_literals (test_late_compact52_observer_fixtures.GeometryTests.test_frozen_geometry_literals) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8210517Z test_geometry_accepts_frozen_window_only (test_late_compact52_observer_fixtures.GeometryTests.test_geometry_accepts_frozen_window_only) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8212262Z test_pad_class_negatives (test_late_compact52_observer_fixtures.GeometryTests.test_pad_class_negatives) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8213823Z test_pair_diff_range_is_delay_word (test_late_compact52_observer_fixtures.GeometryTests.test_pair_diff_range_is_delay_word) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8215332Z test_selection_policy (test_late_compact52_observer_fixtures.GeometryTests.test_selection_policy) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8216743Z test_table_drift_negatives (test_late_compact52_observer_fixtures.GeometryTests.test_table_drift_negatives) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8218389Z test_table_identity (test_late_compact52_observer_fixtures.GeometryTests.test_table_identity) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8237217Z test_cross_identity_rejection_scale (test_late_compact52_observer_fixtures.IdentityTests.test_cross_identity_rejection_scale) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8240699Z test_exact_identity_only (test_late_compact52_observer_fixtures.IdentityTests.test_exact_identity_only) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8254202Z test_named_cross_family_identities_rejected (test_late_compact52_observer_fixtures.IdentityTests.test_named_cross_family_identities_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8256886Z test_non_compact52_cases_rejected (test_late_compact52_observer_fixtures.IdentityTests.test_non_compact52_cases_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8258986Z test_one_byte_mutants_rejected (test_late_compact52_observer_fixtures.IdentityTests.test_one_byte_mutants_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8261351Z test_authoritative_identity_survives_the_predicate (test_late_compact52_observer_fixtures.PlaceholderRejectionTests.test_authoritative_identity_survives_the_predicate) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8264075Z test_frozen_gate_rejects_non_hex_and_bad_length (test_late_compact52_observer_fixtures.PlaceholderRejectionTests.test_frozen_gate_rejects_non_hex_and_bad_length) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8266571Z test_malformed_and_non_string_rejected (test_late_compact52_observer_fixtures.PlaceholderRejectionTests.test_malformed_and_non_string_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8269208Z test_registry_disagreement_is_refused (test_late_compact52_observer_fixtures.PlaceholderRejectionTests.test_registry_disagreement_is_refused) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8271905Z test_require_authoritative_refuses_a_placeholder_constant (test_late_compact52_observer_fixtures.PlaceholderRejectionTests.test_require_authoritative_refuses_a_placeholder_constant) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8274407Z test_valid_hex_placeholders_and_sentinels_rejected (test_late_compact52_observer_fixtures.PlaceholderRejectionTests.test_valid_hex_placeholders_and_sentinels_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8275740Z test_grade_boundaries (test_late_compact52_observer_fixtures.VerdictTests.test_grade_boundaries) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8281347Z test_invalid_records_rejected (test_late_compact52_observer_fixtures.VerdictTests.test_invalid_records_rejected) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8283452Z test_no_shift_records_checkpoint_shift_not_observed_only (test_late_compact52_observer_fixtures.VerdictTests.test_no_shift_records_checkpoint_shift_not_observed_only) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8285468Z test_strong_proves_only_compact52_entry (test_late_compact52_observer_fixtures.VerdictTests.test_strong_proves_only_compact52_entry) ... ok
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8286538Z 
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8286795Z ----------------------------------------------------------------------
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8289417Z Ran 25 tests in 0.010s
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8289694Z 
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8289811Z OK
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8812038Z COMPACT52_PLACEHOLDER_SHA_REJECTED=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8812925Z COMPACT52_REGISTRY_MANIFEST_AGREEMENT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8813623Z COMPACT52_WELLFORMED_NON_AUTHORITATIVE_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8814730Z COMPACT52_WELLFORMED_NON_AUTHORITATIVE_SHA_REJECTED=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8815488Z COMPACT52_REGISTRY_DISAGREEMENT_REJECTED=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8816137Z COMPACT528_EXACT_FULL_SHA_ACCEPT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8816716Z COMPACT521_EXACT_FULL_SHA_ACCEPT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8817256Z COMPACT52_WRONG_SIZE_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8817574Z COMPACT52_WRONG_SHA_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8817883Z COMPACT52_ONE_BYTE_MUTANT_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8818219Z COMPACT52_ONE_BYTE_MUTANT_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8818564Z COMPACT528_REJECTS_LATE_COMPACT521_SWAP=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8819249Z COMPACT521_REJECTS_LATE_COMPACT528_SWAP=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8819612Z COMPACT528_WRONG_DELAY_MUTANT_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8819961Z COMPACT521_WRONG_DELAY_MUTANT_REJECT=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8820296Z COMPACT528_REJECTS_ARCH1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8820761Z COMPACT521_REJECTS_ARCH1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8821052Z COMPACT528_REJECTS_ARCH8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8821343Z COMPACT521_REJECTS_ARCH8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8821636Z COMPACT528_REJECTS_CONSOLE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8821948Z COMPACT521_REJECTS_CONSOLE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8822250Z COMPACT528_REJECTS_CONSOLE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8822551Z COMPACT521_REJECTS_CONSOLE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8822852Z COMPACT528_REJECTS_CONTROL1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8823151Z COMPACT521_REJECTS_CONTROL1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8823456Z COMPACT528_REJECTS_CONTROL8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8823756Z COMPACT521_REJECTS_CONTROL8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8824053Z COMPACT528_REJECTS_CORE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8824342Z COMPACT521_REJECTS_CORE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8824629Z COMPACT528_REJECTS_CORE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8824913Z COMPACT521_REJECTS_CORE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8825223Z COMPACT528_REJECTS_DEFER_POSTFLUSH1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8825577Z COMPACT521_REJECTS_DEFER_POSTFLUSH1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8825918Z COMPACT528_REJECTS_DEFER_POSTFLUSH8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8826263Z COMPACT521_REJECTS_DEFER_POSTFLUSH8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8826603Z COMPACT528_REJECTS_DEFER_PREQUEUE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8826951Z COMPACT521_REJECTS_DEFER_PREQUEUE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8827286Z COMPACT528_REJECTS_DEFER_PREQUEUE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8827620Z COMPACT521_REJECTS_DEFER_PREQUEUE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8827954Z COMPACT528_REJECTS_DEFER_SELECTED1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8828289Z COMPACT521_REJECTS_DEFER_SELECTED1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8828629Z COMPACT528_REJECTS_DEFER_SELECTED8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8829257Z COMPACT521_REJECTS_DEFER_SELECTED8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8829592Z COMPACT528_REJECTS_DEFER_WORKER1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8829919Z COMPACT521_REJECTS_DEFER_WORKER1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8830242Z COMPACT528_REJECTS_DEFER_WORKER8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8830563Z COMPACT521_REJECTS_DEFER_WORKER8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8830885Z COMPACT528_REJECTS_DEVPROBE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8831197Z COMPACT521_REJECTS_DEVPROBE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8831501Z COMPACT528_REJECTS_DEVPROBE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8831808Z COMPACT521_REJECTS_DEVPROBE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8832108Z COMPACT528_REJECTS_FREE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8832403Z COMPACT521_REJECTS_FREE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8832692Z COMPACT528_REJECTS_FREE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8832975Z COMPACT521_REJECTS_FREE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8833261Z COMPACT528_REJECTS_FS1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8833543Z COMPACT521_REJECTS_FS1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8833828Z COMPACT528_REJECTS_FS8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8834103Z COMPACT521_REJECTS_FS8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8834370Z COMPACT528_REJECTS_INITCALLS1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8834642Z COMPACT521_REJECTS_INITCALLS1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8834898Z COMPACT528_REJECTS_INITCALLS8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8835148Z COMPACT521_REJECTS_INITCALLS8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8835402Z COMPACT528_REJECTS_KINIT1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8835648Z COMPACT521_REJECTS_KINIT1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8835883Z COMPACT528_REJECTS_KINIT8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8836260Z COMPACT521_REJECTS_KINIT8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8836502Z COMPACT528_REJECTS_LATE_BTIC511=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8836770Z COMPACT521_REJECTS_LATE_BTIC511=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8837027Z COMPACT528_REJECTS_LATE_BTIC518=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8837277Z COMPACT521_REJECTS_LATE_BTIC518=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8837538Z COMPACT528_REJECTS_LATE_DEVPROBE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8837812Z COMPACT521_REJECTS_LATE_DEVPROBE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8838083Z COMPACT528_REJECTS_LATE_DEVPROBE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8838345Z COMPACT521_REJECTS_LATE_DEVPROBE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8838600Z COMPACT528_REJECTS_LATE_HIGH1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8838998Z COMPACT521_REJECTS_LATE_HIGH1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8839250Z COMPACT528_REJECTS_LATE_HIGH8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8839496Z COMPACT521_REJECTS_LATE_HIGH8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8839744Z COMPACT528_REJECTS_LATE_LOW1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8840126Z COMPACT521_REJECTS_LATE_LOW1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8840374Z COMPACT528_REJECTS_LATE_LOW8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8840621Z COMPACT521_REJECTS_LATE_LOW8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8840864Z COMPACT528_REJECTS_LATE_MID1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8841116Z COMPACT521_REJECTS_LATE_MID1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8841360Z COMPACT528_REJECTS_LATE_MID8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8841603Z COMPACT521_REJECTS_LATE_MID8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8841847Z COMPACT528_REJECTS_LATE_POST431=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8842118Z COMPACT521_REJECTS_LATE_POST431=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8842379Z COMPACT528_REJECTS_LATE_POST438=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8842633Z COMPACT521_REJECTS_LATE_POST438=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8842887Z COMPACT528_REJECTS_LATE_POST491=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8843139Z COMPACT521_REJECTS_LATE_POST491=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8843390Z COMPACT528_REJECTS_LATE_POST498=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8843646Z COMPACT521_REJECTS_LATE_POST498=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8843901Z COMPACT528_REJECTS_LATE_POST501=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8844166Z COMPACT521_REJECTS_LATE_POST501=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8844419Z COMPACT528_REJECTS_LATE_POST508=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8844679Z COMPACT521_REJECTS_LATE_POST508=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8844932Z COMPACT528_REJECTS_LATE_TEXT541=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8845181Z COMPACT521_REJECTS_LATE_TEXT541=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8845432Z COMPACT528_REJECTS_LATE_TEXT548=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8845681Z COMPACT521_REJECTS_LATE_TEXT548=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8845934Z COMPACT528_REJECTS_MID1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8846172Z COMPACT521_REJECTS_MID1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8846422Z COMPACT528_REJECTS_MID8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8846650Z COMPACT521_REJECTS_MID8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8846885Z COMPACT528_REJECTS_POST391=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8847133Z COMPACT521_REJECTS_POST391=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8847373Z COMPACT528_REJECTS_POST398=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8847609Z COMPACT521_REJECTS_POST398=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8847846Z COMPACT528_REJECTS_POST461=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8848085Z COMPACT521_REJECTS_POST461=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8848321Z COMPACT528_REJECTS_POST468=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8848559Z COMPACT521_REJECTS_POST468=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8848931Z COMPACT528_REJECTS_POST491=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8849173Z COMPACT521_REJECTS_POST491=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8849407Z COMPACT528_REJECTS_POST498=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8849641Z COMPACT521_REJECTS_POST498=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8849875Z COMPACT528_REJECTS_POST511=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8850108Z COMPACT521_REJECTS_POST511=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8850343Z COMPACT528_REJECTS_POST518=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8850573Z COMPACT521_REJECTS_POST518=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8850812Z COMPACT528_REJECTS_POSTCORE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8851061Z COMPACT521_REJECTS_POSTCORE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8851307Z COMPACT528_REJECTS_POSTCORE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8851550Z COMPACT521_REJECTS_POSTCORE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8851799Z COMPACT528_REJECTS_PURE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8852034Z COMPACT521_REJECTS_PURE1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8852292Z COMPACT528_REJECTS_PURE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8852527Z COMPACT521_REJECTS_PURE8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8852890Z COMPACT528_REJECTS_RESET1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8853130Z COMPACT521_REJECTS_RESET1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8853359Z COMPACT528_REJECTS_RESET8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8853589Z COMPACT521_REJECTS_RESET8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8853841Z COMPACT528_REJECTS_REST1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8854078Z COMPACT521_REJECTS_REST1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8854306Z COMPACT528_REJECTS_REST8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8854540Z COMPACT521_REJECTS_REST8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8854774Z COMPACT528_REJECTS_SMP1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8855022Z COMPACT521_REJECTS_SMP1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8855254Z COMPACT528_REJECTS_SMP8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8855486Z COMPACT521_REJECTS_SMP8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8855728Z COMPACT528_REJECTS_SUBSYS1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8855981Z COMPACT521_REJECTS_SUBSYS1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8856223Z COMPACT528_REJECTS_SUBSYS8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8856639Z COMPACT521_REJECTS_SUBSYS8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8856878Z COMPACT528_REJECTS_UPPER1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8857122Z COMPACT521_REJECTS_UPPER1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8857361Z COMPACT528_REJECTS_UPPER8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8857594Z COMPACT521_REJECTS_UPPER8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8857836Z COMPACT528_REJECTS_WAITENTRY1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8858097Z COMPACT521_REJECTS_WAITENTRY1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8858353Z COMPACT528_REJECTS_WAITENTRY8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8858605Z COMPACT521_REJECTS_WAITENTRY8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8859137Z COMPACT528_REJECTS_WAITRET1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8859395Z COMPACT521_REJECTS_WAITRET1=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8859645Z COMPACT528_REJECTS_WAITRET8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8859888Z COMPACT521_REJECTS_WAITRET8=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8860142Z COMPACT52_CROSS_IDENTITY_REJECTIONS=144
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8860427Z COMPACT52_CROSS_IDENTITY_REJECTION=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8860696Z COMPACT52_48B_INLINE_GEOMETRY=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8860954Z COMPACT52_56B_NEGATIVE_FIXTURE=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8861218Z COMPACT52_52B_NEGATIVE_FIXTURE=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8861475Z COMPACT52_64B_NEGATIVE_FIXTURE=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8861737Z COMPACT52_BTI_C_PAD_CLASS_REJECTED=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8862014Z COMPACT52_COMPACT_INLINE_48B=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8862395Z COMPACT52_INDEX52_TABLE_GATE=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8862814Z COMPACT52_PREL32_UNCHANGED=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8863277Z COMPACT52_PAIR_DIFF_DELAY_CONSTANT_ONLY=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8863866Z COMPACT52_WRONG_PAIR_DIFF_NEGATIVE_FIXTURE=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8864408Z COMPACT52_STRONG_PROVES_TARGET_ENTRY=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8864799Z COMPACT52_LATER_LATE_CONSOLE_INIT_REMAIN_NOT_PROVEN=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8865127Z COMPACT52_SUPPORTED_GRADE=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8865405Z COMPACT52_NO_SHIFT_DOES_NOT_CLAIM_NOT_REACHED=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8865710Z COMPACT52_OBSERVER_FIXTURES=PASS
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.8865952Z DEVICE_OPERATION=NO
+observer-fixtures	GHA-only PUBLIC observer fixtures (self-contained compact52)	2026-09-21T05:56:10.9130009Z ##[error]Process completed with exit code 1.
