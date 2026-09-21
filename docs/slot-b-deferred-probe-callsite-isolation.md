@@ -90,3 +90,23 @@ then the same read-only check was completed without an early-closing pipeline.
 transcribed in `scripts/slot_b/deferred_probe_identities.json`. Next action is
 an Actions-only disassembly/geometry audit of the deferred worker and workqueue
 path before selecting another causal checkpoint or intervention.
+
+## Worker follow-up
+
+Forensic run `35555269943` PASS: `deferred_probe_work_func` is 196 bytes at
+`0xffff8000808e8424`. Its original `paciasp` can be preserved with a 56-byte
+terminal core at `0x8e8428`; this interval is byte-exact, has no incoming
+branch, and is disjoint from all runtime rewrite sites. The loop back edge
+lands at `0x8e8460`, exactly after the proposed window. By contrast, naive
+56-byte probes immediately before/after `bus_probe_device` are REJECTED:
+the empty-list branch at `0x8e8454` enters their interior at `0x8e84c8`.
+Those rejected windows are not candidates and must not be flashed or booted.
+
+The next fixed `worker` pair therefore observes the first workqueue callback
+activation, before it locks the list. Source requires the single deferred
+work registration and the enable flag's sole assignment in late index 54.
+This is a separate, literal callback-scoped `.text` diagnostic, not a global
+policy relaxation and not an initcall-table replacement. It proves worker
+entry only; it does not prove that the list is nonempty or any device probe
+runs. The public workflow now generates only the selected new target, never
+automatically regenerating the completed prequeue/postflush pairs.

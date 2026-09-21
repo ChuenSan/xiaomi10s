@@ -8,6 +8,12 @@ on:
       - 'scripts/slot_b/test_deferred_probe_checkpoints.py'
       - '.github/workflows/thyme-slot-b-deferred-probe.yml'
   workflow_dispatch:
+    inputs:
+      stage:
+        description: Fixed scoped diagnostic target
+        type: choice
+        options: [prequeue, postflush, worker]
+        default: worker
 
 permissions:
   contents: read
@@ -16,6 +22,9 @@ permissions:
 concurrency:
   group: deferred-callsite-${{ github.ref }}
   cancel-in-progress: false
+
+env:
+  STAGE: ${{ inputs.stage || 'worker' }}
 
 jobs:
   audit:
@@ -51,10 +60,10 @@ jobs:
           llvm-readelf-18 -r core.o | tee core-relocations.txt
           grep -q 'There are no relocations in this file' core-relocations.txt
           llvm-objcopy-18 -O binary --only-section=.text core.o core.bin
-      - name: Audit both strictly later callsites and independently reverify
+      - name: Audit only the selected new target and independently reverify
         run: |
           set -euo pipefail
-          for stage in prequeue postflush; do
+          for stage in "$STAGE"; do
             python3 -u -B scripts/slot_b/deferred_probe_checkpoints.py \
               --stage "$stage" --bundle bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
               --core core.bin --out "$stage" | tee "$stage.log"
@@ -64,14 +73,8 @@ jobs:
           done
       - uses: actions/upload-artifact@v4
         with:
-          name: thyme-deferred-prequeue-pair
-          path: prequeue/pair/
-          if-no-files-found: error
-          retention-days: 90
-      - uses: actions/upload-artifact@v4
-        with:
-          name: thyme-deferred-postflush-pair
-          path: postflush/pair/
+          name: thyme-deferred-${{ env.STAGE }}-pair
+          path: ${{ env.STAGE }}/pair/
           if-no-files-found: error
           retention-days: 90
       - uses: actions/upload-artifact@v4
@@ -79,12 +82,9 @@ jobs:
         with:
           name: thyme-deferred-audit
           path: |
-            prequeue/audit.json
-            prequeue/original-function.txt
-            prequeue/verified.json
-            postflush/audit.json
-            postflush/original-function.txt
-            postflush/verified.json
+            ${{ env.STAGE }}/audit.json
+            ${{ env.STAGE }}/original-function.txt
+            ${{ env.STAGE }}/verified.json
             *-reverify/verified.json
             *.log
             core-relocations.txt

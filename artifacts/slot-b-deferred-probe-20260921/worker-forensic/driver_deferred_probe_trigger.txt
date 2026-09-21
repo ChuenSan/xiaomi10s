@@ -1,0 +1,58 @@
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+ffff8000808e7194 <driver_deferred_probe_trigger>:
+ffff8000808e7194: d503245f     	bti	c
+ffff8000808e7198: b000c908     	adrp	x8, 0xffff800082208000 <stm32_ports+0x13d0>
+ffff8000808e719c: 3971c108     	ldrb	w8, [x8, #0xc70]
+ffff8000808e71a0: 7100051f     	cmp	w8, #0x1
+ffff8000808e71a4: 540004c1     	b.ne	0xffff8000808e723c <driver_deferred_probe_trigger+0xa8>
+ffff8000808e71a8: d503233f     	paciasp
+ffff8000808e71ac: a9bf7bfd     	stp	x29, x30, [sp, #-0x10]!
+ffff8000808e71b0: 910003fd     	mov	x29, sp
+ffff8000808e71b4: d000bd40     	adrp	x0, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e71b8: 91300000     	add	x0, x0, #0xc00
+ffff8000808e71bc: 941f8042     	bl	0xffff8000810c72c4 <mutex_lock>
+ffff8000808e71c0: 14000020     	b	0xffff8000808e7240 <driver_deferred_probe_trigger+0xac>
+ffff8000808e71c4: 52800028     	mov	w8, #0x1        // =1
+ffff8000808e71c8: b000c909     	adrp	x9, 0xffff800082208000 <stm32_ports+0x13d0>
+ffff8000808e71cc: 9131d129     	add	x9, x9, #0xc74
+ffff8000808e71d0: b828013f     	stadd	w8, [x9]
+ffff8000808e71d4: d000bd48     	adrp	x8, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e71d8: 91308108     	add	x8, x8, #0xc20
+ffff8000808e71dc: f9400109     	ldr	x9, [x8]
+ffff8000808e71e0: eb08013f     	cmp	x9, x8
+ffff8000808e71e4: 54000160     	b.eq	0xffff8000808e7210 <driver_deferred_probe_trigger+0x7c>
+ffff8000808e71e8: d000bd4a     	adrp	x10, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e71ec: 9130c14a     	add	x10, x10, #0xc30
+ffff8000808e71f0: f940050c     	ldr	x12, [x8, #0x8]
+ffff8000808e71f4: f940054b     	ldr	x11, [x10, #0x8]
+ffff8000808e71f8: f900052b     	str	x11, [x9, #0x8]
+ffff8000808e71fc: f9000169     	str	x9, [x11]
+ffff8000808e7200: f900018a     	str	x10, [x12]
+ffff8000808e7204: f900054c     	str	x12, [x10, #0x8]
+ffff8000808e7208: f9000108     	str	x8, [x8]
+ffff8000808e720c: f9000508     	str	x8, [x8, #0x8]
+ffff8000808e7210: d000bd40     	adrp	x0, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e7214: 91300000     	add	x0, x0, #0xc00
+ffff8000808e7218: 941f8049     	bl	0xffff8000810c733c <mutex_unlock>
+ffff8000808e721c: d000a388     	adrp	x8, 0xffff800081d59000 <folio_wait_table+0x14c0>
+ffff8000808e7220: d000bd42     	adrp	x2, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e7224: 91310042     	add	x2, x2, #0xc40
+ffff8000808e7228: f9448501     	ldr	x1, [x8, #0x908]
+ffff8000808e722c: 52802000     	mov	w0, #0x100      // =256
+ffff8000808e7230: 97df1131     	bl	0xffff8000800ab6f4 <queue_work_on>
+ffff8000808e7234: a8c17bfd     	ldp	x29, x30, [sp], #0x10
+ffff8000808e7238: d50323bf     	autiasp
+ffff8000808e723c: d65f03c0     	ret
+ffff8000808e7240: d503249f     	bti	j
+ffff8000808e7244: b000c908     	adrp	x8, 0xffff800082208000 <stm32_ports+0x13d0>
+ffff8000808e7248: 9131d108     	add	x8, x8, #0xc74
+ffff8000808e724c: f9800111     	prfm	pstl1strm, [x8]
+ffff8000808e7250: 885f7d09     	ldxr	w9, [x8]
+ffff8000808e7254: 11000529     	add	w9, w9, #0x1
+ffff8000808e7258: 880a7d09     	stxr	w10, w9, [x8]
+ffff8000808e725c: 35ffffaa     	cbnz	w10, 0xffff8000808e7250 <driver_deferred_probe_trigger+0xbc>
+ffff8000808e7260: 17ffffdd     	b	0xffff8000808e71d4 <driver_deferred_probe_trigger+0x40>

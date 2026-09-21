@@ -1,0 +1,33 @@
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+ffff8000800ab6f4 <queue_work_on>:
+ffff8000800ab6f4: d503233f     	paciasp
+ffff8000800ab6f8: a9be7bfd     	stp	x29, x30, [sp, #-0x20]!
+ffff8000800ab6fc: a9014ff4     	stp	x20, x19, [sp, #0x10]
+ffff8000800ab700: 910003fd     	mov	x29, sp
+ffff8000800ab704: d53b4233     	mrs	x19, DAIF
+ffff8000800ab708: d50343df     	msr	DAIFSet, #0x3
+ffff8000800ab70c: 1400000c     	b	0xffff8000800ab73c <queue_work_on+0x48>
+ffff8000800ab710: 52800028     	mov	w8, #0x1        // =1
+ffff8000800ab714: f8e83054     	ldsetal	x8, x20, [x2]
+ffff8000800ab718: 37000054     	tbnz	w20, #0x0, 0xffff8000800ab720 <queue_work_on+0x2c>
+ffff8000800ab71c: 94000011     	bl	0xffff8000800ab760 <__queue_work>
+ffff8000800ab720: d51b4233     	msr	DAIF, x19
+ffff8000800ab724: f240029f     	tst	x20, #0x1
+ffff8000800ab728: a9414ff4     	ldp	x20, x19, [sp, #0x10]
+ffff8000800ab72c: 1a9f17e0     	cset	w0, eq
+ffff8000800ab730: a8c27bfd     	ldp	x29, x30, [sp], #0x20
+ffff8000800ab734: d50323bf     	autiasp
+ffff8000800ab738: d65f03c0     	ret
+ffff8000800ab73c: d503249f     	bti	j
+ffff8000800ab740: f9800051     	prfm	pstl1strm, [x2]
+ffff8000800ab744: c85f7c54     	ldxr	x20, [x2]
+ffff8000800ab748: b2400288     	orr	x8, x20, #0x1
+ffff8000800ab74c: c809fc48     	stlxr	w9, x8, [x2]
+ffff8000800ab750: 35ffffa9     	cbnz	w9, 0xffff8000800ab744 <queue_work_on+0x50>
+ffff8000800ab754: d5033bbf     	dmb	ish
+ffff8000800ab758: 3607fe34     	tbz	w20, #0x0, 0xffff8000800ab71c <queue_work_on+0x28>
+ffff8000800ab75c: 17fffff1     	b	0xffff8000800ab720 <queue_work_on+0x2c>

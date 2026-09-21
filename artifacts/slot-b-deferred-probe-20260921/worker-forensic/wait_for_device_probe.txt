@@ -1,0 +1,58 @@
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+ffff8000808e728c <wait_for_device_probe>:
+ffff8000808e728c: d503233f     	paciasp
+ffff8000808e7290: d10143ff     	sub	sp, sp, #0x50
+ffff8000808e7294: a9037bfd     	stp	x29, x30, [sp, #0x30]
+ffff8000808e7298: a9044ff4     	stp	x20, x19, [sp, #0x40]
+ffff8000808e729c: 9100c3fd     	add	x29, sp, #0x30
+ffff8000808e72a0: d5384108     	mrs	x8, SP_EL0
+ffff8000808e72a4: d000bd40     	adrp	x0, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e72a8: 91310000     	add	x0, x0, #0xc40
+ffff8000808e72ac: f9424d08     	ldr	x8, [x8, #0x498]
+ffff8000808e72b0: f81f83a8     	stur	x8, [x29, #-0x8]
+ffff8000808e72b4: 97df15f8     	bl	0xffff8000800aca94 <flush_work>
+ffff8000808e72b8: b000c914     	adrp	x20, 0xffff800082208000 <stm32_ports+0x13d0>
+ffff8000808e72bc: b94c7e88     	ldr	w8, [x20, #0xc7c]
+ffff8000808e72c0: 34000368     	cbz	w8, 0xffff8000808e732c <wait_for_device_probe+0xa0>
+ffff8000808e72c4: 910003e0     	mov	x0, sp
+ffff8000808e72c8: 2a1f03e1     	mov	w1, wzr
+ffff8000808e72cc: a901ffff     	stp	xzr, xzr, [sp, #0x18]
+ffff8000808e72d0: a900ffff     	stp	xzr, xzr, [sp, #0x8]
+ffff8000808e72d4: f90003ff     	str	xzr, [sp]
+ffff8000808e72d8: 97dff2bf     	bl	0xffff8000800e3dd4 <init_wait_entry>
+ffff8000808e72dc: d000bd40     	adrp	x0, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e72e0: 91330000     	add	x0, x0, #0xcc0
+ffff8000808e72e4: 910003e1     	mov	x1, sp
+ffff8000808e72e8: 52800042     	mov	w2, #0x2        // =2
+ffff8000808e72ec: 97dff2c4     	bl	0xffff8000800e3dfc <prepare_to_wait_event>
+ffff8000808e72f0: b94c7e88     	ldr	w8, [x20, #0xc7c]
+ffff8000808e72f4: 34000148     	cbz	w8, 0xffff8000808e731c <wait_for_device_probe+0x90>
+ffff8000808e72f8: d000bd53     	adrp	x19, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e72fc: 91330273     	add	x19, x19, #0xcc0
+ffff8000808e7300: 941f7bdd     	bl	0xffff8000810c6274 <schedule>
+ffff8000808e7304: 910003e1     	mov	x1, sp
+ffff8000808e7308: aa1303e0     	mov	x0, x19
+ffff8000808e730c: 52800042     	mov	w2, #0x2        // =2
+ffff8000808e7310: 97dff2bb     	bl	0xffff8000800e3dfc <prepare_to_wait_event>
+ffff8000808e7314: b94c7e88     	ldr	w8, [x20, #0xc7c]
+ffff8000808e7318: 35ffff48     	cbnz	w8, 0xffff8000808e7300 <wait_for_device_probe+0x74>
+ffff8000808e731c: d000bd40     	adrp	x0, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e7320: 91330000     	add	x0, x0, #0xcc0
+ffff8000808e7324: 910003e1     	mov	x1, sp
+ffff8000808e7328: 97dff004     	bl	0xffff8000800e3338 <finish_wait>
+ffff8000808e732c: 97df5dda     	bl	0xffff8000800bea94 <async_synchronize_full>
+ffff8000808e7330: d5384108     	mrs	x8, SP_EL0
+ffff8000808e7334: f9424d08     	ldr	x8, [x8, #0x498]
+ffff8000808e7338: f85f83a9     	ldur	x9, [x29, #-0x8]
+ffff8000808e733c: eb09011f     	cmp	x8, x9
+ffff8000808e7340: 540000c1     	b.ne	0xffff8000808e7358 <wait_for_device_probe+0xcc>
+ffff8000808e7344: a9444ff4     	ldp	x20, x19, [sp, #0x40]
+ffff8000808e7348: a9437bfd     	ldp	x29, x30, [sp, #0x30]
+ffff8000808e734c: 910143ff     	add	sp, sp, #0x50
+ffff8000808e7350: d50323bf     	autiasp
+ffff8000808e7354: d65f03c0     	ret
+ffff8000808e7358: 941f6809     	bl	0xffff8000810c137c <__stack_chk_fail>

@@ -8,9 +8,11 @@ import deferred_probe_checkpoints as d
 
 class DeferredCheckpointTests(unittest.TestCase):
     def test_exact_scoped_windows(self):
-        self.assertEqual(set(d.STAGES), {"prequeue", "postflush"})
+        self.assertEqual(set(d.STAGES), {"prequeue", "postflush", "worker"})
         self.assertEqual(d.STAGES["prequeue"]["offset"], 0x8E7614)
         self.assertEqual(d.STAGES["postflush"]["offset"], 0x8E76B8)
+        self.assertEqual(d.STAGES["worker"]["offset"], 0x8E8428)
+        self.assertEqual(d.parent_for("worker"), ("deferred_probe_work_func", 0x8E8424, 196))
         for name, spec in d.STAGES.items():
             raw = struct.pack("<14I", *spec["words"])
             d.gate_window(name, spec["offset"], raw)

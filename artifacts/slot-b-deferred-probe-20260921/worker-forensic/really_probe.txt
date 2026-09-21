@@ -1,0 +1,191 @@
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+ffff8000808e8b54 <really_probe>:
+ffff8000808e8b54: d503245f     	bti	c
+ffff8000808e8b58: 9000c908     	adrp	x8, 0xffff800082208000 <stm32_ports+0x13d0>
+ffff8000808e8b5c: 3971e108     	ldrb	w8, [x8, #0xc78]
+ffff8000808e8b60: 36000068     	tbz	w8, #0x0, 0xffff8000808e8b6c <really_probe+0x18>
+ffff8000808e8b64: 12804080     	mov	w0, #-0x205     // =-517
+ffff8000808e8b68: d65f03c0     	ret
+ffff8000808e8b6c: d503233f     	paciasp
+ffff8000808e8b70: a9bd7bfd     	stp	x29, x30, [sp, #-0x30]!
+ffff8000808e8b74: a90157f6     	stp	x22, x21, [sp, #0x10]
+ffff8000808e8b78: a9024ff4     	stp	x20, x19, [sp, #0x20]
+ffff8000808e8b7c: 910003fd     	mov	x29, sp
+ffff8000808e8b80: aa0103f4     	mov	x20, x1
+ffff8000808e8b84: aa0003f3     	mov	x19, x0
+ffff8000808e8b88: 97ffd8bb     	bl	0xffff8000808dee74 <device_links_check_suppliers>
+ffff8000808e8b8c: 3108141f     	cmn	w0, #0x205
+ffff8000808e8b90: 54001380     	b.eq	0xffff8000808e8e00 <really_probe+0x2ac>
+ffff8000808e8b94: f9416268     	ldr	x8, [x19, #0x2c0]
+ffff8000808e8b98: 910b0269     	add	x9, x19, #0x2c0
+ffff8000808e8b9c: eb09011f     	cmp	x8, x9
+ffff8000808e8ba0: 540008a1     	b.ne	0xffff8000808e8cb4 <really_probe+0x160>
+ffff8000808e8ba4: 2a0003f6     	mov	w22, w0
+ffff8000808e8ba8: aa1303e0     	mov	x0, x19
+ffff8000808e8bac: f9003674     	str	x20, [x19, #0x68]
+ffff8000808e8bb0: 9400c9f0     	bl	0xffff80008091b370 <pinctrl_bind_pins>
+ffff8000808e8bb4: 35000fa0     	cbnz	w0, 0xffff8000808e8da8 <really_probe+0x254>
+ffff8000808e8bb8: f9403268     	ldr	x8, [x19, #0x60]
+ffff8000808e8bbc: f9404108     	ldr	x8, [x8, #0x80]
+ffff8000808e8bc0: b4000088     	cbz	x8, 0xffff8000808e8bd0 <really_probe+0x7c>
+ffff8000808e8bc4: aa1303e0     	mov	x0, x19
+ffff8000808e8bc8: d63f0100     	blr	x8
+ffff8000808e8bcc: 35000ee0     	cbnz	w0, 0xffff8000808e8da8 <really_probe+0x254>
+ffff8000808e8bd0: aa1303e0     	mov	x0, x19
+ffff8000808e8bd4: 97fffb3e     	bl	0xffff8000808e78cc <driver_sysfs_add>
+ffff8000808e8bd8: 350007a0     	cbnz	w0, 0xffff8000808e8ccc <really_probe+0x178>
+ffff8000808e8bdc: f9411268     	ldr	x8, [x19, #0x220]
+ffff8000808e8be0: b40000c8     	cbz	x8, 0xffff8000808e8bf8 <really_probe+0xa4>
+ffff8000808e8be4: f9406508     	ldr	x8, [x8, #0xc8]
+ffff8000808e8be8: b4000088     	cbz	x8, 0xffff8000808e8bf8 <really_probe+0xa4>
+ffff8000808e8bec: aa1303e0     	mov	x0, x19
+ffff8000808e8bf0: d63f0100     	blr	x8
+ffff8000808e8bf4: 35000a60     	cbnz	w0, 0xffff8000808e8d40 <really_probe+0x1ec>
+ffff8000808e8bf8: f9403268     	ldr	x8, [x19, #0x60]
+ffff8000808e8bfc: f9401d08     	ldr	x8, [x8, #0x38]
+ffff8000808e8c00: b5000068     	cbnz	x8, 0xffff8000808e8c0c <really_probe+0xb8>
+ffff8000808e8c04: f9401e88     	ldr	x8, [x20, #0x38]
+ffff8000808e8c08: b40001a8     	cbz	x8, 0xffff8000808e8c3c <really_probe+0xe8>
+ffff8000808e8c0c: aa1303e0     	mov	x0, x19
+ffff8000808e8c10: d63f0100     	blr	x8
+ffff8000808e8c14: 31001c1f     	cmn	w0, #0x7
+ffff8000808e8c18: 540000cc     	b.gt	0xffff8000808e8c30 <really_probe+0xdc>
+ffff8000808e8c1c: 3108141f     	cmn	w0, #0x205
+ffff8000808e8c20: 54000880     	b.eq	0xffff8000808e8d30 <really_probe+0x1dc>
+ffff8000808e8c24: 31004c1f     	cmn	w0, #0x13
+ffff8000808e8c28: 54000840     	b.eq	0xffff8000808e8d30 <really_probe+0x1dc>
+ffff8000808e8c2c: 14000036     	b	0xffff8000808e8d04 <really_probe+0x1b0>
+ffff8000808e8c30: 3100181f     	cmn	w0, #0x6
+ffff8000808e8c34: 540007e0     	b.eq	0xffff8000808e8d30 <really_probe+0x1dc>
+ffff8000808e8c38: 35000660     	cbnz	w0, 0xffff8000808e8d04 <really_probe+0x1b0>
+ffff8000808e8c3c: f9403a81     	ldr	x1, [x20, #0x70]
+ffff8000808e8c40: aa1303e0     	mov	x0, x19
+ffff8000808e8c44: 97ffde7c     	bl	0xffff8000808e0634 <device_add_groups>
+ffff8000808e8c48: 35000560     	cbnz	w0, 0xffff8000808e8cf4 <really_probe+0x1a0>
+ffff8000808e8c4c: b40001d3     	cbz	x19, 0xffff8000808e8c84 <really_probe+0x130>
+ffff8000808e8c50: f9403668     	ldr	x8, [x19, #0x68]
+ffff8000808e8c54: b4000068     	cbz	x8, 0xffff8000808e8c60 <really_probe+0x10c>
+ffff8000808e8c58: f9402108     	ldr	x8, [x8, #0x40]
+ffff8000808e8c5c: b50000a8     	cbnz	x8, 0xffff8000808e8c70 <really_probe+0x11c>
+ffff8000808e8c60: f9403268     	ldr	x8, [x19, #0x60]
+ffff8000808e8c64: b4000108     	cbz	x8, 0xffff8000808e8c84 <really_probe+0x130>
+ffff8000808e8c68: f9402108     	ldr	x8, [x8, #0x40]
+ffff8000808e8c6c: b40000c8     	cbz	x8, 0xffff8000808e8c84 <really_probe+0x130>
+ffff8000808e8c70: b000bd41     	adrp	x1, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e8c74: 9133e021     	add	x1, x1, #0xcf8
+ffff8000808e8c78: aa1303e0     	mov	x0, x19
+ffff8000808e8c7c: 97ffdef1     	bl	0xffff8000808e0840 <device_create_file>
+ffff8000808e8c80: 35000ca0     	cbnz	w0, 0xffff8000808e8e14 <really_probe+0x2c0>
+ffff8000808e8c84: aa1303e0     	mov	x0, x19
+ffff8000808e8c88: 97f3cc67     	bl	0xffff8000805dbe24 <pinctrl_init_done>
+ffff8000808e8c8c: f9411268     	ldr	x8, [x19, #0x220]
+ffff8000808e8c90: b40000a8     	cbz	x8, 0xffff8000808e8ca4 <really_probe+0x150>
+ffff8000808e8c94: f9406908     	ldr	x8, [x8, #0xd0]
+ffff8000808e8c98: b4000068     	cbz	x8, 0xffff8000808e8ca4 <really_probe+0x150>
+ffff8000808e8c9c: aa1303e0     	mov	x0, x19
+ffff8000808e8ca0: d63f0100     	blr	x8
+ffff8000808e8ca4: aa1303e0     	mov	x0, x19
+ffff8000808e8ca8: 97fffb39     	bl	0xffff8000808e798c <driver_bound>
+ffff8000808e8cac: 2a1f03e0     	mov	w0, wzr
+ffff8000808e8cb0: 14000054     	b	0xffff8000808e8e00 <really_probe+0x2ac>
+ffff8000808e8cb4: b00088e1     	adrp	x1, 0xffff800081a05000 <max_tt_usecs+0x87d39>
+ffff8000808e8cb8: 91351021     	add	x1, x1, #0xd44
+ffff8000808e8cbc: aa1303e0     	mov	x0, x19
+ffff8000808e8cc0: 941f593e     	bl	0xffff8000810bf1b8 <_dev_crit>
+ffff8000808e8cc4: 128001e0     	mov	w0, #-0x10      // =-16
+ffff8000808e8cc8: 1400004e     	b	0xffff8000808e8e00 <really_probe+0x2ac>
+ffff8000808e8ccc: f9402a62     	ldr	x2, [x19, #0x50]
+ffff8000808e8cd0: 2a0003f4     	mov	w20, w0
+ffff8000808e8cd4: b5000042     	cbnz	x2, 0xffff8000808e8cdc <really_probe+0x188>
+ffff8000808e8cd8: f9400262     	ldr	x2, [x19]
+ffff8000808e8cdc: 90008c00     	adrp	x0, 0xffff800081a68000 <k_cur.cur_chars+0x4998a>
+ffff8000808e8ce0: 91291000     	add	x0, x0, #0xa44
+ffff8000808e8ce4: b0008681     	adrp	x1, 0xffff8000819b9000 <max_tt_usecs+0x3bd39>
+ffff8000808e8ce8: 9138cc21     	add	x1, x1, #0xe33
+ffff8000808e8cec: 941f4405     	bl	0xffff8000810b9d00 <_printk>
+ffff8000808e8cf0: 14000024     	b	0xffff8000808e8d80 <really_probe+0x22c>
+ffff8000808e8cf4: 2a0003f4     	mov	w20, w0
+ffff8000808e8cf8: b00088e1     	adrp	x1, 0xffff800081a05000 <max_tt_usecs+0x87d39>
+ffff8000808e8cfc: 91359821     	add	x1, x1, #0xd66
+ffff8000808e8d00: 14000048     	b	0xffff8000808e8e20 <really_probe+0x2cc>
+ffff8000808e8d04: f9402a62     	ldr	x2, [x19, #0x50]
+ffff8000808e8d08: f9400281     	ldr	x1, [x20]
+ffff8000808e8d0c: 2a0003f5     	mov	w21, w0
+ffff8000808e8d10: b5000042     	cbnz	x2, 0xffff8000808e8d18 <really_probe+0x1c4>
+ffff8000808e8d14: f9400262     	ldr	x2, [x19]
+ffff8000808e8d18: f0008ac0     	adrp	x0, 0xffff800081a43000 <k_cur.cur_chars+0x2498a>
+ffff8000808e8d1c: 912cd800     	add	x0, x0, #0xb36
+ffff8000808e8d20: 2a1503e3     	mov	w3, w21
+ffff8000808e8d24: 941f43f7     	bl	0xffff8000810b9d00 <_printk>
+ffff8000808e8d28: 2a1503e0     	mov	w0, w21
+ffff8000808e8d2c: 34fff895     	cbz	w21, 0xffff8000808e8c3c <really_probe+0xe8>
+ffff8000808e8d30: 31002edf     	cmn	w22, #0xb
+ffff8000808e8d34: 12804088     	mov	w8, #-0x205     // =-517
+ffff8000808e8d38: 1a800108     	csel	w8, w8, w0, eq
+ffff8000808e8d3c: 4b0803e0     	neg	w0, w8
+ffff8000808e8d40: f9403675     	ldr	x21, [x19, #0x68]
+ffff8000808e8d44: 2a0003f4     	mov	w20, w0
+ffff8000808e8d48: b40001d5     	cbz	x21, 0xffff8000808e8d80 <really_probe+0x22c>
+ffff8000808e8d4c: f94042a8     	ldr	x8, [x21, #0x80]
+ffff8000808e8d50: b40000a8     	cbz	x8, 0xffff8000808e8d64 <really_probe+0x210>
+ffff8000808e8d54: b000bd41     	adrp	x1, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808e8d58: 91336021     	add	x1, x1, #0xcd8
+ffff8000808e8d5c: aa1303e0     	mov	x0, x19
+ffff8000808e8d60: 97ffdbdd     	bl	0xffff8000808dfcd4 <device_remove_file>
+ffff8000808e8d64: f94046a0     	ldr	x0, [x21, #0x88]
+ffff8000808e8d68: f9400261     	ldr	x1, [x19]
+ffff8000808e8d6c: 97ea638b     	bl	0xffff800080381b98 <sysfs_remove_link>
+ffff8000808e8d70: b0008521     	adrp	x1, 0xffff80008198d000 <max_tt_usecs+0xfd39>
+ffff8000808e8d74: 91204821     	add	x1, x1, #0x812
+ffff8000808e8d78: aa1303e0     	mov	x0, x19
+ffff8000808e8d7c: 97ea6387     	bl	0xffff800080381b98 <sysfs_remove_link>
+ffff8000808e8d80: aa1303e0     	mov	x0, x19
+ffff8000808e8d84: 528000e1     	mov	w1, #0x7        // =7
+ffff8000808e8d88: 97fff3f2     	bl	0xffff8000808e5d50 <bus_notify>
+ffff8000808e8d8c: f9403268     	ldr	x8, [x19, #0x60]
+ffff8000808e8d90: b40000a8     	cbz	x8, 0xffff8000808e8da4 <really_probe+0x250>
+ffff8000808e8d94: f9404508     	ldr	x8, [x8, #0x88]
+ffff8000808e8d98: b4000068     	cbz	x8, 0xffff8000808e8da4 <really_probe+0x250>
+ffff8000808e8d9c: aa1303e0     	mov	x0, x19
+ffff8000808e8da0: d63f0100     	blr	x8
+ffff8000808e8da4: 2a1403e0     	mov	w0, w20
+ffff8000808e8da8: 2a0003f4     	mov	w20, w0
+ffff8000808e8dac: aa1303e0     	mov	x0, x19
+ffff8000808e8db0: 97ffdbd3     	bl	0xffff8000808dfcfc <device_links_no_driver>
+ffff8000808e8db4: aa1303e0     	mov	x0, x19
+ffff8000808e8db8: 940012cd     	bl	0xffff8000808ed8ec <devres_release_all>
+ffff8000808e8dbc: aa1303e0     	mov	x0, x19
+ffff8000808e8dc0: 97dd263e     	bl	0xffff8000800326b8 <arch_teardown_dma_ops>
+ffff8000808e8dc4: f9413660     	ldr	x0, [x19, #0x268]
+ffff8000808e8dc8: 97e56ef4     	bl	0xffff800080244998 <kfree>
+ffff8000808e8dcc: f901367f     	str	xzr, [x19, #0x268]
+ffff8000808e8dd0: f900367f     	str	xzr, [x19, #0x68]
+ffff8000808e8dd4: f9411268     	ldr	x8, [x19, #0x220]
+ffff8000808e8dd8: f9003e7f     	str	xzr, [x19, #0x78]
+ffff8000808e8ddc: b40000a8     	cbz	x8, 0xffff8000808e8df0 <really_probe+0x29c>
+ffff8000808e8de0: f9406d08     	ldr	x8, [x8, #0xd8]
+ffff8000808e8de4: b4000068     	cbz	x8, 0xffff8000808e8df0 <really_probe+0x29c>
+ffff8000808e8de8: aa1303e0     	mov	x0, x19
+ffff8000808e8dec: d63f0100     	blr	x8
+ffff8000808e8df0: aa1303e0     	mov	x0, x19
+ffff8000808e8df4: 94004ddb     	bl	0xffff8000808fc560 <pm_runtime_reinit>
+ffff8000808e8df8: b900f27f     	str	wzr, [x19, #0xf0]
+ffff8000808e8dfc: 2a1403e0     	mov	w0, w20
+ffff8000808e8e00: a9424ff4     	ldp	x20, x19, [sp, #0x20]
+ffff8000808e8e04: a94157f6     	ldp	x22, x21, [sp, #0x10]
+ffff8000808e8e08: a8c37bfd     	ldp	x29, x30, [sp], #0x30
+ffff8000808e8e0c: d50323bf     	autiasp
+ffff8000808e8e10: d65f03c0     	ret
+ffff8000808e8e14: 2a0003f4     	mov	w20, w0
+ffff8000808e8e18: d0008741     	adrp	x1, 0xffff8000819d2000 <max_tt_usecs+0x54d39>
+ffff8000808e8e1c: 91334821     	add	x1, x1, #0xcd2
+ffff8000808e8e20: aa1303e0     	mov	x0, x19
+ffff8000808e8e24: 941f5907     	bl	0xffff8000810bf240 <_dev_err>
+ffff8000808e8e28: aa1303e0     	mov	x0, x19
+ffff8000808e8e2c: 94000003     	bl	0xffff8000808e8e38 <device_remove>
+ffff8000808e8e30: 2a1403e0     	mov	w0, w20
+ffff8000808e8e34: 17ffffc3     	b	0xffff8000808e8d40 <really_probe+0x1ec>

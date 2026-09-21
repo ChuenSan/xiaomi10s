@@ -1,0 +1,121 @@
+{
+  "symbols": {
+    "deferred_probe_work_func": {
+      "va": "0xffff8000808e8424",
+      "size": 196
+    },
+    "driver_deferred_probe_trigger": {
+      "va": "0xffff8000808e7194",
+      "size": 208
+    },
+    "bus_probe_device": {
+      "va": "0xffff8000808e50b0",
+      "size": 256
+    },
+    "__device_attach": {
+      "va": "0xffff8000808e7b4c",
+      "size": 400
+    },
+    "really_probe": {
+      "va": "0xffff8000808e8b54",
+      "size": 740
+    },
+    "wait_for_device_probe": {
+      "va": "0xffff8000808e728c",
+      "size": 208
+    },
+    "flush_work": {
+      "va": "0xffff8000800aca94",
+      "size": 36
+    },
+    "__flush_work": {
+      "va": "0xffff8000800acab8",
+      "size": 624
+    },
+    "check_flush_dependency": {
+      "va": "0xffff8000800ac7fc",
+      "size": 328
+    },
+    "queue_work_on": {
+      "va": "0xffff8000800ab6f4",
+      "size": 108
+    }
+  },
+  "candidate_windows": [
+    {
+      "label": "entry_after_pad",
+      "va": "0xffff8000808e8428",
+      "window": 56,
+      "fits_parent": true,
+      "bundle_exact": true,
+      "incoming": [],
+      "runtime_rewrites": {
+        "__ex_table": {
+          "entries": 994,
+          "sha256": "e93f6326dba119d9b5091b9c31295e47086ce45813b6f1a62dde0655ca65a9be"
+        },
+        "altinstructions": {
+          "entries": 37287,
+          "sha256": "a98a9bc613c12519ea5fd8f1e168ede872af0d8474fa385df6bc1cc17fdc36a6"
+        },
+        "__jump_table": "ABSENT",
+        "static_call_sites": "ABSENT",
+        "kcfi_traps": "ABSENT"
+      }
+    },
+    {
+      "label": "before_bus_probe",
+      "va": "0xffff8000808e84a8",
+      "window": 56,
+      "fits_parent": true,
+      "bundle_exact": true,
+      "incoming": [
+        [
+          "0xffff8000808e8454",
+          "0xffff8000808e84c8"
+        ]
+      ],
+      "runtime_rewrites": {
+        "__ex_table": {
+          "entries": 994,
+          "sha256": "e93f6326dba119d9b5091b9c31295e47086ce45813b6f1a62dde0655ca65a9be"
+        },
+        "altinstructions": {
+          "entries": 37287,
+          "sha256": "a98a9bc613c12519ea5fd8f1e168ede872af0d8474fa385df6bc1cc17fdc36a6"
+        },
+        "__jump_table": "ABSENT",
+        "static_call_sites": "ABSENT",
+        "kcfi_traps": "ABSENT"
+      }
+    },
+    {
+      "label": "after_bus_probe",
+      "va": "0xffff8000808e84ac",
+      "window": 56,
+      "fits_parent": true,
+      "bundle_exact": true,
+      "incoming": [
+        [
+          "0xffff8000808e8454",
+          "0xffff8000808e84c8"
+        ]
+      ],
+      "runtime_rewrites": {
+        "__ex_table": {
+          "entries": 994,
+          "sha256": "e93f6326dba119d9b5091b9c31295e47086ce45813b6f1a62dde0655ca65a9be"
+        },
+        "altinstructions": {
+          "entries": 37287,
+          "sha256": "a98a9bc613c12519ea5fd8f1e168ede872af0d8474fa385df6bc1cc17fdc36a6"
+        },
+        "__jump_table": "ABSENT",
+        "static_call_sites": "ABSENT",
+        "kcfi_traps": "ABSENT"
+      }
+    }
+  ],
+  "device_operation": false,
+  "candidate_generated": false
+}

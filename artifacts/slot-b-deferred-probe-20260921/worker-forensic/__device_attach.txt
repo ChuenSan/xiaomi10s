@@ -1,0 +1,106 @@
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+ffff8000808e7b4c <__device_attach>:
+ffff8000808e7b4c: d503233f     	paciasp
+ffff8000808e7b50: d10143ff     	sub	sp, sp, #0x50
+ffff8000808e7b54: a9027bfd     	stp	x29, x30, [sp, #0x20]
+ffff8000808e7b58: f9001bf5     	str	x21, [sp, #0x30]
+ffff8000808e7b5c: a9044ff4     	stp	x20, x19, [sp, #0x40]
+ffff8000808e7b60: 910083fd     	add	x29, sp, #0x20
+ffff8000808e7b64: d5384108     	mrs	x8, SP_EL0
+ffff8000808e7b68: aa0003f3     	mov	x19, x0
+ffff8000808e7b6c: 91024000     	add	x0, x0, #0x90
+ffff8000808e7b70: f9424d08     	ldr	x8, [x8, #0x498]
+ffff8000808e7b74: 2a0103f5     	mov	w21, w1
+ffff8000808e7b78: f81f83a8     	stur	x8, [x29, #-0x8]
+ffff8000808e7b7c: 941f7dd2     	bl	0xffff8000810c72c4 <mutex_lock>
+ffff8000808e7b80: f9402668     	ldr	x8, [x19, #0x48]
+ffff8000808e7b84: 39434109     	ldrb	w9, [x8, #0xd0]
+ffff8000808e7b88: 37000129     	tbnz	w9, #0x0, 0xffff8000808e7bac <__device_attach+0x60>
+ffff8000808e7b8c: f9403669     	ldr	x9, [x19, #0x68]
+ffff8000808e7b90: b40003e9     	cbz	x9, 0xffff8000808e7c0c <__device_attach+0xc0>
+ffff8000808e7b94: b40002a8     	cbz	x8, 0xffff8000808e7be8 <__device_attach+0x9c>
+ffff8000808e7b98: 91012100     	add	x0, x8, #0x48
+ffff8000808e7b9c: 941ec2e8     	bl	0xffff80008109873c <klist_node_attached>
+ffff8000808e7ba0: 34000240     	cbz	w0, 0xffff8000808e7be8 <__device_attach+0x9c>
+ffff8000808e7ba4: 52800034     	mov	w20, #0x1       // =1
+ffff8000808e7ba8: 14000002     	b	0xffff8000808e7bb0 <__device_attach+0x64>
+ffff8000808e7bac: 2a1f03f4     	mov	w20, wzr
+ffff8000808e7bb0: 91024260     	add	x0, x19, #0x90
+ffff8000808e7bb4: 941f7de2     	bl	0xffff8000810c733c <mutex_unlock>
+ffff8000808e7bb8: d5384108     	mrs	x8, SP_EL0
+ffff8000808e7bbc: f9424d08     	ldr	x8, [x8, #0x498]
+ffff8000808e7bc0: f85f83a9     	ldur	x9, [x29, #-0x8]
+ffff8000808e7bc4: eb09011f     	cmp	x8, x9
+ffff8000808e7bc8: 54000881     	b.ne	0xffff8000808e7cd8 <__device_attach+0x18c>
+ffff8000808e7bcc: 2a1403e0     	mov	w0, w20
+ffff8000808e7bd0: a9444ff4     	ldp	x20, x19, [sp, #0x40]
+ffff8000808e7bd4: a9427bfd     	ldp	x29, x30, [sp, #0x20]
+ffff8000808e7bd8: f9401bf5     	ldr	x21, [sp, #0x30]
+ffff8000808e7bdc: 910143ff     	add	sp, sp, #0x50
+ffff8000808e7be0: d50323bf     	autiasp
+ffff8000808e7be4: d65f03c0     	ret
+ffff8000808e7be8: aa1303e0     	mov	x0, x19
+ffff8000808e7bec: 97ffff38     	bl	0xffff8000808e78cc <driver_sysfs_add>
+ffff8000808e7bf0: 34000680     	cbz	w0, 0xffff8000808e7cc0 <__device_attach+0x174>
+ffff8000808e7bf4: aa1303e0     	mov	x0, x19
+ffff8000808e7bf8: 528000e1     	mov	w1, #0x7        // =7
+ffff8000808e7bfc: 97fff855     	bl	0xffff8000808e5d50 <bus_notify>
+ffff8000808e7c00: 2a1f03f4     	mov	w20, wzr
+ffff8000808e7c04: f900367f     	str	xzr, [x19, #0x68]
+ffff8000808e7c08: 17ffffea     	b	0xffff8000808e7bb0 <__device_attach+0x64>
+ffff8000808e7c0c: f9402260     	ldr	x0, [x19, #0x40]
+ffff8000808e7c10: 120002a8     	and	w8, w21, #0x1
+ffff8000808e7c14: a900fff3     	stp	x19, xzr, [sp, #0x8]
+ffff8000808e7c18: 390043e8     	strb	w8, [sp, #0x10]
+ffff8000808e7c1c: 39004bff     	strb	wzr, [sp, #0x12]
+ffff8000808e7c20: b4000060     	cbz	x0, 0xffff8000808e7c2c <__device_attach+0xe0>
+ffff8000808e7c24: 52800081     	mov	w1, #0x4        // =4
+ffff8000808e7c28: 94004be7     	bl	0xffff8000808fabc4 <__pm_runtime_resume>
+ffff8000808e7c2c: f9403260     	ldr	x0, [x19, #0x60]
+ffff8000808e7c30: b0000003     	adrp	x3, 0xffff8000808e8000 <__driver_attach+0xd8>
+ffff8000808e7c34: 911d4063     	add	x3, x3, #0x750
+ffff8000808e7c38: 910023e2     	add	x2, sp, #0x8
+ffff8000808e7c3c: aa1f03e1     	mov	x1, xzr
+ffff8000808e7c40: 97fff44b     	bl	0xffff8000808e4d6c <bus_for_each_drv>
+ffff8000808e7c44: 39404be8     	ldrb	w8, [sp, #0x12]
+ffff8000808e7c48: 7100001f     	cmp	w0, #0x0
+ffff8000808e7c4c: 2a0003f4     	mov	w20, w0
+ffff8000808e7c50: 1a9f07e9     	cset	w9, ne
+ffff8000808e7c54: aa1303e0     	mov	x0, x19
+ffff8000808e7c58: 7100011f     	cmp	w8, #0x0
+ffff8000808e7c5c: 520002a8     	eor	w8, w21, #0x1
+ffff8000808e7c60: 1a9f17ea     	cset	w10, eq
+ffff8000808e7c64: 2a0a0108     	orr	w8, w8, w10
+ffff8000808e7c68: 2a080135     	orr	w21, w9, w8
+ffff8000808e7c6c: 360000d5     	tbz	w21, #0x0, 0xffff8000808e7c84 <__device_attach+0x138>
+ffff8000808e7c70: 52800021     	mov	w1, #0x1        // =1
+ffff8000808e7c74: 94004adf     	bl	0xffff8000808fa7f0 <__pm_runtime_idle>
+ffff8000808e7c78: f9402260     	ldr	x0, [x19, #0x40]
+ffff8000808e7c7c: b50000a0     	cbnz	x0, 0xffff8000808e7c90 <__device_attach+0x144>
+ffff8000808e7c80: 14000006     	b	0xffff8000808e7c98 <__device_attach+0x14c>
+ffff8000808e7c84: 97ffdbd5     	bl	0xffff8000808debd8 <get_device>
+ffff8000808e7c88: f9402260     	ldr	x0, [x19, #0x40]
+ffff8000808e7c8c: b4000060     	cbz	x0, 0xffff8000808e7c98 <__device_attach+0x14c>
+ffff8000808e7c90: 528000a1     	mov	w1, #0x5        // =5
+ffff8000808e7c94: 94004ad7     	bl	0xffff8000808fa7f0 <__pm_runtime_idle>
+ffff8000808e7c98: 91024260     	add	x0, x19, #0x90
+ffff8000808e7c9c: 941f7da8     	bl	0xffff8000810c733c <mutex_unlock>
+ffff8000808e7ca0: 3707f8d5     	tbnz	w21, #0x0, 0xffff8000808e7bb8 <__device_attach+0x6c>
+ffff8000808e7ca4: b942b262     	ldr	w2, [x19, #0x2b0]
+ffff8000808e7ca8: b0000000     	adrp	x0, 0xffff8000808e8000 <__driver_attach+0xd8>
+ffff8000808e7cac: 91224000     	add	x0, x0, #0x890
+ffff8000808e7cb0: aa1303e1     	mov	x1, x19
+ffff8000808e7cb4: 97df5b25     	bl	0xffff8000800be948 <async_schedule_node>
+ffff8000808e7cb8: 2a1f03f4     	mov	w20, wzr
+ffff8000808e7cbc: 17ffffbf     	b	0xffff8000808e7bb8 <__device_attach+0x6c>
+ffff8000808e7cc0: aa1303e0     	mov	x0, x19
+ffff8000808e7cc4: 97ffddd7     	bl	0xffff8000808df420 <device_links_force_bind>
+ffff8000808e7cc8: aa1303e0     	mov	x0, x19
+ffff8000808e7ccc: 97ffff30     	bl	0xffff8000808e798c <driver_bound>
+ffff8000808e7cd0: 52800034     	mov	w20, #0x1       // =1
+ffff8000808e7cd4: 17ffffb7     	b	0xffff8000808e7bb0 <__device_attach+0x64>
+ffff8000808e7cd8: 941f65a9     	bl	0xffff8000810c137c <__stack_chk_fail>

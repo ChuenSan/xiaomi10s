@@ -1,0 +1,70 @@
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+ffff8000808e50b0 <bus_probe_device>:
+ffff8000808e50b0: d503233f     	paciasp
+ffff8000808e50b4: a9bc7bfd     	stp	x29, x30, [sp, #-0x40]!
+ffff8000808e50b8: f9000bf7     	str	x23, [sp, #0x10]
+ffff8000808e50bc: a90257f6     	stp	x22, x21, [sp, #0x20]
+ffff8000808e50c0: a9034ff4     	stp	x20, x19, [sp, #0x30]
+ffff8000808e50c4: 910003fd     	mov	x29, sp
+ffff8000808e50c8: f9403014     	ldr	x20, [x0, #0x60]
+ffff8000808e50cc: b40005d4     	cbz	x20, 0xffff8000808e5184 <bus_probe_device+0xd4>
+ffff8000808e50d0: f000c916     	adrp	x22, 0xffff800082208000 <stm32_ports+0x13d0>
+ffff8000808e50d4: f9462ec8     	ldr	x8, [x22, #0xc58]
+ffff8000808e50d8: b4000568     	cbz	x8, 0xffff8000808e5184 <bus_probe_device+0xd4>
+ffff8000808e50dc: aa0003f3     	mov	x19, x0
+ffff8000808e50e0: 91004100     	add	x0, x8, #0x10
+ffff8000808e50e4: 941f9deb     	bl	0xffff8000810cc890 <_raw_spin_lock>
+ffff8000808e50e8: f9462ec8     	ldr	x8, [x22, #0xc58]
+ffff8000808e50ec: f9400109     	ldr	x9, [x8]
+ffff8000808e50f0: eb08013f     	cmp	x9, x8
+ffff8000808e50f4: 54000440     	b.eq	0xffff8000808e517c <bus_probe_device+0xcc>
+ffff8000808e50f8: aa0803f5     	mov	x21, x8
+ffff8000808e50fc: f94002b5     	ldr	x21, [x21]
+ffff8000808e5100: eb0802bf     	cmp	x21, x8
+ffff8000808e5104: 540003c0     	b.eq	0xffff8000808e517c <bus_probe_device+0xcc>
+ffff8000808e5108: f94086a9     	ldr	x9, [x21, #0x108]
+ffff8000808e510c: eb14013f     	cmp	x9, x20
+ffff8000808e5110: 54ffff61     	b.ne	0xffff8000808e50fc <bus_probe_device+0x4c>
+ffff8000808e5114: f10082bf     	cmp	x21, #0x20
+ffff8000808e5118: 54000320     	b.eq	0xffff8000808e517c <bus_probe_device+0xcc>
+ffff8000808e511c: d10022b4     	sub	x20, x21, #0x8
+ffff8000808e5120: aa1403e0     	mov	x0, x20
+ffff8000808e5124: 941ed0ca     	bl	0xffff80008109944c <kobject_get>
+ffff8000808e5128: f9462ec8     	ldr	x8, [x22, #0xc58]
+ffff8000808e512c: 91004100     	add	x0, x8, #0x10
+ffff8000808e5130: 941f9e4a     	bl	0xffff8000810cca58 <_raw_spin_unlock>
+ffff8000808e5134: 394402a8     	ldrb	w8, [x21, #0x100]
+ffff8000808e5138: 36000068     	tbz	w8, #0x0, 0xffff8000808e5144 <bus_probe_device+0x94>
+ffff8000808e513c: aa1303e0     	mov	x0, x19
+ffff8000808e5140: 94000ae7     	bl	0xffff8000808e7cdc <device_initial_probe>
+ffff8000808e5144: 910162a0     	add	x0, x21, #0x58
+ffff8000808e5148: 941f885f     	bl	0xffff8000810c72c4 <mutex_lock>
+ffff8000808e514c: aa1503f6     	mov	x22, x21
+ffff8000808e5150: f8448ed7     	ldr	x23, [x22, #0x48]!
+ffff8000808e5154: 14000002     	b	0xffff8000808e515c <bus_probe_device+0xac>
+ffff8000808e5158: f94002f7     	ldr	x23, [x23]
+ffff8000808e515c: eb1602ff     	cmp	x23, x22
+ffff8000808e5160: 540001e0     	b.eq	0xffff8000808e519c <bus_probe_device+0xec>
+ffff8000808e5164: f9400ae8     	ldr	x8, [x23, #0x10]
+ffff8000808e5168: b4ffff88     	cbz	x8, 0xffff8000808e5158 <bus_probe_device+0xa8>
+ffff8000808e516c: d10042e1     	sub	x1, x23, #0x10
+ffff8000808e5170: aa1303e0     	mov	x0, x19
+ffff8000808e5174: d63f0100     	blr	x8
+ffff8000808e5178: 17fffff8     	b	0xffff8000808e5158 <bus_probe_device+0xa8>
+ffff8000808e517c: 91004100     	add	x0, x8, #0x10
+ffff8000808e5180: 941f9e36     	bl	0xffff8000810cca58 <_raw_spin_unlock>
+ffff8000808e5184: a9434ff4     	ldp	x20, x19, [sp, #0x30]
+ffff8000808e5188: f9400bf7     	ldr	x23, [sp, #0x10]
+ffff8000808e518c: a94257f6     	ldp	x22, x21, [sp, #0x20]
+ffff8000808e5190: a8c47bfd     	ldp	x29, x30, [sp], #0x40
+ffff8000808e5194: d50323bf     	autiasp
+ffff8000808e5198: d65f03c0     	ret
+ffff8000808e519c: 910162a0     	add	x0, x21, #0x58
+ffff8000808e51a0: 941f8867     	bl	0xffff8000810c733c <mutex_unlock>
+ffff8000808e51a4: aa1403e0     	mov	x0, x20
+ffff8000808e51a8: 941ed0d5     	bl	0xffff8000810994fc <kobject_put>
+ffff8000808e51ac: 17fffff6     	b	0xffff8000808e5184 <bus_probe_device+0xd4>

@@ -37,8 +37,24 @@ STAGES = {
                   0xD000A389, 0x52802000, 0xF9447521, 0x93407D03,
                   0x97DF1194, 0xA9434FF4),
     },
+    "worker": {
+        "offset": 0x8E8428, "predecessor": "entry_paciasp",
+        "parent_name": "deferred_probe_work_func", "parent_offset": 0x8E8424,
+        "parent_size": 196, "proof": "deferred_worker_entry",
+        "unproved": "deferred_worker_first_device",
+        "words": (0xA9BD7BFD, 0xF9000BF5, 0xA9024FF4, 0x910003FD,
+                  0xB000BD40, 0x91300000, 0x941F7BA1, 0xB000BD55,
+                  0x9130C2B5, 0xF94002A8, 0xEB15011F, 0x540003A0,
+                  0xB000BD53, 0x91300273),
+    },
 }
 need = cp.require
+
+
+def parent_for(stage):
+    spec = STAGES[stage]
+    return (spec.get("parent_name", "deferred_probe_initcall"),
+            spec.get("parent_offset", PARENT), spec.get("parent_size", PARENT_SIZE))
 
 
 def save(path, data):
@@ -67,7 +83,9 @@ def gate_window(stage, offset, original):
     spec = STAGES[stage]
     need(offset == spec["offset"] and len(original) == 56, "CALLSITE_GEOMETRY_DRIFT")
     need(struct.unpack("<14I", original) == spec["words"], "ORIGINAL_WINDOW_DRIFT")
-    need(PARENT + 60 <= offset < offset + 56 <= PARENT + PARENT_SIZE,
+    _, parent, size = parent_for(stage)
+    minimum = parent + (4 if stage == "worker" else 60)
+    need(minimum <= offset < offset + 56 <= parent + size,
          "FROZEN_ENTRY_OVERLAP_OR_PARENT_ESCAPE")
 
 
@@ -81,9 +99,10 @@ def gate_member(stage, frozen, payload, manifest):
          "CHANGE_OUTSIDE_CALLSITE")
     core = struct.pack("<14I", *cp.ULTRACOMPACT_WORDS)
     need(payload[offset:offset + 56] == cp.delay_core(core, delay), "CORE_OR_DELAY_DRIFT")
+    parent_name, parent, parent_size = parent_for(stage)
     for key, value in {"stage": stage, "offset": offset, "window": 56,
-                       "parent": "deferred_probe_initcall", "parent_offset": PARENT,
-                       "parent_size": PARENT_SIZE, "section": ".text",
+                       "parent": parent_name, "parent_offset": parent,
+                       "parent_size": parent_size, "section": ".text",
                        "inline_only": True, "normal_boot_candidate": False,
                        "frozen_payload_sha256": cp.t3.FIX8_PAYLOAD_SHA,
                        "payload_sha256": cp.digest(payload)}.items():
@@ -122,16 +141,27 @@ def audit(args):
     vmlinux = bundle / "vmlinux"
     nm = cp.pb.run([cp.TOOLS["nm"], str(vmlinux)])
     need(cp.t3.nm_symbol(nm, "_text") == TEXT, "TEXT_VA_DRIFT")
-    need(cp.t3.symbol_extent(nm, "deferred_probe_initcall") ==
-         (TEXT + PARENT, TEXT + PARENT + PARENT_SIZE), "PARENT_EXTENT_DRIFT")
+    parent_name, parent, parent_size = parent_for(args.stage)
+    need(cp.t3.symbol_extent(nm, parent_name) ==
+         (TEXT + parent, TEXT + parent + parent_size), "PARENT_EXTENT_DRIFT")
     sections = cp.t3.section_map(args.out, cp.TOOLS, vmlinux)
     source_contract((cp.pb.LINUX / "drivers/base/dd.c").read_text(),
                     (bundle / "kernel.config").read_text())
-    need(image[PARENT:PARENT + PARENT_SIZE] == cp.vmlinux_bytes_at(
-        vmlinux, sections, TEXT + PARENT, PARENT_SIZE), "PARENT_ELF_IMAGE_DISAGREEMENT")
-    literals = cp.prove_fs_complete_window_literals(image, frozen, TEXT, PARENT, PARENT_SIZE)
-    need(len(literals) == 1 and literals[0]["word_offset"] == 0x1C and
-         literals[0]["layout_delta"] == 8, "PARENT_LITERAL_EXCEPTION_DRIFT")
+    need(image[parent:parent + parent_size] == cp.vmlinux_bytes_at(
+        vmlinux, sections, TEXT + parent, parent_size), "PARENT_ELF_IMAGE_DISAGREEMENT")
+    if args.stage == "worker":
+        need(image[parent:parent + parent_size] == frozen[parent:parent + parent_size],
+             "WORKER_PARENT_NOT_BYTE_EXACT")
+        source = (cp.pb.LINUX / "drivers/base/dd.c").read_text()
+        need(source.count("driver_deferred_probe_enable = true;") == 1 and
+             "if (!driver_deferred_probe_enable)\n\t\treturn;" in source and
+             "DECLARE_WORK(deferred_probe_work, deferred_probe_work_func)" in source,
+             "WORKER_ACTIVATION_SOURCE_DRIFT")
+        literals = []
+    else:
+        literals = cp.prove_fs_complete_window_literals(image, frozen, TEXT, parent, parent_size)
+        need(len(literals) == 1 and literals[0]["word_offset"] == 0x1C and
+             literals[0]["layout_delta"] == 8, "PARENT_LITERAL_EXCEPTION_DRIFT")
     start = cp.t3.nm_symbol(nm, "__initcall7_start")
     end = cp.t3.nm_symbol(nm, "__initcall_end")
     entries = cp.decode_initcall_span(vmlinux, sections, nm, start, end)
@@ -143,11 +173,14 @@ def audit(args):
     need(image[offset - 4:offset + 56] == frozen[offset - 4:offset + 56],
          "CALLSITE_NOT_BYTE_EXACT")
     word = struct.unpack_from("<I", frozen, offset - 4)[0]
-    need(word & 0xFC000000 == 0x94000000 and
-         cp.branch_target(word, TEXT + offset - 4) == TEXT + spec["callee"],
-         "PREDECESSOR_CALL_DRIFT")
-    need(cp.t3.nm_symbol(nm, spec["predecessor"]) == TEXT + spec["callee"],
-         "PREDECESSOR_SYMBOL_DRIFT")
+    if args.stage == "worker":
+        need(word == 0xD503233F and offset == parent + 4, "WORKER_PACIASP_DRIFT")
+    else:
+        need(word & 0xFC000000 == 0x94000000 and
+             cp.branch_target(word, TEXT + offset - 4) == TEXT + spec["callee"],
+             "PREDECESSOR_CALL_DRIFT")
+        need(cp.t3.nm_symbol(nm, spec["predecessor"]) == TEXT + spec["callee"],
+             "PREDECESSOR_SYMBOL_DRIFT")
     window = (TEXT + offset, TEXT + offset + 56)
     ranges = [(s["vma"] - TEXT, s["vma"] - TEXT + s["size"])
               for s in sections if s["alloc"] and s["code"]]
@@ -155,12 +188,12 @@ def audit(args):
     need(not incoming, f"CALLSITE_BYPASS_OR_INTERIOR_ENTRY:{incoming[:8]}")
     cp.t3.gate_window_symbol_scan(window[0], 56, [va for va, _ in cp.t3.symbol_table(nm)])
     cp.t3.gate_window_section_scan(window[0], 56, sections)
-    cp.t3.gate_function_extent_scan(window[0], 56, TEXT + PARENT + PARENT_SIZE)
+    cp.t3.gate_function_extent_scan(window[0], 56, TEXT + parent + parent_size)
     cp.t3.gate_window_literal_scan(window[0] - 1, 57, frozen[:len(image)])
     cp.t3.gate_window_relocation_scan(window[0], 56, cp.relocation_sites(vmlinux, sections))
     rewrites = cp.audit_rewrites(args.out, vmlinux, sections, window)
-    dump = cp.pb.run([cp.TOOLS["objdump"], "-dr", f"--start-address={TEXT + PARENT:#x}",
-                      f"--stop-address={TEXT + PARENT + PARENT_SIZE:#x}", str(vmlinux)])
+    dump = cp.pb.run([cp.TOOLS["objdump"], "-dr", f"--start-address={TEXT + parent:#x}",
+                      f"--stop-address={TEXT + parent + parent_size:#x}", str(vmlinux)])
     (args.out / "original-function.txt").write_text(dump)
     image_size = cp.pb.parse_image_hdr(frozen, "FIX8")["image_size"]
     cp.t3.gate_window_inside_image_size(offset, 56, image_size)
@@ -168,8 +201,8 @@ def audit(args):
     cp.pb.gate_rt_d(frozen[dtb_offset:])
     cp.gate_builtin_initramfs_source(cp.rt.parse_fdt(frozen[dtb_offset:])["/chosen"])
     report = {"stage": args.stage, "source_commit": os.environ["GITHUB_SHA"],
-              "parent": "deferred_probe_initcall", "parent_offset": PARENT,
-              "parent_size": PARENT_SIZE, "section": ".text", "late_index": 54,
+              "parent": parent_name, "parent_offset": parent,
+              "parent_size": parent_size, "section": ".text", "late_index": 54,
               "offset": offset, "window": 56, "inline_only": True,
               "normal_boot_candidate": False, "positive_proves": spec["proof"],
               "positive_does_not_prove": spec["unproved"],
@@ -179,6 +212,10 @@ def audit(args):
               "parent_literal_exception": literals, "window_agreement": "EXACT",
               "probe_family": "INLINE_CALLSITE_56B_NO_ADDED_PAD",
               "core_sha256": CORE_SHA, "partition_writes": 0}
+    if args.stage == "worker":
+        report.update(late_index=None, activation_initcall_index=54,
+                      probe_family="PRESERVED_PACIASP_PLUS_56B",
+                      callback_first_activation_only=True)
     save(args.out / "audit.json", report)
     payloads = []
     root = args.verify_pair if args.verify_pair else args.out / "pair"

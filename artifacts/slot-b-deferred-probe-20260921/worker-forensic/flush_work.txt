@@ -1,0 +1,15 @@
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+ffff8000800aca94 <flush_work>:
+ffff8000800aca94: d503233f     	paciasp
+ffff8000800aca98: a9bf7bfd     	stp	x29, x30, [sp, #-0x10]!
+ffff8000800aca9c: 910003fd     	mov	x29, sp
+ffff8000800acaa0: 2a1f03e1     	mov	w1, wzr
+ffff8000800acaa4: 94000005     	bl	0xffff8000800acab8 <__flush_work>
+ffff8000800acaa8: 12000000     	and	w0, w0, #0x1
+ffff8000800acaac: a8c17bfd     	ldp	x29, x30, [sp], #0x10
+ffff8000800acab0: d50323bf     	autiasp
+ffff8000800acab4: d65f03c0     	ret
