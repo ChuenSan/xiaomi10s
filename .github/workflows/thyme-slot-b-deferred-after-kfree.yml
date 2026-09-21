@@ -1,0 +1,91 @@
+name: Slot B deferred after-kfree audit
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation, route-b-deferred-after-kfree]
+    paths:
+      - 'scripts/slot_b/deferred_after_kfree_probe.py'
+      - 'scripts/slot_b/test_deferred_after_kfree_probe.py'
+      - '.github/workflows/thyme-slot-b-deferred-after-kfree.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: deferred-after-kfree-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    if: github.repository == 'ChuenSan/xiaomi10s'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-deferred-after-kfree.yml
+      - name: Fetch pinned source and audit tools
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18
+      - name: Download immutable public inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R ChuenSan/xiaomi10s -n thyme-slot-b-kernel-audit-bundle -D bundle
+          gh run download 34741153230 -R ChuenSan/xiaomi10s -n thyme-r3-p1b-fix8-fix24 -D frozen
+      - name: Test new boundary and immutable identity rejection
+        env:
+          AFTER_KFREE_FIXTURE_REQUIRED: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_deferred_after_kfree_probe.py' -v 2>&1 | tee after-kfree-tests.log
+      - name: Assemble and verify relocation-free terminal core
+        run: |
+          set -euo pipefail
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-ultracompact.S -o core.o
+          llvm-readelf-18 -r core.o | tee core-relocations.txt
+          grep -q 'There are no relocations in this file' core-relocations.txt
+          llvm-objdump-18 -dr core.o > core-disassembly.txt
+          llvm-objcopy-18 -O binary --only-section=.text core.o core.bin
+      - name: Audit after-kfree pair and independently reverify
+        run: |
+          set -euo pipefail
+          python3 -u -B scripts/slot_b/deferred_after_kfree_probe.py \
+            --stage after_kfree --bundle bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core core.bin --out after-kfree | tee after-kfree.log
+          python3 -u -B scripts/slot_b/deferred_after_kfree_probe.py \
+            --stage after_kfree --bundle bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core core.bin --out after-kfree-reverify --verify-pair after-kfree/pair | tee after-kfree-reverify.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-deferred-after-kfree-pair
+          path: after-kfree/pair/
+          if-no-files-found: error
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-deferred-after-kfree-audit
+          path: |
+            after-kfree/*.json
+            after-kfree/*.txt
+            after-kfree-reverify/*.json
+            after-kfree-reverify/*.txt
+            after-kfree*.log
+            core-relocations.txt
+            core-disassembly.txt
+          if-no-files-found: warn
+          retention-days: 90
