@@ -110,3 +110,29 @@ policy relaxation and not an initcall-table replacement. It proves worker
 entry only; it does not prove that the list is nonempty or any device probe
 runs. The public workflow now generates only the selected new target, never
 automatically regenerating the completed prequeue/postflush pairs.
+
+## Worker device result and user-requested closeout
+
+Worker public audit/reverify `35555866440` @ `c16c515` and private pack +
+independent reverify `35556073389` @ `52e88c4` passed. Observer freeze `06a1d79`
+and gate `35556276869` passed; all 22 workflows at that freeze succeeded,
+including 526 tests (14 source-dependent tests skipped in the no-submodule job).
+
+`defer_worker8` ran once: 35.517175625 s. `defer_worker1` ran once:
+28.475640458 s. Delta −7.041535167 s, error −0.041535167 s → **STRONG**,
+`DEFERRED_WORKER_ENTRY=PROVEN`. Both automatically returned to Fastboot B,
+retry 7→6. Android A was restored after each, with all 16 hashes and P15
+prefix unchanged. These two cases are now also rerun-FORBIDDEN. Callback
+entry does not prove a device was selected or that queue_work_on returned;
+the callback and submitter run concurrently.
+
+The user then requested a conversation switch. The final read-only device
+check at 2026-09-21T03:28:50Z still shows healthy Android A, root, empty pstore
+and unchanged hashes. Total this continuation: six RAM boots, zero partition
+writes, no Slot A write, no local build. Mainline `/init` remains NOT_PROVEN.
+
+The unfinished name-channel proposal was moved, without deletion, to
+`drafts/slot-b-deferred-name-20260921/`. It has no CI qualification, packed
+images, frozen identities, decoder or device result. It is outside active
+source/test discovery and must not be treated as ready. Full continuation
+instructions: `docs/handoff-2026-09-21-deferred-probe.md`.

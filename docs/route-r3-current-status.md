@@ -1,16 +1,20 @@
 # thyme R3 current status (single source of truth for the current round)
 
-Latest continuation (2026-09-21): deferred-probe internal callsite pairs are
-COMPLETE. PREQUEUE8/1 = 35.423422125 / 28.465627750 s, delta −6.957794375 s,
-STRONG: first deferred trigger's mutex/list-splice/unlock prefix is PROVEN.
-POSTFLUSH8/1 = 48.591122792 / 48.346502500 s, SHIFT_NOT_OBSERVED. The next
-causal interval is first deferred work enqueue through the second flush,
-not another late-index entry search. All four cases are rerun-FORBIDDEN.
-All 16-chain hashes and P15 prefix are unchanged; Android A restored healthy;
-partition writes and local builds zero. `/init` remains NOT_PROVEN.
-See `docs/slot-b-deferred-probe-callsite-isolation.md`. A new Actions-only
-worker/workqueue forensic audit is the next step; no worker candidate is yet
-qualified. The older chronological records below remain historical evidence.
+Latest closeout (2026-09-21, user-requested conversation handoff):
+PREQUEUE8/1 = 35.423422125 / 28.465627750 s, delta −6.957794375 s, STRONG.
+POSTFLUSH8/1 = 48.591122792 / 48.346502500 s, SHIFT_NOT_OBSERVED.
+WORKER8/1 = 35.517175625 / 28.475640458 s, delta −7.041535167 s, STRONG:
+DEFERRED_WORKER_ENTRY=PROVEN. The worker starts, but list handling, a specific
+device probe and the second flush return remain unproven. All six cases are
+rerun-FORBIDDEN; LATEST_PROVEN_LATE_INDEX=54. `/init` is still NOT_PROVEN.
+Final read-only check 03:28:50Z: Android A healthy with root, all 16-chain
+hashes and P15 prefix unchanged, zero partition writes and zero local builds.
+All 22 workflows at observer freeze 06a1d79 succeeded (526 tests, 14 skipped).
+Name-channel source is isolated under drafts/slot-b-deferred-name-20260921/:
+NOT_CI_VALIDATED, NOT_DEVICE_READY, no name image or observer identity exists.
+Resume from docs/handoff-2026-09-21-deferred-probe.md and latest mem0, not the
+historical records below. The current artifact workflow defaults to the
+completed worker case; do not dispatch that default to continue.
 
 Continuation 2026-09-16: physical recovery is COMPLETE. Recovered Fastboot
 was B with retry count still 6. The untouched Android A is running with ADB

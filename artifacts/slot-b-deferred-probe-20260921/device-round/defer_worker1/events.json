@@ -1,0 +1,88 @@
+[
+  {
+    "utc": "2026-09-21T03:09:10.096893+00:00",
+    "event": "PREFLIGHT",
+    "product": "thyme",
+    "unlocked": "yes",
+    "current-slot": "b",
+    "slot-count": "2",
+    "snapshot-update-status": "none",
+    "battery-soc-ok": "yes",
+    "max-download-size": "805306368",
+    "slot-unbootable:b": "no",
+    "slot-retry-count:b": "7",
+    "slot-successful:a": "yes"
+  },
+  {
+    "utc": "2026-09-21T03:09:10.116459+00:00",
+    "event": "COMMAND_START",
+    "operation": "ram_boot_b",
+    "case": "defer_worker1"
+  },
+  {
+    "utc": "2026-09-21T03:09:11.059865+00:00",
+    "event": "FASTBOOT_OUT",
+    "text": "Sending 'boot.img' (36504 KB)                      OKAY [  0.919s]"
+  },
+  {
+    "utc": "2026-09-21T03:09:11.280120+00:00",
+    "event": "FASTBOOT_OUT",
+    "text": "Booting                                            OKAY [  0.220s]"
+  },
+  {
+    "utc": "2026-09-21T03:09:11.288012+00:00",
+    "event": "FASTBOOT_OUT",
+    "text": "Finished. Total time: 1.153s"
+  },
+  {
+    "utc": "2026-09-21T03:09:11.289605+00:00",
+    "event": "BOOTING_OKAY"
+  },
+  {
+    "utc": "2026-09-21T03:09:12.561784+00:00",
+    "event": "FASTBOOT_DISAPPEARED",
+    "elapsed_s": 1.2318550410000002
+  },
+  {
+    "utc": "2026-09-21T03:09:39.813102+00:00",
+    "event": "FASTBOOT_FIRST_RETURN",
+    "elapsed_s": 28.475640458
+  },
+  {
+    "utc": "2026-09-21T03:09:42.952880+00:00",
+    "event": "RESULT",
+    "protocol": "slot-b-p15-fastboot-return-v1",
+    "case": "defer_worker1",
+    "image_sha256": "3727ec73979f815e4e04a57ab93fba55f49bf29294cdc22c9f3cc4106f342d87",
+    "context": {
+      "boot_b_prefix": "133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34",
+      "vendor_boot_b": "aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972",
+      "dtbo_b": "018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634"
+    },
+    "ci_run": "35556073389",
+    "bootloader_origin": "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B",
+    "normal_boot_candidate": false,
+    "slot_a_written": false,
+    "partition_writes": 0,
+    "status": "AUTOMATIC_FASTBOOT_RETURN",
+    "final_slot": "b",
+    "total_s": 28.475640458,
+    "b_retries": "6",
+    "host_boot_commands": 1,
+    "experimental_boots": 1,
+    "recovery_control_boots": 0,
+    "pair": {
+      "delta_s": -7.041535166999999,
+      "expected_delta_s": -7.0,
+      "error_s": -0.04153516699999926,
+      "verdict": "STRONG",
+      "deferred_worker_entry": "PROVEN",
+      "deferred_worker_first_device": "NOT_PROVEN",
+      "init_executed": "NOT_PROVEN",
+      "late_initcalls_completed": "NOT_PROVEN",
+      "wait_for_initramfs_return": "NOT_PROVEN",
+      "console_on_rootfs_entry": "NOT_PROVEN",
+      "usb": "FROZEN"
+    }
+  }
+]
