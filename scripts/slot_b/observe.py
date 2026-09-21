@@ -14,6 +14,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+import deferred_pm_tail_runtime as pmtail
+
 # FILL_AT_FREEZE (BTIC51): the freeze commit fills these four constants from the
 # private-pack pair-identity.txt / payload SHAs and that is its only edit.
 # Until then the family is not an IMAGES identity and the btic51 fixtures
@@ -98,6 +100,8 @@ IMAGES = {
     "late_post491": (37380096, "1bfcaffa503e44574f44dc850dab10fb930f9fc96c9d8f9f99b7b88b8ac03c7b"),
     "late_post508": (37380096, "679d296f936ba9457837bbdf5d8b7d60fdba871f0275fae21912673e6b7102d5"),
     "late_post501": (37380096, "373b7386b283b396851d5acf68bfbcbdebbf1154551f5024e31e4b787684330a"),
+    "defer_pmtail8": (37380096, "bd93a87d35109dfd69c5cd5dd36512a5bdc264d739dd6856ef2622395bdb0a44"),
+    "defer_pmtail1": (37380096, "45c30e30f95ec3e7cf14b147946f06f7d6e3cc6645f9c7843dfa1bc49aeeb3be"),
     "defer_afterfree8": (37380096, "13bc43a3348a087c21c2f4a29bfd30ab23f47af123e05690ff90d43277a3a947"),
     "defer_afterfree1": (37380096, "47c14e75820095e904fea93439ab3eaf0339b1ce5afb6eee833ac2867e3671e0"),
     "defer_selected8": (37380096, "ac7a762b203bef6b0911c1223642021c46006433d91b32cd8da2f0ab5df8dd9d"),
@@ -174,6 +178,7 @@ PAIRS = {
                         "deferred_first_bus_probe_entered"),
     "defer_afterfree1": ("defer_afterfree8", "deferred_reason_kfree_returned",
                          "deferred_first_bus_probe_entered"),
+    "defer_pmtail1": ("defer_pmtail8", "deferred_pm_tail_entry", "deferred_pm_tail_return"),
     }
 SELECTED_CASES = ("defer_selected8", "defer_selected1")
 AFTERFREE_CASES = ("defer_afterfree8", "defer_afterfree1")
@@ -342,6 +347,8 @@ def require(condition, message):
 
 
 def validate_identity(case, size, digest):
+    if case in pmtail.CASES:
+        pmtail.load_freeze(IMAGES)
     if case in SELECTED_CASES:
         validate_selected_freeze()
     if case in AFTERFREE_CASES:
@@ -781,6 +788,9 @@ def pair_verdict(baseline, result):
     if second == "defer_afterfree1":
         frozen = load_afterfree_freeze()
         require(isinstance(baseline, dict), "AFTERFREE_BASELINE_FORMAT")
+    if second == "defer_pmtail1":
+        frozen = pmtail.load_freeze(IMAGES)
+        require(isinstance(baseline, dict), "PMTAIL_BASELINE_FORMAT")
     first, proof_key, unproved_key = PAIRS[second]
     for record, case in zip((baseline, result), (first, second)):
         if second != "reset1":
@@ -795,6 +805,8 @@ def pair_verdict(baseline, result):
             require(type(record.get("experimental_boots")) is int, "PAIR_BOOT_COUNT_INVALID")
         if second == "defer_afterfree1":
             validate_afterfree_record(record, frozen)
+        if second == "defer_pmtail1":
+            pmtail.validate_record(record, frozen)
         require(record.get("context") == CONTEXT, "PAIR_CONTEXT_MISMATCH")
         require(not isinstance(record.get("total_s"), bool) and
                 isinstance(record.get("total_s"), (int, float)) and
@@ -1065,6 +1077,8 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(late_text54_checkpoint_shift_not_observed="YES")
+    elif second == "defer_pmtail1":
+        out.update(pmtail.proof(grade, verdict))
     elif second == "defer_afterfree1":
         out.update(mutex_acquired=grade, active_list_nonempty=grade,
                    deferred_worker_device_pointer_loaded=grade,
@@ -1145,6 +1159,8 @@ class Observer:
             validate_selected_freeze()
         if self.args.case in AFTERFREE_CASES:
             afterfree_preflight(self.args)
+        if self.args.case in pmtail.CASES:
+            pmtail.preflight(self.args, IMAGES, pair_verdict)
         require(self.getvar("current-slot") == "b", "LAST_MOMENT_SLOT_NOT_B")
         command = self.fb + (["reboot"] if self.args.case == "recovery" else
                              ["boot", str(self.args.image)])
@@ -1210,13 +1226,16 @@ class Observer:
         return {"status": "NO_RETURN_WITHIN_120S", "manual_timing_excluded": True}
 
     def run(self):
-        frozen, baseline = afterfree_preflight(self.args) if self.args.case in AFTERFREE_CASES else (None, None)
+        if self.args.case in pmtail.CASES:
+            frozen, baseline = pmtail.preflight(self.args, IMAGES, pair_verdict)
+        else:
+            frozen, baseline = afterfree_preflight(self.args) if self.args.case in AFTERFREE_CASES else (None, None)
         image = self.args.image.read_bytes()
         digest = hashlib.sha256(image).hexdigest()
         validate_identity(self.args.case, len(image), digest)
         context = json.loads(self.args.context.read_text())
         validate_context(context, self.args.case)
-        if self.args.case in PAIRS and self.args.case not in AFTERFREE_CASES:
+        if self.args.case in PAIRS and self.args.case not in AFTERFREE_CASES + pmtail.CASES:
             require(self.args.baseline is not None, "MATCHED_8S_BASELINE_REQUIRED")
             baseline = json.loads(self.args.baseline.read_text())
             # Validate the reference before any device command, without assigning a verdict.
@@ -1229,18 +1248,22 @@ class Observer:
                   "normal_boot_candidate": False,
                   "slot_a_written": False, "partition_writes": 0}
         if frozen is not None:
-            result.update(afterfree_authority(frozen))
+            result.update(pmtail.authority(frozen) if self.args.case in pmtail.CASES else afterfree_authority(frozen))
         try:
             values = {key: self.getvar(key) for key in VARS}
             self.log("PREFLIGHT", **values)
             validate_preflight(values, len(image))
             if frozen is not None:
-                require(values.get("slot-retry-count:b") == "7", "AFTERFREE_INITIAL_RETRIES_NOT_SEVEN")
+                family = "PMTAIL" if self.args.case in pmtail.CASES else "AFTERFREE"
+                require(values.get("slot-retry-count:b") == "7", f"{family}_INITIAL_RETRIES_NOT_SEVEN")
             start = self.launch()
             result.update(self.observe(start))
             result.update(self.boot_counts())
             if frozen is not None and result["status"] == "AUTOMATIC_FASTBOOT_RETURN":
-                validate_afterfree_record(result, frozen)
+                if self.args.case in pmtail.CASES:
+                    pmtail.validate_record(result, frozen)
+                else:
+                    validate_afterfree_record(result, frozen)
             if baseline is not None and result["status"] == "AUTOMATIC_FASTBOOT_RETURN":
                 result["pair"] = pair_verdict(baseline, result)
             self.log("RESULT", **result)

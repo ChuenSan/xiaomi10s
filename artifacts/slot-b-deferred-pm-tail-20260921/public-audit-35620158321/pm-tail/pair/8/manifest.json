@@ -1,0 +1,182 @@
+{
+  "stage": "pm_tail",
+  "parent": "device_pm_move_to_tail",
+  "parent_offset": 9299024,
+  "parent_size": 100,
+  "offset": 9299028,
+  "window": 56,
+  "window_end": 9299084,
+  "section": ".text",
+  "inline_only": true,
+  "normal_boot_candidate": false,
+  "device_ready": false,
+  "late_index": null,
+  "activation_initcall_index": 54,
+  "positive_proves": "deferred_pm_tail_entry",
+  "positive_does_not_prove": "deferred_pm_tail_return",
+  "positive_only": [
+    "original_reason_clear_store_executed",
+    "worker_mutex_unlock_returned",
+    "pm_tail_entry"
+  ],
+  "positive_not_proven": [
+    "persistent_reason_field_state",
+    "srcu_or_pm_lock_acquired",
+    "pm_tail_body_or_return",
+    "pm_list_movement",
+    "first_bus_probe_entered_or_returned",
+    "device_identity_or_name",
+    "get_device_reference_success",
+    "allocation_freed",
+    "driver_probe_body",
+    "culprit_or_root_cause",
+    "late_initcalls_complete",
+    "init_or_userspace",
+    "usb_enablement"
+  ],
+  "single_direct_caller": 9340064,
+  "caller": "deferred_probe_work_func",
+  "caller_offset": 9339940,
+  "caller_size": 196,
+  "caller_sha256": "399830dd1790ce0ef5613f299753450ed834416c265207bfe6359ce2d704a85b",
+  "caller_unchanged": true,
+  "caller_agreement": "ELF_IMAGE_FIX8_EXACT_196B",
+  "reason_clear_store": 9340052,
+  "mutex_unlock_call": 9340056,
+  "reason_clear_store_executed_before_entry": true,
+  "reason_field_state_at_checkpoint": "NOT_PROVEN",
+  "worker_mutex_unlock_return_before_entry": true,
+  "first_nonempty_worker_iteration_only": true,
+  "callback_first_activation_only": false,
+  "added_pointer_or_name_dereferences": 0,
+  "maximum_delay_seconds": 8,
+  "probe_family": "DEFERRED_PM_TAIL_ENTRY_PACIASP_PLUS_56B",
+  "terminal_core": "PSCI_SYSTEM_RESET_OR_LOCAL_WFE_LOOP",
+  "terminal_fallthrough": false,
+  "original_paciasp_preserved": true,
+  "new_stack_frame": false,
+  "outside_window_unchanged": true,
+  "window_agreement": "EXACT",
+  "parent_agreement": "ELF_IMAGE_FIX8_EXACT_100B",
+  "parent_literal_exception": [],
+  "original_parent_sha256": "7956c899bc9f87f119ecbc9c2c216d0bdde7c534ca2a2e47ebcc671de60b0f27",
+  "core_sha256": "8b90e4c5ba8817ed23414b0d41e94bc376021d2839889b6a87c6023aa5e259b5",
+  "frozen_payload_sha256": "4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41",
+  "bundle_run": "35040148509",
+  "bundle": {
+    "linux_base": "8b73de7da85fde281a385e0b26eda9bffd3ca477",
+    "patch_queue_sha256": "d470701d58d62bf10b96adb4dbf0c639945afccd45d4d3f039e8051e7aaaf1b5",
+    "source_commit": "ba870dbdc094bdee08c67e465f229e67c36ac0b6",
+    "run_id": "35036419486",
+    "files": {
+      "Image": "43fb1c9128bdf37a2a77eb88cfff234381340b098ebf1aea1eabb2741180cebb",
+      "vmlinux": "295bfdb12184052a79c1aea35ce4a93a5833c42bdb7b4bd9173973312ade00ff",
+      "System.map": "e3ed0234692c5dc80188996730bb13f2303fd2ecb573e303134df02b7f61b3ea",
+      "kernel.config": "f947a2e44e60f5818e5e63ed3192d5eeca652b45665c6f4b13b3796cea359bfa"
+    },
+    "elf_export_reconciliation": {
+      "original_vmlinux_sha256": "42c04b8dc386b2f378e20b2b67bc635e11c681e0e1ba7a3bbe8a076af27ca2ca",
+      "archived_vmlinux_sha256": "295bfdb12184052a79c1aea35ce4a93a5833c42bdb7b4bd9173973312ade00ff",
+      "image_reproduction": "EXACT_MATCH",
+      "system_map_entries_matched": 167212,
+      "cause": "llvm-objcopy --dump-section without output rewrote ELF container in place",
+      "rebuild": false,
+      "run_id": "35040148509",
+      "source_commit": "ef629df364a592dd63e83743dfc06bf69f15ae5c"
+    }
+  },
+  "linux_base": "8b73de7da85fde281a385e0b26eda9bffd3ca477",
+  "patch_queue_sha256": "d470701d58d62bf10b96adb4dbf0c639945afccd45d4d3f039e8051e7aaaf1b5",
+  "runtime_rewrites": {
+    "standalone_sections": {
+      "__ex_table": {
+        "entries": 994,
+        "sha256": "e93f6326dba119d9b5091b9c31295e47086ce45813b6f1a62dde0655ca65a9be"
+      },
+      "altinstructions": {
+        "entries": 37287,
+        "sha256": "a98a9bc613c12519ea5fd8f1e168ede872af0d8474fa385df6bc1cc17fdc36a6"
+      },
+      "__jump_table": "ABSENT",
+      "static_call_sites": "ABSENT",
+      "kcfi_traps": "ABSENT"
+    },
+    "standalone_section_absence_is_not_linked_absence": true,
+    "linked_jump_table_gate": "LINKED_JUMP_TABLE_PM_WORKER_SAFE"
+  },
+  "linked_jump_reference": {
+    "repository": "ChuenSan/xiaomi10s",
+    "report_path": "artifacts/slot-b-deferred-pm-tail-20260921/linked-jump-35613385810/audit/linked-jump/linked-jump-table.json",
+    "source_commit": "00094b32ef511699be7e817cb5f13cdb58558e8a",
+    "public_run": "35613385810",
+    "canonical_sha256": "71f8aa57f6f42e75aff2612262ffec625c356375e24f95c62d65b3cf0f591cc6"
+  },
+  "exception_fixup_destinations": "CHECKED_FULL_PARENT_AND_WORKER",
+  "incoming_entry": [
+    [
+      18446603338378020000,
+      18446603338377978960
+    ]
+  ],
+  "incoming_interior": [],
+  "incoming_window": [],
+  "whole_code_scan": "FROZEN_AND_BUNDLE",
+  "relocation_scan": "RELA_AND_RELR_FULL_PARENT_AND_WORKER",
+  "source_reference_set": [
+    "drivers/base/base.h",
+    "drivers/base/core.c",
+    "drivers/base/dd.c"
+  ],
+  "rt_d_sha256": "4849743205af9d00f4b5bcd01070aac68be7dc60954975069356d29fe33df327",
+  "initramfs_source": "FROZEN_BUILTIN",
+  "external_initrd": false,
+  "trailer_unchanged": true,
+  "frozen_experiment_rerun": false,
+  "partition_writes": 0,
+  "device_operation": false,
+  "linked_jump_report": {
+    "gate": "LINKED_JUMP_TABLE_PM_WORKER_SAFE",
+    "source_commit": "b01b9f6601627f5157c6e357900a98a5689b6aad",
+    "public_run": "35620158321",
+    "bundle_run": "35040148509",
+    "offset": 27882792,
+    "end": 27899832,
+    "size": 17040,
+    "entries": 1065,
+    "section": ".rodata",
+    "sha256": "82b8114fdc566a524c09496766c44f1c6fa804272a379a028c2f1e9248af4733",
+    "source_file": "include/linux/jump_label.h",
+    "source_sha256": "3da4ded9cccf8a7538348b3aa9309367d01309c03069505b8751931030f7d87d",
+    "layout": "S32_CODE_S32_TARGET_S64_KEY_FIELD_RELATIVE",
+    "agreement": "ELF_IMAGE_FIX8_EXACT",
+    "protected": [
+      [
+        18446603338377978960,
+        18446603338377979060
+      ],
+      [
+        18446603338378019876,
+        18446603338378020072
+      ]
+    ],
+    "code_rewrite_overlap": [],
+    "target_entry_overlap": [],
+    "candidate_generated": false,
+    "device_operation": false
+  },
+  "linked_jump_report_canonical_sha256": "a53128b23d88e3f84c9b8e7d8a047c5ce39299a2db4f3c26f320e54e6d7c335f",
+  "source_commit": "b01b9f6601627f5157c6e357900a98a5689b6aad",
+  "public_run": "35620158321",
+  "source_files_sha256": {
+    "drivers/base/dd.c": "1541264d3103954566e355752d93b212537719a2546e69da5fae2b4a4e9436c6",
+    "arch/arm64/include/asm/extable.h": "716acb8bb1c8d7bc2c066bc32c8864914ea7005fd59286484a2e0ad2f8f9bd82",
+    "arch/arm64/mm/extable.c": "89c0117326965554e8d3b0fb2ca45a7b495e3773ed72c6fa526306f74f94a9ff",
+    "drivers/base/core.c": "82c6bff4a508d9ad1174a97e1e609a24678f0f773c6478c72311fd0049430fb3",
+    "drivers/base/base.h": "a6ee79463db989405b03107eb2262b7552257059ebc9cd6f50169127f3971fed",
+    "include/linux/jump_label.h": "3da4ded9cccf8a7538348b3aa9309367d01309c03069505b8751931030f7d87d"
+  },
+  "case": "defer_pmtail8",
+  "delay_seconds": 8,
+  "payload_sha256": "4d084e61c9eef342c358cf12e208e37edd14c4a72cd2f8a81d058778ba6a5280",
+  "checkpoint_sha256": "8b90e4c5ba8817ed23414b0d41e94bc376021d2839889b6a87c6023aa5e259b5"
+}

@@ -1,0 +1,76 @@
+{
+  "stage": "pm_tail",
+  "source_commit": "b01b9f6601627f5157c6e357900a98a5689b6aad",
+  "public_run": "35620158321",
+  "members": {
+    "8": {
+      "case": "defer_pmtail8",
+      "boot_sha256": "bd93a87d35109dfd69c5cd5dd36512a5bdc264d739dd6856ef2622395bdb0a44",
+      "boot_size": 37380096,
+      "payload_sha256": "4d084e61c9eef342c358cf12e208e37edd14c4a72cd2f8a81d058778ba6a5280"
+    },
+    "1": {
+      "case": "defer_pmtail1",
+      "boot_sha256": "45c30e30f95ec3e7cf14b147946f06f7d6e3cc6645f9c7843dfa1bc49aeeb3be",
+      "boot_size": 37380096,
+      "payload_sha256": "c88df1c33b0df49a9fb7e72dc728659f24704a23dcc801a0b900c4635cc2e9f9"
+    }
+  },
+  "boot_changed_offsets": [
+    9303133,
+    9303134
+  ],
+  "base_boot_sha256": "ba3d8789356fd69af1a4adb5a22aebf8b3c427528143793b3358e886aa462ab5",
+  "public_pair_sha256": "d00440dce428bd1abb9ecc60762895a8babe993d205ac119f47e178755534c12",
+  "gate": "DEFERRED_PM_TAIL_PRIVATE_PAIR_VERIFIED",
+  "linked_jump_report": {
+    "gate": "LINKED_JUMP_TABLE_PM_WORKER_SAFE",
+    "source_commit": "b01b9f6601627f5157c6e357900a98a5689b6aad",
+    "public_run": "35620158321",
+    "bundle_run": "35040148509",
+    "offset": 27882792,
+    "end": 27899832,
+    "size": 17040,
+    "entries": 1065,
+    "section": ".rodata",
+    "sha256": "82b8114fdc566a524c09496766c44f1c6fa804272a379a028c2f1e9248af4733",
+    "source_file": "include/linux/jump_label.h",
+    "source_sha256": "3da4ded9cccf8a7538348b3aa9309367d01309c03069505b8751931030f7d87d",
+    "layout": "S32_CODE_S32_TARGET_S64_KEY_FIELD_RELATIVE",
+    "agreement": "ELF_IMAGE_FIX8_EXACT",
+    "protected": [
+      [
+        18446603338377978960,
+        18446603338377979060
+      ],
+      [
+        18446603338378019876,
+        18446603338378020072
+      ]
+    ],
+    "code_rewrite_overlap": [],
+    "target_entry_overlap": [],
+    "candidate_generated": false,
+    "device_operation": false
+  },
+  "linked_jump_report_canonical_sha256": "a53128b23d88e3f84c9b8e7d8a047c5ce39299a2db4f3c26f320e54e6d7c335f",
+  "linked_jump_reference": {
+    "repository": "ChuenSan/xiaomi10s",
+    "report_path": "artifacts/slot-b-deferred-pm-tail-20260921/linked-jump-35613385810/audit/linked-jump/linked-jump-table.json",
+    "source_commit": "00094b32ef511699be7e817cb5f13cdb58558e8a",
+    "public_run": "35613385810",
+    "canonical_sha256": "71f8aa57f6f42e75aff2612262ffec625c356375e24f95c62d65b3cf0f591cc6"
+  },
+  "source_files_sha256": {
+    "drivers/base/dd.c": "1541264d3103954566e355752d93b212537719a2546e69da5fae2b4a4e9436c6",
+    "arch/arm64/include/asm/extable.h": "716acb8bb1c8d7bc2c066bc32c8864914ea7005fd59286484a2e0ad2f8f9bd82",
+    "arch/arm64/mm/extable.c": "89c0117326965554e8d3b0fb2ca45a7b495e3773ed72c6fa526306f74f94a9ff",
+    "drivers/base/core.c": "82c6bff4a508d9ad1174a97e1e609a24678f0f773c6478c72311fd0049430fb3",
+    "drivers/base/base.h": "a6ee79463db989405b03107eb2262b7552257059ebc9cd6f50169127f3971fed",
+    "include/linux/jump_label.h": "3da4ded9cccf8a7538348b3aa9309367d01309c03069505b8751931030f7d87d"
+  },
+  "partition_writes": 0,
+  "normal_boot_candidate": false,
+  "device_ready": false,
+  "device_operation": false
+}

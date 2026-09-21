@@ -24,6 +24,11 @@ class SafetyTests(unittest.TestCase):
             record.update(observe.afterfree_authority(frozen), ci_run=frozen["private_run"],
                           normal_boot_candidate=False, slot_a_written=False, partition_writes=0,
                           host_boot_commands=1, recovery_control_boots=0, b_retries="6")
+        if case in observe.pmtail.CASES:
+            frozen = observe.pmtail.load_freeze(observe.IMAGES)
+            record.update(observe.pmtail.authority(frozen), ci_run=frozen["private_run"],
+                          normal_boot_candidate=False, slot_a_written=False, partition_writes=0,
+                          host_boot_commands=1, recovery_control_boots=0, b_retries="6")
         return record
 
     def test_exact_images_only(self):

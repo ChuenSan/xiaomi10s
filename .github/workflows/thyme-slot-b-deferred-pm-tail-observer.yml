@@ -1,0 +1,68 @@
+name: Slot B deferred PM-tail observer gates
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/observe.py'
+      - 'scripts/slot_b/test_observe.py'
+      - 'scripts/slot_b/deferred_pm_tail_runtime.py'
+      - 'scripts/slot_b/deferred_pm_tail_identities.json'
+      - 'scripts/slot_b/deferred_pm_tail_identity_agreement.py'
+      - 'scripts/slot_b/test_deferred_pm_tail_observer.py'
+      - '.github/workflows/thyme-slot-b-deferred-pm-tail-observer.yml'
+      - 'artifacts/slot-b-deferred-pm-tail-20260921/public-audit-35620158321/pm-tail/pair/**'
+      - 'artifacts/slot-b-deferred-pm-tail-20260921/private-reverify-35621265916-identity.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  observer-gates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-deferred-pm-tail-observer.yml
+      - name: Test provenance, conservative verdicts and Slot A rejection
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_deferred_pm_tail_observer.py' -v 2>&1 | tee pmtail-observer-tests.log
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_observe.py' -v 2>&1 | tee observer-base-tests.log
+      - name: Bind observer to the successful public pair
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          source_run=$(jq -r .public_run scripts/slot_b/deferred_pm_tail_identities.json)
+          source_commit=$(jq -r .source_commit scripts/slot_b/deferred_pm_tail_identities.json)
+          [[ "$source_run" =~ ^[1-9][0-9]*$ ]]
+          [[ "$source_commit" =~ ^[0-9a-f]{40}$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$source_run" > public-run.json
+          jq -e --arg sha "$source_commit" --arg repo "$GITHUB_REPOSITORY" '.head_sha == $sha and .repository.full_name == $repo and .head_repository.full_name == $repo and .status == "completed" and .conclusion == "success" and .path == ".github/workflows/thyme-slot-b-deferred-pm-tail.yml"' public-run.json
+          git fetch --no-tags --depth=1 origin "$source_commit"
+          git diff --exit-code "$source_commit" HEAD -- \
+            scripts/slot_b/deferred_pm_tail_probe.py scripts/slot_b/deferred_pm_tail_audit.py \
+            scripts/slot_b/linked_jump_table_audit.py scripts/slot_b/deferred_after_kfree_probe.py \
+            scripts/slot_b/deferred_selected_probe.py scripts/slot_b/deferred_probe_checkpoints.py \
+            scripts/slot_b/checkpoint.py scripts/slot_b/checkpoint-ultracompact.S \
+            scripts/r3-p1/r3-runtime-dtb.py scripts/r3-p1b patches/linux-6.6
+          gh run download "$source_run" -R "$GITHUB_REPOSITORY" -n thyme-deferred-pm-tail-pair -D pair
+          python3 -B scripts/slot_b/deferred_pm_tail_identity_agreement.py --root pair | tee observer-identity.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-deferred-pm-tail-observer-gates
+          path: |
+            observer-identity.txt
+            public-run.json
+            pmtail-observer-tests.log
+            observer-base-tests.log
+          if-no-files-found: error
+          retention-days: 90

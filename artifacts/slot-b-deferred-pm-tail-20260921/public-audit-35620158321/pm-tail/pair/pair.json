@@ -1,0 +1,22 @@
+{
+  "stage": "pm_tail",
+  "source_commit": "b01b9f6601627f5157c6e357900a98a5689b6aad",
+  "public_run": "35620158321",
+  "expected_delta_s": -7,
+  "changed_offsets": [
+    9299037,
+    9299038
+  ],
+  "cases": [
+    "defer_pmtail8",
+    "defer_pmtail1"
+  ],
+  "payload_shas": {
+    "8": "4d084e61c9eef342c358cf12e208e37edd14c4a72cd2f8a81d058778ba6a5280",
+    "1": "c88df1c33b0df49a9fb7e72dc728659f24704a23dcc801a0b900c4635cc2e9f9"
+  },
+  "manifest_shas": {
+    "8": "8ab1b1ca5e275d53c94105fde6c509950dbf66d905afaed8925c1ebe231fb54c",
+    "1": "8a285800e87cc617b61445ad99ce3fa1ee81f68327f60efae49185fd69b14b0d"
+  }
+}
