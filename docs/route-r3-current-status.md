@@ -1,20 +1,29 @@
 # thyme R3 current status (single source of truth for the current round)
 
-Latest after-kfree closeout (2026-09-21, user-requested conversation handoff):
-qualification is complete at observer freeze
-`573ccee87bf658b618bab2c579df81483ed54734`; all 24 public workflows passed.
-Public observer `35590309126` passed 31 dedicated and 38 base tests without
-skips. Full suite `35590309460` passed 635 tests with 18 artifact/source-dependent
-skips. Private observer provenance `35590327114` passed at private `853ac9f3`
-and checked that exact public observer commit. Candidate public audit
-`35573581801` and private pack/fresh-job reverify `35580754081` remain unchanged.
-Full identities are in `scripts/slot_b/deferred_after_kfree_identities.json`.
-Gate: `AFTER_KFREE_READY_FOR_LIVE_PREFLIGHT`; AFTERFREE8/1 are NOT_EXECUTED.
-The next stage is `MAINLINE_V2_R3_SLOT_B_DEFERRED_AFTER_KFREE_TRUE_DEVICE_PAIR`,
-after fresh live preflight. Last read-only check at host 09:55:36Z found healthy
-Android A, empty pstore and unchanged 16-chain/P15 hashes. This continuation
-made zero reboots, slot changes or partition writes. The runtime boundary
-remains SELECTED8/1 below; `/init` and usable mainline Linux are NOT_PROVEN.
+Latest reconciliation (2026-09-21): the existing AFTERFREE8/1 device pair is
+**COMPLETE**, not pending. Raw events record 35.193026708 / 28.421630667 s,
+delta -6.771396041 s, error +0.228603959 s: **STRONG**.
+Gate: `DEFERRED_REASON_KFREE_RETURN_PROVEN`. Original list removal,
+`get_device()` return, reason-pointer loads and `kfree()` return are PROVEN;
+reference success, reason clear, mutex unlock, PM movement, bus/driver probe,
+culprit, late completion, `/init` and usable mainline Linux remain NOT_PROVEN.
+USB stays FROZEN. Both afterfree members now join the eight earlier deferred
+members as rerun-FORBIDDEN. They ran once each RAM-only in B with automatic
+return and retry 7 to 6; Android A was restored and 16-chain/P15 hashes were
+unchanged between/after. No partition images or Slot A were written.
+The 11:59 UTC mem0 snapshot predated the completed device records. This resumed
+session reconciled them without repeating a boot; fresh read-only checks at
+12:45:38Z again found healthy Android A/root, empty pstore and unchanged hashes.
+Evidence: `artifacts/slot-b-deferred-after-kfree-20260921/live-20260921T115757Z/`
+and sibling `reconcile-20260921T124538Z/`.
+
+Qualified identities remain at observer freeze `573ccee87bf658b618bab2c579df81483ed54734`,
+with public audit `35573581801`, private pack/fresh-job reverify `35580754081`,
+public observer `35590309126`, private provenance `35590327114` and full suite
+`35590309460` all passed. See `scripts/slot_b/deferred_after_kfree_identities.json`.
+Next is an Actions-only single-caller/entry-safety feasibility audit of
+`device_pm_move_to_tail()` at Image `0x8de450`, not a rerun or generic bus-entry
+probe. No PM-tail image or device readiness is claimed yet.
 Read `docs/slot-b-deferred-after-kfree.md` for the exact continuation and limits.
 
 Latest static-only evidence (2026-09-21): OF forensic Actions `35569628684`

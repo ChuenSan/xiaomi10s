@@ -1,0 +1,80 @@
+[
+  {
+    "utc": "2026-09-21T12:00:36.482544+00:00",
+    "event": "PREFLIGHT",
+    "product": "thyme",
+    "unlocked": "yes",
+    "current-slot": "b",
+    "slot-count": "2",
+    "snapshot-update-status": "none",
+    "battery-soc-ok": "yes",
+    "max-download-size": "805306368",
+    "slot-unbootable:b": "no",
+    "slot-retry-count:b": "7",
+    "slot-successful:a": "yes"
+  },
+  {
+    "utc": "2026-09-21T12:00:36.503515+00:00",
+    "event": "COMMAND_START",
+    "operation": "ram_boot_b",
+    "case": "defer_afterfree8"
+  },
+  {
+    "utc": "2026-09-21T12:00:37.438924+00:00",
+    "event": "FASTBOOT_OUT",
+    "text": "Sending 'boot.img' (36504 KB)                      OKAY [  0.908s]"
+  },
+  {
+    "utc": "2026-09-21T12:00:37.659727+00:00",
+    "event": "FASTBOOT_OUT",
+    "text": "Booting                                            OKAY [  0.221s]"
+  },
+  {
+    "utc": "2026-09-21T12:00:37.660419+00:00",
+    "event": "FASTBOOT_OUT",
+    "text": "Finished. Total time: 1.138s"
+  },
+  {
+    "utc": "2026-09-21T12:00:37.661908+00:00",
+    "event": "BOOTING_OKAY"
+  },
+  {
+    "utc": "2026-09-21T12:00:38.966608+00:00",
+    "event": "FASTBOOT_DISAPPEARED",
+    "elapsed_s": 1.2844841660000001
+  },
+  {
+    "utc": "2026-09-21T12:01:12.874133+00:00",
+    "event": "FASTBOOT_FIRST_RETURN",
+    "elapsed_s": 35.193026708
+  },
+  {
+    "utc": "2026-09-21T12:01:16.078700+00:00",
+    "event": "RESULT",
+    "protocol": "slot-b-p15-fastboot-return-v1",
+    "case": "defer_afterfree8",
+    "image_sha256": "13bc43a3348a087c21c2f4a29bfd30ab23f47af123e05690ff90d43277a3a947",
+    "context": {
+      "boot_b_prefix": "133e063b16e6b89d0493dd93de6c77f17b14f2baad59c5722e00b5442ea87d34",
+      "vendor_boot_b": "aac7e11f3b481bb6c51a7b011ae35bed230d1fa132e6f0bcae46e5aade041972",
+      "dtbo_b": "018fa85c9c299df73cd6b6e86c60eae2125ac30a0e3ac0ca14d428aaefe64634"
+    },
+    "ci_run": "35580754081",
+    "bootloader_origin": "ANDROID_A_ADB_REBOOT_BOOTLOADER_THEN_SELECT_B",
+    "normal_boot_candidate": false,
+    "slot_a_written": false,
+    "partition_writes": 0,
+    "stage": "after_kfree",
+    "source_commit": "cc693ac6e92a587a0244cc18736a45346042ceab",
+    "public_run": "35573581801",
+    "private_commit": "44fca85594faa1ebd6f21656602f37c4baa0e41e",
+    "private_run": "35580754081",
+    "status": "AUTOMATIC_FASTBOOT_RETURN",
+    "final_slot": "b",
+    "total_s": 35.193026708,
+    "b_retries": "6",
+    "host_boot_commands": 1,
+    "experimental_boots": 1,
+    "recovery_control_boots": 0
+  }
+]

@@ -1,10 +1,13 @@
 # Deferred worker after-kfree boundary
 
-Status: public audit, private pack/fresh-job reverify, observer and private
-provenance gates passed. Full identities are recorded in
-`scripts/slot_b/deferred_after_kfree_identities.json`. The user requested a
-conversation handoff after qualification. Neither after-kfree member was
-device-tested. Gate: `AFTER_KFREE_READY_FOR_LIVE_PREFLIGHT`.
+Status: the RAM-only Slot B pair is **COMPLETE**, with a **STRONG** timing
+shift. Gate: `DEFERRED_REASON_KFREE_RETURN_PROVEN`. Both `defer_afterfree8`
+and `defer_afterfree1` are now **rerun-FORBIDDEN**, along with the eight earlier
+deferred cases. Full identities remain in
+`scripts/slot_b/deferred_after_kfree_identities.json`; no candidate was rebuilt.
+The 11:59 UTC mem0 snapshot and the earlier preflight-only handoff predate
+these results. The resumed continuation reconciled the existing raw records
+rather than repeating either boot.
 
 | Gate | Actions receipt | Result |
 |---|---|---|
@@ -25,21 +28,21 @@ workflows triggered at the observer freeze passed. No successful candidate
 audit or pack was rerun; no local validator, build or binary audit was executed.
 
 The selected-device pair proved mutex acquisition, a nonempty active list and
-the original device-pointer load. The next proposed terminal pair starts at
+the original device-pointer load. The after-kfree terminal pair starts at
 Image `0x8e848c`, immediately after the original `kfree()` call at `0x8e8488`.
 Its 56-byte window ends at `0x8e84c4`, before the empty-list target `0x8e84c8`.
 
 The original 196-byte `deferred_probe_work_func` prefix and suffix are retained.
-No extra pointer/name read or branch retarget is proposed. The original empty
+There is no extra pointer/name read or branch retarget. The original empty
 branch bypasses the complete window. The retained backedge at `0x8e84c4` is
 unreachable from the terminal timer/PSCI/local-WFE core.
 
-A strong new 8/1-second pair would support only the original path through
-`list_del_init()`, return from `get_device()`, the original deferred-reason
-pointer loads and return from `kfree()`. The worker ignores `get_device()`'s
-return value, so this must not be described as successful reference acquisition.
-The reason field's clearing store, mutex unlock, PM-list movement, bus/device
-probe, identity, culprit, late completion and `/init` remain unproven.
+The STRONG pair proves the original path through `list_del_init()`, return
+from `get_device()`, the original deferred-reason pointer loads and return
+from `kfree()`. The worker ignores `get_device()`'s return value: successful
+reference acquisition, a non-null reason and an allocation actually freed are
+not proven. The reason field's clearing store, mutex unlock, PM-list movement,
+bus/device probe, identity, culprit, late completion and `/init` remain unproven.
 
 The completed Actions audit covers source/opcode/window/full-parent incoming,
 rewrite, RELA/RELR and exception-fixup checks, independent public re-audit,
@@ -48,30 +51,41 @@ private observer gates also passed. Maximum programmed spin remains eight second
 neither the historical return cluster nor the host observation timeout proves
 a hardware recovery deadline.
 
-Proposed cases are `defer_afterfree8` then `defer_afterfree1`, one RAM-only
-Slot B boot each after all gates. Restore healthy Android A and verify all
-16 partition hashes and the 52666368-byte P15 prefix between members. Stop on
-any anomaly. All eight completed deferred cases remain rerun-FORBIDDEN.
+## Completed device pair (2026-09-21)
+
+| Member | Automatic Fastboot return | Final state |
+|---|---:|---|
+| `defer_afterfree8` | 35.193026708 s | B, retries 7 to 6, one RAM boot |
+| `defer_afterfree1` | 28.421630667 s | B, retries 7 to 6, one RAM boot |
+
+Delta is -6.771396041 s, error +0.228603959 s against the -7 s expectation:
+**STRONG**. Each raw event log records Android-A origin, last-moment B preflight,
+Sending/Booting OKAY, disappearance and automatic return. Healthy Android A
+and unchanged 16-chain/P15 hashes were verified between members and after both.
+The pair used two RAM boots, zero partition-image writes and zero Slot A writes.
+Current B remains the P15 recovery boot with stock V14 vendor_boot/dtbo.
+
+Raw evidence: `artifacts/slot-b-deferred-after-kfree-20260921/live-20260921T115757Z/`.
+A fresh read-only reconciliation at host `2026-09-21T12:45:38Z` again found
+healthy stock Android A/root, empty pstore, all 16 full partition hashes and
+the 52666368-byte P15 prefix unchanged. It is stored in the sibling
+`reconcile-20260921T124538Z/`. The reconciliation itself performed no reboot,
+slot selection or partition write. Source and raw-event reviews agreed with
+the limited proof above; neither review substitutes for CI or device evidence.
 
 ## Exact continuation
 
-Next stage: `MAINLINE_V2_R3_SLOT_B_DEFERRED_AFTER_KFREE_TRUE_DEVICE_PAIR`.
-Read latest mem0, this document and current Git/CI state first. Refresh the
-live Android A identity/health, all 16 full partition hashes and P15 prefix;
-then use the qualified observer with the frozen private run `35580754081`.
-Execute `defer_afterfree8` once, restore healthy A and verify all hashes, then
-permit `defer_afterfree1` once only with a valid first-member result. Each
-member requires Android-A ADB origin, B selection, last-moment B validation,
-automatic Fastboot B return and retry 7 to 6. No partition image write is needed.
+Next: Actions-only feasibility audit of the original `device_pm_move_to_tail()`
+entry at Image `0x8de450`, called by the unchanged worker at `0x8e84a0` after
+its mutex unlock. Audit the actual function extent, preserved PAC entry,
+single-caller provenance, full-parent incoming/rewrite/relocation/exception
+checks and exact ELF/Image/FIX8 agreement before considering a new pair.
+Do not use an unqualified generic `bus_probe_device()` entry: other call paths
+would make it inadequate evidence of the deferred worker's progress.
+No new PM-tail candidate or device readiness is claimed by this plan.
 
-Last complete read-only snapshot: host `2026-09-21T09:55:36.387084+00:00`,
-healthy stock Android A, root available, empty pstore, all 16 hashes and P15
-prefix unchanged. This continuation performed no reboot, slot selection or
-experimental boot. Refresh this historical snapshot before a future boot.
-
-Evidence: `artifacts/slot-b-deferred-after-kfree-20260921/`, including final
-public run receipts, public/private observer logs, full suite, regressions and
-the read-only device snapshot. OEM images remain at
+Qualification receipts remain under `artifacts/slot-b-deferred-after-kfree-20260921/`.
+OEM images remain at
 `/Volumes/LinuxDev/thyme-mainline-private-ci/artifacts/slot-b-deferred-after-kfree-20260921-pack/`.
 
 The source-only possibility of a bare compact44 probe after `mutex_unlock` at
