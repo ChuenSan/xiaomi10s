@@ -166,7 +166,10 @@ PAIRS = {
                         "deferred_first_work_queued"),
     "defer_postflush1": ("defer_postflush8", "deferred_second_flush_returned",
                          "deferred_probe_initcall_returned"),
+    "defer_selected1": ("defer_selected8", "deferred_worker_device_pointer_loaded",
+                        "deferred_first_bus_probe_entered"),
     }
+SELECTED_CASES = ("defer_selected8", "defer_selected1")
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
 CONTEXT = {
@@ -331,7 +334,18 @@ def require(condition, message):
 
 
 def validate_identity(case, size, digest):
+    if case in SELECTED_CASES:
+        validate_selected_freeze()
     require(case in IMAGES and (size, digest) == IMAGES[case], "IMAGE_IDENTITY_MISMATCH")
+
+
+def validate_selected_freeze():
+    identities = [IMAGES.get(case) for case in SELECTED_CASES]
+    require(all(isinstance(identity, tuple) and len(identity) == 2 and
+                identity[0] == 37380096 and isinstance(identity[1], str) and
+                re.fullmatch(r"[0-9a-f]{64}", identity[1]) and len(set(identity[1])) > 2
+                for identity in identities), "SELECTED_IDENTITY_NOT_FROZEN")
+    require(identities[0][1] != identities[1][1], "SELECTED_PAIR_IDENTITY_COLLISION")
 
 
 def validate_arch_geometry(window):
@@ -679,6 +693,8 @@ def validate_preflight(values, size):
 def pair_verdict(baseline, result):
     second = result.get("case")
     require(second in PAIRS, "PAIR_MEMBER_MISMATCH")
+    if second == "defer_selected1":
+        validate_selected_freeze()
     first, proof_key, unproved_key = PAIRS[second]
     for record, case in zip((baseline, result), (first, second)):
         if second != "reset1":
@@ -689,6 +705,8 @@ def pair_verdict(baseline, result):
         require(record.get("status") == "AUTOMATIC_FASTBOOT_RETURN", "PAIR_RETURN_NOT_VALID")
         require(record.get("final_slot") == "b", "PAIR_NOT_SLOT_B")
         require(record.get("experimental_boots") == 1, "PAIR_BOOT_COUNT_INVALID")
+        if second == "defer_selected1":
+            require(type(record.get("experimental_boots")) is int, "PAIR_BOOT_COUNT_INVALID")
         require(record.get("context") == CONTEXT, "PAIR_CONTEXT_MISMATCH")
         require(not isinstance(record.get("total_s"), bool) and
                 isinstance(record.get("total_s"), (int, float)) and
@@ -959,6 +977,19 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(late_text54_checkpoint_shift_not_observed="YES")
+    elif second == "defer_selected1":
+        out.update(mutex_acquired=grade, active_list_nonempty=grade,
+                   deferred_device_pointer_valid="NOT_PROVEN",
+                   deferred_device_name="NOT_PROVEN",
+                   deferred_get_device_entered="NOT_PROVEN",
+                   deferred_get_device_returned="NOT_PROVEN",
+                   deferred_first_bus_probe_returned="NOT_PROVEN",
+                   deferred_culprit_driver="NOT_PROVEN",
+                   late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN",
+                   console_on_rootfs_entry="NOT_PROVEN", usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(deferred_selected_shift_not_observed="YES")
     elif second in ("defer_prequeue1", "defer_postflush1", "defer_worker1"):
         out.update(late_initcalls_completed="NOT_PROVEN",
                    wait_for_initramfs_return="NOT_PROVEN",
@@ -1007,6 +1038,8 @@ class Observer:
 
     def launch(self):
         require(self.boots == 0, "SECOND_EXPERIMENTAL_BOOT_FORBIDDEN")
+        if self.args.case in SELECTED_CASES:
+            validate_selected_freeze()
         require(self.getvar("current-slot") == "b", "LAST_MOMENT_SLOT_NOT_B")
         command = self.fb + (["reboot"] if self.args.case == "recovery" else
                              ["boot", str(self.args.image)])
