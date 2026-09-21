@@ -34,7 +34,22 @@ class DeferredCheckpointTests(unittest.TestCase):
             d.gate_window("text54", d.PARENT, bytes(56))
 
     def test_source_contract_and_negative_fixtures(self):
-        source = (d.cp.pb.LINUX / "drivers/base/dd.c").read_text()
+        source = """static int deferred_probe_initcall(void)
+{
+    driver_deferred_probe_enable = true;
+    driver_deferred_probe_trigger();
+    flush_work(&deferred_probe_work);
+    initcalls_done = true;
+    if (!IS_ENABLED(CONFIG_MODULES))
+        fw_devlink_drivers_done();
+    driver_deferred_probe_trigger();
+    flush_work(&deferred_probe_work);
+    if (driver_deferred_probe_timeout > 0)
+        schedule_delayed_work(&deferred_probe_timeout_work, HZ);
+    return 0;
+}
+late_initcall(deferred_probe_initcall);
+"""
         d.source_contract(source, "CONFIG_MODULES=y\n")
         for mutation in (source.replace("initcalls_done = true;", "initcalls_done = false;"),
                          source.replace("late_initcall(deferred_probe_initcall);", ""),
