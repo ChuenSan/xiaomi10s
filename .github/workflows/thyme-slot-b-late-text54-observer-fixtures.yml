@@ -1,8 +1,7 @@
 # =============================================================================
 # PUBLIC observer fixtures for the late index-54 TARGET-SCOPED `.text` round.
 # Faithful enumerated transform of the index-52 TEXT54 fixture workflow.
-# The cross-identity rejection count moved 124 -> 128 because the frozen TEXT54
-# registry adds exactly two IMAGES keys (late_text548 / late_text541).
+# The registry now also includes four deferred-probe callsite identities.
 # =============================================================================
 
 name: thyme-slot-b-late-text54-observer-fixtures
@@ -78,7 +77,7 @@ jobs:
             TEXT541_WRONG_DELAY_MUTANT_REJECT=PASS \
             TEXT548_REJECTS_LATE_TEXT541_SWAP=PASS \
             TEXT541_REJECTS_LATE_TEXT548_SWAP=PASS \
-            TEXT54_CROSS_IDENTITY_REJECTIONS=128 \
+            TEXT54_CROSS_IDENTITY_REJECTIONS=136 \
             TEXT54_CROSS_IDENTITY_REJECTION=PASS \
             TEXT54_60B_INLINE_GEOMETRY=PASS \
             TEXT54_48B_NEGATIVE_FIXTURE=PASS \

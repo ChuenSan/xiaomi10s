@@ -1,0 +1,35 @@
+{
+  "public_run": "35553769346",
+  "source_commit": "d3e06680d0da6002ff29153b700471c7c2fb2db5",
+  "boot_size": 37380096,
+  "stages": {
+    "prequeue": {
+      "offset": 9336340,
+      "private_run": "35554007042",
+      "members": {
+        "8": {
+          "boot_sha256": "715b64687e7230585c4c4d72c610a7425ae07f5947769d410077d1db6c3fb0a2",
+          "payload_sha256": "40e884c53b1a18eb4f05ea78813a6e2a6ab66b7f0004411c4f1d2eb6c51a3693"
+        },
+        "1": {
+          "boot_sha256": "0da65f8cdbbc6aa5b72343f5ed0db31336ab6f5cf8b7e1d52a8ab1a6bab34560",
+          "payload_sha256": "72466c642a3511a0c2660a22955e8c4b532b9bd8125f605ef1aff4a9291e35cd"
+        }
+      }
+    },
+    "postflush": {
+      "offset": 9336504,
+      "private_run": "35554009619",
+      "members": {
+        "8": {
+          "boot_sha256": "e0cc78f848aaf4c0554fb7b4797498797b0bf3d2d3da153151beb4e32ee7b6f8",
+          "payload_sha256": "503e958a38639bf83fc7e51c05614f4d8f091d6d71f7eb51edf9089bc98cc82f"
+        },
+        "1": {
+          "boot_sha256": "47a37dccbb8a0c7c110b062a26df1ef3501379a947cde3a4b6b44808c3da72ef",
+          "payload_sha256": "3c64e25ac4744b88d49e240cc7032bd80d81dd9b4a2155b389ccc9907cd94c02"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,52 @@
+name: Slot B deferred-probe observer gates
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/observe.py'
+      - 'scripts/slot_b/deferred_probe_identities.json'
+      - 'scripts/slot_b/test_deferred_probe_observer.py'
+      - 'scripts/slot_b/deferred_probe_identity_agreement.py'
+      - '.github/workflows/thyme-slot-b-deferred-observer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  observer-gates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-deferred-observer.yml
+      - name: Test exact identities, conservative verdicts and Slot A rejection
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_deferred_probe_observer.py' -v
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_observe.py' -v
+      - name: Reconcile observer and public authority
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          source_run=$(jq -r .public_run scripts/slot_b/deferred_probe_identities.json)
+          source_commit=$(jq -r .source_commit scripts/slot_b/deferred_probe_identities.json)
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$source_run" --jq .head_sha)" = "$source_commit"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$source_run" --jq .conclusion)" = success
+          for stage in prequeue postflush; do
+            gh run download "$source_run" -R "$GITHUB_REPOSITORY" -n "thyme-deferred-$stage-pair" -D "pair/$stage"
+          done
+          python3 -B scripts/slot_b/deferred_probe_identity_agreement.py --root pair | tee observer-identity.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-deferred-observer-gates
+          path: observer-identity.txt
+          if-no-files-found: error
