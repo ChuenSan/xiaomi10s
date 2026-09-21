@@ -2,7 +2,10 @@
 
 **DRAFT_ONLY / NOT_CI_VALIDATED / NOT_DEVICE_READY.** Preserved when the user
 requested a conversation handoff on 2026-09-21. Files were moved here without
-deletion, outside active workflow triggers and unittest discovery. No source
+deletion, outside the active slot_b workflow triggers and unittest discovery.
+The generic linux-6.6-ci does not ignore this directory: its closeout-triggered
+run was intentionally cancelled before kernel configuration/build. That generic
+workflow would not validate this draft even if it completed. No source
 in this directory has been assembled, built, binary-validated, packed or run
 on the device. Do not treat the successful worker-pair CI as validation of
 these files.

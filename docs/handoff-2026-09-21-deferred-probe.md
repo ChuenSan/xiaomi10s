@@ -100,7 +100,12 @@ Every run above succeeded. All 22 workflows triggered by the last freeze
 `06a1d79` completed successfully. Full source/observer suite `35556276784`:
 **526 tests, OK, skipped=14** (source-dependent tests in the no-submodule job).
 The production binary audits separately fetched and checked pinned Linux.
-No relevant Actions job remains running at closeout.
+No relevant Actions job remains running at closeout. Publishing the isolated
+source drafts in closeout commit `b1de55e` automatically triggered generic
+`linux-6.6-ci` run `35558011309`. That exact run was intentionally CANCELLED
+while fetching Linux, before configuration or kernel/image builds. It is not
+a kernel failure or draft-validation evidence. The draft directory is outside
+slot_b-specific triggers, but not the generic Linux CI path filter.
 
 Historical failures are resolved, not device/kernel failures:
 `35553769353` (test assumed a checked-out kernel; fixed `0eef215`, full suite
