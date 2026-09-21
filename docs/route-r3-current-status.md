@@ -1,15 +1,21 @@
 # thyme R3 current status (single source of truth for the current round)
 
-Latest after-kfree qualification (2026-09-21): mem0 canonical handoff
-`a73cad7d-9471-4a90-bb40-86e9a5a053dd` agrees with source HEAD `cc693ac6` and
-public audit `35573581801` (19 tests, no skips), plus full suite `35573581872`
-(604 tests, 18 skips). The resumed defensive source/CFG and private contract
-reviews found no blocking defect. Private run `35580754081` at `44fca855`
-passed both pack and fresh-job `independent-reverify`; full identities are in
-`scripts/slot_b/deferred_after_kfree_identities.json`. Public observer and
-private provenance qualification are pending. No after-kfree device operation
-has occurred; the runtime boundary remains SELECTED8/1 below.
-Read `docs/slot-b-deferred-after-kfree.md` for the exact remaining gates.
+Latest after-kfree closeout (2026-09-21, user-requested conversation handoff):
+qualification is complete at observer freeze
+`573ccee87bf658b618bab2c579df81483ed54734`; all 24 public workflows passed.
+Public observer `35590309126` passed 31 dedicated and 38 base tests without
+skips. Full suite `35590309460` passed 635 tests with 18 artifact/source-dependent
+skips. Private observer provenance `35590327114` passed at private `853ac9f3`
+and checked that exact public observer commit. Candidate public audit
+`35573581801` and private pack/fresh-job reverify `35580754081` remain unchanged.
+Full identities are in `scripts/slot_b/deferred_after_kfree_identities.json`.
+Gate: `AFTER_KFREE_READY_FOR_LIVE_PREFLIGHT`; AFTERFREE8/1 are NOT_EXECUTED.
+The next stage is `MAINLINE_V2_R3_SLOT_B_DEFERRED_AFTER_KFREE_TRUE_DEVICE_PAIR`,
+after fresh live preflight. Last read-only check at host 09:55:36Z found healthy
+Android A, empty pstore and unchanged 16-chain/P15 hashes. This continuation
+made zero reboots, slot changes or partition writes. The runtime boundary
+remains SELECTED8/1 below; `/init` and usable mainline Linux are NOT_PROVEN.
+Read `docs/slot-b-deferred-after-kfree.md` for the exact continuation and limits.
 
 Latest static-only evidence (2026-09-21): OF forensic Actions `35569628684`
 passed 24 tests and recovered consistent compiler offsets plus the exact RT-D
