@@ -37,11 +37,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          source_run=$(jq -r .public_run scripts/slot_b/deferred_probe_identities.json)
-          source_commit=$(jq -r .source_commit scripts/slot_b/deferred_probe_identities.json)
-          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$source_run" --jq .head_sha)" = "$source_commit"
-          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$source_run" --jq .conclusion)" = success
-          for stage in prequeue postflush; do
+          for stage in prequeue postflush worker; do
+            source_run=$(jq -r --arg stage "$stage" '.stages[$stage].public_run // .public_run' scripts/slot_b/deferred_probe_identities.json)
+            source_commit=$(jq -r --arg stage "$stage" '.stages[$stage].source_commit // .source_commit' scripts/slot_b/deferred_probe_identities.json)
+            test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$source_run" --jq .head_sha)" = "$source_commit"
+            test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$source_run" --jq .conclusion)" = success
             gh run download "$source_run" -R "$GITHUB_REPOSITORY" -n "thyme-deferred-$stage-pair" -D "pair/$stage"
           done
           python3 -B scripts/slot_b/deferred_probe_identity_agreement.py --root pair | tee observer-identity.txt

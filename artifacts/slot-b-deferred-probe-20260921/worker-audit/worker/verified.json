@@ -1,0 +1,14 @@
+{
+  "stage": "worker",
+  "source_commit": "c16c515d88c5e3986d3527fff65c1917be832977",
+  "public_run": "35555866440",
+  "expected_delta_s": -7,
+  "changed_offsets": [
+    9339953,
+    9339954
+  ],
+  "payload_shas": {
+    "8": "0155c141498e7415b3f598fab733373869081dac63cc2f2c2c3c38c813e2ec98",
+    "1": "df4983a537da33818feed03c0ab96eaab984148732170d14426164d2bad43126"
+  }
+}

@@ -1,7 +1,7 @@
 # =============================================================================
 # PUBLIC observer fixtures for the late index-54 TARGET-SCOPED `.text` round.
 # Faithful enumerated transform of the index-52 TEXT54 fixture workflow.
-# The registry now also includes four deferred-probe callsite identities.
+# The registry also includes the frozen deferred-probe diagnostic identities.
 # =============================================================================
 
 name: thyme-slot-b-late-text54-observer-fixtures
@@ -77,7 +77,7 @@ jobs:
             TEXT541_WRONG_DELAY_MUTANT_REJECT=PASS \
             TEXT548_REJECTS_LATE_TEXT541_SWAP=PASS \
             TEXT541_REJECTS_LATE_TEXT548_SWAP=PASS \
-            TEXT54_CROSS_IDENTITY_REJECTIONS=136 \
+            TEXT54_CROSS_IDENTITY_REJECTIONS=140 \
             TEXT54_CROSS_IDENTITY_REJECTION=PASS \
             TEXT54_60B_INLINE_GEOMETRY=PASS \
             TEXT54_48B_NEGATIVE_FIXTURE=PASS \

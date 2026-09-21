@@ -98,6 +98,8 @@ IMAGES = {
     "late_post491": (37380096, "1bfcaffa503e44574f44dc850dab10fb930f9fc96c9d8f9f99b7b88b8ac03c7b"),
     "late_post508": (37380096, "679d296f936ba9457837bbdf5d8b7d60fdba871f0275fae21912673e6b7102d5"),
     "late_post501": (37380096, "373b7386b283b396851d5acf68bfbcbdebbf1154551f5024e31e4b787684330a"),
+    "defer_worker8": (37380096, "dfe129a9ac8591f04fd2f3f8a95d1fed051adbb751fdd0095c2f1a5afb1adb04"),
+    "defer_worker1": (37380096, "3727ec73979f815e4e04a57ab93fba55f49bf29294cdc22c9f3cc4106f342d87"),
     "defer_prequeue8": (37380096, "715b64687e7230585c4c4d72c610a7425ae07f5947769d410077d1db6c3fb0a2"),
     "defer_prequeue1": (37380096, "0da65f8cdbbc6aa5b72343f5ed0db31336ab6f5cf8b7e1d52a8ab1a6bab34560"),
     "defer_postflush8": (37380096, "e0cc78f848aaf4c0554fb7b4797498797b0bf3d2d3da153151beb4e32ee7b6f8"),
@@ -159,6 +161,7 @@ PAIRS = {
     "late_btic511": ("late_btic518", "late_btic51_entry", "late_initcalls_completed"),
     "late_compact521": ("late_compact528", "late_compact52_entry", "late_initcalls_completed"),
     "late_text541": ("late_text548", "late_text54_entry", "late_initcalls_completed"),
+    "defer_worker1": ("defer_worker8", "deferred_worker_entry", "deferred_worker_first_device"),
     "defer_prequeue1": ("defer_prequeue8", "deferred_first_trigger_prequeue_reached",
                         "deferred_first_work_queued"),
     "defer_postflush1": ("defer_postflush8", "deferred_second_flush_returned",
@@ -956,7 +959,7 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(late_text54_checkpoint_shift_not_observed="YES")
-    elif second in ("defer_prequeue1", "defer_postflush1"):
+    elif second in ("defer_prequeue1", "defer_postflush1", "defer_worker1"):
         out.update(late_initcalls_completed="NOT_PROVEN",
                    wait_for_initramfs_return="NOT_PROVEN",
                    console_on_rootfs_entry="NOT_PROVEN", usb="FROZEN")

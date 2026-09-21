@@ -28,7 +28,8 @@ class DeferredObserverTests(unittest.TestCase):
                     self.assertRegex(sha, r"^[0-9a-f]{64}$")
                     self.assertGreater(len(set(sha)), 8)
                     shas.append(sha)
-        self.assertEqual(len(set(shas)), 8)
+        self.assertEqual(set(IDENTITY["stages"]), {"prequeue", "postflush", "worker"})
+        self.assertEqual(len(set(shas)), 12)
 
     def test_cross_identity_and_mutant_rejection(self):
         for stage, spec in IDENTITY["stages"].items():

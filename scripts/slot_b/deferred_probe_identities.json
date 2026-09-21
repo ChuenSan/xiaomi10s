@@ -3,6 +3,22 @@
   "source_commit": "d3e06680d0da6002ff29153b700471c7c2fb2db5",
   "boot_size": 37380096,
   "stages": {
+    "worker": {
+      "offset": 9339944,
+      "private_run": "35556073389",
+      "public_run": "35555866440",
+      "source_commit": "c16c515d88c5e3986d3527fff65c1917be832977",
+      "members": {
+        "8": {
+          "boot_sha256": "dfe129a9ac8591f04fd2f3f8a95d1fed051adbb751fdd0095c2f1a5afb1adb04",
+          "payload_sha256": "0155c141498e7415b3f598fab733373869081dac63cc2f2c2c3c38c813e2ec98"
+        },
+        "1": {
+          "boot_sha256": "3727ec73979f815e4e04a57ab93fba55f49bf29294cdc22c9f3cc4106f342d87",
+          "payload_sha256": "df4983a537da33818feed03c0ab96eaab984148732170d14426164d2bad43126"
+        }
+      }
+    },
     "prequeue": {
       "offset": 9336340,
       "private_run": "35554007042",

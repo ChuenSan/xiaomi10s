@@ -1,0 +1,39 @@
+{
+  "stage": "worker",
+  "source_commit": "c16c515d88c5e3986d3527fff65c1917be832977",
+  "parent": "deferred_probe_work_func",
+  "parent_offset": 9339940,
+  "parent_size": 196,
+  "section": ".text",
+  "late_index": null,
+  "offset": 9339944,
+  "window": 56,
+  "inline_only": true,
+  "normal_boot_candidate": false,
+  "positive_proves": "deferred_worker_entry",
+  "positive_does_not_prove": "deferred_worker_first_device",
+  "frozen_payload_sha256": "4f34eabf670a735b3a10ebd0fb005e937faba881ea23fdc0843cf4ac96cceb41",
+  "entry_probe_rerun": false,
+  "predecessor": "entry_paciasp",
+  "incoming": [],
+  "runtime_rewrites": {
+    "__ex_table": {
+      "entries": 994,
+      "sha256": "e93f6326dba119d9b5091b9c31295e47086ce45813b6f1a62dde0655ca65a9be"
+    },
+    "altinstructions": {
+      "entries": 37287,
+      "sha256": "a98a9bc613c12519ea5fd8f1e168ede872af0d8474fa385df6bc1cc17fdc36a6"
+    },
+    "__jump_table": "ABSENT",
+    "static_call_sites": "ABSENT",
+    "kcfi_traps": "ABSENT"
+  },
+  "parent_literal_exception": [],
+  "window_agreement": "EXACT",
+  "probe_family": "PRESERVED_PACIASP_PLUS_56B",
+  "core_sha256": "8b90e4c5ba8817ed23414b0d41e94bc376021d2839889b6a87c6023aa5e259b5",
+  "partition_writes": 0,
+  "activation_initcall_index": 54,
+  "callback_first_activation_only": true
+}
