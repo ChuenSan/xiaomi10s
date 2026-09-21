@@ -1,0 +1,70 @@
+name: Slot B deferred PM-tail entry feasibility
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/deferred_pm_tail_audit.py'
+      - 'scripts/slot_b/test_deferred_pm_tail_audit.py'
+      - '.github/workflows/thyme-slot-b-deferred-pm-tail-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: deferred-pm-tail-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  forensic:
+    if: github.repository == 'ChuenSan/xiaomi10s'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-deferred-pm-tail-audit.yml
+      - name: Fetch pinned source and audit tools
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+          sudo apt-get update
+          sudo apt-get install -y llvm-18
+      - name: Download immutable public inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R ChuenSan/xiaomi10s -n thyme-slot-b-kernel-audit-bundle -D bundle
+          gh run download 34741153230 -R ChuenSan/xiaomi10s -n thyme-r3-p1b-fix8-fix24 -D frozen
+      - name: Test single-caller and preserved-prefix gates
+        env:
+          PM_TAIL_SOURCE_REQUIRED: 'true'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_deferred_pm_tail_audit.py' -v 2>&1 | tee pm-tail-tests.log
+      - name: Audit next boundary without generating a candidate
+        run: |
+          set -euo pipefail
+          python3 -u -B scripts/slot_b/deferred_pm_tail_audit.py \
+            --bundle bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --out pm-tail-audit | tee pm-tail-audit.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-deferred-pm-tail-feasibility
+          path: |
+            pm-tail-audit/*.json
+            pm-tail-audit/*.txt
+            pm-tail-*.log
+          if-no-files-found: warn
+          retention-days: 90
