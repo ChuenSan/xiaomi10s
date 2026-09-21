@@ -1,0 +1,177 @@
+===== readelf-SW =====
+There are 51 section headers, starting at offset 0x15b8c670:
+
+Section Headers:
+  [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            0000000000000000 000000 000000 00      0   0  0
+  [ 1] .head.text        PROGBITS        ffff800080000000 010000 010000 00  AX  0   0 65536
+  [ 2] .text             PROGBITS        ffff800080010000 020000 10d4000 00  AX  0   0 65536
+  [ 3] .rodata           PROGBITS        ffff8000810f0000 1100000 9ab7b8 00 WAMS  0   0 4096
+  [ 4] .rodata1          PROGBITS        ffff800081a9b7b8 217a000 000000 00  WA  0   0  1
+  [ 5] .pci_fixup        PROGBITS        ffff800081a9b7c0 1aab7c0 002f00 00   A  0   0 16
+  [ 6] .builtin_fw       PROGBITS        ffff800081a9e6c0 1aae6c0 000000 00   A  0   0  8
+  [ 7] __ksymtab         PROGBITS        ffff800081a9e6c0 1aae6c0 00ff18 00   A  0   0  4
+  [ 8] __ksymtab_gpl     PROGBITS        ffff800081aae5d8 1abe5d8 017d3c 00   A  0   0  4
+  [ 9] __kcrctab         PROGBITS        ffff800081ac6314 1ad6314 000000 00   A  0   0  1
+  [10] __kcrctab_gpl     PROGBITS        ffff800081ac6314 1ad6314 000000 00   A  0   0  1
+  [11] __ksymtab_strings PROGBITS        ffff800081ac6314 1ad6314 043fff 01 AMS  0   0  1
+  [12] __init_rodata     PROGBITS        ffff800081b0a313 217a000 000000 00   A  0   0  1
+  [13] __param           PROGBITS        ffff800081b0a318 1b1a318 004b50 00   A  0   0  8
+  [14] __modver          PROGBITS        ffff800081b0ee68 1b1ee68 000828 00  WA  0   0  8
+  [15] __ex_table        PROGBITS        ffff800081b0f690 1b1f690 002e98 00   A  0   0  4
+  [16] .notes            NOTE            ffff800081b12528 1b22528 000054 00   A  0   0  4
+  [17] .hyp.rodata       PROGBITS        ffff800081b13000 1b23000 004000 00 WAMS  0   0  8
+  [18] .got              PROGBITS        ffff800081b17000 1b27000 000068 00  WA  0   0  8
+  [19] .rodata.text      PROGBITS        ffff800081b17800 1b27800 005800 00  AX  0   0 2048
+  [20] .init.text        PROGBITS        ffff800081b30000 1b30000 08b534 00  AX  0   0  4
+  [21] .exit.text        PROGBITS        ffff800081bbb534 1bbb534 00af5c 00  AX  0   0  4
+  [22] .altinstructions  PROGBITS        ffff800081bc6490 1bc6490 06d3d4 00   A  0   0  1
+  [23] .init.data        PROGBITS        ffff800081c45000 1c35000 0d78b8 00 WAMS  0   0 256
+  [24] .data..percpu     PROGBITS        ffff800081d1d000 1d0d000 00c6a8 00  WA  0   0 64
+  [25] .hyp.data..percpu PROGBITS        ffff800081d2a000 1d1a000 0021c0 00  WA  0   0 16
+  [26] .hyp.reloc        PROGBITS        ffff800081d2c1c0 1d1c1c0 00027c 00   A  0   0  4
+  [27] .rela.dyn         RELA            ffff800081d2c440 1d1c440 000090 18   A  0   0  8
+  [28] .relr.dyn         RELR            ffff800081d2c4d0 1d1c4d0 020718 08   A  0   0  8
+  [29] .data             PROGBITS        ffff800081d50000 1d40000 412c80 00  WA  0   0 4096
+  [30] __bug_table       PROGBITS        ffff800082162c80 2152c80 025c14 00  WA  0   0  4
+  [31] .mmuoff.data.write PROGBITS       ffff800082189000 2179000 000008 00  WA  0   0 2048
+  [32] .mmuoff.data.read PROGBITS        ffff800082189800 2179800 000008 00  WA  0   0  8
+  [33] .pecoff_edata_padding PROGBITS    ffff800082189808 2179808 0001f8 00  WA  0   0  1
+  [34] .sbss             PROGBITS        ffff80008218a000 217a000 000000 00  WA  0   0  1
+  [35] .bss              NOBITS          ffff80008218a000 217a000 097ef8 00  WA  0   0 4096
+  [36] .debug_aranges    PROGBITS        0000000000000000 217a000 0009f0 00      0   0  1
+  [37] .debug_info       PROGBITS        0000000000000000 217a9f0 ba72f25 00      0   0  1
+  [38] .debug_abbrev     PROGBITS        0000000000000000 dbed915 5f218b 00      0   0  1
+  [39] .debug_line       PROGBITS        0000000000000000 e1dfaa0 181222b 00      0   0  1
+  [40] .debug_frame      PROGBITS        0000000000000000 f9f1cd0 2a6260 00      0   0  8
+  [41] .debug_str        PROGBITS        0000000000000000 fc97f30 56ad36 01  MS  0   0  1
+  [42] .debug_addr       PROGBITS        0000000000000000 10202c66 697ad0 00      0   0  1
+  [43] .debug_line_str   PROGBITS        0000000000000000 1089a736 08d1ae 01  MS  0   0  1
+  [44] .debug_loclists   PROGBITS        0000000000000000 109278e4 188df94 00      0   0  1
+  [45] .debug_rnglists   PROGBITS        0000000000000000 121b5878 4230db 00      0   0  1
+  [46] .debug_str_offsets PROGBITS       0000000000000000 125d8953 29bdb94 00      0   0  1
+  [47] .comment          PROGBITS        0000000000000000 14f964e7 000042 01  MS  0   0  1
+  [48] .symtab           SYMTAB          0000000000000000 14f96530 8c0790 18     49 352702  8
+  [49] .strtab           STRTAB          0000000000000000 15856cc0 33577c 00      0   0  1
+  [50] .shstrtab         STRTAB          0000000000000000 15b8c43c 000231 00      0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), O (extra OS processing required), G (group), T (TLS),
+  C (compressed), x (unknown), o (OS specific), E (exclude),
+  R (retain), p (processor specific)
+
+===== objdump-section-headers =====
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Sections:
+Idx Name                  Size     VMA              Type
+  0                       00000000 0000000000000000 
+  1 .head.text            00010000 ffff800080000000 TEXT
+  2 .text                 010d4000 ffff800080010000 TEXT
+  3 .rodata               009ab7b8 ffff8000810f0000 DATA
+  4 .rodata1              00000000 ffff800081a9b7b8 DATA
+  5 .pci_fixup            00002f00 ffff800081a9b7c0 DATA
+  6 .builtin_fw           00000000 ffff800081a9e6c0 DATA
+  7 __ksymtab             0000ff18 ffff800081a9e6c0 DATA
+  8 __ksymtab_gpl         00017d3c ffff800081aae5d8 DATA
+  9 __kcrctab             00000000 ffff800081ac6314 DATA
+ 10 __kcrctab_gpl         00000000 ffff800081ac6314 DATA
+ 11 __ksymtab_strings     00043fff ffff800081ac6314 DATA
+ 12 __init_rodata         00000000 ffff800081b0a313 DATA
+ 13 __param               00004b50 ffff800081b0a318 DATA
+ 14 __modver              00000828 ffff800081b0ee68 DATA
+ 15 __ex_table            00002e98 ffff800081b0f690 DATA
+ 16 .notes                00000054 ffff800081b12528 
+ 17 .hyp.rodata           00004000 ffff800081b13000 DATA
+ 18 .got                  00000068 ffff800081b17000 DATA
+ 19 .rodata.text          00005800 ffff800081b17800 TEXT
+ 20 .init.text            0008b534 ffff800081b30000 TEXT
+ 21 .exit.text            0000af5c ffff800081bbb534 TEXT
+ 22 .altinstructions      0006d3d4 ffff800081bc6490 DATA
+ 23 .init.data            000d78b8 ffff800081c45000 DATA
+ 24 .data..percpu         0000c6a8 ffff800081d1d000 DATA
+ 25 .hyp.data..percpu     000021c0 ffff800081d2a000 DATA
+ 26 .hyp.reloc            0000027c ffff800081d2c1c0 DATA
+ 27 .rela.dyn             00000090 ffff800081d2c440 
+ 28 .relr.dyn             00020718 ffff800081d2c4d0 
+ 29 .data                 00412c80 ffff800081d50000 DATA
+ 30 __bug_table           00025c14 ffff800082162c80 DATA
+ 31 .mmuoff.data.write    00000008 ffff800082189000 DATA
+ 32 .mmuoff.data.read     00000008 ffff800082189800 DATA
+ 33 .pecoff_edata_padding 000001f8 ffff800082189808 DATA
+ 34 .sbss                 00000000 ffff80008218a000 DATA
+ 35 .bss                  00097ef8 ffff80008218a000 BSS
+ 36 .debug_aranges        000009f0 0000000000000000 DEBUG
+ 37 .debug_info           0ba72f25 0000000000000000 DEBUG
+ 38 .debug_abbrev         005f218b 0000000000000000 DEBUG
+ 39 .debug_line           0181222b 0000000000000000 DEBUG
+ 40 .debug_frame          002a6260 0000000000000000 DEBUG
+ 41 .debug_str            0056ad36 0000000000000000 DEBUG
+ 42 .debug_addr           00697ad0 0000000000000000 DEBUG
+ 43 .debug_line_str       0008d1ae 0000000000000000 DEBUG
+ 44 .debug_loclists       0188df94 0000000000000000 DEBUG
+ 45 .debug_rnglists       004230db 0000000000000000 DEBUG
+ 46 .debug_str_offsets    029bdb94 0000000000000000 DEBUG
+ 47 .comment              00000042 0000000000000000 
+ 48 .symtab               008c0790 0000000000000000 
+ 49 .strtab               0033577c 0000000000000000 
+ 50 .shstrtab             00000231 0000000000000000 
+
+===== objdump-h =====
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Sections:
+Idx Name                  Size     VMA              Type
+  0                       00000000 0000000000000000 
+  1 .head.text            00010000 ffff800080000000 TEXT
+  2 .text                 010d4000 ffff800080010000 TEXT
+  3 .rodata               009ab7b8 ffff8000810f0000 DATA
+  4 .rodata1              00000000 ffff800081a9b7b8 DATA
+  5 .pci_fixup            00002f00 ffff800081a9b7c0 DATA
+  6 .builtin_fw           00000000 ffff800081a9e6c0 DATA
+  7 __ksymtab             0000ff18 ffff800081a9e6c0 DATA
+  8 __ksymtab_gpl         00017d3c ffff800081aae5d8 DATA
+  9 __kcrctab             00000000 ffff800081ac6314 DATA
+ 10 __kcrctab_gpl         00000000 ffff800081ac6314 DATA
+ 11 __ksymtab_strings     00043fff ffff800081ac6314 DATA
+ 12 __init_rodata         00000000 ffff800081b0a313 DATA
+ 13 __param               00004b50 ffff800081b0a318 DATA
+ 14 __modver              00000828 ffff800081b0ee68 DATA
+ 15 __ex_table            00002e98 ffff800081b0f690 DATA
+ 16 .notes                00000054 ffff800081b12528 
+ 17 .hyp.rodata           00004000 ffff800081b13000 DATA
+ 18 .got                  00000068 ffff800081b17000 DATA
+ 19 .rodata.text          00005800 ffff800081b17800 TEXT
+ 20 .init.text            0008b534 ffff800081b30000 TEXT
+ 21 .exit.text            0000af5c ffff800081bbb534 TEXT
+ 22 .altinstructions      0006d3d4 ffff800081bc6490 DATA
+ 23 .init.data            000d78b8 ffff800081c45000 DATA
+ 24 .data..percpu         0000c6a8 ffff800081d1d000 DATA
+ 25 .hyp.data..percpu     000021c0 ffff800081d2a000 DATA
+ 26 .hyp.reloc            0000027c ffff800081d2c1c0 DATA
+ 27 .rela.dyn             00000090 ffff800081d2c440 
+ 28 .relr.dyn             00020718 ffff800081d2c4d0 
+ 29 .data                 00412c80 ffff800081d50000 DATA
+ 30 __bug_table           00025c14 ffff800082162c80 DATA
+ 31 .mmuoff.data.write    00000008 ffff800082189000 DATA
+ 32 .mmuoff.data.read     00000008 ffff800082189800 DATA
+ 33 .pecoff_edata_padding 000001f8 ffff800082189808 DATA
+ 34 .sbss                 00000000 ffff80008218a000 DATA
+ 35 .bss                  00097ef8 ffff80008218a000 BSS
+ 36 .debug_aranges        000009f0 0000000000000000 DEBUG
+ 37 .debug_info           0ba72f25 0000000000000000 DEBUG
+ 38 .debug_abbrev         005f218b 0000000000000000 DEBUG
+ 39 .debug_line           0181222b 0000000000000000 DEBUG
+ 40 .debug_frame          002a6260 0000000000000000 DEBUG
+ 41 .debug_str            0056ad36 0000000000000000 DEBUG
+ 42 .debug_addr           00697ad0 0000000000000000 DEBUG
+ 43 .debug_line_str       0008d1ae 0000000000000000 DEBUG
+ 44 .debug_loclists       0188df94 0000000000000000 DEBUG
+ 45 .debug_rnglists       004230db 0000000000000000 DEBUG
+ 46 .debug_str_offsets    029bdb94 0000000000000000 DEBUG
+ 47 .comment              00000042 0000000000000000 
+ 48 .symtab               008c0790 0000000000000000 
+ 49 .strtab               0033577c 0000000000000000 
+ 50 .shstrtab             00000231 0000000000000000 

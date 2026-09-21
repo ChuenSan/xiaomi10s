@@ -1,5 +1,8 @@
 # Deferred worker after-kfree boundary
 
+The subsequent PM-tail entry pair is also complete and STRONG. Continue from
+`docs/slot-b-deferred-pm-tail.md`; the pending-PM-tail notes below are historical.
+
 Status: the RAM-only Slot B pair is **COMPLETE**, with a **STRONG** timing
 shift. Gate: `DEFERRED_REASON_KFREE_RETURN_PROVEN`. Both `defer_afterfree8`
 and `defer_afterfree1` are now **rerun-FORBIDDEN**, along with the eight earlier

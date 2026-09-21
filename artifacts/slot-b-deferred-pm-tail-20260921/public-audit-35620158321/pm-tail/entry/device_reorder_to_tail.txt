@@ -1,0 +1,81 @@
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+ffff8000808de4b4 <device_reorder_to_tail>:
+ffff8000808de4b4: d503233f     	paciasp
+ffff8000808de4b8: d10143ff     	sub	sp, sp, #0x50
+ffff8000808de4bc: a9027bfd     	stp	x29, x30, [sp, #0x20]
+ffff8000808de4c0: f9001bf5     	str	x21, [sp, #0x30]
+ffff8000808de4c4: a9044ff4     	stp	x20, x19, [sp, #0x40]
+ffff8000808de4c8: 910083fd     	add	x29, sp, #0x20
+ffff8000808de4cc: d5384108     	mrs	x8, SP_EL0
+ffff8000808de4d0: aa0003f3     	mov	x19, x0
+ffff8000808de4d4: f9424d08     	ldr	x8, [x8, #0x498]
+ffff8000808de4d8: f81f83a8     	stur	x8, [x29, #-0x8]
+ffff8000808de4dc: 3940f008     	ldrb	w8, [x0, #0x3c]
+ffff8000808de4e0: 36080248     	tbz	w8, #0x1, 0xffff8000808de528 <device_reorder_to_tail+0x74>
+ffff8000808de4e4: d000c954     	adrp	x20, 0xffff800082208000 <stm32_ports+0x13d0>
+ffff8000808de4e8: f9461288     	ldr	x8, [x20, #0xc20]
+ffff8000808de4ec: b40001e8     	cbz	x8, 0xffff8000808de528 <device_reorder_to_tail+0x74>
+ffff8000808de4f0: 91004100     	add	x0, x8, #0x10
+ffff8000808de4f4: 941fb8e7     	bl	0xffff8000810cc890 <_raw_spin_lock>
+ffff8000808de4f8: aa1303e8     	mov	x8, x19
+ffff8000808de4fc: f946128b     	ldr	x11, [x20, #0xc20]
+ffff8000808de500: a9c0a909     	ldp	x9, x10, [x8, #0x8]!
+ffff8000808de504: f900052a     	str	x10, [x9, #0x8]
+ffff8000808de508: f9000149     	str	x9, [x10]
+ffff8000808de50c: f9400569     	ldr	x9, [x11, #0x8]
+ffff8000808de510: f9000568     	str	x8, [x11, #0x8]
+ffff8000808de514: a900250b     	stp	x11, x9, [x8]
+ffff8000808de518: f9000128     	str	x8, [x9]
+ffff8000808de51c: f9461288     	ldr	x8, [x20, #0xc20]
+ffff8000808de520: 91004100     	add	x0, x8, #0x10
+ffff8000808de524: 941fb94d     	bl	0xffff8000810cca58 <_raw_spin_unlock>
+ffff8000808de528: 7941da68     	ldrh	w8, [x19, #0xec]
+ffff8000808de52c: 36100068     	tbz	w8, #0x2, 0xffff8000808de538 <device_reorder_to_tail+0x84>
+ffff8000808de530: aa1303e0     	mov	x0, x19
+ffff8000808de534: 94007d08     	bl	0xffff8000808fd954 <device_pm_move_last>
+ffff8000808de538: f9402660     	ldr	x0, [x19, #0x48]
+ffff8000808de53c: b40001a0     	cbz	x0, 0xffff8000808de570 <device_reorder_to_tail+0xbc>
+ffff8000808de540: 910023e1     	add	x1, sp, #0x8
+ffff8000808de544: a900ffff     	stp	xzr, xzr, [sp, #0x8]
+ffff8000808de548: 941ee8b3     	bl	0xffff800081098814 <klist_iter_init>
+ffff8000808de54c: 910023e0     	add	x0, sp, #0x8
+ffff8000808de550: 941ee967     	bl	0xffff800081098aec <klist_next>
+ffff8000808de554: b40000a0     	cbz	x0, 0xffff8000808de568 <device_reorder_to_tail+0xb4>
+ffff8000808de558: f9405000     	ldr	x0, [x0, #0xa0]
+ffff8000808de55c: b4000060     	cbz	x0, 0xffff8000808de568 <device_reorder_to_tail+0xb4>
+ffff8000808de560: 97ffffd5     	bl	0xffff8000808de4b4 <device_reorder_to_tail>
+ffff8000808de564: 34ffff40     	cbz	w0, 0xffff8000808de54c <device_reorder_to_tail+0x98>
+ffff8000808de568: 910023e0     	add	x0, sp, #0x8
+ffff8000808de56c: 941ee8ad     	bl	0xffff800081098820 <klist_iter_exit>
+ffff8000808de570: f84c0e74     	ldr	x20, [x19, #0xc0]!
+ffff8000808de574: eb13029f     	cmp	x20, x19
+ffff8000808de578: 540001a0     	b.eq	0xffff8000808de5ac <device_reorder_to_tail+0xf8>
+ffff8000808de57c: 12806815     	mov	w21, #-0x341    // =-833
+ffff8000808de580: 14000004     	b	0xffff8000808de590 <device_reorder_to_tail+0xdc>
+ffff8000808de584: f9400294     	ldr	x20, [x20]
+ffff8000808de588: eb13029f     	cmp	x20, x19
+ffff8000808de58c: 54000100     	b.eq	0xffff8000808de5ac <device_reorder_to_tail+0xf8>
+ffff8000808de590: b9433e88     	ldr	w8, [x20, #0x33c]
+ffff8000808de594: 0a150108     	and	w8, w8, w21
+ffff8000808de598: 7102011f     	cmp	w8, #0x80
+ffff8000808de59c: 54ffff40     	b.eq	0xffff8000808de584 <device_reorder_to_tail+0xd0>
+ffff8000808de5a0: f9400a80     	ldr	x0, [x20, #0x10]
+ffff8000808de5a4: 97ffffc4     	bl	0xffff8000808de4b4 <device_reorder_to_tail>
+ffff8000808de5a8: 17fffff7     	b	0xffff8000808de584 <device_reorder_to_tail+0xd0>
+ffff8000808de5ac: d5384108     	mrs	x8, SP_EL0
+ffff8000808de5b0: f9424d08     	ldr	x8, [x8, #0x498]
+ffff8000808de5b4: f85f83a9     	ldur	x9, [x29, #-0x8]
+ffff8000808de5b8: eb09011f     	cmp	x8, x9
+ffff8000808de5bc: 54000101     	b.ne	0xffff8000808de5dc <device_reorder_to_tail+0x128>
+ffff8000808de5c0: a9444ff4     	ldp	x20, x19, [sp, #0x40]
+ffff8000808de5c4: 2a1f03e0     	mov	w0, wzr
+ffff8000808de5c8: a9427bfd     	ldp	x29, x30, [sp, #0x20]
+ffff8000808de5cc: f9401bf5     	ldr	x21, [sp, #0x30]
+ffff8000808de5d0: 910143ff     	add	sp, sp, #0x50
+ffff8000808de5d4: d50323bf     	autiasp
+ffff8000808de5d8: d65f03c0     	ret
+ffff8000808de5dc: 941f8b68     	bl	0xffff8000810c137c <__stack_chk_fail>

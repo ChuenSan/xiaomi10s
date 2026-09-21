@@ -1,0 +1,168 @@
+P1B_RT_D_SHA_EXACT=PASS
+P1B_RT_D_BOOTARGS_FROZEN=PASS
+P1B_RT_D_SHA_EXACT=PASS
+P1B_RT_D_BOOTARGS_FROZEN=PASS
+T3_SECTION_MAP_SOURCE=readelf-SW sections=44
+{
+  "gate": "LINKED_JUMP_TABLE_PM_WORKER_SAFE",
+  "source_commit": "b01b9f6601627f5157c6e357900a98a5689b6aad",
+  "public_run": "35620158321",
+  "bundle_run": "35040148509",
+  "offset": 27882792,
+  "end": 27899832,
+  "size": 17040,
+  "entries": 1065,
+  "section": ".rodata",
+  "sha256": "82b8114fdc566a524c09496766c44f1c6fa804272a379a028c2f1e9248af4733",
+  "source_file": "include/linux/jump_label.h",
+  "source_sha256": "3da4ded9cccf8a7538348b3aa9309367d01309c03069505b8751931030f7d87d",
+  "layout": "S32_CODE_S32_TARGET_S64_KEY_FIELD_RELATIVE",
+  "agreement": "ELF_IMAGE_FIX8_EXACT",
+  "protected": [
+    [
+      18446603338377978960,
+      18446603338377979060
+    ],
+    [
+      18446603338378019876,
+      18446603338378020072
+    ]
+  ],
+  "code_rewrite_overlap": [],
+  "target_entry_overlap": [],
+  "candidate_generated": false,
+  "device_operation": false
+}
+LINKED_JUMP_TABLE_PM_WORKER_SAFE=YES
+CANDIDATE_GENERATED=NO
+DEVICE_OPERATION=NO
+P1B_RT_D_SHA_EXACT=PASS
+P1B_RT_D_BOOTARGS_FROZEN=PASS
+T3_SECTION_MAP_SOURCE=readelf-SW sections=44
+{
+  "gate": "DEFERRED_PM_TAIL_ENTRY_STATIC_FEASIBLE",
+  "name": "device_pm_move_to_tail",
+  "source_commit": "b01b9f6601627f5157c6e357900a98a5689b6aad",
+  "public_run": "35620158321",
+  "bundle_run": "35040148509",
+  "bundle": {
+    "linux_base": "8b73de7da85fde281a385e0b26eda9bffd3ca477",
+    "patch_queue_sha256": "d470701d58d62bf10b96adb4dbf0c639945afccd45d4d3f039e8051e7aaaf1b5",
+    "source_commit": "ba870dbdc094bdee08c67e465f229e67c36ac0b6",
+    "run_id": "35036419486",
+    "files": {
+      "Image": "43fb1c9128bdf37a2a77eb88cfff234381340b098ebf1aea1eabb2741180cebb",
+      "vmlinux": "295bfdb12184052a79c1aea35ce4a93a5833c42bdb7b4bd9173973312ade00ff",
+      "System.map": "e3ed0234692c5dc80188996730bb13f2303fd2ecb573e303134df02b7f61b3ea",
+      "kernel.config": "f947a2e44e60f5818e5e63ed3192d5eeca652b45665c6f4b13b3796cea359bfa"
+    },
+    "elf_export_reconciliation": {
+      "original_vmlinux_sha256": "42c04b8dc386b2f378e20b2b67bc635e11c681e0e1ba7a3bbe8a076af27ca2ca",
+      "archived_vmlinux_sha256": "295bfdb12184052a79c1aea35ce4a93a5833c42bdb7b4bd9173973312ade00ff",
+      "image_reproduction": "EXACT_MATCH",
+      "system_map_entries_matched": 167212,
+      "cause": "llvm-objcopy --dump-section without output rewrote ELF container in place",
+      "rebuild": false,
+      "run_id": "35040148509",
+      "source_commit": "ef629df364a592dd63e83743dfc06bf69f15ae5c"
+    }
+  },
+  "source_files_sha256": {
+    "drivers/base/dd.c": "1541264d3103954566e355752d93b212537719a2546e69da5fae2b4a4e9436c6",
+    "arch/arm64/include/asm/extable.h": "716acb8bb1c8d7bc2c066bc32c8864914ea7005fd59286484a2e0ad2f8f9bd82",
+    "arch/arm64/mm/extable.c": "89c0117326965554e8d3b0fb2ca45a7b495e3773ed72c6fa526306f74f94a9ff",
+    "drivers/base/core.c": "82c6bff4a508d9ad1174a97e1e609a24678f0f773c6478c72311fd0049430fb3",
+    "drivers/base/base.h": "a6ee79463db989405b03107eb2262b7552257059ebc9cd6f50169127f3971fed"
+  },
+  "parent_offset": 9299024,
+  "parent_size": 100,
+  "parent_sha256": "7956c899bc9f87f119ecbc9c2c216d0bdde7c534ca2a2e47ebcc671de60b0f27",
+  "parent_words": [
+    3573752639,
+    2847833085,
+    2835435508,
+    2432697341,
+    2852127732,
+    4026580352,
+    2434564096,
+    2548095117,
+    704644083,
+    2483059780,
+    2853438432,
+    2483027982,
+    2483059786,
+    1895828095,
+    1409286434,
+    4026580352,
+    2434564096,
+    705889249,
+    2548095139,
+    2839629812,
+    2831318013,
+    3573752767,
+    3596551104,
+    3558932480,
+    402653175
+  ],
+  "offset": 9299028,
+  "window": 56,
+  "section": ".text",
+  "single_direct_caller": 9340064,
+  "original_paciasp_preserved": true,
+  "worker_unchanged": true,
+  "core_sha256": "8b90e4c5ba8817ed23414b0d41e94bc376021d2839889b6a87c6023aa5e259b5",
+  "added_pointer_reads": 0,
+  "candidate_generated": false,
+  "device_ready": false,
+  "device_operation": false,
+  "partition_writes": 0,
+  "future_positive_limit": [
+    "reason_field_cleared",
+    "worker_mutex_unlock_returned",
+    "pm_tail_entry"
+  ],
+  "not_proven": [
+    "pm_tail_return",
+    "bus_probe_entry",
+    "driver_probe",
+    "culprit",
+    "init",
+    "usb"
+  ]
+}
+DEFERRED_PM_TAIL_ENTRY_STATIC_FEASIBLE=YES
+CANDIDATE_GENERATED=NO
+DEVICE_READY=NO
+DEVICE_OPERATION=NO
+T3_SECTION_MAP_SOURCE=readelf-SW sections=44
+P1B_RT_D_SHA_EXACT=PASS
+P1B_RT_D_BOOTARGS_FROZEN=PASS
+P1B_RT_D_SHA_EXACT=PASS
+P1B_RT_D_BOOTARGS_FROZEN=PASS
+{
+  "stage": "pm_tail",
+  "source_commit": "b01b9f6601627f5157c6e357900a98a5689b6aad",
+  "public_run": "35620158321",
+  "expected_delta_s": -7,
+  "changed_offsets": [
+    9299037,
+    9299038
+  ],
+  "cases": [
+    "defer_pmtail8",
+    "defer_pmtail1"
+  ],
+  "payload_shas": {
+    "8": "4d084e61c9eef342c358cf12e208e37edd14c4a72cd2f8a81d058778ba6a5280",
+    "1": "c88df1c33b0df49a9fb7e72dc728659f24704a23dcc801a0b900c4635cc2e9f9"
+  },
+  "manifest_shas": {
+    "8": "8ab1b1ca5e275d53c94105fde6c509950dbf66d905afaed8925c1ebe231fb54c",
+    "1": "8a285800e87cc617b61445ad99ce3fa1ee81f68327f60efae49185fd69b14b0d"
+  }
+}
+DEFERRED_PM_TAIL_PUBLIC_AUDIT_PASSED=YES
+PAIR_DIFF=DELAY_CONSTANT_ONLY
+KERNEL_REBUILD=NO
+DEVICE_READY=NO
+DEVICE_OPERATION=NO

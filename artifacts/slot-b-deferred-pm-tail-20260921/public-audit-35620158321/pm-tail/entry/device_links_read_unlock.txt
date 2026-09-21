@@ -1,0 +1,21 @@
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+ffff8000808de244 <device_links_read_unlock>:
+ffff8000808de244: d503245f     	bti	c
+ffff8000808de248: 2a0003e1     	mov	w1, w0
+ffff8000808de24c: 7100081f     	cmp	w0, #0x2
+ffff8000808de250: 54000142     	b.hs	0xffff8000808de278 <device_links_read_unlock+0x34>
+ffff8000808de254: d503233f     	paciasp
+ffff8000808de258: a9bf7bfd     	stp	x29, x30, [sp, #-0x10]!
+ffff8000808de25c: 910003fd     	mov	x29, sp
+ffff8000808de260: f000bd80     	adrp	x0, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808de264: 911c8000     	add	x0, x0, #0x720
+ffff8000808de268: 97e0d92f     	bl	0xffff800080114724 <__srcu_read_unlock>
+ffff8000808de26c: a8c17bfd     	ldp	x29, x30, [sp], #0x10
+ffff8000808de270: d50323bf     	autiasp
+ffff8000808de274: d65f03c0     	ret
+ffff8000808de278: d4210000     	brk	#0x800
+ffff8000808de27c: 17fffff6     	b	0xffff8000808de254 <device_links_read_unlock+0x10>

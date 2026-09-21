@@ -1,6 +1,25 @@
 # thyme R3 current status (single source of truth for the current round)
 
-Latest closeout (2026-09-21, user-requested conversation switch):
+Latest continuation (2026-09-22 local / 2026-09-21 UTC):
+**DEFERRED_PM_TAIL_ENTRY_PROVEN**. PMTAIL8/1 ran once each RAM-only in B:
+35.580534792 / 28.447709084 s, delta -7.132825708 s, error -0.132825708 s,
+**STRONG**. The original reason-clear store, worker mutex-unlock return and
+`device_pm_move_to_tail()` entry are proven. Persistent field state, SRCU/PM
+locking, PM-list movement, PM-tail return, bus/driver probe, culprit, late
+completion, `/init` and usable Linux remain NOT_PROVEN; USB stays FROZEN.
+Android A was restored healthy after both; all 16-chain/P15 hashes matched
+before/between/after and pstore is empty. Two experimental RAM boots, zero
+partition-image or Slot A writes. PMTAIL8/1 join all ten older deferred cases
+as rerun-forbidden. Public producer `35620158321`, private pack/reverify
+`35621265916`, public observer `35624011702`, private provenance `35624011695`
+and all 25 observer-freeze workflows passed. Full suite: 701 tests, 33 skips;
+required source/artifact tests ran in dedicated CI. Source freeze is `cea1cd9`.
+The user approved direct parent takeover after the same-model subagent failed;
+there is no completed independent subagent review to cite. No local build.
+Read **docs/slot-b-deferred-pm-tail.md**. Next: Actions-only feasibility of the
+post-`device_pm_lock()` return boundary at `0x8de478`; no new candidate yet.
+
+Previous closeout (2026-09-21, user-requested conversation switch):
 **LINKED_JUMP_TABLE_PM_WORKER_SAFE** is now proven statically by Actions
 `35613385810` at `00094b32ef511699be7e817cb5f13cdb58558e8a`.
 All 1,065 folded `.rodata` jump-label records agree exactly across ELF/Image/FIX8;

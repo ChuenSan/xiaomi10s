@@ -1,0 +1,15 @@
+2026-09-21T16:54:34Z
+product: thyme
+Finished. Total time: 0.002s
+current-slot: b
+Finished. Total time: 0.002s
+slot-retry-count:b: 6
+Finished. Total time: 0.003s
+slot-successful:a: yes
+Finished. Total time: 0.003s
+Setting current slot to 'a'                        OKAY [  0.080s]
+Finished. Total time: 0.082s
+current-slot: a
+Finished. Total time: 0.002s
+Rebooting                                          OKAY [  0.000s]
+Finished. Total time: 0.000s

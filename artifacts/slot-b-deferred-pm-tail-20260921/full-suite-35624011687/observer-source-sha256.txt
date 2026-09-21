@@ -1,0 +1,2 @@
+fe5252bbf458c3ed9dcdf8532cac8d9f3d7776466801ce08cfe0466a467208f3  scripts/slot_b/observe.py
+e3466248a8a2181fd613a3cdb540b3bb64d463e420606da34b958b2295502399  scripts/slot_b/test_observe.py

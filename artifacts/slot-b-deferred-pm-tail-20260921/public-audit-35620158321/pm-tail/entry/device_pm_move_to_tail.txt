@@ -1,0 +1,31 @@
+
+bundle/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .text:
+
+ffff8000808de450 <device_pm_move_to_tail>:
+ffff8000808de450: d503233f     	paciasp
+ffff8000808de454: a9be7bfd     	stp	x29, x30, [sp, #-0x20]!
+ffff8000808de458: a9014ff4     	stp	x20, x19, [sp, #0x10]
+ffff8000808de45c: 910003fd     	mov	x29, sp
+ffff8000808de460: aa0003f4     	mov	x20, x0
+ffff8000808de464: f000bd80     	adrp	x0, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808de468: 911c8000     	add	x0, x0, #0x720
+ffff8000808de46c: 97e0d88d     	bl	0xffff8000801146a0 <__srcu_read_lock>
+ffff8000808de470: 2a0003f3     	mov	w19, w0
+ffff8000808de474: 94007c44     	bl	0xffff8000808fd584 <device_pm_lock>
+ffff8000808de478: aa1403e0     	mov	x0, x20
+ffff8000808de47c: 9400000e     	bl	0xffff8000808de4b4 <device_reorder_to_tail>
+ffff8000808de480: 94007c4a     	bl	0xffff8000808fd5a8 <device_pm_unlock>
+ffff8000808de484: 71000a7f     	cmp	w19, #0x2
+ffff8000808de488: 54000122     	b.hs	0xffff8000808de4ac <device_pm_move_to_tail+0x5c>
+ffff8000808de48c: f000bd80     	adrp	x0, 0xffff800082091000 <iommu_class+0x10>
+ffff8000808de490: 911c8000     	add	x0, x0, #0x720
+ffff8000808de494: 2a1303e1     	mov	w1, w19
+ffff8000808de498: 97e0d8a3     	bl	0xffff800080114724 <__srcu_read_unlock>
+ffff8000808de49c: a9414ff4     	ldp	x20, x19, [sp, #0x10]
+ffff8000808de4a0: a8c27bfd     	ldp	x29, x30, [sp], #0x20
+ffff8000808de4a4: d50323bf     	autiasp
+ffff8000808de4a8: d65f03c0     	ret
+ffff8000808de4ac: d4210000     	brk	#0x800
+ffff8000808de4b0: 17fffff7     	b	0xffff8000808de48c <device_pm_move_to_tail+0x3c>

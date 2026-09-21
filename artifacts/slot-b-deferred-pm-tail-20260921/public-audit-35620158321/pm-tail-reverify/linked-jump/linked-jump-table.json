@@ -1,0 +1,30 @@
+{
+  "gate": "LINKED_JUMP_TABLE_PM_WORKER_SAFE",
+  "source_commit": "b01b9f6601627f5157c6e357900a98a5689b6aad",
+  "public_run": "35620158321",
+  "bundle_run": "35040148509",
+  "offset": 27882792,
+  "end": 27899832,
+  "size": 17040,
+  "entries": 1065,
+  "section": ".rodata",
+  "sha256": "82b8114fdc566a524c09496766c44f1c6fa804272a379a028c2f1e9248af4733",
+  "source_file": "include/linux/jump_label.h",
+  "source_sha256": "3da4ded9cccf8a7538348b3aa9309367d01309c03069505b8751931030f7d87d",
+  "layout": "S32_CODE_S32_TARGET_S64_KEY_FIELD_RELATIVE",
+  "agreement": "ELF_IMAGE_FIX8_EXACT",
+  "protected": [
+    [
+      18446603338377978960,
+      18446603338377979060
+    ],
+    [
+      18446603338378019876,
+      18446603338378020072
+    ]
+  ],
+  "code_rewrite_overlap": [],
+  "target_entry_overlap": [],
+  "candidate_generated": false,
+  "device_operation": false
+}
