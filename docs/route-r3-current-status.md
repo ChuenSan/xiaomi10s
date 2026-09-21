@@ -1,14 +1,25 @@
 # thyme R3 current status (single source of truth for the current round)
 
+Latest after-kfree qualification (2026-09-21): mem0 canonical handoff
+`a73cad7d-9471-4a90-bb40-86e9a5a053dd` agrees with source HEAD `cc693ac6` and
+public audit `35573581801` (19 tests, no skips), plus full suite `35573581872`
+(604 tests, 18 skips). The resumed defensive source/CFG and private contract
+reviews found no blocking defect. Private run `35580754081` at `44fca855`
+passed both pack and fresh-job `independent-reverify`; full identities are in
+`scripts/slot_b/deferred_after_kfree_identities.json`. Public observer and
+private provenance qualification are pending. No after-kfree device operation
+has occurred; the runtime boundary remains SELECTED8/1 below.
+Read `docs/slot-b-deferred-after-kfree.md` for the exact remaining gates.
+
 Latest static-only evidence (2026-09-21): OF forensic Actions `35569628684`
 passed 24 tests and recovered consistent compiler offsets plus the exact RT-D
 map. `device.of_node` is at 672; `device_node.phandle`/`full_name` at 8/16.
 The trailer has 919 nodes, 531 unique nonzero handles and 388 missing handles.
 Widths, runtime pointer reads, device identity and an identity channel remain
 unqualified. No new candidate or device operation came from this audit.
-Read `docs/slot-b-deferred-of-identity-feasibility.md`. A separate after-kfree
-checkpoint is being prepared; its CI/private/identity/observer gates remain
-pending. The proven device boundary is still the selected result below.
+Read `docs/slot-b-deferred-of-identity-feasibility.md`. The after-kfree
+qualification is recorded above. The proven device boundary is still the
+selected result below.
 
 Latest continuation (2026-09-21, selected-device boundary):
 SELECTED8/1 = 35.420613167 / 28.249236500 s, delta -7.171376667 s, STRONG.
@@ -24,8 +35,8 @@ Two stale historical rejection counts were corrected to include selected
 images; replacement checks 35566808357 / 35566808348 passed.
 Read docs/slot-b-deferred-selected-device.md and
 scripts/slot_b/deferred_selected_identities.json for the new state. The original
-name draft remains unqualified; OF layout/identity feasibility is the next
-CI-only investigation. LATEST_PROVEN_LATE_INDEX remains 54.
+name draft remains unqualified; completed OF layout/identity feasibility is
+recorded above. LATEST_PROVEN_LATE_INDEX remains 54.
 
 Previous closeout (2026-09-21, user-requested conversation handoff):
 PREQUEUE8/1 = 35.423422125 / 28.465627750 s, delta −6.957794375 s, STRONG.

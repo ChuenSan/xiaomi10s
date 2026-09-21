@@ -15,10 +15,16 @@ class SafetyTests(unittest.TestCase):
                 "max-download-size": "0x10000000"}
 
     def record(self, case, total):
-        return {"protocol": observe.PROTOCOL, "case": case,
-                "image_sha256": observe.IMAGES[case][1], "context": observe.CONTEXT,
-                "status": "AUTOMATIC_FASTBOOT_RETURN", "final_slot": "b",
-                "experimental_boots": 1, "total_s": total}
+        record = {"protocol": observe.PROTOCOL, "case": case,
+                  "image_sha256": observe.IMAGES[case][1], "context": observe.CONTEXT,
+                  "status": "AUTOMATIC_FASTBOOT_RETURN", "final_slot": "b",
+                  "experimental_boots": 1, "total_s": total}
+        if case in observe.AFTERFREE_CASES:
+            frozen = observe.load_afterfree_freeze()
+            record.update(observe.afterfree_authority(frozen), ci_run=frozen["private_run"],
+                          normal_boot_candidate=False, slot_a_written=False, partition_writes=0,
+                          host_boot_commands=1, recovery_control_boots=0, b_retries="6")
+        return record
 
     def test_exact_images_only(self):
         for case, identity in observe.IMAGES.items():

@@ -98,6 +98,8 @@ IMAGES = {
     "late_post491": (37380096, "1bfcaffa503e44574f44dc850dab10fb930f9fc96c9d8f9f99b7b88b8ac03c7b"),
     "late_post508": (37380096, "679d296f936ba9457837bbdf5d8b7d60fdba871f0275fae21912673e6b7102d5"),
     "late_post501": (37380096, "373b7386b283b396851d5acf68bfbcbdebbf1154551f5024e31e4b787684330a"),
+    "defer_afterfree8": (37380096, "13bc43a3348a087c21c2f4a29bfd30ab23f47af123e05690ff90d43277a3a947"),
+    "defer_afterfree1": (37380096, "47c14e75820095e904fea93439ab3eaf0339b1ce5afb6eee833ac2867e3671e0"),
     "defer_selected8": (37380096, "ac7a762b203bef6b0911c1223642021c46006433d91b32cd8da2f0ab5df8dd9d"),
     "defer_selected1": (37380096, "04d5b600b51a93c17c8806e5c07d0334b404d2adb80974aacc067bf5153fb26b"),
     "defer_worker8": (37380096, "dfe129a9ac8591f04fd2f3f8a95d1fed051adbb751fdd0095c2f1a5afb1adb04"),
@@ -170,8 +172,12 @@ PAIRS = {
                          "deferred_probe_initcall_returned"),
     "defer_selected1": ("defer_selected8", "deferred_worker_device_pointer_loaded",
                         "deferred_first_bus_probe_entered"),
+    "defer_afterfree1": ("defer_afterfree8", "deferred_reason_kfree_returned",
+                         "deferred_first_bus_probe_entered"),
     }
 SELECTED_CASES = ("defer_selected8", "defer_selected1")
+AFTERFREE_CASES = ("defer_afterfree8", "defer_afterfree1")
+AFTERFREE_IDENTITY_PATH = Path(__file__).with_name("deferred_after_kfree_identities.json")
 ORIGIN_CASES = {case for second, spec in PAIRS.items() if second != "reset1"
                 for case in (spec[0], second)}
 CONTEXT = {
@@ -338,6 +344,8 @@ def require(condition, message):
 def validate_identity(case, size, digest):
     if case in SELECTED_CASES:
         validate_selected_freeze()
+    if case in AFTERFREE_CASES:
+        load_afterfree_freeze()
     require(case in IMAGES and (size, digest) == IMAGES[case], "IMAGE_IDENTITY_MISMATCH")
 
 
@@ -348,6 +356,79 @@ def validate_selected_freeze():
                 re.fullmatch(r"[0-9a-f]{64}", identity[1]) and len(set(identity[1])) > 2
                 for identity in identities), "SELECTED_IDENTITY_NOT_FROZEN")
     require(identities[0][1] != identities[1][1], "SELECTED_PAIR_IDENTITY_COLLISION")
+
+
+def validate_afterfree_freeze(frozen):
+    require(isinstance(frozen, dict), "AFTERFREE_FREEZE_FORMAT")
+    expected = {"stage": "after_kfree", "offset": 0x8E848C, "window": 56,
+                "parent_offset": 0x8E8424, "parent_size": 196, "boot_size": 37380096}
+    for key, value in expected.items():
+        require(type(frozen.get(key)) is type(value) and frozen[key] == value,
+                f"AFTERFREE_FREEZE_GEOMETRY:{key}")
+    for key in ("source_commit", "private_commit"):
+        value = frozen.get(key)
+        require(isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40}", value) and
+                len(set(value)) > 2, f"AFTERFREE_FREEZE_AUTHORITY:{key}")
+    for key in ("public_run", "private_run"):
+        require(isinstance(frozen.get(key), str) and re.fullmatch(r"[1-9][0-9]*", frozen[key]),
+                f"AFTERFREE_FREEZE_AUTHORITY:{key}")
+    members = frozen.get("members")
+    require(isinstance(members, dict) and set(members) == {"8", "1"}, "AFTERFREE_FREEZE_MEMBERS")
+    hashes = []
+    old_boots = {identity[1] for case, identity in IMAGES.items() if case not in AFTERFREE_CASES}
+    for delay, identity in members.items():
+        require(isinstance(identity, dict) and type(identity.get("boot_size")) is int and
+                identity["boot_size"] == 37380096, f"AFTERFREE_FREEZE_SIZE:{delay}")
+        for key in ("boot_sha256", "payload_sha256"):
+            value = identity.get(key)
+            require(isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) and
+                    len(set(value)) > 2, f"AFTERFREE_FREEZE_HASH:{delay}:{key}")
+            hashes.append(value)
+        require(identity["boot_sha256"] not in old_boots, "AFTERFREE_FROZEN_EXPERIMENT_REUSED")
+        require(IMAGES.get(f"defer_afterfree{delay}") == (identity["boot_size"], identity["boot_sha256"]),
+                "AFTERFREE_IDENTITY_NOT_FROZEN")
+    require(len(set(hashes)) == 4, "AFTERFREE_FREEZE_HASH_COLLISION")
+    return frozen
+
+
+def load_afterfree_freeze():
+    try:
+        frozen = json.loads(AFTERFREE_IDENTITY_PATH.read_text())
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        raise ValueError("AFTERFREE_IDENTITY_NOT_FROZEN") from None
+    return validate_afterfree_freeze(frozen)
+
+
+def afterfree_authority(frozen):
+    return {key: frozen[key] for key in
+            ("stage", "source_commit", "public_run", "private_commit", "private_run")}
+
+
+def validate_afterfree_record(record, frozen):
+    expected = {**afterfree_authority(frozen), "ci_run": frozen["private_run"],
+                "normal_boot_candidate": False, "slot_a_written": False, "partition_writes": 0,
+                "host_boot_commands": 1, "experimental_boots": 1, "recovery_control_boots": 0,
+                "b_retries": "6"}
+    for key, value in expected.items():
+        require(type(record.get(key)) is type(value) and record[key] == value,
+                f"AFTERFREE_RECORD_AUTHORITY:{key}")
+    require(record.get("manual_timing_excluded", False) is False, "AFTERFREE_MANUAL_TIMING_EXCLUDED")
+
+
+def afterfree_preflight(args):
+    frozen = load_afterfree_freeze()
+    require(getattr(args, "ci_run", None) == frozen["private_run"], "AFTERFREE_CI_RUN_MISMATCH")
+    baseline = None
+    if args.case == "defer_afterfree1":
+        require(getattr(args, "baseline", None) is not None, "MATCHED_8S_BASELINE_REQUIRED")
+        try:
+            baseline = json.loads(args.baseline.read_text())
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            raise ValueError("AFTERFREE_BASELINE_UNREADABLE") from None
+        require(isinstance(baseline, dict), "AFTERFREE_BASELINE_FORMAT")
+        candidate = {**baseline, "case": args.case, "image_sha256": IMAGES[args.case][1]}
+        pair_verdict(baseline, candidate)
+    return frozen, baseline
 
 
 def validate_arch_geometry(window):
@@ -697,6 +778,9 @@ def pair_verdict(baseline, result):
     require(second in PAIRS, "PAIR_MEMBER_MISMATCH")
     if second == "defer_selected1":
         validate_selected_freeze()
+    if second == "defer_afterfree1":
+        frozen = load_afterfree_freeze()
+        require(isinstance(baseline, dict), "AFTERFREE_BASELINE_FORMAT")
     first, proof_key, unproved_key = PAIRS[second]
     for record, case in zip((baseline, result), (first, second)):
         if second != "reset1":
@@ -709,6 +793,8 @@ def pair_verdict(baseline, result):
         require(record.get("experimental_boots") == 1, "PAIR_BOOT_COUNT_INVALID")
         if second == "defer_selected1":
             require(type(record.get("experimental_boots")) is int, "PAIR_BOOT_COUNT_INVALID")
+        if second == "defer_afterfree1":
+            validate_afterfree_record(record, frozen)
         require(record.get("context") == CONTEXT, "PAIR_CONTEXT_MISMATCH")
         require(not isinstance(record.get("total_s"), bool) and
                 isinstance(record.get("total_s"), (int, float)) and
@@ -979,6 +1065,21 @@ def pair_verdict(baseline, result):
                    usb="FROZEN")
         if verdict == "SHIFT_NOT_OBSERVED":
             out.update(late_text54_checkpoint_shift_not_observed="YES")
+    elif second == "defer_afterfree1":
+        out.update(mutex_acquired=grade, active_list_nonempty=grade,
+                   deferred_worker_device_pointer_loaded=grade,
+                   deferred_list_del_init_completed=grade, deferred_get_device_returned=grade,
+                   deferred_reason_pointer_loads=grade,
+                   deferred_device_pointer_valid="NOT_PROVEN", deferred_device_name="NOT_PROVEN",
+                   deferred_get_device_reference_success="NOT_PROVEN",
+                   deferred_reason_nonnull_or_valid="NOT_PROVEN", deferred_allocation_freed="NOT_PROVEN",
+                   deferred_reason_field_cleared="NOT_PROVEN", deferred_worker_mutex_unlocked="NOT_PROVEN",
+                   deferred_device_pm_move_to_tail_called="NOT_PROVEN",
+                   deferred_first_bus_probe_returned="NOT_PROVEN", deferred_driver_probe_body="NOT_PROVEN",
+                   deferred_culprit_driver="NOT_PROVEN", late_initcalls_completed="NOT_PROVEN",
+                   wait_for_initramfs_return="NOT_PROVEN", console_on_rootfs_entry="NOT_PROVEN", usb="FROZEN")
+        if verdict == "SHIFT_NOT_OBSERVED":
+            out.update(deferred_after_kfree_shift_not_observed="YES")
     elif second == "defer_selected1":
         out.update(mutex_acquired=grade, active_list_nonempty=grade,
                    deferred_device_pointer_valid="NOT_PROVEN",
@@ -1042,6 +1143,8 @@ class Observer:
         require(self.boots == 0, "SECOND_EXPERIMENTAL_BOOT_FORBIDDEN")
         if self.args.case in SELECTED_CASES:
             validate_selected_freeze()
+        if self.args.case in AFTERFREE_CASES:
+            afterfree_preflight(self.args)
         require(self.getvar("current-slot") == "b", "LAST_MOMENT_SLOT_NOT_B")
         command = self.fb + (["reboot"] if self.args.case == "recovery" else
                              ["boot", str(self.args.image)])
@@ -1107,13 +1210,13 @@ class Observer:
         return {"status": "NO_RETURN_WITHIN_120S", "manual_timing_excluded": True}
 
     def run(self):
+        frozen, baseline = afterfree_preflight(self.args) if self.args.case in AFTERFREE_CASES else (None, None)
         image = self.args.image.read_bytes()
         digest = hashlib.sha256(image).hexdigest()
         validate_identity(self.args.case, len(image), digest)
         context = json.loads(self.args.context.read_text())
         validate_context(context, self.args.case)
-        baseline = None
-        if self.args.case in PAIRS:
+        if self.args.case in PAIRS and self.args.case not in AFTERFREE_CASES:
             require(self.args.baseline is not None, "MATCHED_8S_BASELINE_REQUIRED")
             baseline = json.loads(self.args.baseline.read_text())
             # Validate the reference before any device command, without assigning a verdict.
@@ -1125,13 +1228,19 @@ class Observer:
                   "bootloader_origin": context.get("bootloader_origin", "UNRECORDED"),
                   "normal_boot_candidate": False,
                   "slot_a_written": False, "partition_writes": 0}
+        if frozen is not None:
+            result.update(afterfree_authority(frozen))
         try:
             values = {key: self.getvar(key) for key in VARS}
             self.log("PREFLIGHT", **values)
             validate_preflight(values, len(image))
+            if frozen is not None:
+                require(values.get("slot-retry-count:b") == "7", "AFTERFREE_INITIAL_RETRIES_NOT_SEVEN")
             start = self.launch()
             result.update(self.observe(start))
             result.update(self.boot_counts())
+            if frozen is not None and result["status"] == "AUTOMATIC_FASTBOOT_RETURN":
+                validate_afterfree_record(result, frozen)
             if baseline is not None and result["status"] == "AUTOMATIC_FASTBOOT_RETURN":
                 result["pair"] = pair_verdict(baseline, result)
             self.log("RESULT", **result)
