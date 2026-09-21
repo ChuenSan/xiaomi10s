@@ -1,0 +1,83 @@
+name: Slot B deferred selected-device audit
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/deferred_selected_probe.py'
+      - 'scripts/slot_b/test_deferred_selected_probe.py'
+      - '.github/workflows/thyme-slot-b-deferred-selected.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: deferred-selected-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-deferred-selected.yml
+      - name: Fetch pinned source and audit tools
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18
+      - name: Test selected-device source and rejection gates
+        run: python3 -B -m unittest discover -s scripts/slot_b -p 'test_deferred_selected_probe.py' -v
+      - name: Download immutable inputs and assemble terminal core
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R "$GITHUB_REPOSITORY" -n thyme-slot-b-kernel-audit-bundle -D bundle
+          gh run download 34741153230 -R "$GITHUB_REPOSITORY" -n thyme-r3-p1b-fix8-fix24 -D frozen
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-ultracompact.S -o core.o
+          llvm-readelf-18 -r core.o | tee core-relocations.txt
+          grep -q 'There are no relocations in this file' core-relocations.txt
+          llvm-objdump-18 -dr core.o > core-disassembly.txt
+          llvm-objcopy-18 -O binary --only-section=.text core.o core.bin
+      - name: Audit selected-device window and independently reverify
+        run: |
+          set -euo pipefail
+          python3 -u -B scripts/slot_b/deferred_selected_probe.py \
+            --stage selected --bundle bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core core.bin --out selected | tee selected.log
+          python3 -u -B scripts/slot_b/deferred_selected_probe.py \
+            --stage selected --bundle bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core core.bin --out selected-reverify --verify-pair selected/pair | tee selected-reverify.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-deferred-selected-pair
+          path: selected/pair/
+          if-no-files-found: error
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-deferred-selected-audit
+          path: |
+            selected/*.json
+            selected/*.txt
+            selected-reverify/*.json
+            selected-reverify/*.txt
+            *.log
+            core-relocations.txt
+            core-disassembly.txt
+          if-no-files-found: warn
+          retention-days: 90
