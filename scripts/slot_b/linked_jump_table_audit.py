@@ -51,7 +51,9 @@ def gate_layout(nm, sysmap, sections):
     mappings = [s for s in sections if s["vma"] <= lo and hi <= s["vma"] + s["size"]]
     need(len(mappings) == 1, "LINKED_JUMP_MAPPING_NOT_UNIQUE")
     section = mappings[0]
-    need(section["name"] == ".rodata" and section["alloc"] and not section["code"],
+    # The inherited token parser drops allocation for four-letter WAMS flags.
+    need(section["name"] == ".rodata" and section.get("source") == "readelf" and
+         section.get("flags") == "WAMS" and not section["code"],
          "LINKED_JUMP_FOLDED_SECTION_DRIFT")
     need(not any(s["name"] == "__jump_table" for s in sections), "LINKED_JUMP_DUPLICATE_SECTION")
     return section

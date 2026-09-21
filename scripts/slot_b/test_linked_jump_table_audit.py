@@ -44,9 +44,13 @@ class LinkedJumpTests(unittest.TestCase):
 
     def test_folded_table_is_found_without_standalone_section(self):
         symbols = "\n".join(f"{d.TEXT + value:016x} D {name}" for name, value in zip(d.SYMBOLS, (d.START, d.END)))
-        section = {"name": ".rodata", "vma": d.TEXT + 0x10F0000,
-                   "size": 0x9AB7B8, "alloc": True, "code": False}
-        self.assertEqual(d.gate_layout(symbols, symbols, [section]), section)
+        row = "  [ 3] .rodata PROGBITS ffff8000810f0000 1100000 9ab7b8 00 WAMS 0 0 4096"
+        sections = d.cp.t3._readelf_sections(row)
+        self.assertEqual(len(sections), 1)
+        section = sections[0]
+        self.assertEqual(section["flags"], "WAMS")
+        self.assertFalse(section["alloc"])
+        self.assertEqual(d.gate_layout(symbols, symbols, sections), section)
         for index in (0, 1):
             mutated = symbols.replace(f"{d.TEXT + (d.START, d.END)[index]:016x}",
                                       f"{d.TEXT + (d.START, d.END)[index] + 8:016x}")
@@ -56,8 +60,9 @@ class LinkedJumpTests(unittest.TestCase):
         for rows in ([], [section, section]):
             with self.assertRaisesRegex(ValueError, "MAPPING_NOT_UNIQUE"):
                 d.gate_layout(symbols, symbols, rows)
-        for key, value in (("name", ".data"), ("alloc", False), ("code", True)):
-            with self.subTest(key=key), self.assertRaisesRegex(ValueError, "FOLDED_SECTION"):
+        for key, value in (("name", ".data"), ("source", "objdump"), ("code", True),
+                           ("flags", "WMS"), ("flags", "WAXMS"), ("flags", "DATA ALLOC")):
+            with self.subTest(key=key, value=value), self.assertRaisesRegex(ValueError, "FOLDED_SECTION"):
                 d.gate_layout(symbols, symbols, [{**section, key: value}])
         with self.assertRaisesRegex(ValueError, "DUPLICATE_SECTION"):
             d.gate_layout(symbols, symbols, [section, {"name": "__jump_table", "vma": 0, "size": 0}])
