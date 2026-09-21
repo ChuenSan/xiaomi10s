@@ -1,6 +1,25 @@
 # thyme R3 current status (single source of truth for the current round)
 
-Latest reconciliation (2026-09-21): the existing AFTERFREE8/1 device pair is
+Latest closeout (2026-09-21, user-requested conversation switch):
+**LINKED_JUMP_TABLE_PM_WORKER_SAFE** is now proven statically by Actions
+`35613385810` at `00094b32ef511699be7e817cb5f13cdb58558e8a`.
+All 1,065 folded `.rodata` jump-label records agree exactly across ELF/Image/FIX8;
+no code-rewrite or destination overlap with the full PM-tail parent/worker.
+Five dedicated tests passed; full suite `35613385680` passed 648 tests, 22 skipped.
+The earlier failure `35611491629` was a four-letter `WAMS` flag parsing issue,
+not a kernel/device failure; the fix is scoped to the new audit.
+Runtime remains **DEFERRED_REASON_KFREE_RETURN_PROVEN**; PM-tail, bus/driver
+probe, `/init` and usable Linux are NOT_PROVEN, USB FROZEN.
+This conversation had zero boots, slot selections, partition writes or local builds.
+Final read-only check at 14:46:13Z: healthy Android A/root, pstore empty,
+16-chain/P15 hashes unchanged. No relevant Actions or subagent remains running.
+Unqualified PM-tail compositor/test/workflow drafts were moved without deletion
+to `docs/drafts/slot-b-deferred-pm-tail-20260921/`; they do not yet invoke the
+new linked-table gate and must not be dispatched. No PM-tail image exists.
+**Read `docs/handoff-2026-09-21-pm-tail-metadata.md` first.** Work is intentionally
+paused for handoff; do not repeat any completed deferred case.
+
+Previous reconciliation (2026-09-21): the existing AFTERFREE8/1 device pair is
 **COMPLETE**, not pending. Raw events record 35.193026708 / 28.421630667 s,
 delta -6.771396041 s, error +0.228603959 s: **STRONG**.
 Gate: `DEFERRED_REASON_KFREE_RETURN_PROVEN`. Original list removal,
@@ -26,7 +45,7 @@ Next is an Actions-only single-caller/entry-safety feasibility audit of
 probe. No PM-tail image or device readiness is claimed yet.
 Read `docs/slot-b-deferred-after-kfree.md` for the exact continuation and limits.
 
-Latest static-only evidence (2026-09-21): OF forensic Actions `35569628684`
+Earlier static-only evidence (2026-09-21): OF forensic Actions `35569628684`
 passed 24 tests and recovered consistent compiler offsets plus the exact RT-D
 map. `device.of_node` is at 672; `device_node.phandle`/`full_name` at 8/16.
 The trailer has 919 nodes, 531 unique nonzero handles and 388 missing handles.

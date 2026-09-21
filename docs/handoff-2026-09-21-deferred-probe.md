@@ -1,6 +1,12 @@
 # Xiaomi Mi 10S mainline handoff — 2026-09-21
 
-Continuation update: the new selected-device pair is now complete. Read
+**Superseded progress pointer:** read
+`docs/handoff-2026-09-21-pm-tail-metadata.md` first. AFTERFREE8/1 is complete and
+rerun-forbidden; the folded jump-label audit has passed, but no PM-tail image
+or runtime proof exists. The user requested another conversation handoff.
+The records below are historical evidence, not pending device instructions.
+
+Earlier continuation update: the new selected-device pair is now complete. Read
 `docs/slot-b-deferred-selected-device.md` and the top of
 `docs/route-r3-current-status.md` before the historical handoff below.
 SELECTED8/1 gave STRONG evidence for mutex acquisition, a nonempty active list

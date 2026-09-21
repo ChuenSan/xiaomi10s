@@ -1,0 +1,97 @@
+name: Slot B deferred PM-tail terminal pair
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation]
+    paths:
+      - 'scripts/slot_b/deferred_pm_tail_probe.py'
+      - 'scripts/slot_b/test_deferred_pm_tail_probe.py'
+      - '.github/workflows/thyme-slot-b-deferred-pm-tail.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: deferred-pm-tail-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    if: github.repository == 'ChuenSan/xiaomi10s'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color .github/workflows/thyme-slot-b-deferred-pm-tail.yml
+      - name: Fetch pinned source and audit tools
+        run: |
+          set -euo pipefail
+          git config submodule.linux-6.6.url https://github.com/gregkh/linux.git
+          git submodule update --init --depth 1 linux-6.6
+          test "$(git -C linux-6.6 rev-parse HEAD)" = 8b73de7da85fde281a385e0b26eda9bffd3ca477
+          for patch in patches/linux-6.6/*.patch; do git -C linux-6.6 apply "$GITHUB_WORKSPACE/$patch"; done
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18
+      - name: Download immutable public inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R ChuenSan/xiaomi10s -n thyme-slot-b-kernel-audit-bundle -D bundle
+          gh run download 34741153230 -R ChuenSan/xiaomi10s -n thyme-r3-p1b-fix8-fix24 -D frozen
+      - name: Test new boundary and caller metadata gates
+        env:
+          PM_TAIL_FIXTURE_REQUIRED: 'true'
+          PM_TAIL_SOURCE_REQUIRED: 'true'
+          AFTER_KFREE_FIXTURE_REQUIRED: 'true'
+          LINKED_JUMP_SOURCE_REQUIRED: 'true'
+        run: |
+          set -euo pipefail
+          for suite in test_deferred_pm_tail_probe.py test_deferred_pm_tail_audit.py test_deferred_after_kfree_probe.py test_linked_jump_table_audit.py; do
+            python3 -B -m unittest discover -s scripts/slot_b -p "$suite" -v 2>&1 | tee "$suite.log"
+          done
+      - name: Assemble and verify relocation-free terminal core
+        run: |
+          set -euo pipefail
+          clang-18 --target=aarch64-linux-gnu -c scripts/slot_b/checkpoint-ultracompact.S -o core.o
+          llvm-readelf-18 -r core.o | tee core-relocations.txt
+          grep -q 'There are no relocations in this file' core-relocations.txt
+          llvm-objdump-18 -dr core.o > core-disassembly.txt
+          llvm-objcopy-18 -O binary --only-section=.text core.o core.bin
+      - name: Compose new pair only after complete metadata and caller audits
+        run: |
+          set -euo pipefail
+          python3 -u -B scripts/slot_b/deferred_pm_tail_probe.py \
+            --stage pm_tail --bundle bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core core.bin --out pm-tail | tee pm-tail.log
+          python3 -u -B scripts/slot_b/deferred_pm_tail_probe.py \
+            --stage pm_tail --bundle bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --core core.bin --out pm-tail-reverify --verify-pair pm-tail/pair | tee pm-tail-reverify.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thyme-deferred-pm-tail-pair
+          path: pm-tail/pair/
+          if-no-files-found: error
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-deferred-pm-tail-audit
+          path: |
+            pm-tail/**/*.json
+            pm-tail/**/*.txt
+            pm-tail-reverify/**/*.json
+            pm-tail-reverify/**/*.txt
+            pm-tail*.log
+            test_*.py.log
+            core-relocations.txt
+            core-disassembly.txt
+          if-no-files-found: error
+          retention-days: 90

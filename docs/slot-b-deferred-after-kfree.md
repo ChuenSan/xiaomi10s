@@ -75,14 +75,18 @@ the limited proof above; neither review substitutes for CI or device evidence.
 
 ## Exact continuation
 
-Next: Actions-only feasibility audit of the original `device_pm_move_to_tail()`
-entry at Image `0x8de450`, called by the unchanged worker at `0x8e84a0` after
-its mutex unlock. Audit the actual function extent, preserved PAC entry,
-single-caller provenance, full-parent incoming/rewrite/relocation/exception
-checks and exact ELF/Image/FIX8 agreement before considering a new pair.
-Do not use an unqualified generic `bus_probe_device()` entry: other call paths
-would make it inadequate evidence of the deferred worker's progress.
-No new PM-tail candidate or device readiness is claimed by this plan.
+PM-tail feasibility `35603065440` is complete: original `device_pm_move_to_tail()`
+entry at Image `0x8de450`, size 100, sole direct worker caller `0x8e84a0`.
+The later linked jump-label audit `35613385810` closed a concrete coverage gap:
+1,065 records folded into `.rodata`, exact ELF/Image/FIX8 agreement, no protected
+PM-tail/worker rewrite or destination overlap. The shared section-only scanner
+still cannot represent that folded table; new candidates must explicitly invoke
+`scripts/slot_b/linked_jump_table_audit.py` rather than inherit an `ABSENT` claim.
+No new PM-tail candidate or device readiness exists. The unqualified draft is
+isolated under `docs/drafts/slot-b-deferred-pm-tail-20260921/`.
+Read `docs/handoff-2026-09-21-pm-tail-metadata.md` for the current stop state and
+remaining compositor/private/observer gates. Do not use an unqualified generic
+`bus_probe_device()` entry: other callers would not prove this worker's progress.
 
 Qualification receipts remain under `artifacts/slot-b-deferred-after-kfree-20260921/`.
 OEM images remain at
