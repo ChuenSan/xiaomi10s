@@ -1,0 +1,61 @@
+name: Slot B deferred OF identity forensic audit
+
+on:
+  push:
+    branches: [route-b-slot-b-continuation, route-b-deferred-of-forensic]
+    paths:
+      - 'scripts/slot_b/deferred_of_identity_audit.py'
+      - 'scripts/slot_b/test_deferred_of_identity_audit.py'
+      - '.github/workflows/thyme-slot-b-deferred-of-identity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: deferred-of-identity-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  forensic:
+    if: github.repository == 'ChuenSan/xiaomi10s'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Install LLVM18 forensic tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y llvm-18
+      - name: Test malformed and ambiguous evidence rejection
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s scripts/slot_b -p 'test_deferred_of_identity_audit.py' -v 2>&1 | tee forensic-tests.log
+      - name: Download public immutable inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 35040148509 -R ChuenSan/xiaomi10s -n thyme-slot-b-kernel-audit-bundle -D bundle
+          gh run download 34741153230 -R ChuenSan/xiaomi10s -n thyme-r3-p1b-fix8-fix24 -D frozen
+      - name: Extract compiler offsets and frozen RT-D associations
+        run: |
+          set -euo pipefail
+          python3 -u -B scripts/slot_b/deferred_of_identity_audit.py \
+            --bundle bundle --frozen frozen/thyme-r3-p1b-fix8-kernel-payload.bin \
+            --out forensic | tee forensic.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thyme-deferred-of-identity-forensic
+          path: |
+            forensic/
+            forensic.log
+            forensic-tests.log
+          if-no-files-found: warn
+          retention-days: 90
