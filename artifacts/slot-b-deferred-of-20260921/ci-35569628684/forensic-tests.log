@@ -1,0 +1,29 @@
+test_actual_member_locations_not_die_addresses (test_deferred_of_identity_audit.DwarfEvidenceTests.test_actual_member_locations_not_die_addresses) ... ok
+test_differing_complete_layouts_never_publish_offsets (test_deferred_of_identity_audit.DwarfEvidenceTests.test_differing_complete_layouts_never_publish_offsets) ... ok
+test_duplicate_attribute_is_not_silently_overwritten (test_deferred_of_identity_audit.DwarfEvidenceTests.test_duplicate_attribute_is_not_silently_overwritten) ... ok
+test_duplicate_member_and_die_are_rejected (test_deferred_of_identity_audit.DwarfEvidenceTests.test_duplicate_member_and_die_are_rejected) ... ok
+test_forward_declaration_does_not_supply_or_conflict_with_layout (test_deferred_of_identity_audit.DwarfEvidenceTests.test_forward_declaration_does_not_supply_or_conflict_with_layout) ... ok
+test_identical_layouts_at_distinct_die_offsets (test_deferred_of_identity_audit.DwarfEvidenceTests.test_identical_layouts_at_distinct_die_offsets) ... ok
+test_location_outside_struct_is_rejected (test_deferred_of_identity_audit.DwarfEvidenceTests.test_location_outside_struct_is_rejected) ... ok
+test_missing_dwarf_is_unproven (test_deferred_of_identity_audit.DwarfEvidenceTests.test_missing_dwarf_is_unproven) ... ok
+test_missing_member_or_terminator_is_unproven (test_deferred_of_identity_audit.DwarfEvidenceTests.test_missing_member_or_terminator_is_unproven) ... ok
+test_nonconstant_and_negative_offsets_are_rejected (test_deferred_of_identity_audit.DwarfEvidenceTests.test_nonconstant_and_negative_offsets_are_rejected) ... ok
+test_unexpected_recursion_is_rejected (test_deferred_of_identity_audit.DwarfEvidenceTests.test_unexpected_recursion_is_rejected) ... ok
+test_unrelated_name_match_cannot_supply_a_struct (test_deferred_of_identity_audit.DwarfEvidenceTests.test_unrelated_name_match_cannot_supply_a_struct) ... ok
+test_unresolved_type_reference_is_unproven (test_deferred_of_identity_audit.DwarfEvidenceTests.test_unresolved_type_reference_is_unproven) ... ok
+test_conflicting_zero_and_nonzero_aliases (test_deferred_of_identity_audit.PhandleEvidenceTests.test_conflicting_zero_and_nonzero_aliases) ... ok
+test_duplicate_across_property_spellings (test_deferred_of_identity_audit.PhandleEvidenceTests.test_duplicate_across_property_spellings) ... ok
+test_duplicate_raw_node_path (test_deferred_of_identity_audit.PhandleEvidenceTests.test_duplicate_raw_node_path) ... ok
+test_duplicate_raw_property_is_not_hidden_by_dictionary_parser (test_deferred_of_identity_audit.PhandleEvidenceTests.test_duplicate_raw_property_is_not_hidden_by_dictionary_parser) ... ok
+test_full_u32_big_endian_and_exact_status (test_deferred_of_identity_audit.PhandleEvidenceTests.test_full_u32_big_endian_and_exact_status) ... ok
+test_invalid_phandle_lengths (test_deferred_of_identity_audit.PhandleEvidenceTests.test_invalid_phandle_lengths) ... ok
+test_malformed_strings_are_not_replaced_or_normalized (test_deferred_of_identity_audit.PhandleEvidenceTests.test_malformed_strings_are_not_replaced_or_normalized) ... ok
+test_matching_phandle_aliases_are_one_identity (test_deferred_of_identity_audit.PhandleEvidenceTests.test_matching_phandle_aliases_are_one_identity) ... ok
+test_reserved_phandle (test_deferred_of_identity_audit.PhandleEvidenceTests.test_reserved_phandle) ... ok
+test_truncated_fdt_and_overlapping_sections (test_deferred_of_identity_audit.PhandleEvidenceTests.test_truncated_fdt_and_overlapping_sections) ... ok
+test_zero_and_missing_are_recorded_without_identity (test_deferred_of_identity_audit.PhandleEvidenceTests.test_zero_and_missing_are_recorded_without_identity) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 0.005s
+
+OK

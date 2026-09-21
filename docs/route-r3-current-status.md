@@ -1,5 +1,15 @@
 # thyme R3 current status (single source of truth for the current round)
 
+Latest static-only evidence (2026-09-21): OF forensic Actions `35569628684`
+passed 24 tests and recovered consistent compiler offsets plus the exact RT-D
+map. `device.of_node` is at 672; `device_node.phandle`/`full_name` at 8/16.
+The trailer has 919 nodes, 531 unique nonzero handles and 388 missing handles.
+Widths, runtime pointer reads, device identity and an identity channel remain
+unqualified. No new candidate or device operation came from this audit.
+Read `docs/slot-b-deferred-of-identity-feasibility.md`. A separate after-kfree
+checkpoint is being prepared; its CI/private/identity/observer gates remain
+pending. The proven device boundary is still the selected result below.
+
 Latest continuation (2026-09-21, selected-device boundary):
 SELECTED8/1 = 35.420613167 / 28.249236500 s, delta -7.171376667 s, STRONG.
 Deferred mutex acquisition, nonempty active list and the original first-device

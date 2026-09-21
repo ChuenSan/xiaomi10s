@@ -1,0 +1,8 @@
+P1B_RT_D_SHA_EXACT=PASS
+P1B_RT_D_BOOTARGS_FROZEN=PASS
+{
+  "status": "COMPILER_OFFSETS_AND_RT_D_MAP_PROVEN",
+  "candidate_generated": false,
+  "device_operation": false,
+  "identity_channel_qualified": false
+}

@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "llvm-dwarfdump-18",
+    "--help"
+  ],
+  "returncode": 0,
+  "stderr": "dwarfdump-help.stderr.txt",
+  "stderr_bytes": 0,
+  "stdout": "dwarfdump-help.stdout.txt",
+  "stdout_bytes": 5855,
+  "timeout_seconds": 300
+}

@@ -1,0 +1,7310 @@
+{
+  "by_phandle": {
+    "0x00000001": {
+      "compatible": [
+        "arm,gic-v3"
+      ],
+      "path": "/soc@0/interrupt-controller@17a00000",
+      "phandle": 1,
+      "phandle_properties": {
+        "phandle": 1
+      },
+      "status": null
+    },
+    "0x00000002": {
+      "compatible": [
+        "qcom,sm8250-cpufreq-epss",
+        "qcom,cpufreq-epss"
+      ],
+      "path": "/soc@0/cpufreq@18591000",
+      "phandle": 2,
+      "phandle_properties": {
+        "phandle": 2
+      },
+      "status": null
+    },
+    "0x00000003": {
+      "compatible": [
+        "cache"
+      ],
+      "path": "/cpus/cpu@0/l2-cache",
+      "phandle": 3,
+      "phandle_properties": {
+        "phandle": 3
+      },
+      "status": null
+    },
+    "0x00000004": {
+      "compatible": null,
+      "path": "/psci/power-domain-cpu0",
+      "phandle": 4,
+      "phandle_properties": {
+        "phandle": 4
+      },
+      "status": null
+    },
+    "0x00000005": {
+      "compatible": [
+        "operating-points-v2"
+      ],
+      "path": "/opp-table-cpu0",
+      "phandle": 5,
+      "phandle_properties": {
+        "phandle": 5
+      },
+      "status": null
+    },
+    "0x00000006": {
+      "compatible": [
+        "qcom,sm8250-gem-noc"
+      ],
+      "path": "/soc@0/interconnect@9100000",
+      "phandle": 6,
+      "phandle_properties": {
+        "phandle": 6
+      },
+      "status": null
+    },
+    "0x00000007": {
+      "compatible": [
+        "qcom,sm8250-mc-virt"
+      ],
+      "path": "/soc@0/interconnect@163d000",
+      "phandle": 7,
+      "phandle_properties": {
+        "phandle": 7
+      },
+      "status": null
+    },
+    "0x00000008": {
+      "compatible": [
+        "qcom,sm8250-epss-l3",
+        "qcom,epss-l3"
+      ],
+      "path": "/soc@0/interconnect@18590000",
+      "phandle": 8,
+      "phandle_properties": {
+        "phandle": 8
+      },
+      "status": null
+    },
+    "0x00000009": {
+      "compatible": [
+        "cache"
+      ],
+      "path": "/cpus/cpu@0/l2-cache/l3-cache",
+      "phandle": 9,
+      "phandle_properties": {
+        "phandle": 9
+      },
+      "status": null
+    },
+    "0x0000000a": {
+      "compatible": [
+        "cache"
+      ],
+      "path": "/cpus/cpu@100/l2-cache",
+      "phandle": 10,
+      "phandle_properties": {
+        "phandle": 10
+      },
+      "status": null
+    },
+    "0x0000000b": {
+      "compatible": null,
+      "path": "/psci/power-domain-cpu1",
+      "phandle": 11,
+      "phandle_properties": {
+        "phandle": 11
+      },
+      "status": null
+    },
+    "0x0000000c": {
+      "compatible": [
+        "cache"
+      ],
+      "path": "/cpus/cpu@200/l2-cache",
+      "phandle": 12,
+      "phandle_properties": {
+        "phandle": 12
+      },
+      "status": null
+    },
+    "0x0000000d": {
+      "compatible": null,
+      "path": "/psci/power-domain-cpu2",
+      "phandle": 13,
+      "phandle_properties": {
+        "phandle": 13
+      },
+      "status": null
+    },
+    "0x0000000e": {
+      "compatible": [
+        "cache"
+      ],
+      "path": "/cpus/cpu@300/l2-cache",
+      "phandle": 14,
+      "phandle_properties": {
+        "phandle": 14
+      },
+      "status": null
+    },
+    "0x0000000f": {
+      "compatible": null,
+      "path": "/psci/power-domain-cpu3",
+      "phandle": 15,
+      "phandle_properties": {
+        "phandle": 15
+      },
+      "status": null
+    },
+    "0x00000010": {
+      "compatible": [
+        "cache"
+      ],
+      "path": "/cpus/cpu@400/l2-cache",
+      "phandle": 16,
+      "phandle_properties": {
+        "phandle": 16
+      },
+      "status": null
+    },
+    "0x00000011": {
+      "compatible": null,
+      "path": "/psci/power-domain-cpu4",
+      "phandle": 17,
+      "phandle_properties": {
+        "phandle": 17
+      },
+      "status": null
+    },
+    "0x00000012": {
+      "compatible": [
+        "operating-points-v2"
+      ],
+      "path": "/opp-table-cpu4",
+      "phandle": 18,
+      "phandle_properties": {
+        "phandle": 18
+      },
+      "status": null
+    },
+    "0x00000013": {
+      "compatible": [
+        "cache"
+      ],
+      "path": "/cpus/cpu@500/l2-cache",
+      "phandle": 19,
+      "phandle_properties": {
+        "phandle": 19
+      },
+      "status": null
+    },
+    "0x00000014": {
+      "compatible": null,
+      "path": "/psci/power-domain-cpu5",
+      "phandle": 20,
+      "phandle_properties": {
+        "phandle": 20
+      },
+      "status": null
+    },
+    "0x00000015": {
+      "compatible": [
+        "cache"
+      ],
+      "path": "/cpus/cpu@600/l2-cache",
+      "phandle": 21,
+      "phandle_properties": {
+        "phandle": 21
+      },
+      "status": null
+    },
+    "0x00000016": {
+      "compatible": null,
+      "path": "/psci/power-domain-cpu6",
+      "phandle": 22,
+      "phandle_properties": {
+        "phandle": 22
+      },
+      "status": null
+    },
+    "0x00000017": {
+      "compatible": [
+        "cache"
+      ],
+      "path": "/cpus/cpu@700/l2-cache",
+      "phandle": 23,
+      "phandle_properties": {
+        "phandle": 23
+      },
+      "status": null
+    },
+    "0x00000018": {
+      "compatible": null,
+      "path": "/psci/power-domain-cpu7",
+      "phandle": 24,
+      "phandle_properties": {
+        "phandle": 24
+      },
+      "status": null
+    },
+    "0x00000019": {
+      "compatible": [
+        "operating-points-v2"
+      ],
+      "path": "/opp-table-cpu7",
+      "phandle": 25,
+      "phandle_properties": {
+        "phandle": 25
+      },
+      "status": null
+    },
+    "0x0000001a": {
+      "compatible": [
+        "qcom,kryo485"
+      ],
+      "path": "/cpus/cpu@0",
+      "phandle": 26,
+      "phandle_properties": {
+        "phandle": 26
+      },
+      "status": null
+    },
+    "0x0000001b": {
+      "compatible": [
+        "qcom,kryo485"
+      ],
+      "path": "/cpus/cpu@100",
+      "phandle": 27,
+      "phandle_properties": {
+        "phandle": 27
+      },
+      "status": null
+    },
+    "0x0000001c": {
+      "compatible": [
+        "qcom,kryo485"
+      ],
+      "path": "/cpus/cpu@200",
+      "phandle": 28,
+      "phandle_properties": {
+        "phandle": 28
+      },
+      "status": null
+    },
+    "0x0000001d": {
+      "compatible": [
+        "qcom,kryo485"
+      ],
+      "path": "/cpus/cpu@300",
+      "phandle": 29,
+      "phandle_properties": {
+        "phandle": 29
+      },
+      "status": null
+    },
+    "0x0000001e": {
+      "compatible": [
+        "qcom,kryo485"
+      ],
+      "path": "/cpus/cpu@400",
+      "phandle": 30,
+      "phandle_properties": {
+        "phandle": 30
+      },
+      "status": null
+    },
+    "0x0000001f": {
+      "compatible": [
+        "qcom,kryo485"
+      ],
+      "path": "/cpus/cpu@500",
+      "phandle": 31,
+      "phandle_properties": {
+        "phandle": 31
+      },
+      "status": null
+    },
+    "0x00000020": {
+      "compatible": [
+        "qcom,kryo485"
+      ],
+      "path": "/cpus/cpu@600",
+      "phandle": 32,
+      "phandle_properties": {
+        "phandle": 32
+      },
+      "status": null
+    },
+    "0x00000021": {
+      "compatible": [
+        "qcom,kryo485"
+      ],
+      "path": "/cpus/cpu@700",
+      "phandle": 33,
+      "phandle_properties": {
+        "phandle": 33
+      },
+      "status": null
+    },
+    "0x00000022": {
+      "compatible": null,
+      "path": "/psci/power-domain-cpu-cluster0",
+      "phandle": 34,
+      "phandle_properties": {
+        "phandle": 34
+      },
+      "status": null
+    },
+    "0x00000023": {
+      "compatible": [
+        "arm,idle-state"
+      ],
+      "path": "/cpus/idle-states/cpu-sleep-0-0",
+      "phandle": 35,
+      "phandle_properties": {
+        "phandle": 35
+      },
+      "status": null
+    },
+    "0x00000024": {
+      "compatible": [
+        "arm,idle-state"
+      ],
+      "path": "/cpus/idle-states/cpu-sleep-1-0",
+      "phandle": 36,
+      "phandle_properties": {
+        "phandle": 36
+      },
+      "status": null
+    },
+    "0x00000025": {
+      "compatible": [
+        "domain-idle-state"
+      ],
+      "path": "/cpus/domain-idle-states/cluster-sleep-0",
+      "phandle": 37,
+      "phandle_properties": {
+        "phandle": 37
+      },
+      "status": null
+    },
+    "0x00000026": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/power-controller/opp-table/opp2",
+      "phandle": 38,
+      "phandle_properties": {
+        "phandle": 38
+      },
+      "status": null
+    },
+    "0x00000027": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/power-controller/opp-table/opp3",
+      "phandle": 39,
+      "phandle_properties": {
+        "phandle": 39
+      },
+      "status": null
+    },
+    "0x00000028": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/power-controller/opp-table/opp4",
+      "phandle": 40,
+      "phandle_properties": {
+        "phandle": 40
+      },
+      "status": null
+    },
+    "0x00000029": {
+      "compatible": null,
+      "path": "/reserved-memory/memory@80900000",
+      "phandle": 41,
+      "phandle_properties": {
+        "phandle": 41
+      },
+      "status": null
+    },
+    "0x0000002a": {
+      "compatible": [
+        "qcom,tcsr-mutex"
+      ],
+      "path": "/soc@0/hwlock@1f40000",
+      "phandle": 42,
+      "phandle_properties": {
+        "phandle": 42
+      },
+      "status": null
+    },
+    "0x0000002b": {
+      "compatible": [
+        "qcom,sm8250-ipcc",
+        "qcom,ipcc"
+      ],
+      "path": "/soc@0/mailbox@408000",
+      "phandle": 43,
+      "phandle_properties": {
+        "phandle": 43
+      },
+      "status": null
+    },
+    "0x0000002c": {
+      "compatible": [
+        "qcom,sm8250-rpmh-clk"
+      ],
+      "path": "/soc@0/rsc@18200000/clock-controller",
+      "phandle": 44,
+      "phandle_properties": {
+        "phandle": 44
+      },
+      "status": null
+    },
+    "0x0000002d": {
+      "compatible": [
+        "fixed-clock"
+      ],
+      "path": "/clocks/sleep-clk",
+      "phandle": 45,
+      "phandle_properties": {
+        "phandle": 45
+      },
+      "status": null
+    },
+    "0x0000002e": {
+      "compatible": [
+        "qcom,gcc-sm8250"
+      ],
+      "path": "/soc@0/clock-controller@100000",
+      "phandle": 46,
+      "phandle_properties": {
+        "phandle": 46
+      },
+      "status": null
+    },
+    "0x0000002f": {
+      "compatible": [
+        "qcom,sm8250-smmu-500",
+        "qcom,smmu-500",
+        "arm,mmu-500"
+      ],
+      "path": "/soc@0/iommu@15000000",
+      "phandle": 47,
+      "phandle_properties": {
+        "phandle": 47
+      },
+      "status": null
+    },
+    "0x00000030": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c14-default-state",
+      "phandle": 48,
+      "phandle_properties": {
+        "phandle": 48
+      },
+      "status": null
+    },
+    "0x00000031": {
+      "compatible": [
+        "qcom,sm8250-gpi-dma",
+        "qcom,sdm845-gpi-dma"
+      ],
+      "path": "/soc@0/dma-controller@800000",
+      "phandle": 49,
+      "phandle_properties": {
+        "phandle": 49
+      },
+      "status": "disabled"
+    },
+    "0x00000032": {
+      "compatible": [
+        "qcom,sm8250-rpmhpd"
+      ],
+      "path": "/soc@0/rsc@18200000/power-controller",
+      "phandle": 50,
+      "phandle_properties": {
+        "phandle": 50
+      },
+      "status": null
+    },
+    "0x00000033": {
+      "compatible": [
+        "operating-points-v2"
+      ],
+      "path": "/opp-table-qup",
+      "phandle": 51,
+      "phandle_properties": {
+        "phandle": 51
+      },
+      "status": null
+    },
+    "0x00000034": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c15-default-state",
+      "phandle": 52,
+      "phandle_properties": {
+        "phandle": 52
+      },
+      "status": null
+    },
+    "0x00000035": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c16-default-state",
+      "phandle": 53,
+      "phandle_properties": {
+        "phandle": 53
+      },
+      "status": null
+    },
+    "0x00000036": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c17-default-state",
+      "phandle": 54,
+      "phandle_properties": {
+        "phandle": 54
+      },
+      "status": null
+    },
+    "0x00000037": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-uart17-default-state",
+      "phandle": 55,
+      "phandle_properties": {
+        "phandle": 55
+      },
+      "status": null
+    },
+    "0x00000038": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c18-default-state",
+      "phandle": 56,
+      "phandle_properties": {
+        "phandle": 56
+      },
+      "status": null
+    },
+    "0x00000039": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-uart18-default-state",
+      "phandle": 57,
+      "phandle_properties": {
+        "phandle": 57
+      },
+      "status": null
+    },
+    "0x0000003a": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c19-default-state",
+      "phandle": 58,
+      "phandle_properties": {
+        "phandle": 58
+      },
+      "status": null
+    },
+    "0x0000003b": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c0-default-state",
+      "phandle": 59,
+      "phandle_properties": {
+        "phandle": 59
+      },
+      "status": null
+    },
+    "0x0000003c": {
+      "compatible": [
+        "qcom,sm8250-gpi-dma",
+        "qcom,sdm845-gpi-dma"
+      ],
+      "path": "/soc@0/dma-controller@900000",
+      "phandle": 60,
+      "phandle_properties": {
+        "phandle": 60
+      },
+      "status": "disabled"
+    },
+    "0x0000003d": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c1-default-state",
+      "phandle": 61,
+      "phandle_properties": {
+        "phandle": 61
+      },
+      "status": null
+    },
+    "0x0000003e": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c2-default-state",
+      "phandle": 62,
+      "phandle_properties": {
+        "phandle": 62
+      },
+      "status": null
+    },
+    "0x0000003f": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-uart2-default-state",
+      "phandle": 63,
+      "phandle_properties": {
+        "phandle": 63
+      },
+      "status": null
+    },
+    "0x00000040": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c3-default-state",
+      "phandle": 64,
+      "phandle_properties": {
+        "phandle": 64
+      },
+      "status": null
+    },
+    "0x00000041": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c4-default-state",
+      "phandle": 65,
+      "phandle_properties": {
+        "phandle": 65
+      },
+      "status": null
+    },
+    "0x00000042": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c5-default-state",
+      "phandle": 66,
+      "phandle_properties": {
+        "phandle": 66
+      },
+      "status": null
+    },
+    "0x00000043": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c6-default-state",
+      "phandle": 67,
+      "phandle_properties": {
+        "phandle": 67
+      },
+      "status": null
+    },
+    "0x00000044": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-uart6-default-state",
+      "phandle": 68,
+      "phandle_properties": {
+        "phandle": 68
+      },
+      "status": null
+    },
+    "0x00000045": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c7-default-state",
+      "phandle": 69,
+      "phandle_properties": {
+        "phandle": 69
+      },
+      "status": null
+    },
+    "0x00000046": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c8-default-state",
+      "phandle": 70,
+      "phandle_properties": {
+        "phandle": 70
+      },
+      "status": null
+    },
+    "0x00000047": {
+      "compatible": [
+        "qcom,sm8250-gpi-dma",
+        "qcom,sdm845-gpi-dma"
+      ],
+      "path": "/soc@0/dma-controller@a00000",
+      "phandle": 71,
+      "phandle_properties": {
+        "phandle": 71
+      },
+      "status": "disabled"
+    },
+    "0x00000048": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c9-default-state",
+      "phandle": 72,
+      "phandle_properties": {
+        "phandle": 72
+      },
+      "status": null
+    },
+    "0x00000049": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c10-default-state",
+      "phandle": 73,
+      "phandle_properties": {
+        "phandle": 73
+      },
+      "status": null
+    },
+    "0x0000004a": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c11-default-state",
+      "phandle": 74,
+      "phandle_properties": {
+        "phandle": 74
+      },
+      "status": null
+    },
+    "0x0000004b": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c12-default-state",
+      "phandle": 75,
+      "phandle_properties": {
+        "phandle": 75
+      },
+      "status": null
+    },
+    "0x0000004c": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-uart12-default-state",
+      "phandle": 76,
+      "phandle_properties": {
+        "phandle": 76
+      },
+      "status": null
+    },
+    "0x0000004d": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-i2c13-default-state",
+      "phandle": 77,
+      "phandle_properties": {
+        "phandle": 77
+      },
+      "status": null
+    },
+    "0x0000004e": {
+      "compatible": [
+        "qcom,bcm-voter"
+      ],
+      "path": "/soc@0/rsc@18200000/bcm-voter",
+      "phandle": 78,
+      "phandle_properties": {
+        "phandle": 78
+      },
+      "status": null
+    },
+    "0x0000004f": {
+      "compatible": null,
+      "path": "/soc@0/phy@1c06000/phy@1c06200",
+      "phandle": 79,
+      "phandle_properties": {
+        "phandle": 79
+      },
+      "status": null
+    },
+    "0x00000050": {
+      "compatible": [
+        "qcom,sm8250-pinctrl"
+      ],
+      "path": "/soc@0/pinctrl@f100000",
+      "phandle": 80,
+      "phandle_properties": {
+        "phandle": 80
+      },
+      "status": null
+    },
+    "0x00000051": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pcie0-default-state",
+      "phandle": 81,
+      "phandle_properties": {
+        "phandle": 81
+      },
+      "status": null
+    },
+    "0x00000052": {
+      "compatible": null,
+      "path": "/soc@0/phy@1c0e000/phy@1c0e200",
+      "phandle": 82,
+      "phandle_properties": {
+        "phandle": 82
+      },
+      "status": null
+    },
+    "0x00000053": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pcie1-default-state",
+      "phandle": 83,
+      "phandle_properties": {
+        "phandle": 83
+      },
+      "status": null
+    },
+    "0x00000054": {
+      "compatible": null,
+      "path": "/soc@0/phy@1c16000/phy@1c16200",
+      "phandle": 84,
+      "phandle_properties": {
+        "phandle": 84
+      },
+      "status": null
+    },
+    "0x00000055": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pcie2-default-state",
+      "phandle": 85,
+      "phandle_properties": {
+        "phandle": 85
+      },
+      "status": null
+    },
+    "0x00000056": {
+      "compatible": [
+        "qcom,sm8250-qmp-ufs-phy"
+      ],
+      "path": "/soc@0/phy@1d87000",
+      "phandle": 86,
+      "phandle_properties": {
+        "phandle": 86
+      },
+      "status": "okay"
+    },
+    "0x00000057": {
+      "compatible": [
+        "qcom,sm8250-aggre1-noc"
+      ],
+      "path": "/soc@0/interconnect@16e0000",
+      "phandle": 87,
+      "phandle_properties": {
+        "phandle": 87
+      },
+      "status": null
+    },
+    "0x00000058": {
+      "compatible": [
+        "qcom,sm8250-config-noc"
+      ],
+      "path": "/soc@0/interconnect@1500000",
+      "phandle": 88,
+      "phandle_properties": {
+        "phandle": 88
+      },
+      "status": null
+    },
+    "0x00000059": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/regulators-0/ldo17",
+      "phandle": 89,
+      "phandle_properties": {
+        "phandle": 89
+      },
+      "status": null
+    },
+    "0x0000005a": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/regulators-0/ldo6",
+      "phandle": 90,
+      "phandle_properties": {
+        "phandle": 90
+      },
+      "status": null
+    },
+    "0x0000005b": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/regulators-0/smps4",
+      "phandle": 91,
+      "phandle_properties": {
+        "phandle": 91
+      },
+      "status": null
+    },
+    "0x0000005c": {
+      "compatible": [
+        "qcom,sm8250-ufshc",
+        "qcom,ufshc",
+        "jedec,ufs-2.0"
+      ],
+      "path": "/soc@0/ufshc@1d84000",
+      "phandle": 92,
+      "phandle_properties": {
+        "phandle": 92
+      },
+      "status": "okay"
+    },
+    "0x0000005d": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/regulators-0/ldo5",
+      "phandle": 93,
+      "phandle_properties": {
+        "phandle": 93
+      },
+      "status": null
+    },
+    "0x0000005e": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/regulators-0/ldo9",
+      "phandle": 94,
+      "phandle_properties": {
+        "phandle": 94
+      },
+      "status": null
+    },
+    "0x0000005f": {
+      "compatible": [
+        "qcom,bam-v1.7.4",
+        "qcom,bam-v1.7.0"
+      ],
+      "path": "/soc@0/dma-controller@1dc4000",
+      "phandle": 95,
+      "phandle_properties": {
+        "phandle": 95
+      },
+      "status": null
+    },
+    "0x00000060": {
+      "compatible": [
+        "qcom,sm8250-aggre2-noc"
+      ],
+      "path": "/soc@0/interconnect@1700000",
+      "phandle": 96,
+      "phandle_properties": {
+        "phandle": 96
+      },
+      "status": null
+    },
+    "0x00000061": {
+      "compatible": [
+        "qcom,sm8250-lpass-audiocc"
+      ],
+      "path": "/soc@0/clock-controller@3300000",
+      "phandle": 97,
+      "phandle_properties": {
+        "phandle": 97
+      },
+      "status": null
+    },
+    "0x00000062": {
+      "compatible": [
+        "qcom,q6afe-clocks"
+      ],
+      "path": "/soc@0/remoteproc@17300000/glink-edge/apr/service@4/clock-controller",
+      "phandle": 98,
+      "phandle_properties": {
+        "phandle": 98
+      },
+      "status": null
+    },
+    "0x00000063": {
+      "compatible": [
+        "qcom,sm8250-lpass-aoncc"
+      ],
+      "path": "/soc@0/clock-controller@3380000",
+      "phandle": 99,
+      "phandle_properties": {
+        "phandle": 99
+      },
+      "status": null
+    },
+    "0x00000064": {
+      "compatible": [
+        "qcom,sm8250-lpass-va-macro"
+      ],
+      "path": "/soc@0/codec@3370000",
+      "phandle": 100,
+      "phandle_properties": {
+        "phandle": 100
+      },
+      "status": null
+    },
+    "0x00000065": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/wsa-swr-active-state",
+      "phandle": 101,
+      "phandle_properties": {
+        "phandle": 101
+      },
+      "status": null
+    },
+    "0x00000066": {
+      "compatible": [
+        "qcom,sm8250-lpass-wsa-macro"
+      ],
+      "path": "/soc@0/codec@3240000",
+      "phandle": 102,
+      "phandle_properties": {
+        "phandle": 102
+      },
+      "status": "disabled"
+    },
+    "0x00000067": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/rx-swr-active-state",
+      "phandle": 103,
+      "phandle_properties": {
+        "phandle": 103
+      },
+      "status": null
+    },
+    "0x00000068": {
+      "compatible": [
+        "qcom,sm8250-lpass-rx-macro"
+      ],
+      "path": "/soc@0/rxmacro@3200000",
+      "phandle": 104,
+      "phandle_properties": {
+        "phandle": 104
+      },
+      "status": "disabled"
+    },
+    "0x00000069": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/tx-swr-active-state",
+      "phandle": 105,
+      "phandle_properties": {
+        "phandle": 105
+      },
+      "status": null
+    },
+    "0x0000006a": {
+      "compatible": [
+        "qcom,sm8250-lpass-tx-macro"
+      ],
+      "path": "/soc@0/txmacro@3220000",
+      "phandle": 106,
+      "phandle_properties": {
+        "phandle": 106
+      },
+      "status": "disabled"
+    },
+    "0x0000006b": {
+      "compatible": [
+        "qcom,sm8250-lpass-lpi-pinctrl"
+      ],
+      "path": "/soc@0/pinctrl@33c0000",
+      "phandle": 107,
+      "phandle_properties": {
+        "phandle": 107
+      },
+      "status": null
+    },
+    "0x0000006c": {
+      "compatible": [
+        "qcom,sm8250-smmu-500",
+        "qcom,adreno-smmu",
+        "qcom,smmu-500",
+        "arm,mmu-500"
+      ],
+      "path": "/soc@0/iommu@3da0000",
+      "phandle": 108,
+      "phandle_properties": {
+        "phandle": 108
+      },
+      "status": null
+    },
+    "0x0000006d": {
+      "compatible": [
+        "operating-points-v2"
+      ],
+      "path": "/soc@0/gpu@3d00000/opp-table",
+      "phandle": 109,
+      "phandle_properties": {
+        "phandle": 109
+      },
+      "status": null
+    },
+    "0x0000006e": {
+      "compatible": [
+        "qcom,adreno-gmu-650.2",
+        "qcom,adreno-gmu"
+      ],
+      "path": "/soc@0/gmu@3d6a000",
+      "phandle": 110,
+      "phandle_properties": {
+        "phandle": 110
+      },
+      "status": "disabled"
+    },
+    "0x0000006f": {
+      "compatible": null,
+      "path": "/soc@0/efuse@784000/gpu_speed_bin@19b",
+      "phandle": 111,
+      "phandle_properties": {
+        "phandle": 111
+      },
+      "status": null
+    },
+    "0x00000070": {
+      "compatible": null,
+      "path": "/reserved-memory/memory@8681a000",
+      "phandle": 112,
+      "phandle_properties": {
+        "phandle": 112
+      },
+      "status": null
+    },
+    "0x00000071": {
+      "compatible": [
+        "qcom,sm8250-gpucc"
+      ],
+      "path": "/soc@0/clock-controller@3d90000",
+      "phandle": 113,
+      "phandle_properties": {
+        "phandle": 113
+      },
+      "status": null
+    },
+    "0x00000072": {
+      "compatible": [
+        "operating-points-v2"
+      ],
+      "path": "/soc@0/gmu@3d6a000/opp-table",
+      "phandle": 114,
+      "phandle_properties": {
+        "phandle": 114
+      },
+      "status": null
+    },
+    "0x00000073": {
+      "compatible": [
+        "qcom,sm8250-pdc",
+        "qcom,pdc"
+      ],
+      "path": "/soc@0/interrupt-controller@b220000",
+      "phandle": 115,
+      "phandle_properties": {
+        "phandle": 115
+      },
+      "status": null
+    },
+    "0x00000074": {
+      "compatible": null,
+      "path": "/smp2p-slpi/slave-kernel",
+      "phandle": 116,
+      "phandle_properties": {
+        "phandle": 116
+      },
+      "status": null
+    },
+    "0x00000075": {
+      "compatible": null,
+      "path": "/reserved-memory/slpi@88c00000",
+      "phandle": 117,
+      "phandle_properties": {
+        "phandle": 117
+      },
+      "status": null
+    },
+    "0x00000076": {
+      "compatible": [
+        "qcom,sm8250-aoss-qmp",
+        "qcom,aoss-qmp"
+      ],
+      "path": "/soc@0/power-management@c300000",
+      "phandle": 118,
+      "phandle_properties": {
+        "phandle": 118
+      },
+      "status": null
+    },
+    "0x00000077": {
+      "compatible": null,
+      "path": "/smp2p-slpi/master-kernel",
+      "phandle": 119,
+      "phandle_properties": {
+        "phandle": 119
+      },
+      "status": null
+    },
+    "0x00000078": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6041000/in-ports/port@7/endpoint",
+      "phandle": 120,
+      "phandle_properties": {
+        "phandle": 120
+      },
+      "status": null
+    },
+    "0x00000079": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6005000/in-ports/port/endpoint",
+      "phandle": 121,
+      "phandle_properties": {
+        "phandle": 121
+      },
+      "status": null
+    },
+    "0x0000007a": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6c2d000/out-ports/port/endpoint",
+      "phandle": 122,
+      "phandle_properties": {
+        "phandle": 122
+      },
+      "status": null
+    },
+    "0x0000007b": {
+      "compatible": null,
+      "path": "/soc@0/tpdm@684c000/out-ports/port/endpoint",
+      "phandle": 123,
+      "phandle_properties": {
+        "phandle": 123
+      },
+      "status": null
+    },
+    "0x0000007c": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6041000/in-ports/port@6/endpoint",
+      "phandle": 124,
+      "phandle_properties": {
+        "phandle": 124
+      },
+      "status": null
+    },
+    "0x0000007d": {
+      "compatible": null,
+      "path": "/soc@0/tpda@6004000/out-ports/port/endpoint",
+      "phandle": 125,
+      "phandle_properties": {
+        "phandle": 125
+      },
+      "status": null
+    },
+    "0x0000007e": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6045000/in-ports/port@0/endpoint",
+      "phandle": 126,
+      "phandle_properties": {
+        "phandle": 126
+      },
+      "status": null
+    },
+    "0x0000007f": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6005000/out-ports/port/endpoint",
+      "phandle": 127,
+      "phandle_properties": {
+        "phandle": 127
+      },
+      "status": null
+    },
+    "0x00000080": {
+      "compatible": null,
+      "path": "/soc@0/stm@6002000/out-ports/port/endpoint",
+      "phandle": 128,
+      "phandle_properties": {
+        "phandle": 128
+      },
+      "status": null
+    },
+    "0x00000081": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6045000/in-ports/port@1/endpoint",
+      "phandle": 129,
+      "phandle_properties": {
+        "phandle": 129
+      },
+      "status": null
+    },
+    "0x00000082": {
+      "compatible": null,
+      "path": "/soc@0/funnel@7810000/out-ports/port/endpoint",
+      "phandle": 130,
+      "phandle_properties": {
+        "phandle": 130
+      },
+      "status": null
+    },
+    "0x00000083": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6b04000/in-ports/port@7/endpoint",
+      "phandle": 131,
+      "phandle_properties": {
+        "phandle": 131
+      },
+      "status": null
+    },
+    "0x00000084": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6041000/out-ports/port/endpoint",
+      "phandle": 132,
+      "phandle_properties": {
+        "phandle": 132
+      },
+      "status": null
+    },
+    "0x00000085": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6042000/out-ports/port/endpoint",
+      "phandle": 133,
+      "phandle_properties": {
+        "phandle": 133
+      },
+      "status": null
+    },
+    "0x00000086": {
+      "compatible": null,
+      "path": "/soc@0/etr@6048000/in-ports/port/endpoint",
+      "phandle": 134,
+      "phandle_properties": {
+        "phandle": 134
+      },
+      "status": null
+    },
+    "0x00000087": {
+      "compatible": null,
+      "path": "/soc@0/replicator@6b06000/out-ports/port/endpoint",
+      "phandle": 135,
+      "phandle_properties": {
+        "phandle": 135
+      },
+      "status": null
+    },
+    "0x00000088": {
+      "compatible": null,
+      "path": "/soc@0/replicator@6046000/out-ports/port/endpoint",
+      "phandle": 136,
+      "phandle_properties": {
+        "phandle": 136
+      },
+      "status": null
+    },
+    "0x00000089": {
+      "compatible": null,
+      "path": "/soc@0/tpda@6004000/in-ports/port@17/endpoint",
+      "phandle": 137,
+      "phandle_properties": {
+        "phandle": 137
+      },
+      "status": null
+    },
+    "0x0000008a": {
+      "compatible": null,
+      "path": "/soc@0/etf@6b05000/in-ports/port/endpoint",
+      "phandle": 138,
+      "phandle_properties": {
+        "phandle": 138
+      },
+      "status": null
+    },
+    "0x0000008b": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6045000/out-ports/port/endpoint",
+      "phandle": 139,
+      "phandle_properties": {
+        "phandle": 139
+      },
+      "status": null
+    },
+    "0x0000008c": {
+      "compatible": null,
+      "path": "/soc@0/replicator@6b06000/in-ports/port/endpoint",
+      "phandle": 140,
+      "phandle_properties": {
+        "phandle": 140
+      },
+      "status": null
+    },
+    "0x0000008d": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6b04000/out-ports/port/endpoint",
+      "phandle": 141,
+      "phandle_properties": {
+        "phandle": 141
+      },
+      "status": null
+    },
+    "0x0000008e": {
+      "compatible": null,
+      "path": "/soc@0/replicator@6046000/in-ports/port/endpoint",
+      "phandle": 142,
+      "phandle_properties": {
+        "phandle": 142
+      },
+      "status": null
+    },
+    "0x0000008f": {
+      "compatible": null,
+      "path": "/soc@0/etf@6b05000/out-ports/port/endpoint",
+      "phandle": 143,
+      "phandle_properties": {
+        "phandle": 143
+      },
+      "status": null
+    },
+    "0x00000090": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6c0b000/in-ports/port@3/endpoint",
+      "phandle": 144,
+      "phandle_properties": {
+        "phandle": 144
+      },
+      "status": null
+    },
+    "0x00000091": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6c2d000/in-ports/port@2/endpoint",
+      "phandle": 145,
+      "phandle_properties": {
+        "phandle": 145
+      },
+      "status": null
+    },
+    "0x00000092": {
+      "compatible": null,
+      "path": "/soc@0/tpdm@6c08000/out-ports/port/endpoint",
+      "phandle": 146,
+      "phandle_properties": {
+        "phandle": 146
+      },
+      "status": null
+    },
+    "0x00000093": {
+      "compatible": null,
+      "path": "/soc@0/tpda@6004000/in-ports/port@9/endpoint",
+      "phandle": 147,
+      "phandle_properties": {
+        "phandle": 147
+      },
+      "status": null
+    },
+    "0x00000094": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6c0b000/out-ports/port/endpoint",
+      "phandle": 148,
+      "phandle_properties": {
+        "phandle": 148
+      },
+      "status": null
+    },
+    "0x00000095": {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@0/endpoint",
+      "phandle": 149,
+      "phandle_properties": {
+        "phandle": 149
+      },
+      "status": null
+    },
+    "0x00000096": {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@1/endpoint",
+      "phandle": 150,
+      "phandle_properties": {
+        "phandle": 150
+      },
+      "status": null
+    },
+    "0x00000097": {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@2/endpoint",
+      "phandle": 151,
+      "phandle_properties": {
+        "phandle": 151
+      },
+      "status": null
+    },
+    "0x00000098": {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@3/endpoint",
+      "phandle": 152,
+      "phandle_properties": {
+        "phandle": 152
+      },
+      "status": null
+    },
+    "0x00000099": {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@4/endpoint",
+      "phandle": 153,
+      "phandle_properties": {
+        "phandle": 153
+      },
+      "status": null
+    },
+    "0x0000009a": {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@5/endpoint",
+      "phandle": 154,
+      "phandle_properties": {
+        "phandle": 154
+      },
+      "status": null
+    },
+    "0x0000009b": {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@6/endpoint",
+      "phandle": 155,
+      "phandle_properties": {
+        "phandle": 155
+      },
+      "status": null
+    },
+    "0x0000009c": {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@7/endpoint",
+      "phandle": 156,
+      "phandle_properties": {
+        "phandle": 156
+      },
+      "status": null
+    },
+    "0x0000009d": {
+      "compatible": null,
+      "path": "/soc@0/funnel@7810000/in-ports/port/endpoint",
+      "phandle": 157,
+      "phandle_properties": {
+        "phandle": 157
+      },
+      "status": null
+    },
+    "0x0000009e": {
+      "compatible": null,
+      "path": "/soc@0/etm@7040000/out-ports/port/endpoint",
+      "phandle": 158,
+      "phandle_properties": {
+        "phandle": 158
+      },
+      "status": null
+    },
+    "0x0000009f": {
+      "compatible": null,
+      "path": "/soc@0/etm@7140000/out-ports/port/endpoint",
+      "phandle": 159,
+      "phandle_properties": {
+        "phandle": 159
+      },
+      "status": null
+    },
+    "0x000000a0": {
+      "compatible": null,
+      "path": "/soc@0/etm@7240000/out-ports/port/endpoint",
+      "phandle": 160,
+      "phandle_properties": {
+        "phandle": 160
+      },
+      "status": null
+    },
+    "0x000000a1": {
+      "compatible": null,
+      "path": "/soc@0/etm@7340000/out-ports/port/endpoint",
+      "phandle": 161,
+      "phandle_properties": {
+        "phandle": 161
+      },
+      "status": null
+    },
+    "0x000000a2": {
+      "compatible": null,
+      "path": "/soc@0/etm@7440000/out-ports/port/endpoint",
+      "phandle": 162,
+      "phandle_properties": {
+        "phandle": 162
+      },
+      "status": null
+    },
+    "0x000000a3": {
+      "compatible": null,
+      "path": "/soc@0/etm@7540000/out-ports/port/endpoint",
+      "phandle": 163,
+      "phandle_properties": {
+        "phandle": 163
+      },
+      "status": null
+    },
+    "0x000000a4": {
+      "compatible": null,
+      "path": "/soc@0/etm@7640000/out-ports/port/endpoint",
+      "phandle": 164,
+      "phandle_properties": {
+        "phandle": 164
+      },
+      "status": null
+    },
+    "0x000000a5": {
+      "compatible": null,
+      "path": "/soc@0/etm@7740000/out-ports/port/endpoint",
+      "phandle": 165,
+      "phandle_properties": {
+        "phandle": 165
+      },
+      "status": null
+    },
+    "0x000000a6": {
+      "compatible": null,
+      "path": "/soc@0/funnel@6042000/in-ports/port@4/endpoint",
+      "phandle": 166,
+      "phandle_properties": {
+        "phandle": 166
+      },
+      "status": null
+    },
+    "0x000000a7": {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/out-ports/port/endpoint",
+      "phandle": 167,
+      "phandle_properties": {
+        "phandle": 167
+      },
+      "status": null
+    },
+    "0x000000a8": {
+      "compatible": null,
+      "path": "/smp2p-cdsp/slave-kernel",
+      "phandle": 168,
+      "phandle_properties": {
+        "phandle": 168
+      },
+      "status": null
+    },
+    "0x000000a9": {
+      "compatible": null,
+      "path": "/reserved-memory/memory@87800000",
+      "phandle": 169,
+      "phandle_properties": {
+        "phandle": 169
+      },
+      "status": null
+    },
+    "0x000000aa": {
+      "compatible": null,
+      "path": "/smp2p-cdsp/master-kernel",
+      "phandle": 170,
+      "phandle_properties": {
+        "phandle": 170
+      },
+      "status": null
+    },
+    "0x000000ab": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/regulators-0/ldo12",
+      "phandle": 171,
+      "phandle_properties": {
+        "phandle": 171
+      },
+      "status": null
+    },
+    "0x000000ac": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/regulators-0/ldo2",
+      "phandle": 172,
+      "phandle_properties": {
+        "phandle": 172
+      },
+      "status": null
+    },
+    "0x000000ad": {
+      "compatible": [
+        "operating-points-v2"
+      ],
+      "path": "/soc@0/mmc@8804000/opp-table",
+      "phandle": 173,
+      "phandle_properties": {
+        "phandle": 173
+      },
+      "status": null
+    },
+    "0x000000ae": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/power-controller/opp-table/opp5",
+      "phandle": 174,
+      "phandle_properties": {
+        "phandle": 174
+      },
+      "status": null
+    },
+    "0x000000af": {
+      "compatible": [
+        "operating-points-v2"
+      ],
+      "path": "/soc@0/pmu@9091000/opp-table",
+      "phandle": 175,
+      "phandle_properties": {
+        "phandle": 175
+      },
+      "status": null
+    },
+    "0x000000b0": {
+      "compatible": [
+        "operating-points-v2"
+      ],
+      "path": "/soc@0/pmu@90b6400/opp-table",
+      "phandle": 176,
+      "phandle_properties": {
+        "phandle": 176
+      },
+      "status": null
+    },
+    "0x000000b1": {
+      "compatible": [
+        "qcom,sm8250-usb-hs-phy",
+        "qcom,usb-snps-hs-7nm-phy"
+      ],
+      "path": "/soc@0/phy@88e3000",
+      "phandle": 177,
+      "phandle_properties": {
+        "phandle": 177
+      },
+      "status": "okay"
+    },
+    "0x000000b2": {
+      "compatible": [
+        "qcom,sm8250-usb-hs-phy",
+        "qcom,usb-snps-hs-7nm-phy"
+      ],
+      "path": "/soc@0/phy@88e4000",
+      "phandle": 178,
+      "phandle_properties": {
+        "phandle": 178
+      },
+      "status": "disabled"
+    },
+    "0x000000b3": {
+      "compatible": null,
+      "path": "/soc@0/phy@88eb000/phy@88eb200",
+      "phandle": 179,
+      "phandle_properties": {
+        "phandle": 179
+      },
+      "status": null
+    },
+    "0x000000b4": {
+      "compatible": [
+        "qcom,sm8250-videocc"
+      ],
+      "path": "/soc@0/clock-controller@abf0000",
+      "phandle": 180,
+      "phandle_properties": {
+        "phandle": 180
+      },
+      "status": null
+    },
+    "0x000000b5": {
+      "compatible": [
+        "operating-points-v2"
+      ],
+      "path": "/soc@0/video-codec@aa00000/opp-table",
+      "phandle": 181,
+      "phandle_properties": {
+        "phandle": 181
+      },
+      "status": null
+    },
+    "0x000000b6": {
+      "compatible": [
+        "qcom,sm8250-mmss-noc"
+      ],
+      "path": "/soc@0/interconnect@1740000",
+      "phandle": 182,
+      "phandle_properties": {
+        "phandle": 182
+      },
+      "status": null
+    },
+    "0x000000b7": {
+      "compatible": null,
+      "path": "/reserved-memory/memory@86e00000",
+      "phandle": 183,
+      "phandle_properties": {
+        "phandle": 183
+      },
+      "status": null
+    },
+    "0x000000b8": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/power-controller/opp-table/opp6",
+      "phandle": 184,
+      "phandle_properties": {
+        "phandle": 184
+      },
+      "status": null
+    },
+    "0x000000b9": {
+      "compatible": [
+        "qcom,sm8250-camcc"
+      ],
+      "path": "/soc@0/clock-controller@ad00000",
+      "phandle": 185,
+      "phandle_properties": {
+        "phandle": 185
+      },
+      "status": "disabled"
+    },
+    "0x000000ba": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cci0-default-state",
+      "phandle": 186,
+      "phandle_properties": {
+        "phandle": 186
+      },
+      "status": null
+    },
+    "0x000000bb": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cci0-sleep-state",
+      "phandle": 187,
+      "phandle_properties": {
+        "phandle": 187
+      },
+      "status": null
+    },
+    "0x000000bc": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cci1-default-state",
+      "phandle": 188,
+      "phandle_properties": {
+        "phandle": 188
+      },
+      "status": null
+    },
+    "0x000000bd": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cci1-sleep-state",
+      "phandle": 189,
+      "phandle_properties": {
+        "phandle": 189
+      },
+      "status": null
+    },
+    "0x000000be": {
+      "compatible": [
+        "qcom,sm8250-dispcc"
+      ],
+      "path": "/soc@0/clock-controller@af00000",
+      "phandle": 190,
+      "phandle_properties": {
+        "phandle": 190
+      },
+      "status": null
+    },
+    "0x000000bf": {
+      "compatible": [
+        "operating-points-v2"
+      ],
+      "path": "/soc@0/display-subsystem@ae00000/display-controller@ae01000/opp-table",
+      "phandle": 191,
+      "phandle_properties": {
+        "phandle": 191
+      },
+      "status": null
+    },
+    "0x000000c0": {
+      "compatible": [
+        "qcom,sm8250-mdss"
+      ],
+      "path": "/soc@0/display-subsystem@ae00000",
+      "phandle": 192,
+      "phandle_properties": {
+        "phandle": 192
+      },
+      "status": "disabled"
+    },
+    "0x000000c1": {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae94000/ports/port@0/endpoint",
+      "phandle": 193,
+      "phandle_properties": {
+        "phandle": 193
+      },
+      "status": null
+    },
+    "0x000000c2": {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae96000/ports/port@0/endpoint",
+      "phandle": 194,
+      "phandle_properties": {
+        "phandle": 194
+      },
+      "status": null
+    },
+    "0x000000c3": {
+      "compatible": [
+        "qcom,dsi-phy-7nm"
+      ],
+      "path": "/soc@0/display-subsystem@ae00000/phy@ae94400",
+      "phandle": 195,
+      "phandle_properties": {
+        "phandle": 195
+      },
+      "status": "disabled"
+    },
+    "0x000000c4": {
+      "compatible": [
+        "operating-points-v2"
+      ],
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae94000/opp-table",
+      "phandle": 196,
+      "phandle_properties": {
+        "phandle": 196
+      },
+      "status": null
+    },
+    "0x000000c5": {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/display-controller@ae01000/ports/port@0/endpoint",
+      "phandle": 197,
+      "phandle_properties": {
+        "phandle": 197
+      },
+      "status": null
+    },
+    "0x000000c6": {
+      "compatible": [
+        "qcom,dsi-phy-7nm"
+      ],
+      "path": "/soc@0/display-subsystem@ae00000/phy@ae96400",
+      "phandle": 198,
+      "phandle_properties": {
+        "phandle": 198
+      },
+      "status": "disabled"
+    },
+    "0x000000c7": {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/display-controller@ae01000/ports/port@1/endpoint",
+      "phandle": 199,
+      "phandle_properties": {
+        "phandle": 199
+      },
+      "status": null
+    },
+    "0x000000c8": {
+      "compatible": null,
+      "path": "/soc@0/phy@88e9000/dp-phy@88ea200",
+      "phandle": 200,
+      "phandle_properties": {
+        "phandle": 200
+      },
+      "status": null
+    },
+    "0x000000c9": {
+      "compatible": [
+        "qcom,spmi-adc5"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@0/adc@3100",
+      "phandle": 201,
+      "phandle_properties": {
+        "phandle": 201
+      },
+      "status": null
+    },
+    "0x000000ca": {
+      "compatible": [
+        "qcom,pm8150-gpio",
+        "qcom,spmi-gpio"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@0/gpio@c000",
+      "phandle": 202,
+      "phandle_properties": {
+        "phandle": 202
+      },
+      "status": null
+    },
+    "0x000000cb": {
+      "compatible": [
+        "qcom,spmi-adc5"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@4/adc@3100",
+      "phandle": 203,
+      "phandle_properties": {
+        "phandle": 203
+      },
+      "status": null
+    },
+    "0x000000cc": {
+      "compatible": [
+        "qcom,pm8150l-gpio",
+        "qcom,spmi-gpio"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@4/gpio@c000",
+      "phandle": 204,
+      "phandle_properties": {
+        "phandle": 204
+      },
+      "status": null
+    },
+    "0x000000cd": {
+      "compatible": null,
+      "path": "/smp2p-adsp/slave-kernel",
+      "phandle": 205,
+      "phandle_properties": {
+        "phandle": 205
+      },
+      "status": null
+    },
+    "0x000000ce": {
+      "compatible": null,
+      "path": "/reserved-memory/adsp@8bb00000",
+      "phandle": 206,
+      "phandle_properties": {
+        "phandle": 206
+      },
+      "status": null
+    },
+    "0x000000cf": {
+      "compatible": null,
+      "path": "/smp2p-adsp/master-kernel",
+      "phandle": 207,
+      "phandle_properties": {
+        "phandle": 207
+      },
+      "status": null
+    },
+    "0x000000d0": {
+      "compatible": [
+        "fixed-clock"
+      ],
+      "path": "/clocks/xo-board",
+      "phandle": 208,
+      "phandle_properties": {
+        "phandle": 208
+      },
+      "status": null
+    },
+    "0x000000d1": {
+      "compatible": [
+        "operating-points-v2"
+      ],
+      "path": "/soc@0/rsc@18200000/power-controller/opp-table",
+      "phandle": 209,
+      "phandle_properties": {
+        "phandle": 209
+      },
+      "status": null
+    },
+    "0x000000d2": {
+      "compatible": [
+        "regulator-fixed"
+      ],
+      "path": "/vph-pwr-regulator",
+      "phandle": 210,
+      "phandle_properties": {
+        "phandle": 210
+      },
+      "status": null
+    },
+    "0x000000d3": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/regulators-1/bob",
+      "phandle": 211,
+      "phandle_properties": {
+        "phandle": 211
+      },
+      "status": null
+    },
+    "0x000000d4": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/regulators-0/smps6",
+      "phandle": 212,
+      "phandle_properties": {
+        "phandle": 212
+      },
+      "status": null
+    },
+    "0x000000d5": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/regulators-1/smps8",
+      "phandle": 213,
+      "phandle_properties": {
+        "phandle": 213
+      },
+      "status": null
+    },
+    "0x000000d6": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/regulators-0/smps5",
+      "phandle": 214,
+      "phandle_properties": {
+        "phandle": 214
+      },
+      "status": null
+    },
+    "0x000000d7": {
+      "compatible": [
+        "qcom,sm8250-tsens",
+        "qcom,tsens-v2"
+      ],
+      "path": "/soc@0/thermal-sensor@c263000",
+      "phandle": 215,
+      "phandle_properties": {
+        "phandle": 215
+      },
+      "status": null
+    },
+    "0x000000d8": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu0-thermal/trips/trip-point0",
+      "phandle": 216,
+      "phandle_properties": {
+        "phandle": 216
+      },
+      "status": null
+    },
+    "0x000000d9": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu0-thermal/trips/trip-point1",
+      "phandle": 217,
+      "phandle_properties": {
+        "phandle": 217
+      },
+      "status": null
+    },
+    "0x000000da": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu1-thermal/trips/trip-point0",
+      "phandle": 218,
+      "phandle_properties": {
+        "phandle": 218
+      },
+      "status": null
+    },
+    "0x000000db": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu1-thermal/trips/trip-point1",
+      "phandle": 219,
+      "phandle_properties": {
+        "phandle": 219
+      },
+      "status": null
+    },
+    "0x000000dc": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu2-thermal/trips/trip-point0",
+      "phandle": 220,
+      "phandle_properties": {
+        "phandle": 220
+      },
+      "status": null
+    },
+    "0x000000dd": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu2-thermal/trips/trip-point1",
+      "phandle": 221,
+      "phandle_properties": {
+        "phandle": 221
+      },
+      "status": null
+    },
+    "0x000000de": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu3-thermal/trips/trip-point0",
+      "phandle": 222,
+      "phandle_properties": {
+        "phandle": 222
+      },
+      "status": null
+    },
+    "0x000000df": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu3-thermal/trips/trip-point1",
+      "phandle": 223,
+      "phandle_properties": {
+        "phandle": 223
+      },
+      "status": null
+    },
+    "0x000000e0": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-top-thermal/trips/trip-point0",
+      "phandle": 224,
+      "phandle_properties": {
+        "phandle": 224
+      },
+      "status": null
+    },
+    "0x000000e1": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-top-thermal/trips/trip-point1",
+      "phandle": 225,
+      "phandle_properties": {
+        "phandle": 225
+      },
+      "status": null
+    },
+    "0x000000e2": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-top-thermal/trips/trip-point0",
+      "phandle": 226,
+      "phandle_properties": {
+        "phandle": 226
+      },
+      "status": null
+    },
+    "0x000000e3": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-top-thermal/trips/trip-point1",
+      "phandle": 227,
+      "phandle_properties": {
+        "phandle": 227
+      },
+      "status": null
+    },
+    "0x000000e4": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-top-thermal/trips/trip-point0",
+      "phandle": 228,
+      "phandle_properties": {
+        "phandle": 228
+      },
+      "status": null
+    },
+    "0x000000e5": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-top-thermal/trips/trip-point1",
+      "phandle": 229,
+      "phandle_properties": {
+        "phandle": 229
+      },
+      "status": null
+    },
+    "0x000000e6": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-top-thermal/trips/trip-point0",
+      "phandle": 230,
+      "phandle_properties": {
+        "phandle": 230
+      },
+      "status": null
+    },
+    "0x000000e7": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-top-thermal/trips/trip-point1",
+      "phandle": 231,
+      "phandle_properties": {
+        "phandle": 231
+      },
+      "status": null
+    },
+    "0x000000e8": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-bottom-thermal/trips/trip-point0",
+      "phandle": 232,
+      "phandle_properties": {
+        "phandle": 232
+      },
+      "status": null
+    },
+    "0x000000e9": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-bottom-thermal/trips/trip-point1",
+      "phandle": 233,
+      "phandle_properties": {
+        "phandle": 233
+      },
+      "status": null
+    },
+    "0x000000ea": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-bottom-thermal/trips/trip-point0",
+      "phandle": 234,
+      "phandle_properties": {
+        "phandle": 234
+      },
+      "status": null
+    },
+    "0x000000eb": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-bottom-thermal/trips/trip-point1",
+      "phandle": 235,
+      "phandle_properties": {
+        "phandle": 235
+      },
+      "status": null
+    },
+    "0x000000ec": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-bottom-thermal/trips/trip-point0",
+      "phandle": 236,
+      "phandle_properties": {
+        "phandle": 236
+      },
+      "status": null
+    },
+    "0x000000ed": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-bottom-thermal/trips/trip-point1",
+      "phandle": 237,
+      "phandle_properties": {
+        "phandle": 237
+      },
+      "status": null
+    },
+    "0x000000ee": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-bottom-thermal/trips/trip-point0",
+      "phandle": 238,
+      "phandle_properties": {
+        "phandle": 238
+      },
+      "status": null
+    },
+    "0x000000ef": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-bottom-thermal/trips/trip-point1",
+      "phandle": 239,
+      "phandle_properties": {
+        "phandle": 239
+      },
+      "status": null
+    },
+    "0x000000f0": {
+      "compatible": [
+        "qcom,sm8250-tsens",
+        "qcom,tsens-v2"
+      ],
+      "path": "/soc@0/thermal-sensor@c265000",
+      "phandle": 240,
+      "phandle_properties": {
+        "phandle": 240
+      },
+      "status": null
+    },
+    "0x000000f1": {
+      "compatible": [
+        "qcom,spmi-temp-alarm"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@0/temp-alarm@2400",
+      "phandle": 241,
+      "phandle_properties": {
+        "phandle": 241
+      },
+      "status": null
+    },
+    "0x000000f2": {
+      "compatible": [
+        "qcom,spmi-temp-alarm"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@4/temp-alarm@2400",
+      "phandle": 242,
+      "phandle_properties": {
+        "phandle": 242
+      },
+      "status": null
+    },
+    "0x000000f3": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-300000000",
+      "phandle": 243,
+      "phandle_properties": {
+        "phandle": 243
+      },
+      "status": null
+    },
+    "0x000000f4": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-403200000",
+      "phandle": 244,
+      "phandle_properties": {
+        "phandle": 244
+      },
+      "status": null
+    },
+    "0x000000f5": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-518400000",
+      "phandle": 245,
+      "phandle_properties": {
+        "phandle": 245
+      },
+      "status": null
+    },
+    "0x000000f6": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-614400000",
+      "phandle": 246,
+      "phandle_properties": {
+        "phandle": 246
+      },
+      "status": null
+    },
+    "0x000000f7": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-691200000",
+      "phandle": 247,
+      "phandle_properties": {
+        "phandle": 247
+      },
+      "status": null
+    },
+    "0x000000f8": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-787200000",
+      "phandle": 248,
+      "phandle_properties": {
+        "phandle": 248
+      },
+      "status": null
+    },
+    "0x000000f9": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-883200000",
+      "phandle": 249,
+      "phandle_properties": {
+        "phandle": 249
+      },
+      "status": null
+    },
+    "0x000000fa": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-979200000",
+      "phandle": 250,
+      "phandle_properties": {
+        "phandle": 250
+      },
+      "status": null
+    },
+    "0x000000fb": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-1075200000",
+      "phandle": 251,
+      "phandle_properties": {
+        "phandle": 251
+      },
+      "status": null
+    },
+    "0x000000fc": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-1171200000",
+      "phandle": 252,
+      "phandle_properties": {
+        "phandle": 252
+      },
+      "status": null
+    },
+    "0x000000fd": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-1248000000",
+      "phandle": 253,
+      "phandle_properties": {
+        "phandle": 253
+      },
+      "status": null
+    },
+    "0x000000fe": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-1344000000",
+      "phandle": 254,
+      "phandle_properties": {
+        "phandle": 254
+      },
+      "status": null
+    },
+    "0x000000ff": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-1420800000",
+      "phandle": 255,
+      "phandle_properties": {
+        "phandle": 255
+      },
+      "status": null
+    },
+    "0x00000100": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-1516800000",
+      "phandle": 256,
+      "phandle_properties": {
+        "phandle": 256
+      },
+      "status": null
+    },
+    "0x00000101": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-1612800000",
+      "phandle": 257,
+      "phandle_properties": {
+        "phandle": 257
+      },
+      "status": null
+    },
+    "0x00000102": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-1708800000",
+      "phandle": 258,
+      "phandle_properties": {
+        "phandle": 258
+      },
+      "status": null
+    },
+    "0x00000103": {
+      "compatible": null,
+      "path": "/opp-table-cpu0/opp-1804800000",
+      "phandle": 259,
+      "phandle_properties": {
+        "phandle": 259
+      },
+      "status": null
+    },
+    "0x00000104": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-710400000",
+      "phandle": 260,
+      "phandle_properties": {
+        "phandle": 260
+      },
+      "status": null
+    },
+    "0x00000105": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-825600000",
+      "phandle": 261,
+      "phandle_properties": {
+        "phandle": 261
+      },
+      "status": null
+    },
+    "0x00000106": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-940800000",
+      "phandle": 262,
+      "phandle_properties": {
+        "phandle": 262
+      },
+      "status": null
+    },
+    "0x00000107": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-1056000000",
+      "phandle": 263,
+      "phandle_properties": {
+        "phandle": 263
+      },
+      "status": null
+    },
+    "0x00000108": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-1171200000",
+      "phandle": 264,
+      "phandle_properties": {
+        "phandle": 264
+      },
+      "status": null
+    },
+    "0x00000109": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-1286400000",
+      "phandle": 265,
+      "phandle_properties": {
+        "phandle": 265
+      },
+      "status": null
+    },
+    "0x0000010a": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-1382400000",
+      "phandle": 266,
+      "phandle_properties": {
+        "phandle": 266
+      },
+      "status": null
+    },
+    "0x0000010b": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-1478400000",
+      "phandle": 267,
+      "phandle_properties": {
+        "phandle": 267
+      },
+      "status": null
+    },
+    "0x0000010c": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-1574400000",
+      "phandle": 268,
+      "phandle_properties": {
+        "phandle": 268
+      },
+      "status": null
+    },
+    "0x0000010d": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-1670400000",
+      "phandle": 269,
+      "phandle_properties": {
+        "phandle": 269
+      },
+      "status": null
+    },
+    "0x0000010e": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-1766400000",
+      "phandle": 270,
+      "phandle_properties": {
+        "phandle": 270
+      },
+      "status": null
+    },
+    "0x0000010f": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-1862400000",
+      "phandle": 271,
+      "phandle_properties": {
+        "phandle": 271
+      },
+      "status": null
+    },
+    "0x00000110": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-1958400000",
+      "phandle": 272,
+      "phandle_properties": {
+        "phandle": 272
+      },
+      "status": null
+    },
+    "0x00000111": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-2054400000",
+      "phandle": 273,
+      "phandle_properties": {
+        "phandle": 273
+      },
+      "status": null
+    },
+    "0x00000112": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-2150400000",
+      "phandle": 274,
+      "phandle_properties": {
+        "phandle": 274
+      },
+      "status": null
+    },
+    "0x00000113": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-2246400000",
+      "phandle": 275,
+      "phandle_properties": {
+        "phandle": 275
+      },
+      "status": null
+    },
+    "0x00000114": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-2342400000",
+      "phandle": 276,
+      "phandle_properties": {
+        "phandle": 276
+      },
+      "status": null
+    },
+    "0x00000115": {
+      "compatible": null,
+      "path": "/opp-table-cpu4/opp-2419200000",
+      "phandle": 277,
+      "phandle_properties": {
+        "phandle": 277
+      },
+      "status": null
+    },
+    "0x00000116": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-844800000",
+      "phandle": 278,
+      "phandle_properties": {
+        "phandle": 278
+      },
+      "status": null
+    },
+    "0x00000117": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-960000000",
+      "phandle": 279,
+      "phandle_properties": {
+        "phandle": 279
+      },
+      "status": null
+    },
+    "0x00000118": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-1075200000",
+      "phandle": 280,
+      "phandle_properties": {
+        "phandle": 280
+      },
+      "status": null
+    },
+    "0x00000119": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-1190400000",
+      "phandle": 281,
+      "phandle_properties": {
+        "phandle": 281
+      },
+      "status": null
+    },
+    "0x0000011a": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-1305600000",
+      "phandle": 282,
+      "phandle_properties": {
+        "phandle": 282
+      },
+      "status": null
+    },
+    "0x0000011b": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-1401600000",
+      "phandle": 283,
+      "phandle_properties": {
+        "phandle": 283
+      },
+      "status": null
+    },
+    "0x0000011c": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-1516800000",
+      "phandle": 284,
+      "phandle_properties": {
+        "phandle": 284
+      },
+      "status": null
+    },
+    "0x0000011d": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-1632000000",
+      "phandle": 285,
+      "phandle_properties": {
+        "phandle": 285
+      },
+      "status": null
+    },
+    "0x0000011e": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-1747200000",
+      "phandle": 286,
+      "phandle_properties": {
+        "phandle": 286
+      },
+      "status": null
+    },
+    "0x0000011f": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-1862400000",
+      "phandle": 287,
+      "phandle_properties": {
+        "phandle": 287
+      },
+      "status": null
+    },
+    "0x00000120": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-1977600000",
+      "phandle": 288,
+      "phandle_properties": {
+        "phandle": 288
+      },
+      "status": null
+    },
+    "0x00000121": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-2073600000",
+      "phandle": 289,
+      "phandle_properties": {
+        "phandle": 289
+      },
+      "status": null
+    },
+    "0x00000122": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-2169600000",
+      "phandle": 290,
+      "phandle_properties": {
+        "phandle": 290
+      },
+      "status": null
+    },
+    "0x00000123": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-2265600000",
+      "phandle": 291,
+      "phandle_properties": {
+        "phandle": 291
+      },
+      "status": null
+    },
+    "0x00000124": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-2361600000",
+      "phandle": 292,
+      "phandle_properties": {
+        "phandle": 292
+      },
+      "status": null
+    },
+    "0x00000125": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-2457600000",
+      "phandle": 293,
+      "phandle_properties": {
+        "phandle": 293
+      },
+      "status": null
+    },
+    "0x00000126": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-2553600000",
+      "phandle": 294,
+      "phandle_properties": {
+        "phandle": 294
+      },
+      "status": null
+    },
+    "0x00000127": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-2649600000",
+      "phandle": 295,
+      "phandle_properties": {
+        "phandle": 295
+      },
+      "status": null
+    },
+    "0x00000128": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-2745600000",
+      "phandle": 296,
+      "phandle_properties": {
+        "phandle": 296
+      },
+      "status": null
+    },
+    "0x00000129": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-2841600000",
+      "phandle": 297,
+      "phandle_properties": {
+        "phandle": 297
+      },
+      "status": null
+    },
+    "0x0000012a": {
+      "compatible": null,
+      "path": "/opp-table-cpu7/opp-3091200000",
+      "phandle": 298,
+      "phandle_properties": {
+        "phandle": 298
+      },
+      "status": null
+    },
+    "0x0000012b": {
+      "compatible": [
+        "qcom,scm-sm8250",
+        "qcom,scm"
+      ],
+      "path": "/firmware/scm",
+      "phandle": 299,
+      "phandle_properties": {
+        "phandle": 299
+      },
+      "status": null
+    },
+    "0x0000012c": {
+      "compatible": null,
+      "path": "/reserved-memory/memory@80000000",
+      "phandle": 300,
+      "phandle_properties": {
+        "phandle": 300
+      },
+      "status": null
+    },
+    "0x0000012d": {
+      "compatible": [
+        "qcom,cmd-db"
+      ],
+      "path": "/reserved-memory/memory@80860000",
+      "phandle": 301,
+      "phandle_properties": {
+        "phandle": 301
+      },
+      "status": null
+    },
+    "0x0000012e": {
+      "compatible": null,
+      "path": "/reserved-memory/memory@80b00000",
+      "phandle": 302,
+      "phandle_properties": {
+        "phandle": 302
+      },
+      "status": null
+    },
+    "0x0000012f": {
+      "compatible": null,
+      "path": "/reserved-memory/memory@86200000",
+      "phandle": 303,
+      "phandle_properties": {
+        "phandle": 303
+      },
+      "status": null
+    },
+    "0x00000130": {
+      "compatible": null,
+      "path": "/reserved-memory/memory@86700000",
+      "phandle": 304,
+      "phandle_properties": {
+        "phandle": 304
+      },
+      "status": null
+    },
+    "0x00000131": {
+      "compatible": null,
+      "path": "/reserved-memory/memory@86800000",
+      "phandle": 305,
+      "phandle_properties": {
+        "phandle": 305
+      },
+      "status": null
+    },
+    "0x00000132": {
+      "compatible": null,
+      "path": "/reserved-memory/memory@86810000",
+      "phandle": 306,
+      "phandle_properties": {
+        "phandle": 306
+      },
+      "status": null
+    },
+    "0x00000133": {
+      "compatible": null,
+      "path": "/reserved-memory/memory@86900000",
+      "phandle": 307,
+      "phandle_properties": {
+        "phandle": 307
+      },
+      "status": null
+    },
+    "0x00000134": {
+      "compatible": null,
+      "path": "/reserved-memory/memory@87300000",
+      "phandle": 308,
+      "phandle_properties": {
+        "phandle": 308
+      },
+      "status": null
+    },
+    "0x00000135": {
+      "compatible": null,
+      "path": "/reserved-memory/xbl-aop@80600000",
+      "phandle": 309,
+      "phandle_properties": {
+        "phandle": 309
+      },
+      "status": null
+    },
+    "0x00000136": {
+      "compatible": null,
+      "path": "/reserved-memory/xbl-uefi-log@80880000",
+      "phandle": 310,
+      "phandle_properties": {
+        "phandle": 310
+      },
+      "status": null
+    },
+    "0x00000137": {
+      "compatible": null,
+      "path": "/reserved-memory/spss@8e000000",
+      "phandle": 311,
+      "phandle_properties": {
+        "phandle": 311
+      },
+      "status": null
+    },
+    "0x00000138": {
+      "compatible": null,
+      "path": "/reserved-memory/cdsp-secure-heap@8e100000",
+      "phandle": 312,
+      "phandle_properties": {
+        "phandle": 312
+      },
+      "status": null
+    },
+    "0x00000139": {
+      "compatible": null,
+      "path": "/reserved-memory/cont-splash@9c000000",
+      "phandle": 313,
+      "phandle_properties": {
+        "phandle": 313
+      },
+      "status": null
+    },
+    "0x0000013a": {
+      "compatible": null,
+      "path": "/reserved-memory/dfps-data@9e300000",
+      "phandle": 314,
+      "phandle_properties": {
+        "phandle": 314
+      },
+      "status": null
+    },
+    "0x0000013b": {
+      "compatible": null,
+      "path": "/reserved-memory/disp-rdump@b0400000",
+      "phandle": 315,
+      "phandle_properties": {
+        "phandle": 315
+      },
+      "status": null
+    },
+    "0x0000013c": {
+      "compatible": [
+        "simple-bus"
+      ],
+      "path": "/soc@0",
+      "phandle": 316,
+      "phandle_properties": {
+        "phandle": 316
+      },
+      "status": null
+    },
+    "0x0000013d": {
+      "compatible": [
+        "qcom,sm8250-qfprom",
+        "qcom,qfprom"
+      ],
+      "path": "/soc@0/efuse@784000",
+      "phandle": 317,
+      "phandle_properties": {
+        "phandle": 317
+      },
+      "status": null
+    },
+    "0x0000013e": {
+      "compatible": [
+        "qcom,prng-ee"
+      ],
+      "path": "/soc@0/rng@793000",
+      "phandle": 318,
+      "phandle_properties": {
+        "phandle": 318
+      },
+      "status": null
+    },
+    "0x0000013f": {
+      "compatible": [
+        "qcom,geni-se-qup"
+      ],
+      "path": "/soc@0/geniqup@8c0000",
+      "phandle": 319,
+      "phandle_properties": {
+        "phandle": 319
+      },
+      "status": "disabled"
+    },
+    "0x00000140": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@8c0000/i2c@880000",
+      "phandle": 320,
+      "phandle_properties": {
+        "phandle": 320
+      },
+      "status": "disabled"
+    },
+    "0x00000141": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@8c0000/spi@880000",
+      "phandle": 321,
+      "phandle_properties": {
+        "phandle": 321
+      },
+      "status": "disabled"
+    },
+    "0x00000142": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@8c0000/i2c@884000",
+      "phandle": 322,
+      "phandle_properties": {
+        "phandle": 322
+      },
+      "status": "disabled"
+    },
+    "0x00000143": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@8c0000/spi@884000",
+      "phandle": 323,
+      "phandle_properties": {
+        "phandle": 323
+      },
+      "status": "disabled"
+    },
+    "0x00000144": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@8c0000/i2c@888000",
+      "phandle": 324,
+      "phandle_properties": {
+        "phandle": 324
+      },
+      "status": "disabled"
+    },
+    "0x00000145": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@8c0000/spi@888000",
+      "phandle": 325,
+      "phandle_properties": {
+        "phandle": 325
+      },
+      "status": "disabled"
+    },
+    "0x00000146": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@8c0000/i2c@88c000",
+      "phandle": 326,
+      "phandle_properties": {
+        "phandle": 326
+      },
+      "status": "disabled"
+    },
+    "0x00000147": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@8c0000/spi@88c000",
+      "phandle": 327,
+      "phandle_properties": {
+        "phandle": 327
+      },
+      "status": "disabled"
+    },
+    "0x00000148": {
+      "compatible": [
+        "qcom,geni-uart"
+      ],
+      "path": "/soc@0/geniqup@8c0000/serial@88c000",
+      "phandle": 328,
+      "phandle_properties": {
+        "phandle": 328
+      },
+      "status": "disabled"
+    },
+    "0x00000149": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@8c0000/i2c@890000",
+      "phandle": 329,
+      "phandle_properties": {
+        "phandle": 329
+      },
+      "status": "disabled"
+    },
+    "0x0000014a": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@8c0000/spi@890000",
+      "phandle": 330,
+      "phandle_properties": {
+        "phandle": 330
+      },
+      "status": "disabled"
+    },
+    "0x0000014b": {
+      "compatible": [
+        "qcom,geni-uart"
+      ],
+      "path": "/soc@0/geniqup@8c0000/serial@890000",
+      "phandle": 331,
+      "phandle_properties": {
+        "phandle": 331
+      },
+      "status": "disabled"
+    },
+    "0x0000014c": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@8c0000/i2c@894000",
+      "phandle": 332,
+      "phandle_properties": {
+        "phandle": 332
+      },
+      "status": "disabled"
+    },
+    "0x0000014d": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@8c0000/spi@894000",
+      "phandle": 333,
+      "phandle_properties": {
+        "phandle": 333
+      },
+      "status": "disabled"
+    },
+    "0x0000014e": {
+      "compatible": [
+        "qcom,geni-se-qup"
+      ],
+      "path": "/soc@0/geniqup@9c0000",
+      "phandle": 334,
+      "phandle_properties": {
+        "phandle": 334
+      },
+      "status": "disabled"
+    },
+    "0x0000014f": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@9c0000/i2c@980000",
+      "phandle": 335,
+      "phandle_properties": {
+        "phandle": 335
+      },
+      "status": "disabled"
+    },
+    "0x00000150": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@9c0000/spi@980000",
+      "phandle": 336,
+      "phandle_properties": {
+        "phandle": 336
+      },
+      "status": "disabled"
+    },
+    "0x00000151": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@9c0000/i2c@984000",
+      "phandle": 337,
+      "phandle_properties": {
+        "phandle": 337
+      },
+      "status": "disabled"
+    },
+    "0x00000152": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@9c0000/spi@984000",
+      "phandle": 338,
+      "phandle_properties": {
+        "phandle": 338
+      },
+      "status": "disabled"
+    },
+    "0x00000153": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@9c0000/i2c@988000",
+      "phandle": 339,
+      "phandle_properties": {
+        "phandle": 339
+      },
+      "status": "disabled"
+    },
+    "0x00000154": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@9c0000/spi@988000",
+      "phandle": 340,
+      "phandle_properties": {
+        "phandle": 340
+      },
+      "status": "disabled"
+    },
+    "0x00000155": {
+      "compatible": [
+        "qcom,geni-debug-uart"
+      ],
+      "path": "/soc@0/geniqup@9c0000/serial@988000",
+      "phandle": 341,
+      "phandle_properties": {
+        "phandle": 341
+      },
+      "status": "okay"
+    },
+    "0x00000156": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@9c0000/i2c@98c000",
+      "phandle": 342,
+      "phandle_properties": {
+        "phandle": 342
+      },
+      "status": "disabled"
+    },
+    "0x00000157": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@9c0000/spi@98c000",
+      "phandle": 343,
+      "phandle_properties": {
+        "phandle": 343
+      },
+      "status": "disabled"
+    },
+    "0x00000158": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@9c0000/i2c@990000",
+      "phandle": 344,
+      "phandle_properties": {
+        "phandle": 344
+      },
+      "status": "disabled"
+    },
+    "0x00000159": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@9c0000/spi@990000",
+      "phandle": 345,
+      "phandle_properties": {
+        "phandle": 345
+      },
+      "status": "disabled"
+    },
+    "0x0000015a": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@9c0000/i2c@994000",
+      "phandle": 346,
+      "phandle_properties": {
+        "phandle": 346
+      },
+      "status": "disabled"
+    },
+    "0x0000015b": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@9c0000/spi@994000",
+      "phandle": 347,
+      "phandle_properties": {
+        "phandle": 347
+      },
+      "status": "disabled"
+    },
+    "0x0000015c": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@9c0000/i2c@998000",
+      "phandle": 348,
+      "phandle_properties": {
+        "phandle": 348
+      },
+      "status": "disabled"
+    },
+    "0x0000015d": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@9c0000/spi@998000",
+      "phandle": 349,
+      "phandle_properties": {
+        "phandle": 349
+      },
+      "status": "disabled"
+    },
+    "0x0000015e": {
+      "compatible": [
+        "qcom,geni-uart"
+      ],
+      "path": "/soc@0/geniqup@9c0000/serial@998000",
+      "phandle": 350,
+      "phandle_properties": {
+        "phandle": 350
+      },
+      "status": "disabled"
+    },
+    "0x0000015f": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@9c0000/i2c@99c000",
+      "phandle": 351,
+      "phandle_properties": {
+        "phandle": 351
+      },
+      "status": "disabled"
+    },
+    "0x00000160": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@9c0000/spi@99c000",
+      "phandle": 352,
+      "phandle_properties": {
+        "phandle": 352
+      },
+      "status": "disabled"
+    },
+    "0x00000161": {
+      "compatible": [
+        "qcom,geni-se-qup"
+      ],
+      "path": "/soc@0/geniqup@ac0000",
+      "phandle": 353,
+      "phandle_properties": {
+        "phandle": 353
+      },
+      "status": "disabled"
+    },
+    "0x00000162": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@ac0000/i2c@a80000",
+      "phandle": 354,
+      "phandle_properties": {
+        "phandle": 354
+      },
+      "status": "disabled"
+    },
+    "0x00000163": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@ac0000/spi@a80000",
+      "phandle": 355,
+      "phandle_properties": {
+        "phandle": 355
+      },
+      "status": "disabled"
+    },
+    "0x00000164": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@ac0000/i2c@a84000",
+      "phandle": 356,
+      "phandle_properties": {
+        "phandle": 356
+      },
+      "status": "disabled"
+    },
+    "0x00000165": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@ac0000/spi@a84000",
+      "phandle": 357,
+      "phandle_properties": {
+        "phandle": 357
+      },
+      "status": "disabled"
+    },
+    "0x00000166": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@ac0000/i2c@a88000",
+      "phandle": 358,
+      "phandle_properties": {
+        "phandle": 358
+      },
+      "status": "disabled"
+    },
+    "0x00000167": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@ac0000/spi@a88000",
+      "phandle": 359,
+      "phandle_properties": {
+        "phandle": 359
+      },
+      "status": "disabled"
+    },
+    "0x00000168": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@ac0000/i2c@a8c000",
+      "phandle": 360,
+      "phandle_properties": {
+        "phandle": 360
+      },
+      "status": "disabled"
+    },
+    "0x00000169": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@ac0000/spi@a8c000",
+      "phandle": 361,
+      "phandle_properties": {
+        "phandle": 361
+      },
+      "status": "disabled"
+    },
+    "0x0000016a": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@ac0000/i2c@a90000",
+      "phandle": 362,
+      "phandle_properties": {
+        "phandle": 362
+      },
+      "status": "disabled"
+    },
+    "0x0000016b": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@ac0000/spi@a90000",
+      "phandle": 363,
+      "phandle_properties": {
+        "phandle": 363
+      },
+      "status": "disabled"
+    },
+    "0x0000016c": {
+      "compatible": [
+        "qcom,geni-debug-uart"
+      ],
+      "path": "/soc@0/geniqup@ac0000/serial@a90000",
+      "phandle": 364,
+      "phandle_properties": {
+        "phandle": 364
+      },
+      "status": "disabled"
+    },
+    "0x0000016d": {
+      "compatible": [
+        "qcom,geni-i2c"
+      ],
+      "path": "/soc@0/geniqup@ac0000/i2c@a94000",
+      "phandle": 365,
+      "phandle_properties": {
+        "phandle": 365
+      },
+      "status": "disabled"
+    },
+    "0x0000016e": {
+      "compatible": [
+        "qcom,geni-spi"
+      ],
+      "path": "/soc@0/geniqup@ac0000/spi@a94000",
+      "phandle": 366,
+      "phandle_properties": {
+        "phandle": 366
+      },
+      "status": "disabled"
+    },
+    "0x0000016f": {
+      "compatible": [
+        "qcom,sm8250-system-noc"
+      ],
+      "path": "/soc@0/interconnect@1620000",
+      "phandle": 367,
+      "phandle_properties": {
+        "phandle": 367
+      },
+      "status": null
+    },
+    "0x00000170": {
+      "compatible": [
+        "qcom,sm8250-compute-noc"
+      ],
+      "path": "/soc@0/interconnect@1733000",
+      "phandle": 368,
+      "phandle_properties": {
+        "phandle": 368
+      },
+      "status": null
+    },
+    "0x00000171": {
+      "compatible": [
+        "qcom,pcie-sm8250"
+      ],
+      "path": "/soc@0/pci@1c00000",
+      "phandle": 369,
+      "phandle_properties": {
+        "phandle": 369
+      },
+      "status": "disabled"
+    },
+    "0x00000172": {
+      "compatible": [
+        "qcom,sm8250-qmp-gen3x1-pcie-phy"
+      ],
+      "path": "/soc@0/phy@1c06000",
+      "phandle": 370,
+      "phandle_properties": {
+        "phandle": 370
+      },
+      "status": "disabled"
+    },
+    "0x00000173": {
+      "compatible": [
+        "qcom,pcie-sm8250"
+      ],
+      "path": "/soc@0/pci@1c08000",
+      "phandle": 371,
+      "phandle_properties": {
+        "phandle": 371
+      },
+      "status": "disabled"
+    },
+    "0x00000174": {
+      "compatible": [
+        "qcom,sm8250-qmp-gen3x2-pcie-phy"
+      ],
+      "path": "/soc@0/phy@1c0e000",
+      "phandle": 372,
+      "phandle_properties": {
+        "phandle": 372
+      },
+      "status": "disabled"
+    },
+    "0x00000175": {
+      "compatible": [
+        "qcom,pcie-sm8250"
+      ],
+      "path": "/soc@0/pci@1c10000",
+      "phandle": 373,
+      "phandle_properties": {
+        "phandle": 373
+      },
+      "status": "disabled"
+    },
+    "0x00000176": {
+      "compatible": [
+        "qcom,sm8250-qmp-modem-pcie-phy"
+      ],
+      "path": "/soc@0/phy@1c16000",
+      "phandle": 374,
+      "phandle_properties": {
+        "phandle": 374
+      },
+      "status": "disabled"
+    },
+    "0x00000177": {
+      "compatible": [
+        "qcom,sm8250-qce",
+        "qcom,sm8150-qce",
+        "qcom,qce"
+      ],
+      "path": "/soc@0/crypto@1dfa000",
+      "phandle": 375,
+      "phandle_properties": {
+        "phandle": 375
+      },
+      "status": null
+    },
+    "0x00000178": {
+      "compatible": [
+        "qcom,soundwire-v1.5.1"
+      ],
+      "path": "/soc@0/soundwire-controller@3250000",
+      "phandle": 376,
+      "phandle_properties": {
+        "phandle": 376
+      },
+      "status": "disabled"
+    },
+    "0x00000179": {
+      "compatible": [
+        "qcom,soundwire-v1.5.1"
+      ],
+      "path": "/soc@0/soundwire-controller@3210000",
+      "phandle": 377,
+      "phandle_properties": {
+        "phandle": 377
+      },
+      "status": "disabled"
+    },
+    "0x0000017a": {
+      "compatible": [
+        "qcom,soundwire-v1.5.1"
+      ],
+      "path": "/soc@0/soundwire-controller@3230000",
+      "phandle": 378,
+      "phandle_properties": {
+        "phandle": 378
+      },
+      "status": "disabled"
+    },
+    "0x0000017b": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/wsa-swr-sleep-state",
+      "phandle": 379,
+      "phandle_properties": {
+        "phandle": 379
+      },
+      "status": null
+    },
+    "0x0000017c": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/dmic01-active-state",
+      "phandle": 380,
+      "phandle_properties": {
+        "phandle": 380
+      },
+      "status": null
+    },
+    "0x0000017d": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/dmic01-sleep-state",
+      "phandle": 381,
+      "phandle_properties": {
+        "phandle": 381
+      },
+      "status": null
+    },
+    "0x0000017e": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/tx-swr-sleep-state",
+      "phandle": 382,
+      "phandle_properties": {
+        "phandle": 382
+      },
+      "status": null
+    },
+    "0x0000017f": {
+      "compatible": [
+        "qcom,adreno-650.2",
+        "qcom,adreno"
+      ],
+      "path": "/soc@0/gpu@3d00000",
+      "phandle": 383,
+      "phandle_properties": {
+        "phandle": 383
+      },
+      "status": "disabled"
+    },
+    "0x00000180": {
+      "compatible": [
+        "qcom,sm8250-slpi-pas"
+      ],
+      "path": "/soc@0/remoteproc@5c00000",
+      "phandle": 384,
+      "phandle_properties": {
+        "phandle": 384
+      },
+      "status": "disabled"
+    },
+    "0x00000181": {
+      "compatible": [
+        "qcom,sm8250-cdsp-pas"
+      ],
+      "path": "/soc@0/remoteproc@8300000",
+      "phandle": 385,
+      "phandle_properties": {
+        "phandle": 385
+      },
+      "status": "disabled"
+    },
+    "0x00000182": {
+      "compatible": [
+        "qcom,sm8250-qmp-usb3-dp-phy"
+      ],
+      "path": "/soc@0/phy@88e9000",
+      "phandle": 386,
+      "phandle_properties": {
+        "phandle": 386
+      },
+      "status": "disabled"
+    },
+    "0x00000183": {
+      "compatible": null,
+      "path": "/soc@0/phy@88e9000/usb3-phy@88e9200",
+      "phandle": 387,
+      "phandle_properties": {
+        "phandle": 387
+      },
+      "status": null
+    },
+    "0x00000184": {
+      "compatible": [
+        "qcom,sm8250-qmp-usb3-uni-phy"
+      ],
+      "path": "/soc@0/phy@88eb000",
+      "phandle": 388,
+      "phandle_properties": {
+        "phandle": 388
+      },
+      "status": "disabled"
+    },
+    "0x00000185": {
+      "compatible": [
+        "qcom,sm8250-sdhci",
+        "qcom,sdhci-msm-v5"
+      ],
+      "path": "/soc@0/mmc@8804000",
+      "phandle": 389,
+      "phandle_properties": {
+        "phandle": 389
+      },
+      "status": "disabled"
+    },
+    "0x00000186": {
+      "compatible": [
+        "qcom,sm8250-dc-noc"
+      ],
+      "path": "/soc@0/interconnect@90c0000",
+      "phandle": 390,
+      "phandle_properties": {
+        "phandle": 390
+      },
+      "status": null
+    },
+    "0x00000187": {
+      "compatible": [
+        "qcom,sm8250-npu-noc"
+      ],
+      "path": "/soc@0/interconnect@9990000",
+      "phandle": 391,
+      "phandle_properties": {
+        "phandle": 391
+      },
+      "status": null
+    },
+    "0x00000188": {
+      "compatible": [
+        "qcom,sm8250-dwc3",
+        "qcom,dwc3"
+      ],
+      "path": "/soc@0/usb@a6f8800",
+      "phandle": 392,
+      "phandle_properties": {
+        "phandle": 392
+      },
+      "status": "okay"
+    },
+    "0x00000189": {
+      "compatible": [
+        "snps,dwc3"
+      ],
+      "path": "/soc@0/usb@a6f8800/usb@a600000",
+      "phandle": 393,
+      "phandle_properties": {
+        "phandle": 393
+      },
+      "status": null
+    },
+    "0x0000018a": {
+      "compatible": [
+        "qcom,sm8250-dwc3",
+        "qcom,dwc3"
+      ],
+      "path": "/soc@0/usb@a8f8800",
+      "phandle": 394,
+      "phandle_properties": {
+        "phandle": 394
+      },
+      "status": "disabled"
+    },
+    "0x0000018b": {
+      "compatible": [
+        "snps,dwc3"
+      ],
+      "path": "/soc@0/usb@a8f8800/usb@a800000",
+      "phandle": 395,
+      "phandle_properties": {
+        "phandle": 395
+      },
+      "status": null
+    },
+    "0x0000018c": {
+      "compatible": [
+        "qcom,sm8250-venus"
+      ],
+      "path": "/soc@0/video-codec@aa00000",
+      "phandle": 396,
+      "phandle_properties": {
+        "phandle": 396
+      },
+      "status": "disabled"
+    },
+    "0x0000018d": {
+      "compatible": [
+        "qcom,sm8250-cci",
+        "qcom,msm8996-cci"
+      ],
+      "path": "/soc@0/cci@ac4f000",
+      "phandle": 397,
+      "phandle_properties": {
+        "phandle": 397
+      },
+      "status": "disabled"
+    },
+    "0x0000018e": {
+      "compatible": null,
+      "path": "/soc@0/cci@ac4f000/i2c-bus@0",
+      "phandle": 398,
+      "phandle_properties": {
+        "phandle": 398
+      },
+      "status": null
+    },
+    "0x0000018f": {
+      "compatible": null,
+      "path": "/soc@0/cci@ac4f000/i2c-bus@1",
+      "phandle": 399,
+      "phandle_properties": {
+        "phandle": 399
+      },
+      "status": null
+    },
+    "0x00000190": {
+      "compatible": [
+        "qcom,sm8250-cci",
+        "qcom,msm8996-cci"
+      ],
+      "path": "/soc@0/cci@ac50000",
+      "phandle": 400,
+      "phandle_properties": {
+        "phandle": 400
+      },
+      "status": "disabled"
+    },
+    "0x00000191": {
+      "compatible": null,
+      "path": "/soc@0/cci@ac50000/i2c-bus@0",
+      "phandle": 401,
+      "phandle_properties": {
+        "phandle": 401
+      },
+      "status": null
+    },
+    "0x00000192": {
+      "compatible": null,
+      "path": "/soc@0/cci@ac50000/i2c-bus@1",
+      "phandle": 402,
+      "phandle_properties": {
+        "phandle": 402
+      },
+      "status": null
+    },
+    "0x00000193": {
+      "compatible": [
+        "qcom,sm8250-camss"
+      ],
+      "path": "/soc@0/camss@ac6a000",
+      "phandle": 403,
+      "phandle_properties": {
+        "phandle": 403
+      },
+      "status": "disabled"
+    },
+    "0x00000194": {
+      "compatible": [
+        "qcom,sm8250-dpu"
+      ],
+      "path": "/soc@0/display-subsystem@ae00000/display-controller@ae01000",
+      "phandle": 404,
+      "phandle_properties": {
+        "phandle": 404
+      },
+      "status": null
+    },
+    "0x00000195": {
+      "compatible": [
+        "qcom,sm8250-dsi-ctrl",
+        "qcom,mdss-dsi-ctrl"
+      ],
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae94000",
+      "phandle": 405,
+      "phandle_properties": {
+        "phandle": 405
+      },
+      "status": "disabled"
+    },
+    "0x00000196": {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae94000/ports/port@1/endpoint",
+      "phandle": 406,
+      "phandle_properties": {
+        "phandle": 406
+      },
+      "status": null
+    },
+    "0x00000197": {
+      "compatible": [
+        "qcom,sm8250-dsi-ctrl",
+        "qcom,mdss-dsi-ctrl"
+      ],
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae96000",
+      "phandle": 407,
+      "phandle_properties": {
+        "phandle": 407
+      },
+      "status": "disabled"
+    },
+    "0x00000198": {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae96000/ports/port@1/endpoint",
+      "phandle": 408,
+      "phandle_properties": {
+        "phandle": 408
+      },
+      "status": null
+    },
+    "0x00000199": {
+      "compatible": [
+        "qcom,spmi-pmic-arb"
+      ],
+      "path": "/soc@0/spmi@c440000",
+      "phandle": 409,
+      "phandle_properties": {
+        "phandle": 409
+      },
+      "status": null
+    },
+    "0x0000019a": {
+      "compatible": [
+        "qcom,pm8150",
+        "qcom,spmi-pmic"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@0",
+      "phandle": 410,
+      "phandle_properties": {
+        "phandle": 410
+      },
+      "status": null
+    },
+    "0x0000019b": {
+      "compatible": [
+        "qcom,pm8998-pon"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@0/pon@800",
+      "phandle": 411,
+      "phandle_properties": {
+        "phandle": 411
+      },
+      "status": null
+    },
+    "0x0000019c": {
+      "compatible": [
+        "qcom,pm8941-pwrkey"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@0/pon@800/pwrkey",
+      "phandle": 412,
+      "phandle_properties": {
+        "phandle": 412
+      },
+      "status": "disabled"
+    },
+    "0x0000019d": {
+      "compatible": [
+        "qcom,pm8941-resin"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@0/pon@800/resin",
+      "phandle": 413,
+      "phandle_properties": {
+        "phandle": 413
+      },
+      "status": "disabled"
+    },
+    "0x0000019e": {
+      "compatible": [
+        "qcom,spmi-adc-tm5"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@0/adc-tm@3500",
+      "phandle": 414,
+      "phandle_properties": {
+        "phandle": 414
+      },
+      "status": "disabled"
+    },
+    "0x0000019f": {
+      "compatible": [
+        "qcom,spmi-adc-tm5"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@4/adc-tm@3500",
+      "phandle": 415,
+      "phandle_properties": {
+        "phandle": 415
+      },
+      "status": "disabled"
+    },
+    "0x000001a0": {
+      "compatible": [
+        "qcom,pm8150l-flash-led",
+        "qcom,spmi-flash-led"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@5/led-controller@d300",
+      "phandle": 416,
+      "phandle_properties": {
+        "phandle": 416
+      },
+      "status": "disabled"
+    },
+    "0x000001a1": {
+      "compatible": [
+        "qcom,pm8150l-lpg"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@5/pwm",
+      "phandle": 417,
+      "phandle_properties": {
+        "phandle": 417
+      },
+      "status": "disabled"
+    },
+    "0x000001a2": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cam2-default-state",
+      "phandle": 418,
+      "phandle_properties": {
+        "phandle": 418
+      },
+      "status": null
+    },
+    "0x000001a3": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cam2-suspend-state",
+      "phandle": 419,
+      "phandle_properties": {
+        "phandle": 419
+      },
+      "status": null
+    },
+    "0x000001a4": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cci0-default-state/cci0-i2c0-default-pins",
+      "phandle": 420,
+      "phandle_properties": {
+        "phandle": 420
+      },
+      "status": null
+    },
+    "0x000001a5": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cci0-default-state/cci0-i2c1-default-pins",
+      "phandle": 421,
+      "phandle_properties": {
+        "phandle": 421
+      },
+      "status": null
+    },
+    "0x000001a6": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cci0-sleep-state/cci0-i2c0-sleep-pins",
+      "phandle": 422,
+      "phandle_properties": {
+        "phandle": 422
+      },
+      "status": null
+    },
+    "0x000001a7": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cci0-sleep-state/cci0-i2c1-sleep-pins",
+      "phandle": 423,
+      "phandle_properties": {
+        "phandle": 423
+      },
+      "status": null
+    },
+    "0x000001a8": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cci1-default-state/cci1-i2c0-default-pins",
+      "phandle": 424,
+      "phandle_properties": {
+        "phandle": 424
+      },
+      "status": null
+    },
+    "0x000001a9": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cci1-default-state/cci1-i2c1-default-pins",
+      "phandle": 425,
+      "phandle_properties": {
+        "phandle": 425
+      },
+      "status": null
+    },
+    "0x000001aa": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cci1-sleep-state/cci1-i2c0-sleep-pins",
+      "phandle": 426,
+      "phandle_properties": {
+        "phandle": 426
+      },
+      "status": null
+    },
+    "0x000001ab": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cci1-sleep-state/cci1-i2c1-sleep-pins",
+      "phandle": 427,
+      "phandle_properties": {
+        "phandle": 427
+      },
+      "status": null
+    },
+    "0x000001ac": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pri-mi2s-active-state",
+      "phandle": 428,
+      "phandle_properties": {
+        "phandle": 428
+      },
+      "status": null
+    },
+    "0x000001ad": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi0-cs-state",
+      "phandle": 429,
+      "phandle_properties": {
+        "phandle": 429
+      },
+      "status": null
+    },
+    "0x000001ae": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi0-cs-gpio-state",
+      "phandle": 430,
+      "phandle_properties": {
+        "phandle": 430
+      },
+      "status": null
+    },
+    "0x000001af": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi0-data-clk-state",
+      "phandle": 431,
+      "phandle_properties": {
+        "phandle": 431
+      },
+      "status": null
+    },
+    "0x000001b0": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi1-cs-state",
+      "phandle": 432,
+      "phandle_properties": {
+        "phandle": 432
+      },
+      "status": null
+    },
+    "0x000001b1": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi1-cs-gpio-state",
+      "phandle": 433,
+      "phandle_properties": {
+        "phandle": 433
+      },
+      "status": null
+    },
+    "0x000001b2": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi1-data-clk-state",
+      "phandle": 434,
+      "phandle_properties": {
+        "phandle": 434
+      },
+      "status": null
+    },
+    "0x000001b3": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi2-cs-state",
+      "phandle": 435,
+      "phandle_properties": {
+        "phandle": 435
+      },
+      "status": null
+    },
+    "0x000001b4": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi2-cs-gpio-state",
+      "phandle": 436,
+      "phandle_properties": {
+        "phandle": 436
+      },
+      "status": null
+    },
+    "0x000001b5": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi2-data-clk-state",
+      "phandle": 437,
+      "phandle_properties": {
+        "phandle": 437
+      },
+      "status": null
+    },
+    "0x000001b6": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi3-cs-state",
+      "phandle": 438,
+      "phandle_properties": {
+        "phandle": 438
+      },
+      "status": null
+    },
+    "0x000001b7": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi3-cs-gpio-state",
+      "phandle": 439,
+      "phandle_properties": {
+        "phandle": 439
+      },
+      "status": null
+    },
+    "0x000001b8": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi3-data-clk-state",
+      "phandle": 440,
+      "phandle_properties": {
+        "phandle": 440
+      },
+      "status": null
+    },
+    "0x000001b9": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi4-cs-state",
+      "phandle": 441,
+      "phandle_properties": {
+        "phandle": 441
+      },
+      "status": null
+    },
+    "0x000001ba": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi4-cs-gpio-state",
+      "phandle": 442,
+      "phandle_properties": {
+        "phandle": 442
+      },
+      "status": null
+    },
+    "0x000001bb": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi4-data-clk-state",
+      "phandle": 443,
+      "phandle_properties": {
+        "phandle": 443
+      },
+      "status": null
+    },
+    "0x000001bc": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi5-cs-state",
+      "phandle": 444,
+      "phandle_properties": {
+        "phandle": 444
+      },
+      "status": null
+    },
+    "0x000001bd": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi5-cs-gpio-state",
+      "phandle": 445,
+      "phandle_properties": {
+        "phandle": 445
+      },
+      "status": null
+    },
+    "0x000001be": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi5-data-clk-state",
+      "phandle": 446,
+      "phandle_properties": {
+        "phandle": 446
+      },
+      "status": null
+    },
+    "0x000001bf": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi6-cs-state",
+      "phandle": 447,
+      "phandle_properties": {
+        "phandle": 447
+      },
+      "status": null
+    },
+    "0x000001c0": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi6-cs-gpio-state",
+      "phandle": 448,
+      "phandle_properties": {
+        "phandle": 448
+      },
+      "status": null
+    },
+    "0x000001c1": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi6-data-clk-state",
+      "phandle": 449,
+      "phandle_properties": {
+        "phandle": 449
+      },
+      "status": null
+    },
+    "0x000001c2": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi7-cs-state",
+      "phandle": 450,
+      "phandle_properties": {
+        "phandle": 450
+      },
+      "status": null
+    },
+    "0x000001c3": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi7-cs-gpio-state",
+      "phandle": 451,
+      "phandle_properties": {
+        "phandle": 451
+      },
+      "status": null
+    },
+    "0x000001c4": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi7-data-clk-state",
+      "phandle": 452,
+      "phandle_properties": {
+        "phandle": 452
+      },
+      "status": null
+    },
+    "0x000001c5": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi8-cs-state",
+      "phandle": 453,
+      "phandle_properties": {
+        "phandle": 453
+      },
+      "status": null
+    },
+    "0x000001c6": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi8-cs-gpio-state",
+      "phandle": 454,
+      "phandle_properties": {
+        "phandle": 454
+      },
+      "status": null
+    },
+    "0x000001c7": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi8-data-clk-state",
+      "phandle": 455,
+      "phandle_properties": {
+        "phandle": 455
+      },
+      "status": null
+    },
+    "0x000001c8": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi9-cs-state",
+      "phandle": 456,
+      "phandle_properties": {
+        "phandle": 456
+      },
+      "status": null
+    },
+    "0x000001c9": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi9-cs-gpio-state",
+      "phandle": 457,
+      "phandle_properties": {
+        "phandle": 457
+      },
+      "status": null
+    },
+    "0x000001ca": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi9-data-clk-state",
+      "phandle": 458,
+      "phandle_properties": {
+        "phandle": 458
+      },
+      "status": null
+    },
+    "0x000001cb": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi10-cs-state",
+      "phandle": 459,
+      "phandle_properties": {
+        "phandle": 459
+      },
+      "status": null
+    },
+    "0x000001cc": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi10-cs-gpio-state",
+      "phandle": 460,
+      "phandle_properties": {
+        "phandle": 460
+      },
+      "status": null
+    },
+    "0x000001cd": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi10-data-clk-state",
+      "phandle": 461,
+      "phandle_properties": {
+        "phandle": 461
+      },
+      "status": null
+    },
+    "0x000001ce": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi11-cs-state",
+      "phandle": 462,
+      "phandle_properties": {
+        "phandle": 462
+      },
+      "status": null
+    },
+    "0x000001cf": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi11-cs-gpio-state",
+      "phandle": 463,
+      "phandle_properties": {
+        "phandle": 463
+      },
+      "status": null
+    },
+    "0x000001d0": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi11-data-clk-state",
+      "phandle": 464,
+      "phandle_properties": {
+        "phandle": 464
+      },
+      "status": null
+    },
+    "0x000001d1": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi12-cs-state",
+      "phandle": 465,
+      "phandle_properties": {
+        "phandle": 465
+      },
+      "status": null
+    },
+    "0x000001d2": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi12-cs-gpio-state",
+      "phandle": 466,
+      "phandle_properties": {
+        "phandle": 466
+      },
+      "status": null
+    },
+    "0x000001d3": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi12-data-clk-state",
+      "phandle": 467,
+      "phandle_properties": {
+        "phandle": 467
+      },
+      "status": null
+    },
+    "0x000001d4": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi13-cs-state",
+      "phandle": 468,
+      "phandle_properties": {
+        "phandle": 468
+      },
+      "status": null
+    },
+    "0x000001d5": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi13-cs-gpio-state",
+      "phandle": 469,
+      "phandle_properties": {
+        "phandle": 469
+      },
+      "status": null
+    },
+    "0x000001d6": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi13-data-clk-state",
+      "phandle": 470,
+      "phandle_properties": {
+        "phandle": 470
+      },
+      "status": null
+    },
+    "0x000001d7": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi14-cs-state",
+      "phandle": 471,
+      "phandle_properties": {
+        "phandle": 471
+      },
+      "status": null
+    },
+    "0x000001d8": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi14-cs-gpio-state",
+      "phandle": 472,
+      "phandle_properties": {
+        "phandle": 472
+      },
+      "status": null
+    },
+    "0x000001d9": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi14-data-clk-state",
+      "phandle": 473,
+      "phandle_properties": {
+        "phandle": 473
+      },
+      "status": null
+    },
+    "0x000001da": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi15-cs-state",
+      "phandle": 474,
+      "phandle_properties": {
+        "phandle": 474
+      },
+      "status": null
+    },
+    "0x000001db": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi15-cs-gpio-state",
+      "phandle": 475,
+      "phandle_properties": {
+        "phandle": 475
+      },
+      "status": null
+    },
+    "0x000001dc": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi15-data-clk-state",
+      "phandle": 476,
+      "phandle_properties": {
+        "phandle": 476
+      },
+      "status": null
+    },
+    "0x000001dd": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi16-cs-state",
+      "phandle": 477,
+      "phandle_properties": {
+        "phandle": 477
+      },
+      "status": null
+    },
+    "0x000001de": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi16-cs-gpio-state",
+      "phandle": 478,
+      "phandle_properties": {
+        "phandle": 478
+      },
+      "status": null
+    },
+    "0x000001df": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi16-data-clk-state",
+      "phandle": 479,
+      "phandle_properties": {
+        "phandle": 479
+      },
+      "status": null
+    },
+    "0x000001e0": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi17-cs-state",
+      "phandle": 480,
+      "phandle_properties": {
+        "phandle": 480
+      },
+      "status": null
+    },
+    "0x000001e1": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi17-cs-gpio-state",
+      "phandle": 481,
+      "phandle_properties": {
+        "phandle": 481
+      },
+      "status": null
+    },
+    "0x000001e2": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi17-data-clk-state",
+      "phandle": 482,
+      "phandle_properties": {
+        "phandle": 482
+      },
+      "status": null
+    },
+    "0x000001e3": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi18-cs-state",
+      "phandle": 483,
+      "phandle_properties": {
+        "phandle": 483
+      },
+      "status": null
+    },
+    "0x000001e4": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi18-cs-gpio-state",
+      "phandle": 484,
+      "phandle_properties": {
+        "phandle": 484
+      },
+      "status": null
+    },
+    "0x000001e5": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi18-data-clk-state",
+      "phandle": 485,
+      "phandle_properties": {
+        "phandle": 485
+      },
+      "status": null
+    },
+    "0x000001e6": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi19-cs-state",
+      "phandle": 486,
+      "phandle_properties": {
+        "phandle": 486
+      },
+      "status": null
+    },
+    "0x000001e7": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi19-cs-gpio-state",
+      "phandle": 487,
+      "phandle_properties": {
+        "phandle": 487
+      },
+      "status": null
+    },
+    "0x000001e8": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/qup-spi19-data-clk-state",
+      "phandle": 488,
+      "phandle_properties": {
+        "phandle": 488
+      },
+      "status": null
+    },
+    "0x000001e9": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/tert-mi2s-active-state",
+      "phandle": 489,
+      "phandle_properties": {
+        "phandle": 489
+      },
+      "status": null
+    },
+    "0x000001ea": {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/sdc2-sleep-state",
+      "phandle": 490,
+      "phandle_properties": {
+        "phandle": 490
+      },
+      "status": null
+    },
+    "0x000001eb": {
+      "compatible": [
+        "qcom,sm8250-adsp-pas"
+      ],
+      "path": "/soc@0/remoteproc@17300000",
+      "phandle": 491,
+      "phandle_properties": {
+        "phandle": 491
+      },
+      "status": "disabled"
+    },
+    "0x000001ec": {
+      "compatible": [
+        "qcom,q6afe"
+      ],
+      "path": "/soc@0/remoteproc@17300000/glink-edge/apr/service@4",
+      "phandle": 492,
+      "phandle_properties": {
+        "phandle": 492
+      },
+      "status": null
+    },
+    "0x000001ed": {
+      "compatible": [
+        "qcom,q6afe-dais"
+      ],
+      "path": "/soc@0/remoteproc@17300000/glink-edge/apr/service@4/dais",
+      "phandle": 493,
+      "phandle_properties": {
+        "phandle": 493
+      },
+      "status": null
+    },
+    "0x000001ee": {
+      "compatible": [
+        "qcom,q6asm"
+      ],
+      "path": "/soc@0/remoteproc@17300000/glink-edge/apr/service@7",
+      "phandle": 494,
+      "phandle_properties": {
+        "phandle": 494
+      },
+      "status": null
+    },
+    "0x000001ef": {
+      "compatible": [
+        "qcom,q6asm-dais"
+      ],
+      "path": "/soc@0/remoteproc@17300000/glink-edge/apr/service@7/dais",
+      "phandle": 495,
+      "phandle_properties": {
+        "phandle": 495
+      },
+      "status": null
+    },
+    "0x000001f0": {
+      "compatible": [
+        "qcom,q6adm"
+      ],
+      "path": "/soc@0/remoteproc@17300000/glink-edge/apr/service@8",
+      "phandle": 496,
+      "phandle_properties": {
+        "phandle": 496
+      },
+      "status": null
+    },
+    "0x000001f1": {
+      "compatible": [
+        "qcom,q6adm-routing"
+      ],
+      "path": "/soc@0/remoteproc@17300000/glink-edge/apr/service@8/routing",
+      "phandle": 497,
+      "phandle_properties": {
+        "phandle": 497
+      },
+      "status": null
+    },
+    "0x000001f2": {
+      "compatible": [
+        "qcom,rpmh-rsc"
+      ],
+      "path": "/soc@0/rsc@18200000",
+      "phandle": 498,
+      "phandle_properties": {
+        "phandle": 498
+      },
+      "status": null
+    },
+    "0x000001f3": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/power-controller/opp-table/opp1",
+      "phandle": 499,
+      "phandle_properties": {
+        "phandle": 499
+      },
+      "status": null
+    },
+    "0x000001f4": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/power-controller/opp-table/opp7",
+      "phandle": 500,
+      "phandle_properties": {
+        "phandle": 500
+      },
+      "status": null
+    },
+    "0x000001f5": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/power-controller/opp-table/opp8",
+      "phandle": 501,
+      "phandle_properties": {
+        "phandle": 501
+      },
+      "status": null
+    },
+    "0x000001f6": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/power-controller/opp-table/opp9",
+      "phandle": 502,
+      "phandle_properties": {
+        "phandle": 502
+      },
+      "status": null
+    },
+    "0x000001f7": {
+      "compatible": null,
+      "path": "/soc@0/rsc@18200000/power-controller/opp-table/opp10",
+      "phandle": 503,
+      "phandle_properties": {
+        "phandle": 503
+      },
+      "status": null
+    },
+    "0x000001f8": {
+      "compatible": null,
+      "path": "/sound",
+      "phandle": 504,
+      "phandle_properties": {
+        "phandle": 504
+      },
+      "status": null
+    },
+    "0x000001f9": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu0-thermal/trips/cpu-crit",
+      "phandle": 505,
+      "phandle_properties": {
+        "phandle": 505
+      },
+      "status": null
+    },
+    "0x000001fa": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu1-thermal/trips/cpu-crit",
+      "phandle": 506,
+      "phandle_properties": {
+        "phandle": 506
+      },
+      "status": null
+    },
+    "0x000001fb": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu2-thermal/trips/cpu-crit",
+      "phandle": 507,
+      "phandle_properties": {
+        "phandle": 507
+      },
+      "status": null
+    },
+    "0x000001fc": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu3-thermal/trips/cpu-crit",
+      "phandle": 508,
+      "phandle_properties": {
+        "phandle": 508
+      },
+      "status": null
+    },
+    "0x000001fd": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-top-thermal/trips/cpu-crit",
+      "phandle": 509,
+      "phandle_properties": {
+        "phandle": 509
+      },
+      "status": null
+    },
+    "0x000001fe": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-top-thermal/trips/cpu-crit",
+      "phandle": 510,
+      "phandle_properties": {
+        "phandle": 510
+      },
+      "status": null
+    },
+    "0x000001ff": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-top-thermal/trips/cpu-crit",
+      "phandle": 511,
+      "phandle_properties": {
+        "phandle": 511
+      },
+      "status": null
+    },
+    "0x00000200": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-top-thermal/trips/cpu-crit",
+      "phandle": 512,
+      "phandle_properties": {
+        "phandle": 512
+      },
+      "status": null
+    },
+    "0x00000201": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-bottom-thermal/trips/cpu-crit",
+      "phandle": 513,
+      "phandle_properties": {
+        "phandle": 513
+      },
+      "status": null
+    },
+    "0x00000202": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-bottom-thermal/trips/cpu-crit",
+      "phandle": 514,
+      "phandle_properties": {
+        "phandle": 514
+      },
+      "status": null
+    },
+    "0x00000203": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-bottom-thermal/trips/cpu-crit",
+      "phandle": 515,
+      "phandle_properties": {
+        "phandle": 515
+      },
+      "status": null
+    },
+    "0x00000204": {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-bottom-thermal/trips/cpu-crit",
+      "phandle": 516,
+      "phandle_properties": {
+        "phandle": 516
+      },
+      "status": null
+    },
+    "0x00000205": {
+      "compatible": null,
+      "path": "/thermal-zones/aoss0-thermal/trips/trip-point0",
+      "phandle": 517,
+      "phandle_properties": {
+        "phandle": 517
+      },
+      "status": null
+    },
+    "0x00000206": {
+      "compatible": null,
+      "path": "/thermal-zones/cluster0-thermal/trips/trip-point0",
+      "phandle": 518,
+      "phandle_properties": {
+        "phandle": 518
+      },
+      "status": null
+    },
+    "0x00000207": {
+      "compatible": null,
+      "path": "/thermal-zones/cluster0-thermal/trips/cluster0_crit",
+      "phandle": 519,
+      "phandle_properties": {
+        "phandle": 519
+      },
+      "status": null
+    },
+    "0x00000208": {
+      "compatible": null,
+      "path": "/thermal-zones/cluster1-thermal/trips/trip-point0",
+      "phandle": 520,
+      "phandle_properties": {
+        "phandle": 520
+      },
+      "status": null
+    },
+    "0x00000209": {
+      "compatible": null,
+      "path": "/thermal-zones/cluster1-thermal/trips/cluster1_crit",
+      "phandle": 521,
+      "phandle_properties": {
+        "phandle": 521
+      },
+      "status": null
+    },
+    "0x0000020a": {
+      "compatible": null,
+      "path": "/thermal-zones/gpu-top-thermal/trips/trip-point0",
+      "phandle": 522,
+      "phandle_properties": {
+        "phandle": 522
+      },
+      "status": null
+    },
+    "0x0000020b": {
+      "compatible": null,
+      "path": "/thermal-zones/aoss1-thermal/trips/trip-point0",
+      "phandle": 523,
+      "phandle_properties": {
+        "phandle": 523
+      },
+      "status": null
+    },
+    "0x0000020c": {
+      "compatible": null,
+      "path": "/thermal-zones/wlan-thermal/trips/trip-point0",
+      "phandle": 524,
+      "phandle_properties": {
+        "phandle": 524
+      },
+      "status": null
+    },
+    "0x0000020d": {
+      "compatible": null,
+      "path": "/thermal-zones/video-thermal/trips/trip-point0",
+      "phandle": 525,
+      "phandle_properties": {
+        "phandle": 525
+      },
+      "status": null
+    },
+    "0x0000020e": {
+      "compatible": null,
+      "path": "/thermal-zones/mem-thermal/trips/trip-point0",
+      "phandle": 526,
+      "phandle_properties": {
+        "phandle": 526
+      },
+      "status": null
+    },
+    "0x0000020f": {
+      "compatible": null,
+      "path": "/thermal-zones/q6-hvx-thermal/trips/trip-point0",
+      "phandle": 527,
+      "phandle_properties": {
+        "phandle": 527
+      },
+      "status": null
+    },
+    "0x00000210": {
+      "compatible": null,
+      "path": "/thermal-zones/camera-thermal/trips/trip-point0",
+      "phandle": 528,
+      "phandle_properties": {
+        "phandle": 528
+      },
+      "status": null
+    },
+    "0x00000211": {
+      "compatible": null,
+      "path": "/thermal-zones/compute-thermal/trips/trip-point0",
+      "phandle": 529,
+      "phandle_properties": {
+        "phandle": 529
+      },
+      "status": null
+    },
+    "0x00000212": {
+      "compatible": null,
+      "path": "/thermal-zones/npu-thermal/trips/trip-point0",
+      "phandle": 530,
+      "phandle_properties": {
+        "phandle": 530
+      },
+      "status": null
+    },
+    "0x00000213": {
+      "compatible": null,
+      "path": "/thermal-zones/gpu-bottom-thermal/trips/trip-point0",
+      "phandle": 531,
+      "phandle_properties": {
+        "phandle": 531
+      },
+      "status": null
+    }
+  },
+  "identity_semantics": "DT_NODE_ASSOCIATION_ONLY",
+  "missing_phandle_nodes": [
+    {
+      "compatible": [
+        "xiaomi,thyme",
+        "qcom,sm8250"
+      ],
+      "path": "/",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/__symbols__",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/aliases",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/chosen",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/clocks",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/cpus",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/cpus/cpu-map",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/cpus/cpu-map/cluster0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/cpus/cpu-map/cluster0/core0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/cpus/cpu-map/cluster0/core1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/cpus/cpu-map/cluster0/core2",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/cpus/cpu-map/cluster0/core3",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/cpus/cpu-map/cluster0/core4",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/cpus/cpu-map/cluster0/core5",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/cpus/cpu-map/cluster0/core6",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/cpus/cpu-map/cluster0/core7",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/cpus/domain-idle-states",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/cpus/idle-states",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/firmware",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/memory@80000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/opp-table-qup/opp-120000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/opp-table-qup/opp-50000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/opp-table-qup/opp-75000000",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,armv8-pmuv3"
+      ],
+      "path": "/pmu",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,psci-1.0"
+      ],
+      "path": "/psci",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/reserved-memory",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,smem"
+      ],
+      "path": "/smem",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,smp2p"
+      ],
+      "path": "/smp2p-adsp",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,smp2p"
+      ],
+      "path": "/smp2p-cdsp",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,smp2p"
+      ],
+      "path": "/smp2p-slpi",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/camss@ac6a000/ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/camss@ac6a000/ports/port@0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/camss@ac6a000/ports/port@1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/camss@ac6a000/ports/port@2",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/camss@ac6a000/ports/port@3",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/camss@ac6a000/ports/port@4",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/camss@ac6a000/ports/port@5",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/display-controller@ae01000/opp-table/opp-200000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/display-controller@ae01000/opp-table/opp-300000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/display-controller@ae01000/opp-table/opp-345000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/display-controller@ae01000/opp-table/opp-460000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/display-controller@ae01000/ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/display-controller@ae01000/ports/port@0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/display-controller@ae01000/ports/port@1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae94000/opp-table/opp-187500000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae94000/opp-table/opp-300000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae94000/opp-table/opp-358000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae94000/ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae94000/ports/port@0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae94000/ports/port@1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae96000/ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae96000/ports/port@0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/display-subsystem@ae00000/dsi@ae96000/ports/port@1",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-tmc",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/etf@6b05000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etf@6b05000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etf@6b05000/in-ports/port",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etf@6b05000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etf@6b05000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-etm4x",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/etm@7040000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7040000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7040000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-etm4x",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/etm@7140000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7140000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7140000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-etm4x",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/etm@7240000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7240000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7240000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-etm4x",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/etm@7340000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7340000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7340000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-etm4x",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/etm@7440000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7440000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7440000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-etm4x",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/etm@7540000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7540000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7540000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-etm4x",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/etm@7640000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7640000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7640000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-etm4x",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/etm@7740000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7740000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etm@7740000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-tmc",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/etr@6048000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etr@6048000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/etr@6048000/in-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-dynamic-funnel",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/funnel@6005000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6005000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6005000/in-ports/port",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6005000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6005000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-dynamic-funnel",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/funnel@6041000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6041000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6041000/in-ports/port@6",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6041000/in-ports/port@7",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6041000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6041000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-dynamic-funnel",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/funnel@6042000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6042000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6042000/in-ports/port@4",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6042000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6042000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-dynamic-funnel",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/funnel@6045000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6045000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6045000/in-ports/port@0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6045000/in-ports/port@1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6045000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6045000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-dynamic-funnel",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/funnel@6b04000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6b04000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6b04000/in-ports/port@7",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6b04000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6b04000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-dynamic-funnel",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/funnel@6c0b000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6c0b000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6c0b000/in-ports/port@3",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6c0b000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6c0b000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-dynamic-funnel",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/funnel@6c2d000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6c2d000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6c2d000/in-ports/port@2",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6c2d000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@6c2d000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-dynamic-funnel",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/funnel@7800000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@2",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@3",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@4",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@5",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@6",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/in-ports/port@7",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7800000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-dynamic-funnel",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/funnel@7810000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7810000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7810000/in-ports/port",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7810000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/funnel@7810000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/gmu@3d6a000/opp-table/opp-200000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/gpu@3d00000/opp-table/opp-305000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/gpu@3d00000/opp-table/opp-400000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/gpu@3d00000/opp-table/opp-441600000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/gpu@3d00000/opp-table/opp-490000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/gpu@3d00000/opp-table/opp-525000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/gpu@3d00000/opp-table/opp-587000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/gpu@3d00000/opp-table/opp-670000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/gpu@3d00000/zap-shader",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/mmc@8804000/opp-table/opp-100000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/mmc@8804000/opp-table/opp-19200000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/mmc@8804000/opp-table/opp-202000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/mmc@8804000/opp-table/opp-50000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/dmic01-active-state/clk-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/dmic01-active-state/data-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/dmic01-sleep-state/clk-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/dmic01-sleep-state/data-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/rx-swr-active-state/clk-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/rx-swr-active-state/data-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/tx-swr-active-state/clk-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/tx-swr-active-state/data-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/tx-swr-sleep-state/clk-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/tx-swr-sleep-state/data1-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/tx-swr-sleep-state/data2-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/wsa-swr-active-state/clk-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/wsa-swr-active-state/data-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/wsa-swr-sleep-state/clk-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@33c0000/wsa-swr-sleep-state/data-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cam2-default-state/mclk-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cam2-default-state/rst-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cam2-suspend-state/mclk-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/cam2-suspend-state/rst-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pcie0-default-state/clkreq-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pcie0-default-state/perst-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pcie0-default-state/wake-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pcie1-default-state/clkreq-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pcie1-default-state/perst-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pcie1-default-state/wake-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pcie2-default-state/clkreq-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pcie2-default-state/perst-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pcie2-default-state/wake-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pri-mi2s-active-state/data0-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pri-mi2s-active-state/data1-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pri-mi2s-active-state/sclk-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/pri-mi2s-active-state/ws-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/sdc2-sleep-state/clk-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/sdc2-sleep-state/cmd-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/sdc2-sleep-state/data-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/tert-mi2s-active-state/data0-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/tert-mi2s-active-state/sck-pins",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pinctrl@f100000/tert-mi2s-active-state/ws-pins",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,sm8250-llcc-bwmon",
+        "qcom,sc7280-llcc-bwmon"
+      ],
+      "path": "/soc@0/pmu@9091000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@9091000/opp-table/opp-10944000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@9091000/opp-table/opp-1200000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@9091000/opp-table/opp-1804000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@9091000/opp-table/opp-2188000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@9091000/opp-table/opp-2724000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@9091000/opp-table/opp-3072000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@9091000/opp-table/opp-4068000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@9091000/opp-table/opp-6220000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@9091000/opp-table/opp-7216000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@9091000/opp-table/opp-800000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@9091000/opp-table/opp-8368000",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,sm8250-cpu-bwmon",
+        "qcom,sdm845-bwmon"
+      ],
+      "path": "/soc@0/pmu@90b6400",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@90b6400/opp-table/opp-10944000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@90b6400/opp-table/opp-12784000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@90b6400/opp-table/opp-1804000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@90b6400/opp-table/opp-2188000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@90b6400/opp-table/opp-2724000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@90b6400/opp-table/opp-3072000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@90b6400/opp-table/opp-6220000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@90b6400/opp-table/opp-6832000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@90b6400/opp-table/opp-800000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/pmu@90b6400/opp-table/opp-8368000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/remoteproc@17300000/glink-edge",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,apr-v2"
+      ],
+      "path": "/soc@0/remoteproc@17300000/glink-edge/apr",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,q6core"
+      ],
+      "path": "/soc@0/remoteproc@17300000/glink-edge/apr/service@3",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc"
+      ],
+      "path": "/soc@0/remoteproc@17300000/glink-edge/fastrpc",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@17300000/glink-edge/fastrpc/compute-cb@3",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@17300000/glink-edge/fastrpc/compute-cb@4",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@17300000/glink-edge/fastrpc/compute-cb@5",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/remoteproc@5c00000/glink-edge",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc"
+      ],
+      "path": "/soc@0/remoteproc@5c00000/glink-edge/fastrpc",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@5c00000/glink-edge/fastrpc/compute-cb@1",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@5c00000/glink-edge/fastrpc/compute-cb@2",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@5c00000/glink-edge/fastrpc/compute-cb@3",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/remoteproc@8300000/glink-edge",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc"
+      ],
+      "path": "/soc@0/remoteproc@8300000/glink-edge/fastrpc",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@8300000/glink-edge/fastrpc/compute-cb@1",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@8300000/glink-edge/fastrpc/compute-cb@2",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@8300000/glink-edge/fastrpc/compute-cb@3",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@8300000/glink-edge/fastrpc/compute-cb@4",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@8300000/glink-edge/fastrpc/compute-cb@5",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@8300000/glink-edge/fastrpc/compute-cb@6",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@8300000/glink-edge/fastrpc/compute-cb@7",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,fastrpc-compute-cb"
+      ],
+      "path": "/soc@0/remoteproc@8300000/glink-edge/fastrpc/compute-cb@8",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-dynamic-replicator",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/replicator@6046000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/replicator@6046000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/replicator@6046000/in-ports/port",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/replicator@6046000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/replicator@6046000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-dynamic-replicator",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/replicator@6b06000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/replicator@6b06000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/replicator@6b06000/in-ports/port",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/replicator@6b06000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/replicator@6b06000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,pm8150-rpmh-regulators"
+      ],
+      "path": "/soc@0/rsc@18200000/regulators-0",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,pm8150l-rpmh-regulators"
+      ],
+      "path": "/soc@0/rsc@18200000/regulators-1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/spmi@c440000/pmic@0/adc@3100/channel@0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/spmi@c440000/pmic@0/adc@3100/channel@1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/spmi@c440000/pmic@0/adc@3100/channel@6",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,pm8941-rtc"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@0/rtc@6000",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,pm8150",
+        "qcom,spmi-pmic"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@1",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,pm8150l",
+        "qcom,spmi-pmic"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@4",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/spmi@c440000/pmic@4/adc@3100/channel@0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/spmi@c440000/pmic@4/adc@3100/channel@1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/spmi@c440000/pmic@4/adc@3100/channel@6",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,pm8916-pon"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@4/pon@800",
+      "status": "disabled"
+    },
+    {
+      "compatible": [
+        "qcom,pm8150l",
+        "qcom,spmi-pmic"
+      ],
+      "path": "/soc@0/spmi@c440000/pmic@5",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,rpmh-stats"
+      ],
+      "path": "/soc@0/sram@c3f0000",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,coresight-stm",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/stm@6002000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/stm@6002000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/stm@6002000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,sm8250-llcc"
+      ],
+      "path": "/soc@0/system-cache-controller@9200000",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,armv7-timer-mem"
+      ],
+      "path": "/soc@0/timer@17c20000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/timer@17c20000/frame@17c21000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/timer@17c20000/frame@17c23000",
+      "status": "disabled"
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/timer@17c20000/frame@17c25000",
+      "status": "disabled"
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/timer@17c20000/frame@17c27000",
+      "status": "disabled"
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/timer@17c20000/frame@17c29000",
+      "status": "disabled"
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/timer@17c20000/frame@17c2b000",
+      "status": "disabled"
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/timer@17c20000/frame@17c2d000",
+      "status": "disabled"
+    },
+    {
+      "compatible": [
+        "qcom,coresight-tpda",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/tpda@6004000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/tpda@6004000/in-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/tpda@6004000/in-ports/port@17",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/tpda@6004000/in-ports/port@9",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/tpda@6004000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/tpda@6004000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,coresight-tpdm",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/tpdm@684c000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/tpdm@684c000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/tpdm@684c000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,coresight-tpdm",
+        "arm,primecell"
+      ],
+      "path": "/soc@0/tpdm@6c08000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/tpdm@6c08000/out-ports",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/tpdm@6c08000/out-ports/port",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/video-codec@aa00000/opp-table/opp-1014000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/video-codec@aa00000/opp-table/opp-1098000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/video-codec@aa00000/opp-table/opp-1332000000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/soc@0/video-codec@aa00000/opp-table/opp-720000000",
+      "status": null
+    },
+    {
+      "compatible": [
+        "venus-decoder"
+      ],
+      "path": "/soc@0/video-codec@aa00000/video-decoder",
+      "status": null
+    },
+    {
+      "compatible": [
+        "venus-encoder"
+      ],
+      "path": "/soc@0/video-codec@aa00000/video-encoder",
+      "status": null
+    },
+    {
+      "compatible": [
+        "qcom,apss-wdt-sm8250",
+        "qcom,kpss-wdt"
+      ],
+      "path": "/soc@0/watchdog@17c10000",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/aoss0-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/aoss0-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/aoss1-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/aoss1-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/camera-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/camera-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cluster0-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cluster0-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cluster1-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cluster1-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/compute-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/compute-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu0-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu0-thermal/cooling-maps",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu0-thermal/cooling-maps/map0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu0-thermal/cooling-maps/map1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu0-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu1-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu1-thermal/cooling-maps",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu1-thermal/cooling-maps/map0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu1-thermal/cooling-maps/map1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu1-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu2-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu2-thermal/cooling-maps",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu2-thermal/cooling-maps/map0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu2-thermal/cooling-maps/map1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu2-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu3-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu3-thermal/cooling-maps",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu3-thermal/cooling-maps/map0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu3-thermal/cooling-maps/map1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu3-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-bottom-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-bottom-thermal/cooling-maps",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-bottom-thermal/cooling-maps/map0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-bottom-thermal/cooling-maps/map1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-bottom-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-top-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-top-thermal/cooling-maps",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-top-thermal/cooling-maps/map0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-top-thermal/cooling-maps/map1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu4-top-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-bottom-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-bottom-thermal/cooling-maps",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-bottom-thermal/cooling-maps/map0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-bottom-thermal/cooling-maps/map1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-bottom-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-top-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-top-thermal/cooling-maps",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-top-thermal/cooling-maps/map0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-top-thermal/cooling-maps/map1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu5-top-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-bottom-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-bottom-thermal/cooling-maps",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-bottom-thermal/cooling-maps/map0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-bottom-thermal/cooling-maps/map1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-bottom-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-top-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-top-thermal/cooling-maps",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-top-thermal/cooling-maps/map0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-top-thermal/cooling-maps/map1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu6-top-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-bottom-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-bottom-thermal/cooling-maps",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-bottom-thermal/cooling-maps/map0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-bottom-thermal/cooling-maps/map1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-bottom-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-top-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-top-thermal/cooling-maps",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-top-thermal/cooling-maps/map0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-top-thermal/cooling-maps/map1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/cpu7-top-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/gpu-bottom-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/gpu-bottom-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/gpu-top-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/gpu-top-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/mem-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/mem-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/npu-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/npu-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/pm8150-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/pm8150-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/pm8150-thermal/trips/trip0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/pm8150-thermal/trips/trip1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/pm8150-thermal/trips/trip2",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/pm8150l-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/pm8150l-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/pm8150l-thermal/trips/trip0",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/pm8150l-thermal/trips/trip1",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/pm8150l-thermal/trips/trip2",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/q6-hvx-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/q6-hvx-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/video-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/video-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/wlan-thermal",
+      "status": null
+    },
+    {
+      "compatible": null,
+      "path": "/thermal-zones/wlan-thermal/trips",
+      "status": null
+    },
+    {
+      "compatible": [
+        "arm,armv8-timer"
+      ],
+      "path": "/timer",
+      "status": null
+    }
+  ],
+  "node_count": 919,
+  "nonzero_phandle_count": 531,
+  "zero_phandle_nodes": []
+}

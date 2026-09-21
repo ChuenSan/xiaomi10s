@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "llvm-readelf-18",
+    "-S",
+    "--wide",
+    "bundle/vmlinux"
+  ],
+  "returncode": 0,
+  "stderr": "elf-sections.stderr.txt",
+  "stderr_bytes": 0,
+  "stdout": "elf-sections.stdout.txt",
+  "stdout_bytes": 5047,
+  "timeout_seconds": 300
+}

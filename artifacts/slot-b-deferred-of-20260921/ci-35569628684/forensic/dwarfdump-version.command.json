@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "llvm-dwarfdump-18",
+    "--version"
+  ],
+  "returncode": 0,
+  "stderr": "dwarfdump-version.stderr.txt",
+  "stderr_bytes": 0,
+  "stdout": "dwarfdump-version.stdout.txt",
+  "stdout_bytes": 46,
+  "timeout_seconds": 300
+}

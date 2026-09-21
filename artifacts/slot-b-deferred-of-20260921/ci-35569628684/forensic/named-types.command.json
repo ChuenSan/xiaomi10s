@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "llvm-dwarfdump-18",
+    "--name=device",
+    "--name=device_node",
+    "--show-children",
+    "--recurse-depth=1",
+    "--show-form",
+    "bundle/vmlinux"
+  ],
+  "returncode": 0,
+  "stderr": "named-types.stderr.txt",
+  "stderr_bytes": 0,
+  "stdout": "named-types.stdout.txt",
+  "stdout_bytes": 71435888,
+  "timeout_seconds": 300
+}
