@@ -1,0 +1,24 @@
+{
+  "stage": "selected",
+  "source_commit": "867cf8a7bf7ae90c7b80eb5265515f6e546c944a",
+  "public_run": "35564673598",
+  "offset": 9340008,
+  "window": 56,
+  "parent_offset": 9339940,
+  "parent_size": 196,
+  "private_commit": "5d7c8fe4ae7fd3bb539a12d72457f9c5e37376cb",
+  "private_run": "35565769017",
+  "boot_size": 37380096,
+  "members": {
+    "8": {
+      "boot_sha256": "ac7a762b203bef6b0911c1223642021c46006433d91b32cd8da2f0ab5df8dd9d",
+      "boot_size": 37380096,
+      "payload_sha256": "c6127196a1c3b61586a41e0bc2d985138d049b1e08f9a583b1e7d7794c7b6633"
+    },
+    "1": {
+      "boot_sha256": "04d5b600b51a93c17c8806e5c07d0334b404d2adb80974aacc067bf5153fb26b",
+      "boot_size": 37380096,
+      "payload_sha256": "24813c2e7e28433ab4043ccef5641f7f93bb6b4f702448d82ecc3c3164584d28"
+    }
+  }
+}

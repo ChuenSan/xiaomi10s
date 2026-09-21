@@ -53,5 +53,24 @@ USB remains frozen. No local build or source/binary validator is permitted.
 Initial continuation check at `2026-09-21T03:54:16Z`: healthy Android A,
 root available, pstore empty, all 16 partition hashes and the P15 prefix equal
 the previous closeout. Evidence is retained under
-`artifacts/slot-b-deferred-name-20260921/device-round/pre-*`; no experiment was
+`artifacts/slot-b-deferred-selected-20260921/device-round/pre-*`; no experiment was
 performed during this check.
+
+## CI identities
+
+Public audit and independent re-audit `35564673598` passed at
+`867cf8a7bf7ae90c7b80eb5265515f6e546c944a`. Full-suite run `35564673558`
+passed 549 tests with 14 existing source-dependent skips. Actual assembly has
+no relocations; the complete worker's rewrite, relocation, direct-entry and
+exception-fixup gates passed.
+
+Private run `35565769017` at `5d7c8fe4ae7fd3bb539a12d72457f9c5e37376cb`
+passed packing and a fresh-job verification of downloaded images. Both boot
+images are 37380096 bytes and differ only at the two delay-encoding bytes.
+Authoritative full identities are in
+`scripts/slot_b/deferred_selected_identities.json`; they were populated from
+the CI receipts. OEM images remain under the private repository's local
+`artifacts/slot-b-deferred-selected-20260921/packed/` directory.
+
+The selected observer must pass its own Actions gate before either image is
+used. No selected-device experiment is implied by these CI results.
