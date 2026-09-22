@@ -2,9 +2,10 @@
 
 ## Stop and reading order
 
-The user requested complete closeout, memory archival and a new conversation.
-Work is intentionally paused. This is not project completion or device loss.
-Do not start another build, experiment or slot change until continuation resumes.
+Superseded for current continuation state by
+`docs/handoff-2026-09-22-pm-lock-static.md`. The pause below applied only until
+work resumed; that resumed static round is now itself closed for a new
+conversation switch. This is not project completion or device loss.
 
 Read this document, `docs/slot-b-deferred-pm-tail.md`, the current-status top,
 and the latest canonical mem0 handoff under `bzg-thyme-mainline`.

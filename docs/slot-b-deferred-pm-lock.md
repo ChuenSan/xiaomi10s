@@ -1,10 +1,10 @@
 # Deferred worker PM-lock return
 
-Status: **DEFERRED_PM_LOCK_RETURN_STATIC_FEASIBLE**. Runtime remains
-**DEFERRED_PM_TAIL_ENTRY_PROVEN**; no after-lock device experiment has run.
-The user resumed continuation and explicitly approved parent takeover after
-the t-grok-4.7/xhigh writer timed out without producing any source files.
-No independent subagent review completed. Evidence is parent review plus Actions.
+Status: **PAUSED_FOR_CONVERSATION_SWITCH**. The static gate remains
+**DEFERRED_PM_LOCK_RETURN_STATIC_FEASIBLE**, and runtime remains
+**DEFERRED_PM_TAIL_ENTRY_PROVEN**. No after-lock device experiment has run.
+Read `docs/handoff-2026-09-22-pm-lock-static.md` before continuing. The
+uncommitted pair drafts are not CI-qualified and must not be treated as ready.
 
 ## Static qualification
 

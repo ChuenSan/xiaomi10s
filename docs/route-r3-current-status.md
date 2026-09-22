@@ -1,17 +1,27 @@
 # thyme R3 current status (single source of truth for the current round)
 
-Resumed continuation (2026-09-22): **DEFERRED_PM_LOCK_RETURN_STATIC_FEASIBLE**.
+Conversation-switch closeout (2026-09-22): **PAUSED_FOR_CONVERSATION_SWITCH**.
+Static gate remains **DEFERRED_PM_LOCK_RETURN_STATIC_FEASIBLE**, but the new
+after-lock pair is not qualified. Three drafts are untracked and uncommitted;
+an independent source review found no P1/P2 defect and performed no Actions or
+device operation. No pair image, private pack, identity freeze, observer, or
+device readiness exists. Read **docs/handoff-2026-09-22-pm-lock-static.md**
+first. Fresh read-only check at host `2026-09-22T03:50:51Z`: healthy Android A,
+all 16-chain hashes and the P15 prefix unchanged. No reboot, slot change, or
+partition write occurred. Do not continue until explicitly resumed.
+
+Historical static qualification (2026-09-22): **DEFERRED_PM_LOCK_RETURN_STATIC_FEASIBLE**.
 Actions `35671827755` at `f09a011b39088a61942b4a8a9db67ee3ca099f22` passed
 12 new + 70 inherited tests and two matching fresh audits. The 60-byte suffix
 at `0x8de478` is statically feasible; the naive 56-byte suffix is rejected.
 Full suite `35671827678`: 713 tests, 36 source/artifact skips, with required
 new source coverage executed in the dedicated job. Runtime still stops at
 **DEFERRED_PM_TAIL_ENTRY_PROVEN**; no new candidate, device experiment or
-`/init` proof yet. Next is new pair qualification in Actions, not a rerun.
-Read **docs/slot-b-deferred-pm-lock.md**. Parent takeover was explicitly
-approved after the subagent writer timed out with zero delivered files;
-there is no completed independent subagent review. No local build or device
-operation. The previous conversation-switch pause below is superseded.
+`/init` proof yet. Next, only after explicit resume, is new pair qualification
+in Actions, not a rerun. Read **docs/slot-b-deferred-pm-lock.md**.
+Parent takeover was explicitly approved after the subagent writer timed out
+with zero delivered files. The later source-only pair review is recorded in
+the handoff above and is not Actions qualification.
 
 Historical handoff closeout (2026-09-22): **PAUSED_FOR_CONVERSATION_SWITCH**.
 Runtime remains **DEFERRED_PM_TAIL_ENTRY_PROVEN**, not completed mainline boot.
