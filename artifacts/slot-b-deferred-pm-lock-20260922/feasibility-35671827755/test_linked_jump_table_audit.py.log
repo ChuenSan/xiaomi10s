@@ -1,0 +1,10 @@
+test_complete_three_way_table_bytes_must_agree (test_linked_jump_table_audit.LinkedJumpTests.test_complete_three_way_table_bytes_must_agree) ... ok
+test_folded_table_is_found_without_standalone_section (test_linked_jump_table_audit.LinkedJumpTests.test_folded_table_is_found_without_standalone_section) ... ok
+test_instruction_and_target_inclusive_boundaries_are_independent (test_linked_jump_table_audit.LinkedJumpTests.test_instruction_and_target_inclusive_boundaries_are_independent) ... ok
+test_signed_offsets_use_each_field_address (test_linked_jump_table_audit.LinkedJumpTests.test_signed_offsets_use_each_field_address) ... ok
+test_relative_abi_and_dynamic_writer_configuration (test_linked_jump_table_audit.SourceTests.test_relative_abi_and_dynamic_writer_configuration) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.006s
+
+OK

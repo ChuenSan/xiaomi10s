@@ -1,7 +1,8 @@
 # Deferred worker PM-tail entry
 
-The user requested a conversation switch after this completed pair. Work is
-paused; read `docs/handoff-2026-09-22-pm-tail-entry.md` before continuing.
+The completed pair below remains frozen. The user resumed after the
+conversation switch; next-boundary qualification is recorded in
+`docs/slot-b-deferred-pm-lock.md`. The prior handoff remains historical evidence.
 
 Status: **DEFERRED_PM_TAIL_ENTRY_PROVEN**. PMTAIL8/1 completed once each,
 RAM-only in Slot B. Both cases are now rerun-forbidden, alongside all ten

@@ -1,0 +1,17 @@
+test_backedge_removal_or_retargeting_cannot_self_authorize_new_geometry (test_deferred_pm_lock_audit.BoundaryTests.test_backedge_removal_or_retargeting_cannot_self_authorize_new_geometry) ... ok
+test_external_entry_to_any_suffix_or_prefix_word_is_rejected (test_deferred_pm_lock_audit.BoundaryTests.test_external_entry_to_any_suffix_or_prefix_word_is_rejected) ... ok
+test_fresh_complete_linked_report_cannot_be_replaced_by_stale_or_partial_metadata (test_deferred_pm_lock_audit.BoundaryTests.test_fresh_complete_linked_report_cannot_be_replaced_by_stale_or_partial_metadata) ... ok
+test_full_function_relocation_and_exception_destinations_remain_protected (test_deferred_pm_lock_audit.BoundaryTests.test_full_function_relocation_and_exception_destinations_remain_protected) ... ok
+test_full_parent_and_worker_copies_are_exact_including_preserved_prefix (test_deferred_pm_lock_audit.BoundaryTests.test_full_parent_and_worker_copies_are_exact_including_preserved_prefix) ... ok
+test_only_60_byte_suffix_ending_at_exact_parent_end_is_accepted (test_deferred_pm_lock_audit.BoundaryTests.test_only_60_byte_suffix_ending_at_exact_parent_end_is_accepted) ... ok
+test_original_call_opcodes_and_both_symbol_tables_are_bound (test_deferred_pm_lock_audit.BoundaryTests.test_original_call_opcodes_and_both_symbol_tables_are_bound) ... ok
+test_prospective_layout_is_terminal_and_not_an_assembled_candidate (test_deferred_pm_lock_audit.BoundaryTests.test_prospective_layout_is_terminal_and_not_an_assembled_candidate) ... ok
+test_real_original_backedge_rejects_naive_window_but_not_full_suffix (test_deferred_pm_lock_audit.BoundaryTests.test_real_original_backedge_rejects_naive_window_but_not_full_suffix) ... ok
+test_mutex_lock_and_unlock_must_keep_the_original_object_and_order (test_deferred_pm_lock_audit.SourceTests.test_mutex_lock_and_unlock_must_keep_the_original_object_and_order) ... ok
+test_original_srcu_and_mutex_wrappers (test_deferred_pm_lock_audit.SourceTests.test_original_srcu_and_mutex_wrappers) ... ok
+test_srcu_wrapper_cannot_be_replaced_or_referenced_twice (test_deferred_pm_lock_audit.SourceTests.test_srcu_wrapper_cannot_be_replaced_or_referenced_twice) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.066s
+
+OK

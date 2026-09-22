@@ -1,0 +1,13 @@
+test_call_must_be_original_bl_not_a_tail_jump (test_deferred_pm_tail_audit.EntryTests.test_call_must_be_original_bl_not_a_tail_jump) ... ok
+test_caller_and_every_interior_entry_fail_closed (test_deferred_pm_tail_audit.EntryTests.test_caller_and_every_interior_entry_fail_closed) ... ok
+test_exact_parent_geometry_and_entry (test_deferred_pm_tail_audit.EntryTests.test_exact_parent_geometry_and_entry) ... ok
+test_full_code_scanner_includes_entry_and_window_start (test_deferred_pm_tail_audit.EntryTests.test_full_code_scanner_includes_entry_and_window_start) ... ok
+test_three_copies_must_match_through_suffix (test_deferred_pm_tail_audit.EntryTests.test_three_copies_must_match_through_suffix) ... ok
+test_changed_or_address_taken_references_are_rejected (test_deferred_pm_tail_audit.SourceTests.test_changed_or_address_taken_references_are_rejected) ... ok
+test_exact_source_order (test_deferred_pm_tail_audit.SourceTests.test_exact_source_order) ... ok
+test_wrapper_calls_and_lock_order_cannot_change (test_deferred_pm_tail_audit.SourceTests.test_wrapper_calls_and_lock_order_cannot_change) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.056s
+
+OK

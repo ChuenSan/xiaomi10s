@@ -1,6 +1,19 @@
 # thyme R3 current status (single source of truth for the current round)
 
-User-requested handoff closeout (2026-09-22): **PAUSED_FOR_CONVERSATION_SWITCH**.
+Resumed continuation (2026-09-22): **DEFERRED_PM_LOCK_RETURN_STATIC_FEASIBLE**.
+Actions `35671827755` at `f09a011b39088a61942b4a8a9db67ee3ca099f22` passed
+12 new + 70 inherited tests and two matching fresh audits. The 60-byte suffix
+at `0x8de478` is statically feasible; the naive 56-byte suffix is rejected.
+Full suite `35671827678`: 713 tests, 36 source/artifact skips, with required
+new source coverage executed in the dedicated job. Runtime still stops at
+**DEFERRED_PM_TAIL_ENTRY_PROVEN**; no new candidate, device experiment or
+`/init` proof yet. Next is new pair qualification in Actions, not a rerun.
+Read **docs/slot-b-deferred-pm-lock.md**. Parent takeover was explicitly
+approved after the subagent writer timed out with zero delivered files;
+there is no completed independent subagent review. No local build or device
+operation. The previous conversation-switch pause below is superseded.
+
+Historical handoff closeout (2026-09-22): **PAUSED_FOR_CONVERSATION_SWITCH**.
 Runtime remains **DEFERRED_PM_TAIL_ENTRY_PROVEN**, not completed mainline boot.
 Read **docs/handoff-2026-09-22-pm-tail-entry.md** first. Fresh read-only check at
 host `2026-09-21T23:26:54Z`: healthy Android A/root, empty pstore, all 16-chain

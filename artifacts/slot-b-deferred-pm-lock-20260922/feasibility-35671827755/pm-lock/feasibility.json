@@ -1,0 +1,159 @@
+{
+  "gate": "DEFERRED_PM_LOCK_RETURN_STATIC_FEASIBLE",
+  "source_commit": "f09a011b39088a61942b4a8a9db67ee3ca099f22",
+  "public_run": "35671827755",
+  "bundle_run": "35040148509",
+  "bundle": {
+    "linux_base": "8b73de7da85fde281a385e0b26eda9bffd3ca477",
+    "patch_queue_sha256": "d470701d58d62bf10b96adb4dbf0c639945afccd45d4d3f039e8051e7aaaf1b5",
+    "source_commit": "ba870dbdc094bdee08c67e465f229e67c36ac0b6",
+    "run_id": "35036419486",
+    "files": {
+      "Image": "43fb1c9128bdf37a2a77eb88cfff234381340b098ebf1aea1eabb2741180cebb",
+      "vmlinux": "295bfdb12184052a79c1aea35ce4a93a5833c42bdb7b4bd9173973312ade00ff",
+      "System.map": "e3ed0234692c5dc80188996730bb13f2303fd2ecb573e303134df02b7f61b3ea",
+      "kernel.config": "f947a2e44e60f5818e5e63ed3192d5eeca652b45665c6f4b13b3796cea359bfa"
+    },
+    "elf_export_reconciliation": {
+      "original_vmlinux_sha256": "42c04b8dc386b2f378e20b2b67bc635e11c681e0e1ba7a3bbe8a076af27ca2ca",
+      "archived_vmlinux_sha256": "295bfdb12184052a79c1aea35ce4a93a5833c42bdb7b4bd9173973312ade00ff",
+      "image_reproduction": "EXACT_MATCH",
+      "system_map_entries_matched": 167212,
+      "cause": "llvm-objcopy --dump-section without output rewrote ELF container in place",
+      "rebuild": false,
+      "run_id": "35040148509",
+      "source_commit": "ef629df364a592dd63e83743dfc06bf69f15ae5c"
+    }
+  },
+  "source_files_sha256": {
+    "drivers/base/dd.c": "1541264d3103954566e355752d93b212537719a2546e69da5fae2b4a4e9436c6",
+    "arch/arm64/include/asm/extable.h": "716acb8bb1c8d7bc2c066bc32c8864914ea7005fd59286484a2e0ad2f8f9bd82",
+    "arch/arm64/mm/extable.c": "89c0117326965554e8d3b0fb2ca45a7b495e3773ed72c6fa526306f74f94a9ff",
+    "drivers/base/core.c": "82c6bff4a508d9ad1174a97e1e609a24678f0f773c6478c72311fd0049430fb3",
+    "drivers/base/base.h": "a6ee79463db989405b03107eb2262b7552257059ebc9cd6f50169127f3971fed",
+    "include/linux/jump_label.h": "3da4ded9cccf8a7538348b3aa9309367d01309c03069505b8751931030f7d87d",
+    "drivers/base/power/main.c": "66f008f47c19d7f50ba7e2d8aaafeee40dc9c45b35bfd1dd9e610adf13fdf2d0"
+  },
+  "parent": "device_pm_move_to_tail",
+  "parent_offset": 9299024,
+  "parent_size": 100,
+  "parent_sha256": "7956c899bc9f87f119ecbc9c2c216d0bdde7c534ca2a2e47ebcc671de60b0f27",
+  "prefix_size": 40,
+  "prefix_sha256": "031d4155434d5eceeb01f0bde7060f1f8b63e386f1d064066968ed2aea50dff0",
+  "offset": 9299064,
+  "window": 60,
+  "window_end": 9299124,
+  "section": ".text",
+  "parent_agreement": "ELF_IMAGE_FIX8_EXACT_100B",
+  "worker_agreement": "ELF_IMAGE_FIX8_EXACT_196B",
+  "worker_sha256": "399830dd1790ce0ef5613f299753450ed834416c265207bfe6359ce2d704a85b",
+  "single_direct_caller": 9340064,
+  "original_calls": {
+    "__srcu_read_lock": {
+      "offset": 9299052,
+      "target": 1132192,
+      "word": 2548095117
+    },
+    "device_pm_lock": {
+      "offset": 9299060,
+      "target": 9426308,
+      "word": 2483059780
+    }
+  },
+  "original_prefix_preserved": true,
+  "rejected_56b_incoming": [
+    [
+      18446603338377979056,
+      18446603338377979020
+    ]
+  ],
+  "incoming_suffix": [],
+  "incoming_preserved_prefix": [],
+  "prospective_terminal_layout": {
+    "core_size": 56,
+    "core_sha256": "8b90e4c5ba8817ed23414b0d41e94bc376021d2839889b6a87c6023aa5e259b5",
+    "padding_size": 4,
+    "padding_word": 3573751839,
+    "padding_offset": 9299120,
+    "padding_reachable": false,
+    "terminal": "PSCI_SYSTEM_RESET_OR_LOCAL_WFE_LOOP",
+    "terminal_fallthrough": false,
+    "new_stack_frame": false,
+    "original_stack_frame_bytes": 32,
+    "original_frame_left_outstanding_at_terminal": true,
+    "actual_new_probe_assembled": false,
+    "prospective_layout_only": true
+  },
+  "linked_jump_report": {
+    "gate": "LINKED_JUMP_TABLE_PM_WORKER_SAFE",
+    "source_commit": "f09a011b39088a61942b4a8a9db67ee3ca099f22",
+    "public_run": "35671827755",
+    "bundle_run": "35040148509",
+    "offset": 27882792,
+    "end": 27899832,
+    "size": 17040,
+    "entries": 1065,
+    "section": ".rodata",
+    "sha256": "82b8114fdc566a524c09496766c44f1c6fa804272a379a028c2f1e9248af4733",
+    "source_file": "include/linux/jump_label.h",
+    "source_sha256": "3da4ded9cccf8a7538348b3aa9309367d01309c03069505b8751931030f7d87d",
+    "layout": "S32_CODE_S32_TARGET_S64_KEY_FIELD_RELATIVE",
+    "agreement": "ELF_IMAGE_FIX8_EXACT",
+    "protected": [
+      [
+        18446603338377978960,
+        18446603338377979060
+      ],
+      [
+        18446603338378019876,
+        18446603338378020072
+      ]
+    ],
+    "code_rewrite_overlap": [],
+    "target_entry_overlap": [],
+    "candidate_generated": false,
+    "device_operation": false
+  },
+  "linked_jump_report_canonical_sha256": "f6990644eccbb29798936083920ed813060754b2d229ef1da2885ff598305108",
+  "linked_jump_reference": {
+    "repository": "ChuenSan/xiaomi10s",
+    "report_path": "artifacts/slot-b-deferred-pm-tail-20260921/linked-jump-35613385810/audit/linked-jump/linked-jump-table.json",
+    "source_commit": "00094b32ef511699be7e817cb5f13cdb58558e8a",
+    "public_run": "35613385810",
+    "canonical_sha256": "71f8aa57f6f42e75aff2612262ffec625c356375e24f95c62d65b3cf0f591cc6"
+  },
+  "full_parent_and_worker_gates": [
+    "source",
+    "sections",
+    "symbols",
+    "incoming",
+    "literals",
+    "RELA",
+    "RELR",
+    "runtime_rewrites",
+    "exception_fault_and_fixup",
+    "folded_jump_code_and_target"
+  ],
+  "future_positive_limit": [
+    "original_device_links_read_lock_returned",
+    "original_device_pm_lock_returned"
+  ],
+  "not_proven": [
+    "persistent_lock_state",
+    "valid_srcu_index",
+    "pm_list_movement",
+    "pm_tail_return",
+    "bus_or_driver_probe",
+    "device_identity",
+    "culprit",
+    "late_initcalls_completed",
+    "init",
+    "usb"
+  ],
+  "added_pointer_reads": 0,
+  "candidate_generated": false,
+  "device_ready": false,
+  "device_operation": false,
+  "partition_writes": 0,
+  "kernel_rebuild": false
+}
