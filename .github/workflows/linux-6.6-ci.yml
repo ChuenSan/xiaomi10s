@@ -2,6 +2,8 @@ name: linux-6.6-ci
 
 on:
   push:
+    branches-ignore:
+      - 'build/mi10s-diag-nmi1-*'
     paths-ignore:
       - 'docs/**'
       - '**.md'
